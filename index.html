@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Top-Down Shooter</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #111; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+    canvas { background: #1a1a2e; display: block; cursor: crosshair; }
+    #ui {
+      position: absolute; top: 20px; left: 20px; color: #eee;
+      font-family: monospace; font-size: 18px; pointer-events: none;
+    }
+    #gameOver {
+      display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      color: #fff; font-family: monospace; text-align: center; pointer-events: none;
+    }
+    #gameOver h1 { font-size: 48px; color: #e74c3c; margin-bottom: 10px; }
+    #gameOver p { font-size: 20px; margin-bottom: 20px; }
+    #gameOver .restart { color: #2ecc71; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <div id="ui">
+    <div>Vida: <span id="health">100</span></div>
+    <div>Pontos: <span id="score">0</span></div>
+    <div>Onda: <span id="wave">1</span></div>
+    <div>Inimigos: <span id="enemies">0</span></div>
+  </div>
+  <div id="gameOver">
+    <h1>GAME OVER</h1>
+    <p>Pontos: <span id="finalScore">0</span></p>
+    <p>Onda: <span id="finalWave">1</span></p>
+    <div class="restart">Pressione ENTER para reiniciar</div>
+  </div>
+  <canvas id="game"></canvas>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
