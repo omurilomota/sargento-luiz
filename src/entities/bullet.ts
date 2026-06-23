@@ -28,12 +28,15 @@ export function getBullets(): Bullet[] {
  * @param isEnemy - true se o projétil foi disparado por um inimigo
  * @param color - cor do projétil
  * @param pierce - true se atravessa múltiplos alvos
+ * @param explosive - true se o projétil é explosivo
+ * @param explosionRadius - raio da explosão em pixels
  */
 export function spawnBullet(
   x: number, y: number, vx: number, vy: number,
-  damage: number, isEnemy: boolean, color: string, pierce: boolean
+  damage: number, isEnemy: boolean, color: string, pierce: boolean,
+  explosive = false, explosionRadius = 0
 ): void {
-  bullets.push({ x, y, vx, vy, life: BULLET_LIFE, damage, isEnemy, color, pierce });
+  bullets.push({ x, y, vx, vy, life: BULLET_LIFE, damage, isEnemy, color, pierce, explosive, explosionRadius });
 }
 
 /**
