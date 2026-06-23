@@ -1,4 +1,5 @@
-import { Phase, Weapon, Upgrade } from './types';
+// src/config.ts
+import { Phase, Weapon, Upgrade, EnemyType } from './types';
 
 export const PHASES: Phase[] = [
   { name: 'Floresta', bg: '#1a2e1a', bgColor2: '#0d1a0d', gridColor: 'rgba(34,139,34,0.1)', enemyTypes: ['grunt', 'runner', 'spitter'], waves: 4 },
@@ -10,29 +11,29 @@ export const PHASES: Phase[] = [
   { name: 'Espaço', bg: '#05050d', bgColor2: '#020208', gridColor: 'rgba(100,100,200,0.05)', enemyTypes: ['ufo', 'asteroid', 'alien', 'mothership'], waves: 7 },
 ];
 
-export const ENEMY_TYPES: Record<string, any> = {
-  grunt: { radius: 16, speed: 80, health: 20, damage: 10, color: '#e74c3c', scoreValue: 10, coinDrop: 2, canShoot: false },
-  runner: { radius: 12, speed: 160, health: 10, damage: 8, color: '#e67e22', scoreValue: 15, coinDrop: 3, canShoot: false },
-  tank: { radius: 26, speed: 50, health: 80, damage: 20, color: '#8e44ad', scoreValue: 30, coinDrop: 5, canShoot: false },
+export const ENEMY_TYPES: Record<string, EnemyType> = {
+  grunt: { radius: 16, speed: 80, health: 20, damage: 10, color: '#e74c3c', scoreValue: 10, coinDrop: 2 },
+  runner: { radius: 12, speed: 160, health: 10, damage: 8, color: '#e67e22', scoreValue: 15, coinDrop: 3 },
+  tank: { radius: 26, speed: 50, health: 80, damage: 20, color: '#8e44ad', scoreValue: 30, coinDrop: 5 },
   shooter: { radius: 14, speed: 60, health: 30, damage: 5, color: '#2980b9', scoreValue: 25, coinDrop: 4, canShoot: true, shootRate: 2.0 },
-  bat: { radius: 10, speed: 120, health: 15, damage: 6, color: '#9b59b6', scoreValue: 12, coinDrop: 2, canShoot: false },
+  bat: { radius: 10, speed: 120, health: 15, damage: 6, color: '#9b59b6', scoreValue: 12, coinDrop: 2 },
   robot: { radius: 18, speed: 70, health: 50, damage: 12, color: '#7f8c8d', scoreValue: 35, coinDrop: 6, canShoot: true, shootRate: 1.5 },
-  slime: { radius: 20, speed: 60, health: 25, damage: 8, color: '#1abc9c', scoreValue: 20, coinDrop: 3, splits: true },
+  slime: { radius: 20, speed: 60, health: 25, damage: 8, color: '#1abc9c', scoreValue: 20, coinDrop: 3 },
   boss: { radius: 45, speed: 35, health: 500, damage: 30, color: '#c0392b', scoreValue: 200, coinDrop: 40, canShoot: true, shootRate: 0.8, isBoss: true },
   spitter: { radius: 14, speed: 70, health: 18, damage: 4, color: '#27ae60', scoreValue: 18, coinDrop: 3, canShoot: true, shootRate: 1.5, projectileColor: '#27ae60' },
   crystal: { radius: 22, speed: 40, health: 60, damage: 15, color: '#3498db', scoreValue: 40, coinDrop: 7, canShoot: true, shootRate: 3.0, splitBullet: true },
-  drone: { radius: 11, speed: 100, health: 12, damage: 5, color: '#95a5a6', scoreValue: 14, coinDrop: 2, canShoot: false, flies: true },
-  mosquito: { radius: 8, speed: 200, health: 8, damage: 4, color: '#d35400', scoreValue: 8, coinDrop: 1, canShoot: false },
-  frog: { radius: 18, speed: 90, health: 22, damage: 10, color: '#2ecc71', scoreValue: 22, coinDrop: 3, canShoot: true, shootRate: 2.5, jumps: true },
-  knight: { radius: 20, speed: 65, health: 45, damage: 18, color: '#bdc3c7', scoreValue: 35, coinDrop: 5, canShoot: false, armor: true },
+  drone: { radius: 11, speed: 100, health: 12, damage: 5, color: '#95a5a6', scoreValue: 14, coinDrop: 2 },
+  mosquito: { radius: 8, speed: 200, health: 8, damage: 4, color: '#d35400', scoreValue: 8, coinDrop: 1 },
+  frog: { radius: 18, speed: 90, health: 22, damage: 10, color: '#2ecc71', scoreValue: 22, coinDrop: 3, canShoot: true, shootRate: 2.5 },
+  knight: { radius: 20, speed: 65, health: 45, damage: 18, color: '#bdc3c7', scoreValue: 35, coinDrop: 5, armor: true },
   archer: { radius: 13, speed: 55, health: 20, damage: 8, color: '#e67e22', scoreValue: 28, coinDrop: 4, canShoot: true, shootRate: 1.2 },
-  mage: { radius: 15, speed: 50, health: 25, damage: 12, color: '#9b59b6', scoreValue: 45, coinDrop: 8, canShoot: true, shootRate: 2.0, homing: true },
+  mage: { radius: 15, speed: 50, health: 25, damage: 12, color: '#9b59b6', scoreValue: 45, coinDrop: 8, canShoot: true, shootRate: 2.0 },
   fireElemental: { radius: 17, speed: 85, health: 28, damage: 12, color: '#e74c3c', scoreValue: 30, coinDrop: 4, canShoot: true, shootRate: 1.8, leavesFire: true },
-  lavaSlime: { radius: 22, speed: 45, health: 35, damage: 10, color: '#d35400', scoreValue: 25, coinDrop: 4, splits: true },
-  magmaGolem: { radius: 30, speed: 35, health: 120, damage: 25, color: '#c0392b', scoreValue: 60, coinDrop: 10, canShoot: false, armor: true },
+  lavaSlime: { radius: 22, speed: 45, health: 35, damage: 10, color: '#d35400', scoreValue: 25, coinDrop: 4 },
+  magmaGolem: { radius: 30, speed: 35, health: 120, damage: 25, color: '#c0392b', scoreValue: 60, coinDrop: 10, armor: true },
   inferno: { radius: 16, speed: 90, health: 30, damage: 8, color: '#f39c12', scoreValue: 35, coinDrop: 5, canShoot: true, shootRate: 0.6, spreadShot: true },
-  ufo: { radius: 20, speed: 70, health: 40, damage: 10, color: '#1abc9c', scoreValue: 40, coinDrop: 6, canShoot: true, shootRate: 1.5, flies: true },
-  asteroid: { radius: 28, speed: 30, health: 100, damage: 30, color: '#7f8c8d', scoreValue: 50, coinDrop: 8, canShoot: false, splits: true },
+  ufo: { radius: 20, speed: 70, health: 40, damage: 10, color: '#1abc9c', scoreValue: 40, coinDrop: 6, canShoot: true, shootRate: 1.5 },
+  asteroid: { radius: 28, speed: 30, health: 100, damage: 30, color: '#7f8c8d', scoreValue: 50, coinDrop: 8 },
   alien: { radius: 14, speed: 110, health: 20, damage: 8, color: '#2ecc71', scoreValue: 25, coinDrop: 4, canShoot: true, shootRate: 1.0 },
   mothership: { radius: 50, speed: 25, health: 800, damage: 40, color: '#8e44ad', scoreValue: 500, coinDrop: 80, canShoot: true, shootRate: 0.5, isBoss: true, summons: true },
 };

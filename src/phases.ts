@@ -1,9 +1,9 @@
 import { PHASES } from './config';
-import { GameState } from './types';
+import { GameStateType } from './types';
 
 let currentPhase = 0;
 let currentWave = 0;
-let gameState: GameState = 'menu';
+let gameState: GameStateType = 'menu';
 let score = 0;
 let combo = 0;
 let comboTimer = 0;
@@ -17,7 +17,7 @@ export function getScore() { return score; }
 export function getCombo() { return combo; }
 export function getKillStreak() { return killStreak; }
 export function getTotalKills() { return totalKills; }
-export function setGameState(state: GameState) { gameState = state; }
+export function setGameState(state: GameStateType) { gameState = state; }
 
 export function addScore(amount: number) {
   const multiplier = 1 + combo * 0.1;
