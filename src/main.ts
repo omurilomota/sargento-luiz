@@ -5,6 +5,7 @@ import { buyWeapon, buyUpgrade, setShopCoins, getShopCoins, resetShop, drawShop 
 import { getCurrentPhase, getCurrentWave, getGameState, setGameState, nextWave, nextPhase, resetPhases, addScore, getScore, getPhaseBackground, getPhaseGridColor } from './phases';
 import { ENEMY_TYPES } from './config';
 import { Enemy, Bullet, Particle } from './types';
+import { getDashState, activateDash, updateDash, resetDash, isDashInvincible } from './dash';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d')!;
@@ -37,6 +38,7 @@ function resetPlayer() {
   player.health = player.maxHealth;
   player.invincible = 0;
   player.shield = 0;
+  resetDash();
 }
 
 function spawnBullet(x: number, y: number, vx: number, vy: number, damage: number, isEnemy: boolean, color: string) {
@@ -129,7 +131,23 @@ function update(dt: number) {
   if (keys['s'] || keys['arrowdown']) dy += 1;
   if (keys['a'] || keys['arrowleft']) dx -= 1;
   if (keys['d'] || keys['arrowright']) dx += 1;
-  if (dx || dy) {
+
+  if (keys['shift'] && dx === 0 && dy === 0) {
+    const dashDir = { x: Math.cos(player.angle), y: Math.sin(player.angle) };
+    dx = dashDir.x;
+    dy = dashDir.y;
+  }
+
+  if (keys['shift']) {
+    activateDash();
+  }
+
+  const dashState = updateDash(dt);
+  if (dashState.active) {
+    const n = normalize({ x: dx, y: dy });
+    player.x += n.x * player.speed * dashState.speedMultiplier * dt;
+    player.y += n.y * player.speed * dashState.speedMultiplier * dt;
+  } else if (dx || dy) {
     const n = normalize({ x: dx, y: dy });
     player.x += n.x * player.speed * dt;
     player.y += n.y * player.speed * dt;
@@ -165,7 +183,7 @@ function update(dt: number) {
       }
     }
 
-    if (dist(e, player) < e.radius + player.radius && player.invincible <= 0) {
+    if (dist(e, player) < e.radius + player.radius && player.invincible <= 0 && !isDashInvincible()) {
       if (player.shield > 0) {
         player.shield--;
       } else {
@@ -347,6 +365,15 @@ function draw() {
     ctx.moveTo(player.x, player.y);
     ctx.lineTo(player.x + Math.cos(player.angle) * 28, player.y + Math.sin(player.angle) * 28);
     ctx.stroke();
+  }
+
+  if (getDashState().active) {
+    ctx.globalAlpha = 0.5;
+    ctx.fillStyle = '#2ecc71';
+    ctx.beginPath();
+    ctx.arc(player.x - Math.cos(player.angle) * 20, player.y - Math.sin(player.angle) * 20, player.radius * 0.8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
   }
 }
 
