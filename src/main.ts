@@ -42,6 +42,10 @@ import { shoot, getCurrentWeapon, resetWeapons } from './weapons';
 import { getCurrentPhase, getCurrentWave, getGameState, setGameState, nextWave, nextPhase, resetPhases, addScore, getScore, getCombo, updateCombo, resetCombo, getKillStreak } from './phases';
 import { powerups, spawnPowerUp, updatePowerUps, hasPowerUp, activePowerups } from './powerups';
 
+// Audio & Visual Juice
+import { initAudio, sfxShoot, sfxShotgun, sfxExplosion, sfxBossDeath, sfxPlayerHit, sfxCoin, sfxPowerup, sfxLevelUp, sfxWaveStart, sfxBuy, sfxError, sfxGameOver, sfxHitStop, sfxEnemyShoot, startMusic } from './systems/audio';
+import { updateScreenShake, triggerScreenShake, triggerDamageFlash, triggerLevelUpFlash, triggerBossKillFlash, updateFlash, updateSlowMotion, triggerSlowMotion, triggerHitStop, updateHitStop, resetEffects } from './systems/effects';
+
 // ─── Canvas Setup ──────────────────────────────────────────────
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d')!;
@@ -70,9 +74,9 @@ canvas.addEventListener('contextmenu', e => e.preventDefault());
 import { Enemy } from './types';
 let enemies: Enemy[] = [];
 let damageNumbers: { x: number; y: number; text: string; color: string; life: number; vy: number }[] = [];
-let screenShake = 0;
 let phaseTransition = 0;
 let lastTime = 0;
+let currentFlash: string | null = null;
 
 /**
  * Reseta todo o estado do jogo para o início.
@@ -84,6 +88,7 @@ function resetGame() {
   resetWeapons();
   resetShop();
   resetSpawner();
+  resetEffects();
   enemies.length = 0;
   damageNumbers.length = 0;
   clearBullets();
@@ -102,6 +107,8 @@ function update(dt: number) {
 
   if (state === 'menu') {
     if (keys['enter']) {
+      initAudio();
+      startMusic();
       resetGame();
       setGameState('playing');
     }
@@ -155,7 +162,8 @@ function update(dt: number) {
     const muzzleX = p.x + Math.cos(p.angle) * 24;
     const muzzleY = p.y + Math.sin(p.angle) * 24;
     spawnParticles(muzzleX, muzzleY, weapon.color, 4, 120);
-    screenShake = 0.05;
+    triggerScreenShake(2, 0.05);
+    if (weapon.name === 'Shotgun') sfxShotgun(); else sfxShoot();
   }
 
   if (p.invincible > 0) p.invincible -= dt;
@@ -166,6 +174,7 @@ function update(dt: number) {
   if (waveComplete) {
     nextWave();
     player.healOnWaveComplete();
+    sfxWaveStart();
     if (getGameState() !== 'shop') {
       phaseTransition = 1.5;
     }
@@ -197,6 +206,7 @@ function update(dt: number) {
         } else {
           spawnBullet(e.x, e.y, Math.cos(angle) * 300, Math.sin(angle) * 300, e.damage, true, bColor, false);
         }
+        sfxEnemyShoot();
       }
     }
 
@@ -224,10 +234,14 @@ function update(dt: number) {
   // Collision
   checkEnemyPlayerCollision(enemies, p.x, p.y, p.radius, p.invincible, (e) => {
     const dmg = hasPowerUp('invincible') ? 0 : e.damage;
-    if (dmg > 0) player.enemyCollisionDamage(dmg);
+    if (dmg > 0) {
+      player.enemyCollisionDamage(dmg);
+      sfxPlayerHit();
+      triggerDamageFlash();
+    }
     e.health = 0;
     spawnParticles(e.x, e.y, e.color, 12, 200);
-    screenShake = 0.15;
+    triggerScreenShake(6, 0.15);
   });
 
   const bullets = getBullets();
@@ -241,7 +255,8 @@ function update(dt: number) {
     });
     if (!b.pierce) b.life = 0;
     spawnParticles(b.x, b.y, b.color, 3, 150);
-    screenShake = 0.03;
+    triggerScreenShake(1.5, 0.03);
+    triggerHitStop(0.02);
   });
 
   // Remove dead enemies
@@ -251,9 +266,15 @@ function update(dt: number) {
       const def = ENEMY_TYPES[enemies[i].type];
       if (def?.coinDrop) spawnCoins(enemies[i].x, enemies[i].y, def.coinDrop);
       spawnParticles(enemies[i].x, enemies[i].y, enemies[i].color, 20, 300);
+      sfxExplosion();
       if (def?.isBoss) {
         spawnParticles(enemies[i].x, enemies[i].y, '#f1c40f', 50, 400);
-        screenShake = 0.5;
+        triggerScreenShake(15, 0.5);
+        triggerSlowMotion(0.3, 0.8);
+        triggerBossKillFlash();
+        sfxBossDeath();
+      } else {
+        triggerScreenShake(3, 0.08);
       }
       if (Math.random() < 0.08) spawnPowerUp(enemies[i].x, enemies[i].y);
       enemies[i] = enemies[enemies.length - 1];
@@ -280,15 +301,21 @@ function update(dt: number) {
   updateCoins(dt, p.x, p.y, p.radius, (v) => {
     addScore(v);
     addShopCoins(v);
+    sfxCoin();
   });
   updatePowerUps(dt, p.x, p.y, p.radius, (type) => {
     if (type === 'health') player.healPlayer(30);
     if (type === 'shield') p.shield += 2;
     spawnParticles(p.x, p.y, POWERUP_TYPES[type].color, 15, 200);
+    sfxPowerup();
   });
 
-  if (screenShake > 0) screenShake -= dt;
-  if (p.health <= 0) setGameState('gameover');
+  if (p.health <= 0) {
+    setGameState('gameover');
+    sfxGameOver();
+  }
+
+  currentFlash = updateFlash(dt);
 
   updateHud({
     phase: getCurrentPhase()?.name || '1',
@@ -320,7 +347,8 @@ function draw() {
   if (state === 'gameover') { drawGameOver(getScore(), getKillStreak()); return; }
 
   const bg = getCurrentPhase();
-  drawGameBackground(bg?.bg || '#1a1a2e', bg?.gridColor || 'rgba(255,255,255,0.03)', screenShake);
+  const shake = updateScreenShake(0);
+  drawGameBackground(bg?.bg || '#1a1a2e', bg?.gridColor || 'rgba(255,255,255,0.03)', shake);
   drawPhaseTransition(phaseTransition, getCurrentWave(), bg?.name);
   renderCoins(getCoins());
   renderPowerUps(powerups);
@@ -329,6 +357,13 @@ function draw() {
   renderEnemies(enemies, player.getPlayer().x, player.getPlayer().y);
   renderPlayer(player.getPlayer());
   restoreCanvas();
+
+  // Flash overlay
+  if (currentFlash) {
+    ctx.fillStyle = currentFlash;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
   drawCombo(getCombo());
   drawWeaponInfo(getCurrentWeapon().name);
   renderActivePowerUps(activePowerups);
@@ -341,9 +376,16 @@ function draw() {
  * @param time - timestamp do frame em milissegundos
  */
 function loop(time: number) {
-  const dt = Math.min((time - lastTime) / 1000, 0.05);
+  const rawDt = Math.min((time - lastTime) / 1000, 0.05);
   lastTime = time;
-  update(dt);
+
+  // Hit stop freezes the game
+  if (!updateHitStop(rawDt)) {
+    // Slow motion scales dt
+    const dt = updateSlowMotion(rawDt);
+    update(dt);
+  }
+
   draw();
   requestAnimationFrame(loop);
 }

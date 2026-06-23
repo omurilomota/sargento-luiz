@@ -96,11 +96,9 @@ export function drawGameOver(score: number, killStreak: number): void {
  * @param gridColor - cor da grade
  * @param screenShake - intensidade do tremor (0 = sem shake)
  */
-export function drawGameBackground(bg: string, gridColor: string, screenShake: number): void {
-  const shakeX = screenShake > 0 ? (Math.random() - 0.5) * screenShake * 20 : 0;
-  const shakeY = screenShake > 0 ? (Math.random() - 0.5) * screenShake * 20 : 0;
+export function drawGameBackground(bg: string, gridColor: string, shake: { x: number; y: number }): void {
   ctx.save();
-  ctx.translate(shakeX, shakeY);
+  ctx.translate(shake.x, shake.y);
   ctx.fillStyle = bg;
   ctx.fillRect(-10, -10, canvas.width + 20, canvas.height + 20);
   const gridSize = 50;
@@ -143,7 +141,7 @@ export function drawPhaseTransition(phaseTransition: number, currentWave: number
 export function drawCoins(coins: Coin[]): void {
   for (const c of coins) {
     const pulse = 1 + Math.sin(Date.now() / 300 + c.x) * 0.15;
-    const alpha = Math.min(1, c.life / 3);
+    const alpha = Math.max(0, Math.min(1, c.life / 3));
     ctx.globalAlpha = alpha;
     ctx.fillStyle = '#f1c40f';
     ctx.shadowColor = '#f1c40f';
@@ -197,11 +195,11 @@ export function drawPowerUps(powerups: PowerUp[]): void {
  */
 export function drawParticles(particles: Particle[]): void {
   for (const p of particles) {
-    const alpha = p.life / p.maxLife;
+    const alpha = Math.max(0, p.life / p.maxLife);
     ctx.globalAlpha = alpha;
     ctx.fillStyle = p.color;
     ctx.beginPath();
-    ctx.arc(p.x, p.y, p.radius * alpha, 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, Math.max(0.1, p.radius * alpha), 0, Math.PI * 2);
     ctx.fill();
   }
   ctx.globalAlpha = 1;
