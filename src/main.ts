@@ -39,7 +39,7 @@ import { drawShop, handleShopClick, setShopCoins, getShopCoins, addShopCoins, re
 
 // Existing modules (unchanged)
 import { shoot, getCurrentWeapon, resetWeapons } from './weapons';
-import { getCurrentPhase, getCurrentWave, getGameState, setGameState, nextWave, nextPhase, resetPhases, addScore, getScore, getCombo, updateCombo, resetCombo, getKillStreak } from './phases';
+import { getCurrentPhase, getCurrentWave, getGameState, setGameState, nextWave, nextPhase, resetPhases, addScore, addScoreFlat, getScore, getCombo, updateCombo, resetCombo, getKillStreak } from './phases';
 import { powerups, spawnPowerUp, updatePowerUps, hasPowerUp, activePowerups } from './powerups';
 
 // Audio & Visual Juice
@@ -293,7 +293,7 @@ function update(dt: number) {
   }
 
   updateCoins(dt, p.x, p.y, p.radius, (v) => {
-    addScore(v);
+    addScoreFlat(v);
     addShopCoins(v);
     sfxCoin();
   });
