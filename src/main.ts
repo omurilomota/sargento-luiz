@@ -162,7 +162,6 @@ function update(dt: number) {
     const muzzleX = p.x + Math.cos(p.angle) * 24;
     const muzzleY = p.y + Math.sin(p.angle) * 24;
     spawnParticles(muzzleX, muzzleY, weapon.color, 4, 120);
-    triggerScreenShake(2, 0.05);
     if (weapon.name === 'Shotgun') sfxShotgun(); else sfxShoot();
   }
 
@@ -255,8 +254,7 @@ function update(dt: number) {
     });
     if (!b.pierce) b.life = 0;
     spawnParticles(b.x, b.y, b.color, 3, 150);
-    triggerScreenShake(1.5, 0.03);
-    triggerHitStop(0.02);
+    triggerHitStop(0.015);
   });
 
   // Remove dead enemies
@@ -274,7 +272,7 @@ function update(dt: number) {
         triggerBossKillFlash();
         sfxBossDeath();
       } else {
-        triggerScreenShake(3, 0.08);
+        triggerScreenShake(2, 0.06);
       }
       if (Math.random() < 0.08) spawnPowerUp(enemies[i].x, enemies[i].y);
       enemies[i] = enemies[enemies.length - 1];
