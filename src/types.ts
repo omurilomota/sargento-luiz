@@ -1,56 +1,204 @@
 // src/types.ts
-export interface Vec2 { x: number; y: number; }
 
+/** Vetor bidimensional genérico para coordenadas e direções */
+export interface Vec2 {
+  /** Coordenada horizontal */
+  x: number;
+  /** Coordenada vertical */
+  y: number;
+}
+
+/** Representa um projétil disparado por jogador ou inimigo */
 export interface Bullet {
-  x: number; y: number; vx: number; vy: number;
-  life: number; damage: number; isEnemy: boolean;
-  color: string; pierce: boolean;
+  /** Posição horizontal */
+  x: number;
+  /** Posição vertical */
+  y: number;
+  /** Velocidade horizontal */
+  vx: number;
+  /** Velocidade vertical */
+  vy: number;
+  /** Tempo de vida restante em segundos */
+  life: number;
+  /** Dano causado ao atingir um alvo */
+  damage: number;
+  /** Indica se o projétil foi disparado por um inimigo */
+  isEnemy: boolean;
+  /** Cor de renderização do projétil */
+  color: string;
+  /** Indica se o projétil atravessa múltiplos alvos */
+  pierce: boolean;
 }
 
+/** Representa um inimigo no campo de batalha */
 export interface Enemy {
-  x: number; y: number; radius: number; speed: number;
-  health: number; maxHealth: number; damage: number;
-  color: string; scoreValue: number; shootTimer: number;
-  shootRate: number; canShoot: boolean; type: string;
-  angle: number; attackTimer: number; summonTimer: number;
+  /** Posição horizontal */
+  x: number;
+  /** Posição vertical */
+  y: number;
+  /** Raio de colisão */
+  radius: number;
+  /** Velocidade de movimento em pixels/segundo */
+  speed: number;
+  /** Pontos de vida atuais */
+  health: number;
+  /** Pontos de vida máximos */
+  maxHealth: number;
+  /** Dano causado ao colidir com o jogador */
+  damage: number;
+  /** Cor de renderização */
+  color: string;
+  /** Pontos concedidos ao ser derrotado */
+  scoreValue: number;
+  /** Temporizador para o próximo disparo */
+  shootTimer: number;
+  /** Intervalo entre disparos em segundos */
+  shootRate: number;
+  /** Indica se o inimigo pode disparar projéteis */
+  canShoot: boolean;
+  /** Identificador do tipo de inimigo (chave no ENEMY_TYPES) */
+  type: string;
+  /** Ângulo de rotação atual */
+  angle: number;
+  /** Temporizador para ataques especiais */
+  attackTimer: number;
+  /** Temporizador para invocar aliados (chefes) */
+  summonTimer: number;
 }
 
+/** Representa uma partícula visual (explosão, rastro, etc.) */
 export interface Particle {
-  x: number; y: number; vx: number; vy: number;
-  life: number; maxLife: number; radius: number; color: string;
+  /** Posição horizontal */
+  x: number;
+  /** Posição vertical */
+  y: number;
+  /** Velocidade horizontal */
+  vx: number;
+  /** Velocidade vertical */
+  vy: number;
+  /** Tempo de vida restante em segundos */
+  life: number;
+  /** Tempo de vida total (usado para calcular alpha) */
+  maxLife: number;
+  /** Raio da partícula */
+  radius: number;
+  /** Cor da partícula */
+  color: string;
 }
 
+/** Representa uma moeda coletável dropada por inimigos */
 export interface Coin {
-  x: number; y: number; value: number; life: number;
-  vx: number; vy: number;
+  /** Posição horizontal */
+  x: number;
+  /** Posição vertical */
+  y: number;
+  /** Valor em pontos ao ser coletada */
+  value: number;
+  /** Tempo de vida restante em segundos */
+  life: number;
+  /** Velocidade horizontal */
+  vx: number;
+  /** Velocidade vertical */
+  vy: number;
 }
 
+/** Representa um power-up coletável no campo de batalha */
 export interface PowerUp {
-  x: number; y: number; type: string; life: number;
+  /** Posição horizontal */
+  x: number;
+  /** Posição vertical */
+  y: number;
+  /** Tipo do power-up (chave no POWERUP_TYPES) */
+  type: string;
+  /** Tempo de vida restante em segundos */
+  life: number;
 }
 
+/** Define as propriedades de uma arma disponível na loja */
 export interface Weapon {
-  name: string; damage: number; shootRate: number;
-  bulletSpeed: number; bulletCount: number; spread: number;
-  color: string; price: number; pierce: boolean;
+  /** Nome da arma exibido na interface */
+  name: string;
+  /** Dano causado por projétil */
+  damage: number;
+  /** Intervalo entre disparos em segundos */
+  shootRate: number;
+  /** Velocidade do projétil em pixels/segundo */
+  bulletSpeed: number;
+  /** Quantidade de projéteis disparados por vez */
+  bulletCount: number;
+  /** Ângulo de dispersão entre projéteis (radianos) */
+  spread: number;
+  /** Cor dos projéteis */
+  color: string;
+  /** Preço em moedas para desbloquear */
+  price: number;
+  /** Indica se o projétil atravessa inimigos */
+  pierce: boolean;
 }
 
+/** Define um upgrade permanente disponível na loja */
 export interface Upgrade {
-  name: string; effect: string; value: number; price: number;
+  /** Nome do upgrade exibido na interface */
+  name: string;
+  /** Identificador do efeito aplicado (health, speed, damage, etc.) */
+  effect: string;
+  /** Valor do efeito (absoluto para vida, percentual para dano/velocidade) */
+  value: number;
+  /** Preço em moedas para comprar */
+  price: number;
 }
 
+/** Define uma fase do jogo com suas configurações visuais e de inimigos */
 export interface Phase {
-  name: string; bg: string; bgColor2: string; gridColor: string;
-  enemyTypes: string[]; waves: number;
+  /** Nome da fase exibido na interface */
+  name: string;
+  /** Cor de fundo principal */
+  bg: string;
+  /** Cor de fundo secundária */
+  bgColor2: string;
+  /** Cor da grade de fundo */
+  gridColor: string;
+  /** Tipos de inimigos que aparecem nesta fase */
+  enemyTypes: string[];
+  /** Número total de ondas na fase */
+  waves: number;
 }
 
+/** Define as estatísticas e comportamento de um tipo de inimigo */
 export interface EnemyType {
-  radius: number; speed: number; health: number; damage: number;
-  color: string; scoreValue: number; coinDrop: number;
-  canShoot?: boolean; shootRate?: number; isBoss?: boolean;
-  armor?: boolean; spreadShot?: boolean; splitBullet?: boolean;
-  summons?: boolean; leavesFire?: boolean;
+  /** Raio de colisão */
+  radius: number;
+  /** Velocidade base de movimento */
+  speed: number;
+  /** Pontos de vida base */
+  health: number;
+  /** Dano base ao colidir */
+  damage: number;
+  /** Cor de renderização */
+  color: string;
+  /** Pontos concedidos ao ser derrotado */
+  scoreValue: number;
+  /** Quantidade de moedas dropadas */
+  coinDrop: number;
+  /** Indica se o inimigo pode disparar projéteis */
+  canShoot?: boolean;
+  /** Intervalo entre disparos em segundos */
+  shootRate?: number;
+  /** Indica se é um chefe */
+  isBoss?: boolean;
+  /** Indica se possui armadura (forma hexagonal) */
+  armor?: boolean;
+  /** Indica se dispara múltiplos projéteis em leque */
+  spreadShot?: boolean;
+  /** Indica se o projétil se divide em 4 direções */
+  splitBullet?: boolean;
+  /** Indica se invoca outros inimigos periodicamente */
+  summons?: boolean;
+  /** Indica se deixa rastro de partículas de fogo */
+  leavesFire?: boolean;
+  /** Cor dos projéteis disparados */
   projectileColor?: string;
 }
 
+/** Estados possíveis do ciclo de vida do jogo */
 export type GameStateType = 'menu' | 'playing' | 'shop' | 'gameover';

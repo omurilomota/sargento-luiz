@@ -1,4 +1,21 @@
-// src/main.ts — Thin orchestrator (~250 lines)
+/**
+ * src/main.ts — Orquestrador principal do jogo
+ *
+ * Arquitetura:
+ * - Canvas 2D para renderização com loop de jogo via requestAnimationFrame
+ * - Input via teclado (WASD/setas) e mouse (mover + click)
+ * - Estado global gerenciado por módulos separados (gameState, phases, weapons)
+ * - Entidades (player, bullets, coins) mantêm arrays internos
+ * - Sistemas (collision, spawner, particles) processam lógica por turno
+ * - Renderer desenha tudo usando o Canvas 2D API
+ * - UI composta por HTML (HUD) e Canvas (shop)
+ *
+ * Fluxo do jogo:
+ * 1. Menu → ENTER → Jogo
+ * 2. Jogando: ondas de inimigos → loja entre fases → próxima fase
+ * 3. Game Over → ENTER → Menu
+ */
+
 import { dist, normalize } from './utils';
 import { PHASES, ENEMY_TYPES, POWERUP_TYPES } from './config';
 
@@ -50,12 +67,17 @@ document.addEventListener('mouseup', () => { mouse.down = false; });
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 
 // ─── Game State ────────────────────────────────────────────────
-let enemies: any[] = [];
+import { Enemy } from './types';
+let enemies: Enemy[] = [];
 let damageNumbers: { x: number; y: number; text: string; color: string; life: number; vy: number }[] = [];
 let screenShake = 0;
 let phaseTransition = 0;
 let lastTime = 0;
 
+/**
+ * Reseta todo o estado do jogo para o início.
+ * Chamado ao iniciar nova partida ou voltar ao menu.
+ */
 function resetGame() {
   resetPhases();
   player.initPlayer(canvas.width, canvas.height);
@@ -70,6 +92,11 @@ function resetGame() {
 }
 
 // ─── Update ────────────────────────────────────────────────────
+/**
+ * Atualiza toda a lógica do jogo por frame.
+ * Processa input, movimentação, disparo, IA, colisões e coleta.
+ * @param dt - delta time em segundos (limitado a 0.05)
+ */
 function update(dt: number) {
   const state = getGameState();
 
@@ -274,6 +301,10 @@ function update(dt: number) {
 }
 
 // ─── Draw ──────────────────────────────────────────────────────
+/**
+ * Desenha todos os elementos visuais do jogo.
+ * Chamado após update() a cada frame.
+ */
 function draw() {
   const state = getGameState();
 
@@ -300,6 +331,11 @@ function draw() {
 }
 
 // ─── Game Loop ─────────────────────────────────────────────────
+/**
+ * Loop principal do jogo.
+ * Calcula delta time, atualiza lógica e renderiza.
+ * @param time - timestamp do frame em milissegundos
+ */
 function loop(time: number) {
   const dt = Math.min((time - lastTime) / 1000, 0.05);
   lastTime = time;

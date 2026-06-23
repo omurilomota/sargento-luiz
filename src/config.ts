@@ -1,6 +1,13 @@
-// src/config.ts
+/**
+ * src/config.ts
+ * Arquivo de configuração centralizado do jogo.
+ * Contém todos os dados estáticos: fases, tipos de inimigos, armas,
+ * upgrades e power-ups. Modificar estes valores altera o balanceamento
+ * e a experiência de jogo.
+ */
 import { Phase, Weapon, Upgrade, EnemyType } from './types';
 
+/** Lista de fases do jogo, definidas em ordem de progressão */
 export const PHASES: Phase[] = [
   { name: 'Floresta', bg: '#1a2e1a', bgColor2: '#0d1a0d', gridColor: 'rgba(34,139,34,0.1)', enemyTypes: ['grunt', 'runner', 'spitter'], waves: 4 },
   { name: 'Caverna', bg: '#1a1a2e', bgColor2: '#0d0d1a', gridColor: 'rgba(100,100,150,0.1)', enemyTypes: ['grunt', 'runner', 'tank', 'bat', 'crystal'], waves: 5 },
@@ -11,6 +18,7 @@ export const PHASES: Phase[] = [
   { name: 'Espaço', bg: '#05050d', bgColor2: '#020208', gridColor: 'rgba(100,100,200,0.05)', enemyTypes: ['ufo', 'asteroid', 'alien', 'mothership'], waves: 7 },
 ];
 
+/** Mapa de todos os tipos de inimigos disponíveis no jogo */
 export const ENEMY_TYPES: Record<string, EnemyType> = {
   grunt: { radius: 16, speed: 80, health: 20, damage: 10, color: '#e74c3c', scoreValue: 10, coinDrop: 2 },
   runner: { radius: 12, speed: 160, health: 10, damage: 8, color: '#e67e22', scoreValue: 15, coinDrop: 3 },
@@ -38,6 +46,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
   mothership: { radius: 50, speed: 25, health: 800, damage: 40, color: '#8e44ad', scoreValue: 500, coinDrop: 80, canShoot: true, shootRate: 0.5, isBoss: true, summons: true },
 };
 
+/** Lista de armas disponíveis, ordenadas por desbloqueio */
 export const WEAPONS: Weapon[] = [
   { name: 'Pistola', damage: 15, shootRate: 0.12, bulletSpeed: 600, bulletCount: 1, spread: 0, color: '#2ecc71', price: 0, pierce: false },
   { name: 'Shotgun', damage: 10, shootRate: 0.4, bulletSpeed: 500, bulletCount: 3, spread: 0.3, color: '#f39c12', price: 50, pierce: false },
@@ -49,6 +58,7 @@ export const WEAPONS: Weapon[] = [
   { name: 'Gel', damage: 12, shootRate: 0.1, bulletSpeed: 550, bulletCount: 2, spread: 0.2, color: '#3498db', price: 100, pierce: false },
 ];
 
+/** Lista de upgrades permanentes disponíveis na loja */
 export const UPGRADES: Upgrade[] = [
   { name: 'Vida +25', effect: 'health', value: 25, price: 30 },
   { name: 'Velocidade +15%', effect: 'speed', value: 0.15, price: 45 },
@@ -60,6 +70,7 @@ export const UPGRADES: Upgrade[] = [
   { name: 'Pierce', effect: 'pierce', value: 1, price: 120 },
 ];
 
+/** Mapa de tipos de power-ups com suas propriedades visuais e de duração */
 export const POWERUP_TYPES: Record<string, { color: string; symbol: string; duration: number }> = {
   health: { color: '#2ecc71', symbol: '+', duration: 0 },
   speed: { color: '#f39c12', symbol: '»', duration: 5 },

@@ -1,17 +1,54 @@
+/**
+ * Tela de loja.
+ * Permite ao jogador comprar armas e upgrades entre fases.
+ * Renderiza botões interativos e processa cliques para compras.
+ */
+
 import { WEAPONS, UPGRADES } from '../config';
 import { setWeapon, addDamageMultiplier, addPierce, addCrit } from '../weapons';
 
+/** Saldo atual de moedas do jogador */
 let shopCoins = 0;
+/** Índices das armas já compradas (começa com a arma padrão) */
 let purchasedWeapons: number[] = [0];
+/** Nomes dos upgrades já comprados */
 let purchasedUpgrades: string[] = [];
 
+/**
+ * Define o saldo de moedas do jogador na loja.
+ * @param amount - quantidade de moedas
+ */
 export function setShopCoins(amount: number) { shopCoins = amount; }
+
+/**
+ * Retorna o saldo atual de moedas.
+ * @returns quantidade de moedas disponíveis
+ */
 export function getShopCoins(): number { return shopCoins; }
+
+/**
+ * Adiciona moedas ao saldo do jogador.
+ * @param amount - quantidade a adicionar
+ */
 export function addShopCoins(amount: number) { shopCoins += amount; }
 
+/**
+ * Retorna os índices das armas já compradas.
+ * @returns array de índices de armas compradas
+ */
 export function getPurchasedWeapons(): number[] { return purchasedWeapons; }
+
+/**
+ * Retorna os nomes dos upgrades já comprados.
+ * @returns array de nomes de upgrades comprados
+ */
 export function getPurchasedUpgrades(): string[] { return purchasedUpgrades; }
 
+/**
+ * Tenta comprar uma arma pelo índice.
+ * @param index - índice da arma no array WEAPONS
+ * @returns true se a compra foi bem-sucedida
+ */
 export function buyWeapon(index: number): boolean {
   if (purchasedWeapons.includes(index)) return false;
   if (shopCoins < WEAPONS[index].price) return false;
@@ -21,6 +58,11 @@ export function buyWeapon(index: number): boolean {
   return true;
 }
 
+/**
+ * Tenta comprar um upgrade pelo nome.
+ * @param name - nome do upgrade (chave no array UPGRADES)
+ * @returns true se a compra foi bem-sucedida
+ */
 export function buyUpgrade(name: string): boolean {
   if (purchasedUpgrades.includes(name)) return false;
   const upgrade = UPGRADES.find(u => u.name === name);
@@ -32,17 +74,36 @@ export function buyUpgrade(name: string): boolean {
   return true;
 }
 
+/**
+ * Aplica o efeito de um upgrade ao sistema correspondente.
+ * @param effect - identificador do efeito (damage, pierce, crit)
+ * @param value - valor do efeito
+ */
 function applyUpgrade(effect: string, value: number) {
   if (effect === 'damage') addDamageMultiplier(value);
   if (effect === 'pierce') addPierce(value);
   if (effect === 'crit') addCrit(value);
 }
 
+/**
+ * Reseta o estado da loja: arma padrão, sem upgrades, moedas zeradas.
+ */
 export function resetShop() {
   purchasedWeapons = [0];
   purchasedUpgrades = [];
 }
 
+/**
+ * Desenha um botão retangular com cantos arredondados.
+ * @param ctx - contexto 2D do canvas
+ * @param x - posição horizontal
+ * @param y - posição vertical
+ * @param w - largura do botão
+ * @param h - altura do botão
+ * @param text - texto exibido no botão
+ * @param color - cor de destaque
+ * @param hovered - true se o mouse está sobre o botão
+ */
 function drawButton(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, text: string, color: string, hovered: boolean) {
   ctx.fillStyle = hovered ? color : 'rgba(255,255,255,0.1)';
   ctx.strokeStyle = color;
@@ -58,9 +119,19 @@ function drawButton(ctx: CanvasRenderingContext2D, x: number, y: number, w: numb
   ctx.fillText(text, x + w / 2, y + h / 2);
 }
 
+/** Índice Y da loja (para scroll futuro) */
 let shopHoverY = 0;
+/** Offset de scroll da loja */
 let shopScrollOffset = 0;
 
+/**
+ * Desenha a tela completa da loja com armas e upgrades.
+ * @param ctx - contexto 2D do canvas
+ * @param width - largura do canvas
+ * @param height - altura do canvas
+ * @param mouseX - posição horizontal do mouse
+ * @param mouseY - posição vertical do mouse
+ */
 export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: number, mouseX: number, mouseY: number) {
   ctx.fillStyle = 'rgba(5,5,15,0.95)';
   ctx.fillRect(0, 0, width, height);
@@ -122,6 +193,12 @@ export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: n
   ctx.fillText('Pressione ENTER para continuar', width / 2, height - 30);
 }
 
+/**
+ * Processa cliques do mouse na loja.
+ * Verifica se o clique foi em algum botão de arma ou upgrade.
+ * @param mouseX - posição horizontal do clique
+ * @param mouseY - posição vertical do clique
+ */
 export function handleShopClick(mouseX: number, mouseY: number) {
   const width = window.innerWidth;
   const colW = width / 2 - 40;

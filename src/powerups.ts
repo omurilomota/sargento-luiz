@@ -1,16 +1,39 @@
+/**
+ * Sistema de power-ups.
+ * Gerencia a criação, atualização, coleta e duração de power-ups.
+ * Power-ups são dropados aleatoriamente ao derrotar inimigos.
+ */
+
 import { PowerUp } from './types';
 import { POWERUP_TYPES } from './config';
 import { rand } from './utils';
 
+/** Lista de power-ups ativos no campo de batalha */
 export const powerups: PowerUp[] = [];
+/** Mapa de power-ups temporários ativos e seus tempos restantes (segundos) */
 export const activePowerups: Record<string, number> = {};
 
+/**
+ * Cria um power-up aleatório na posição especificada.
+ * O tipo é escolhido aleatoriamente entre todos os tipos disponíveis.
+ * @param x - posição horizontal
+ * @param y - posição vertical
+ */
 export function spawnPowerUp(x: number, y: number) {
   const types = Object.keys(POWERUP_TYPES);
   const type = types[Math.floor(rand(0, types.length))];
   powerups.push({ x, y, type, life: 12 });
 }
 
+/**
+ * Atualiza duração dos power-ups ativos e verifica coleta pelo jogador.
+ * Remove power-ups que expiraram ou foram coletados.
+ * @param dt - delta time em segundos
+ * @param playerX - posição horizontal do jogador
+ * @param playerY - posição vertical do jogador
+ * @param playerRadius - raio de colisão do jogador
+ * @param onCollect - callback chamado ao coletar um power-up (recebe o tipo)
+ */
 export function updatePowerUps(dt: number, playerX: number, playerY: number, playerRadius: number, onCollect: (type: string) => void) {
   for (const key in activePowerups) {
     activePowerups[key] -= dt;
@@ -22,8 +45,8 @@ export function updatePowerUps(dt: number, playerX: number, playerY: number, pla
     p.life -= dt;
     const dx = playerX - p.x;
     const dy = playerY - p.y;
-    const dist = Math.hypot(dx, dy);
-    if (dist < playerRadius + 15) {
+    const distance = Math.hypot(dx, dy);
+    if (distance < playerRadius + 15) {
       onCollect(p.type);
       const def = POWERUP_TYPES[p.type];
       if (def.duration > 0) activePowerups[p.type] = def.duration;
@@ -34,10 +57,19 @@ export function updatePowerUps(dt: number, playerX: number, playerY: number, pla
   }
 }
 
+/**
+ * Verifica se um power-up temporal está ativo.
+ * @param type - tipo do power-up a verificar
+ * @returns true se o power-up está ativo
+ */
 export function hasPowerUp(type: string): boolean {
   return !!activePowerups[type];
 }
 
+/**
+ * Desenha todos os power-ups no campo de batalha com efeito de flutuação.
+ * @param ctx - contexto 2D do canvas
+ */
 export function drawPowerUps(ctx: CanvasRenderingContext2D) {
   for (const p of powerups) {
     const def = POWERUP_TYPES[p.type];
@@ -60,6 +92,12 @@ export function drawPowerUps(ctx: CanvasRenderingContext2D) {
   ctx.globalAlpha = 1;
 }
 
+/**
+ * Desenha os ícones dos power-ups ativos com tempo restante.
+ * Posicionados no canto superior direito da tela.
+ * @param ctx - contexto 2D do canvas
+ * @param width - largura do canvas
+ */
 export function drawActivePowerUps(ctx: CanvasRenderingContext2D, width: number) {
   let x = width - 20;
   for (const key in activePowerups) {

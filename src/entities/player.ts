@@ -1,13 +1,43 @@
+/**
+ * Entidade do jogador.
+ * Gerencia o estado, movimento, dano e cura do jogador.
+ * Mantém um objeto Player singleton acessível por todos os módulos.
+ */
+
 import { PLAYER_BASE_SPEED, PLAYER_BASE_HEALTH, PLAYER_RADIUS, INVINCIBLE_DURATION, BULLET_INVINCIBLE_DURATION, WAVE_HEAL_ON_COMPLETE } from '../core/constants';
 
+/** Interface que define todas as propriedades do jogador */
 export interface Player {
-  x: number; y: number; radius: number; speed: number;
-  health: number; maxHealth: number; angle: number;
-  shootCooldown: number; invincible: number; shield: number;
+  /** Posição horizontal */
+  x: number;
+  /** Posição vertical */
+  y: number;
+  /** Raio de colisão */
+  radius: number;
+  /** Velocidade base de movimento */
+  speed: number;
+  /** Pontos de vida atuais */
+  health: number;
+  /** Pontos de vida máximos */
+  maxHealth: number;
+  /** Ângulo de mira atual (radianos) */
+  angle: number;
+  /** Cooldown restante para o próximo disparo */
+  shootCooldown: number;
+  /** Tempo restante de invincibilidade (0 = vulnerável) */
+  invincible: number;
+  /** Número de cargas de escudo restantes */
+  shield: number;
 }
 
+/** Instância singleton do jogador */
 let player: Player;
 
+/**
+ * Inicializa o jogador com stats base na posição central do canvas.
+ * @param canvasWidth - largura do canvas
+ * @param canvasHeight - altura do canvas
+ */
 export function initPlayer(canvasWidth: number, canvasHeight: number): void {
   player = {
     x: canvasWidth / 2, y: canvasHeight / 2,
@@ -17,10 +47,20 @@ export function initPlayer(canvasWidth: number, canvasHeight: number): void {
   };
 }
 
+/**
+ * Retorna a referência ao objeto do jogador.
+ * @returns objeto Player atual
+ */
 export function getPlayer(): Player {
   return player;
 }
 
+/**
+ * Reseta o jogador para a posição central, vida cheia e sem buffs.
+ * Usado ao iniciar nova fase.
+ * @param canvasWidth - largura do canvas
+ * @param canvasHeight - altura do canvas
+ */
 export function resetPlayer(canvasWidth: number, canvasHeight: number): void {
   player.x = canvasWidth / 2;
   player.y = canvasHeight / 2;
@@ -29,6 +69,15 @@ export function resetPlayer(canvasWidth: number, canvasHeight: number): void {
   player.shield = 0;
 }
 
+/**
+ * Move o jogador com base nas teclas pressionadas.
+ * Normaliza diagonal e aplica limite das bordas do canvas.
+ * @param keys - mapa de teclas pressionadas
+ * @param dt - delta time em segundos
+ * @param canvasWidth - largura do canvas
+ * @param canvasHeight - altura do canvas
+ * @param speedMultiplier - multiplicador de velocidade (ex: power-up de velocidade)
+ */
 export function movePlayer(
   keys: Record<string, boolean>,
   dt: number,
@@ -52,6 +101,11 @@ export function movePlayer(
   player.y = Math.max(player.radius, Math.min(canvasHeight - player.radius, player.y));
 }
 
+/**
+ * Aplica dano ao jogador causado por projéteis inimigos.
+ * Escudo absorve o dano se disponível.
+ * @param amount - quantidade de dano
+ */
 export function damagePlayer(amount: number): void {
   if (player.shield > 0) {
     player.shield--;
@@ -61,6 +115,11 @@ export function damagePlayer(amount: number): void {
   player.invincible = BULLET_INVINCIBLE_DURATION;
 }
 
+/**
+ * Aplica dano ao jogador causado por colisão direta com inimigos.
+ * Escudo absorve o dano se disponível. Invincibilidade mais longa que projéteis.
+ * @param enemyDamage - quantidade de dano do inimigo
+ */
 export function enemyCollisionDamage(enemyDamage: number): void {
   if (player.shield > 0) {
     player.shield--;
@@ -70,10 +129,18 @@ export function enemyCollisionDamage(enemyDamage: number): void {
   player.invincible = INVINCIBLE_DURATION;
 }
 
+/**
+ * Cura o jogador, limitado ao máximo de vida.
+ * @param amount - quantidade de vida a restaurar
+ */
 export function healPlayer(amount: number): void {
   player.health = Math.min(player.maxHealth, player.health + amount);
 }
 
+/**
+ * Cura o jogador ao completar uma onda.
+ * Usa o valor de WAVE_HEAL_ON_COMPLETE.
+ */
 export function healOnWaveComplete(): void {
   player.health = Math.min(player.maxHealth, player.health + WAVE_HEAL_ON_COMPLETE);
 }

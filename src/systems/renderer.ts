@@ -1,17 +1,33 @@
-// src/systems/renderer.ts
+/**
+ * Sistema de renderização Canvas 2D.
+ * Responsável por desenhar todos os elementos visuais do jogo:
+ * menu, fundo, inimigos, jogador, projéteis, partículas, moedas,
+ * power-ups, HUD e efeitos visuais.
+ */
+
 import { Enemy, Bullet, Particle, Coin, PowerUp } from '../types';
 import { ENEMY_TYPES, POWERUP_TYPES } from '../config';
 import { Player } from '../entities/player';
 import { hasPowerUp } from '../powerups';
 
+/** Contexto 2D do canvas */
 let ctx: CanvasRenderingContext2D;
+/** Elemento canvas principal */
 let canvas: HTMLCanvasElement;
 
+/**
+ * Inicializa o renderer com o canvas e contexto fornecidos.
+ * @param canvasEl - elemento canvas HTML
+ * @param ctxEl - contexto 2D do canvas
+ */
 export function initRenderer(canvasEl: HTMLCanvasElement, ctxEl: CanvasRenderingContext2D): void {
   canvas = canvasEl;
   ctx = ctxEl;
 }
 
+/**
+ * Desenha a tela de menu com título, instruções e efeito de partículas animadas.
+ */
 export function drawMenu(): void {
   ctx.fillStyle = '#0a0a1a';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -41,6 +57,11 @@ export function drawMenu(): void {
   ctx.globalAlpha = 1;
 }
 
+/**
+ * Desenha a tela de game over com pontuação final e opção de reiniciar.
+ * @param score - pontuação final do jogador
+ * @param killStreak - total de inimigos derrotados
+ */
 export function drawGameOver(score: number, killStreak: number): void {
   ctx.fillStyle = '#0a0a1a';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -69,6 +90,12 @@ export function drawGameOver(score: number, killStreak: number): void {
   ctx.globalAlpha = 1;
 }
 
+/**
+ * Desenha o fundo do campo de batalha com grade e efeito de screen shake.
+ * @param bg - cor de fundo principal
+ * @param gridColor - cor da grade
+ * @param screenShake - intensidade do tremor (0 = sem shake)
+ */
 export function drawGameBackground(bg: string, gridColor: string, screenShake: number): void {
   const shakeX = screenShake > 0 ? (Math.random() - 0.5) * screenShake * 20 : 0;
   const shakeY = screenShake > 0 ? (Math.random() - 0.5) * screenShake * 20 : 0;
@@ -87,6 +114,12 @@ export function drawGameBackground(bg: string, gridColor: string, screenShake: n
   }
 }
 
+/**
+ * Desenha a transição visual entre ondas com sobreposição semi-transparente.
+ * @param phaseTransition - tempo restante da transição (0 = sem transição)
+ * @param currentWave - número da onda atual para exibir
+ * @param phaseName - nome da fase atual (opcional)
+ */
 export function drawPhaseTransition(phaseTransition: number, currentWave: number, phaseName: string | undefined): void {
   if (phaseTransition > 0) {
     const alpha = Math.min(1, phaseTransition / 1.5);
@@ -103,6 +136,10 @@ export function drawPhaseTransition(phaseTransition: number, currentWave: number
   }
 }
 
+/**
+ * Desenha todas as moedas no campo de batalha com efeito de pulso.
+ * @param coins - array de moedas ativas
+ */
 export function drawCoins(coins: Coin[]): void {
   for (const c of coins) {
     const pulse = 1 + Math.sin(Date.now() / 300 + c.x) * 0.15;
@@ -128,6 +165,10 @@ export function drawCoins(coins: Coin[]): void {
   ctx.globalAlpha = 1;
 }
 
+/**
+ * Desenha todos os power-ups no campo de batalha com efeito de flutuação.
+ * @param powerups - array de power-ups ativos
+ */
 export function drawPowerUps(powerups: PowerUp[]): void {
   for (const p of powerups) {
     const def = POWERUP_TYPES[p.type];
@@ -150,6 +191,10 @@ export function drawPowerUps(powerups: PowerUp[]): void {
   ctx.globalAlpha = 1;
 }
 
+/**
+ * Desenha todas as partículas com transparência baseada no tempo de vida.
+ * @param particles - array de partículas ativas
+ */
 export function drawParticles(particles: Particle[]): void {
   for (const p of particles) {
     const alpha = p.life / p.maxLife;
@@ -162,6 +207,10 @@ export function drawParticles(particles: Particle[]): void {
   ctx.globalAlpha = 1;
 }
 
+/**
+ * Desenha todos os projéteis com efeito de rastro gradiente.
+ * @param bullets - array de projéteis ativos
+ */
 export function drawBullets(bullets: Bullet[]): void {
   for (const b of bullets) {
     ctx.fillStyle = b.color;
@@ -187,6 +236,14 @@ export function drawBullets(bullets: Bullet[]): void {
   }
 }
 
+/**
+ * Desenha todos os inimigos com visuais diferenciados por tipo:
+ * formas hexagonais para armadura, estrelas para chefes, círculos para normais.
+ * Inclui barra de vida e olhos que seguem o jogador.
+ * @param enemies - array de inimigos ativos
+ * @param playerX - posição horizontal do jogador (para direcionar olhos)
+ * @param playerY - posição vertical do jogador (para direcionar olhos)
+ */
 export function drawEnemies(enemies: Enemy[], playerX: number, playerY: number): void {
   for (const e of enemies) {
     ctx.save();
@@ -253,6 +310,12 @@ export function drawEnemies(enemies: Enemy[], playerX: number, playerY: number):
   }
 }
 
+/**
+ * Desenha o jogador com efeitos visuais baseados no estado:
+ * flash durante invincibilidade, aura de escudo, anel de invencibilidade,
+ * mira direcional e olhos.
+ * @param player - objeto do jogador com suas propriedades atuais
+ */
 export function drawPlayer(player: Player): void {
   const flash = player.invincible > 0 && Math.floor(player.invincible * 25) % 2;
   if (!flash) {
@@ -302,6 +365,10 @@ export function drawPlayer(player: Player): void {
   }
 }
 
+/**
+ * Desenha os números de dano flutuantes sobre inimigos atingidos.
+ * @param damageNumbers - array de números de dano ativos
+ */
 export function drawDamageNumbers(damageNumbers: { x: number; y: number; text: string; color: string; life: number; vy: number }[]): void {
   for (const d of damageNumbers) {
     const alpha = Math.min(1, d.life / 0.5);
@@ -314,6 +381,10 @@ export function drawDamageNumbers(damageNumbers: { x: number; y: number; text: s
   ctx.globalAlpha = 1;
 }
 
+/**
+ * Desenha o indicador de combo no topo da tela.
+ * @param combo - multiplicador atual do combo (exibido apenas se > 1)
+ */
 export function drawCombo(combo: number): void {
   if (combo > 1) {
     ctx.fillStyle = '#f1c40f';
@@ -326,6 +397,10 @@ export function drawCombo(combo: number): void {
   }
 }
 
+/**
+ * Desenha o nome da arma atual no canto inferior esquerdo.
+ * @param weaponName - nome da arma equipada
+ */
 export function drawWeaponInfo(weaponName: string): void {
   ctx.fillStyle = '#aaa';
   ctx.font = '14px monospace';
@@ -333,6 +408,10 @@ export function drawWeaponInfo(weaponName: string): void {
   ctx.fillText(weaponName, 20, canvas.height - 20);
 }
 
+/**
+ * Desenha os ícones dos power-ups ativos com tempo restante no canto superior direito.
+ * @param activePowerups - mapa de power-ups ativos e seus tempos restantes
+ */
 export function drawActivePowerUps(activePowerups: Record<string, number>): void {
   let x = canvas.width - 20;
   for (const key in activePowerups) {
@@ -356,6 +435,9 @@ export function drawActivePowerUps(activePowerups: Record<string, number>): void
   ctx.globalAlpha = 1;
 }
 
+/**
+ * Restaura o estado do canvas após uso de save/translate (screen shake).
+ */
 export function restoreCanvas(): void {
   ctx.restore();
 }

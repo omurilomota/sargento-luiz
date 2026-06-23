@@ -1,19 +1,48 @@
+/**
+ * Sistema de spawn de inimigos.
+ * Controla o fluxo de ondas: timer de spawn, escalonamento de dificuldade
+ * e criação de inimigos a partir dos tipos definidos na configuração.
+ */
+
 import { Enemy } from '../types';
 import { ENEMY_TYPES, PHASES } from '../config';
 import { rand } from '../utils';
 import { WAVE_BASE_ENEMIES, WAVE_ENEMIES_PER_LEVEL, WAVE_BASE_SPAWN_RATE, WAVE_SPAWN_RATE_DECAY, WAVE_MIN_SPAWN_RATE, WAVE_SCALE_PER_LEVEL } from '../core/constants';
 
+/** Temporizador acumulado desde o último spawn */
 let waveTimer = 0;
+/** Quantidade de inimigos já criados na onda atual */
 let enemiesSpawnedThisWave = 0;
 
+/**
+ * Retorna o temporizador atual de spawn da onda.
+ * @returns tempo acumulado em segundos
+ */
 export function getWaveTimer(): number { return waveTimer; }
+
+/**
+ * Retorna quantos inimigos foram gerados na onda atual.
+ * @returns quantidade de inimigos criados
+ */
 export function getEnemiesSpawned(): number { return enemiesSpawnedThisWave; }
 
+/**
+ * Reseta o temporizador e contador de inimigos da onda.
+ */
 export function resetSpawner(): void {
   waveTimer = 0;
   enemiesSpawnedThisWave = 0;
 }
 
+/**
+ * Cria um inimigo de um tipo específico em uma posição aleatória nas bordas da tela.
+ * As stats são escaladas pela onda atual.
+ * @param type - chave do tipo de inimigo no ENEMY_TYPES
+ * @param canvasWidth - largura do canvas
+ * @param canvasHeight - altura do canvas
+ * @param currentWave - número da onda atual (para escala de dificuldade)
+ * @returns inimigo criado ou null se o tipo for inválido
+ */
 export function spawnEnemy(type: string, canvasWidth: number, canvasHeight: number, currentWave: number): Enemy | null {
   const def = ENEMY_TYPES[type];
   if (!def) return null;
@@ -37,6 +66,17 @@ export function spawnEnemy(type: string, canvasWidth: number, canvasHeight: numb
   };
 }
 
+/**
+ * Atualiza o sistema de ondas: incrementa o timer, spawna inimigos
+ * periodicamente e detecta quando a onda está completa.
+ * @param dt - delta time em segundos
+ * @param enemies - array de inimigos ativos (modificado diretamente)
+ * @param currentWave - número da onda atual
+ * @param currentPhaseEnemyTypes - tipos de inimigos disponíveis na fase atual
+ * @param canvasWidth - largura do canvas
+ * @param canvasHeight - altura do canvas
+ * @returns true quando a onda está completa (todos spawnados e derrotados)
+ */
 export function spawnWaveEnemies(
   dt: number,
   enemies: Enemy[],
