@@ -52,16 +52,16 @@ export function spawnParticles(x: number, y: number, color: string, count: numbe
  * @param dt - delta time em segundos
  */
 export function updateParticles(dt: number): void {
-  for (let i = particles.length - 1; i >= 0; i--) {
-    const p = particles[i];
+  for (const p of particles) {
     p.x += p.vx * dt;
     p.y += p.vy * dt;
     p.vx *= 0.94;
     p.vy *= 0.94;
     p.life -= dt;
-    if (p.life <= 0) {
-      particles[particles.length - 1] = p;
-      particles.pop();
+  }
+  for (let i = particles.length - 1; i >= 0; i--) {
+    if (particles[i].life <= 0) {
+      particles.splice(i, 1);
     }
   }
 }

@@ -83,11 +83,9 @@ export function updateCoins(
 
     if (d < playerRadius + 8) {
       onCollect(c.value);
-      coinList[coinList.length - 1] = c;
-      coinList.pop();
+      coinList.splice(i, 1);
     } else if (c.life <= 0) {
-      coinList[coinList.length - 1] = c;
-      coinList.pop();
+      coinList.splice(i, 1);
     }
   }
 }

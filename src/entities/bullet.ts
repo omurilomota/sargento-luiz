@@ -44,14 +44,15 @@ export function spawnBullet(
  * @param canvasHeight - altura do canvas
  */
 export function updateBullets(dt: number, canvasWidth: number, canvasHeight: number): void {
-  for (let i = bullets.length - 1; i >= 0; i--) {
-    const b = bullets[i];
+  for (const b of bullets) {
     b.x += b.vx * dt;
     b.y += b.vy * dt;
     b.life -= dt;
+  }
+  for (let i = bullets.length - 1; i >= 0; i--) {
+    const b = bullets[i];
     if (b.life <= 0 || b.x < -50 || b.x > canvasWidth + 50 || b.y < -50 || b.y > canvasHeight + 50) {
-      bullets[bullets.length - 1] = b;
-      bullets.pop();
+      bullets.splice(i, 1);
     }
   }
 }
