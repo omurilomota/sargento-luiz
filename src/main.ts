@@ -293,10 +293,14 @@ function update(dt: number) {
   updateHud({
     phase: getCurrentPhase()?.name || '1',
     health: p.health,
+    maxHealth: p.maxHealth,
     score: getScore(),
     coins: getShopCoins(),
     wave: getCurrentWave(),
+    maxWave: getCurrentPhase()?.waves || 1,
     enemies: enemies.length,
+    weapon: getCurrentWeapon().name,
+    combo: getCombo(),
   });
 }
 

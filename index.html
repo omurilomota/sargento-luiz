@@ -4,34 +4,204 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Bubble Shooter</title>
+  <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #0a0a1a; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
     canvas { display: block; cursor: crosshair; }
-    #ui {
-      position: absolute; top: 15px; left: 15px; color: #eee;
-      font-family: monospace; font-size: 16px; pointer-events: none;
-      background: rgba(0,0,0,0.6); padding: 12px 16px; border-radius: 8px;
-      border: 1px solid rgba(255,255,255,0.1);
+
+    #hud {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      height: 64px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px;
+      pointer-events: none;
+      z-index: 100;
+      background: linear-gradient(to top,
+        rgba(20, 12, 8, 0.95) 0%,
+        rgba(20, 12, 8, 0.85) 60%,
+        rgba(20, 12, 8, 0.0) 100%);
+      border-top: 2px solid rgba(180, 140, 80, 0.4);
+      box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 200, 100, 0.1);
     }
-    #ui div { margin-bottom: 4px; }
-    #ui .health { color: #2ecc71; }
-    #ui .score { color: #f1c40f; }
-    #ui .wave { color: #3498db; }
-    #ui .enemies { color: #e74c3c; }
-    #ui .coins { color: #f1c40f; }
-    #ui .phase { color: #9b59b6; }
+
+    .hud-section {
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    .hud-item {
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px 14px;
+      border-radius: 6px;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(180, 140, 80, 0.25);
+      font-family: 'Cinzel', serif;
+      font-size: 14px;
+      color: #d4c4a0;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+      transition: all 0.2s ease;
+    }
+
+    .hud-icon {
+      font-size: 18px;
+      filter: drop-shadow(0 0 4px rgba(255, 200, 100, 0.3));
+    }
+
+    .hud-value {
+      font-weight: 700;
+      min-width: 24px;
+      text-align: center;
+    }
+
+    /* Hearts */
+    #health-hearts {
+      display: flex; gap: 3px;
+    }
+    .heart {
+      font-size: 20px;
+      transition: transform 0.15s ease, filter 0.15s ease;
+      filter: drop-shadow(0 0 6px rgba(220, 50, 50, 0.5));
+    }
+    .heart.full { color: #e74c3c; }
+    .heart.empty { color: #4a3030; filter: none; }
+    .heart.damage {
+      transform: scale(1.4);
+      filter: drop-shadow(0 0 12px rgba(255, 100, 100, 0.9));
+    }
+
+    /* Coins */
+    .coin-value {
+      color: #f1c40f;
+      font-weight: 700;
+      text-shadow: 0 0 8px rgba(241, 196, 15, 0.4);
+    }
+
+    /* Weapon */
+    .weapon-name {
+      color: #b0b0b0;
+      font-size: 13px;
+    }
+    .weapon-icon {
+      font-size: 16px;
+    }
+
+    /* Phase/Wave */
+    .phase-name {
+      color: #9b59b6;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .wave-num {
+      color: #3498db;
+      font-weight: 700;
+    }
+
+    /* Combo */
+    #combo {
+      opacity: 0;
+      transform: scale(0.8);
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      color: #f1c40f;
+      font-size: 16px;
+      font-weight: 700;
+      text-shadow: 0 0 12px rgba(241, 196, 15, 0.6);
+    }
+    #combo.active {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    /* Enemies */
+    .enemy-count {
+      color: #e74c3c;
+      font-weight: 700;
+    }
+
+    /* Score - top center */
+    #score-display {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Cinzel', serif;
+      font-size: 22px;
+      font-weight: 700;
+      color: #f1c40f;
+      text-shadow: 0 0 15px rgba(241, 196, 15, 0.5), 0 2px 4px rgba(0, 0, 0, 0.8);
+      pointer-events: none;
+      z-index: 100;
+      letter-spacing: 2px;
+    }
+
+    /* Damage flash */
+    @keyframes damageFlash {
+      0% { background: rgba(220, 50, 50, 0.3); }
+      100% { background: transparent; }
+    }
+    #hud.damage-flash {
+      animation: damageFlash 0.3s ease-out;
+    }
   </style>
 </head>
 <body>
-  <div id="ui">
-    <div class="phase">Fase: <span id="phase">1</span></div>
-    <div class="health">Vida: <span id="health">100</span></div>
-    <div class="score">Pontos: <span id="score">0</span></div>
-    <div class="coins">Moedas: <span id="coins">0</span></div>
-    <div class="wave">Onda: <span id="wave">1</span></div>
-    <div class="enemies">Inimigos: <span id="enemies">0</span></div>
+  <!-- Score Display - Top Center -->
+  <div id="score-display">
+    <span id="score">0</span>
   </div>
+
+  <!-- HUD Bar - Bottom -->
+  <div id="hud">
+    <!-- Left: Health Hearts -->
+    <div class="hud-section">
+      <div class="hud-item" id="health-container">
+        <span class="hud-icon">&#9829;</span>
+        <div id="health-hearts"></div>
+      </div>
+    </div>
+
+    <!-- Center-Left: Weapon -->
+    <div class="hud-section">
+      <div class="hud-item">
+        <span class="hud-icon weapon-icon">&#9876;</span>
+        <span class="weapon-name" id="weapon">Pistola</span>
+      </div>
+    </div>
+
+    <!-- Center: Phase + Wave -->
+    <div class="hud-section">
+      <div class="hud-item">
+        <span class="phase-name" id="phase">Floresta</span>
+        <span style="color: #666;">|</span>
+        <span style="color: #888; font-size: 12px;">Onda</span>
+        <span class="wave-num" id="wave">1</span>
+      </div>
+    </div>
+
+    <!-- Center-Right: Combo -->
+    <div class="hud-section">
+      <div class="hud-item" id="combo">
+        <span class="hud-icon">&#9733;</span>
+        <span id="combo-text">x2</span>
+      </div>
+    </div>
+
+    <!-- Right: Coins + Enemies -->
+    <div class="hud-section">
+      <div class="hud-item">
+        <span class="hud-icon" style="color: #f1c40f;">&#9679;</span>
+        <span class="coin-value" id="coins">0</span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-icon" style="color: #e74c3c;">&#9760;</span>
+        <span class="enemy-count" id="enemies">0</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden health value for game logic -->
+  <input type="hidden" id="health" value="100">
+
   <canvas id="game"></canvas>
   <script type="module" src="/src/main.ts"></script>
 </body>
