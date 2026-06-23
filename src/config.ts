@@ -1,4 +1,4 @@
-import { Phase, Weapon, Upgrade } from './types';
+import { Phase, Weapon, Upgrade, Material, CraftingRecipe, Hazard, Element } from './types';
 
 export const PHASES: Phase[] = [
   { name: 'Floresta', bg: '#1a2e1a', gridColor: 'rgba(34,139,34,0.1)', enemyTypes: ['grunt', 'runner'], waves: 3 },
@@ -32,3 +32,26 @@ export const UPGRADES: Upgrade[] = [
   { name: 'Dano +20%', effect: 'damage', value: 0.2, price: 60 },
   { name: 'Escudo', effect: 'shield', value: 1, price: 70 },
 ];
+
+export const MATERIALS: Material[] = [
+  { type: 'iron', name: 'Ferro', color: '#95a5a6', dropRate: 0.3 },
+  { type: 'crystal', name: 'Cristal', color: '#3498db', dropRate: 0.2 },
+  { type: 'fire', name: 'Fogo', color: '#e74c3c', dropRate: 0.25 },
+];
+
+export const CRAFTING_RECIPES: CraftingRecipe[] = [
+  { materials: ['iron', 'weapon'], result: 'weapon_upgrade', resultType: 'weapon' },
+  { materials: ['crystal', 'fire'], result: 'element', resultType: 'element' },
+  { materials: ['iron', 'iron', 'iron'], result: 'random_upgrade', resultType: 'upgrade' },
+];
+
+export const ELEMENTS: Element[] = [
+  { type: 'fire', name: 'Fogo', color: '#e74c3c', effect: 'burn', duration: 2, damage: 5 },
+  { type: 'ice', name: 'Gelo', color: '#3498db', effect: 'slow', duration: 2, damage: 0 },
+  { type: 'lightning', name: 'Raio', color: '#9b59b6', effect: 'stun', duration: 0.5, damage: 0 },
+];
+
+export const HAZARD_TYPES: Record<string, Partial<Hazard>> = {
+  lava: { radius: 40, damage: 5, effect: 'burn', duration: 1 },
+  ice_trap: { radius: 30, damage: 0, effect: 'stun', duration: 1 },
+};
