@@ -1,5 +1,6 @@
 import { WEAPONS, UPGRADES } from './config';
 import { setWeapon, addDamageMultiplier } from './weapons';
+import { drawCraftingMenu, handleCraftingClick, resetCrafting } from './crafting';
 
 let shopCoins = 0;
 let purchasedWeapons: number[] = [0];
@@ -39,9 +40,10 @@ function applyUpgrade(effect: string, value: number) {
 export function resetShop() {
   purchasedWeapons = [0];
   purchasedUpgrades = [];
+  resetCrafting();
 }
 
-export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: number) {
+export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: number, mouseX?: number, mouseY?: number) {
   ctx.fillStyle = 'rgba(0,0,0,0.9)';
   ctx.fillRect(0, 0, width, height);
 
@@ -71,6 +73,15 @@ export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: n
     ctx.fillText(`${u.name} - ${owned ? 'COMPRADO' : u.price + ' moedas'}`, width / 2, y);
   });
 
+  const craftMenuWidth = width - 40;
+  const craftMenuHeight = 200;
+  const craftMenuX = 20;
+  const craftMenuY = height - craftMenuHeight - 50;
+
+  if (mouseX !== undefined && mouseY !== undefined) {
+    drawCraftingMenu(ctx, craftMenuX, craftMenuY, craftMenuWidth, craftMenuHeight, mouseX, mouseY);
+  }
+
   ctx.fillStyle = '#2ecc71';
-  ctx.fillText('Pressione ENTER para continuar', width / 2, height - 40);
+  ctx.fillText('Pressione ENTER para continuar', width / 2, height - 20);
 }

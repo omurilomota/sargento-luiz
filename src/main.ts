@@ -7,6 +7,7 @@ import { ENEMY_TYPES } from './config';
 import { Enemy, Bullet, Particle } from './types';
 import { getDashState, activateDash, updateDash, resetDash, isDashInvincible } from './dash';
 import { getUltimateState, addUltimateCharge, activateUltimate, updateUltimate, resetUltimate, isUltimateReady, getUltimateChargePercent } from './ultimate';
+import { addMaterial } from './crafting';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d')!;
@@ -251,6 +252,12 @@ function update(dt: number) {
       const def = ENEMY_TYPES[enemies[i].type];
       if (def?.coinDrop) spawnCoins(enemies[i].x, enemies[i].y, def.coinDrop);
       spawnParticles(enemies[i].x, enemies[i].y, enemies[i].color, 15, 250);
+
+      const dropChance = Math.random();
+      if (dropChance < 0.3) addMaterial('iron');
+      else if (dropChance < 0.5) addMaterial('crystal');
+      else if (dropChance < 0.75) addMaterial('fire');
+
       enemies.splice(i, 1);
     }
   }
@@ -299,7 +306,7 @@ function draw() {
   }
 
   if (state === 'shop') {
-    drawShop(ctx, canvas.width, canvas.height);
+    drawShop(ctx, canvas.width, canvas.height, mouse.x, mouse.y);
     return;
   }
 
