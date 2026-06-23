@@ -8,6 +8,7 @@ import { Enemy, Bullet, Particle } from './types';
 import { getDashState, activateDash, updateDash, resetDash, isDashInvincible } from './dash';
 import { getUltimateState, addUltimateCharge, activateUltimate, updateUltimate, resetUltimate, isUltimateReady, getUltimateChargePercent } from './ultimate';
 import { addMaterial } from './crafting';
+import { spawnHazards, checkHazardCollision, drawHazards, resetHazards } from './hazards';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d')!;
@@ -42,6 +43,7 @@ function resetPlayer() {
   player.shield = 0;
   resetDash();
   resetUltimate();
+  resetHazards();
 }
 
 function spawnBullet(x: number, y: number, vx: number, vy: number, damage: number, isEnemy: boolean, color: string) {
@@ -129,6 +131,10 @@ function update(dt: number) {
 
   if (state !== 'playing') return;
 
+  if (enemies.length === 0 && bullets.length === 0) {
+    spawnHazards(canvas.width, canvas.height);
+  }
+
   let dx = 0, dy = 0;
   if (keys['w'] || keys['arrowup']) dy -= 1;
   if (keys['s'] || keys['arrowdown']) dy += 1;
@@ -158,6 +164,16 @@ function update(dt: number) {
   player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
   player.y = Math.max(player.radius, Math.min(canvas.height - player.radius, player.y));
   player.angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
+
+  const hazardResult = checkHazardCollision(player.x, player.y, player.radius);
+  if (hazardResult.hit && player.invincible <= 0 && !isDashInvincible()) {
+    if (hazardResult.effect === 'stun') {
+      player.invincible = hazardResult.duration;
+    } else if (hazardResult.effect === 'burn') {
+      player.health -= hazardResult.damage;
+      spawnParticles(player.x, player.y, '#e74c3c', 3, 100);
+    }
+  }
 
   if (keys['e'] && isUltimateReady()) {
     activateUltimate();
@@ -326,6 +342,8 @@ function draw() {
 
   ctx.fillStyle = getPhaseBackground();
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  drawHazards(ctx, Date.now());
 
   ctx.strokeStyle = getPhaseGridColor();
   ctx.lineWidth = 1;
