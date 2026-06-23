@@ -382,6 +382,7 @@ function draw() {
   renderBullets(getBullets());
   renderEnemies(enemies, player.getPlayer().x, player.getPlayer().y);
   renderPlayer(player.getPlayer());
+  drawDamageNumbers(damageNumbers);
   restoreCanvas();
 
   // Flash overlay

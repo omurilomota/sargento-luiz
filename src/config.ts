@@ -48,7 +48,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
 
 /** Lista de armas disponíveis, ordenadas por desbloqueio */
 export const WEAPONS: Weapon[] = [
-  { name: 'Pistola', damage: 15, shootRate: 0.12, bulletSpeed: 600, bulletCount: 1, spread: 0, color: '#2ecc71', price: 0, pierce: false },
+  { name: 'Pistola', damage: 15, shootRate: 0.25, bulletSpeed: 600, bulletCount: 1, spread: 0, color: '#2ecc71', price: 0, pierce: false },
   { name: 'Shotgun', damage: 10, shootRate: 0.4, bulletSpeed: 500, bulletCount: 3, spread: 0.3, color: '#f39c12', price: 50, pierce: false },
   { name: 'Metralhadora', damage: 8, shootRate: 0.05, bulletSpeed: 700, bulletCount: 1, spread: 0.1, color: '#e74c3c', price: 80, pierce: false },
   { name: 'Sniper', damage: 60, shootRate: 0.8, bulletSpeed: 1000, bulletCount: 1, spread: 0, color: '#3498db', price: 120, pierce: true },
