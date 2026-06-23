@@ -17,44 +17,46 @@ const SPRITE_PATHS: Record<string, string> = {
   
   // Enemies
   'enemy_zombie': 'assets/sprites/enemies/zombie.png',
-  'enemy_skeleton': 'assets/sprites/enemies/skeleton.png',
-  'enemy_alien': 'assets/sprites/enemies/alien.png',
   'enemy_robot': 'assets/sprites/enemies/robot.png',
-  'enemy_demon': 'assets/sprites/enemies/demon.png',
-  'enemy_slime': 'assets/sprites/enemies/slime.png',
-  'enemy_bat': 'assets/sprites/enemies/bat.png',
-  'enemy_boss': 'assets/sprites/enemies/boss.png',
+  'enemy_hitman': 'assets/sprites/enemies/hitman.png',
+  'enemy_blue': 'assets/sprites/enemies/enemy_blue.png',
+  'enemy_brown': 'assets/sprites/enemies/enemy_brown.png',
+  'enemy_green': 'assets/sprites/enemies/enemy_green.png',
+  'enemy_guard': 'assets/sprites/enemies/guard.png',
+  'enemy_soldier': 'assets/sprites/enemies/soldier.png',
+  'enemy_woman': 'assets/sprites/enemies/woman.png',
   
-  // Items
-  'item_coin': 'assets/sprites/items/coin.png',
-  'item_health': 'assets/sprites/items/health.png',
-  'item_shield': 'assets/sprites/items/shield.png',
-  'item_sword': 'assets/sprites/items/sword.png',
-  
-  // Effects
-  'fx_explosion': 'assets/sprites/effects/explosion.png',
-  'fx_fire': 'assets/sprites/effects/fire.png',
-  'fx_lightning': 'assets/sprites/effects/lightning.png',
+  // Weapons
+  'weapon_pistol': 'assets/sprites/weapons/pistol.png',
+  'weapon_machinegun': 'assets/sprites/weapons/machinegun.png',
 };
 
 /** Mapeamento de tipos de inimigo para chaves de sprite */
 const ENEMY_SPRITE_MAP: Record<string, string> = {
-  'zombie': 'enemy_zombie',
   'grunt': 'enemy_zombie',
-  'runner': 'enemy_skeleton',
-  'skeleton': 'enemy_skeleton',
-  'alien': 'enemy_alien',
-  'ufo': 'enemy_alien',
+  'runner': 'enemy_brown',
+  'tank': 'enemy_blue',
+  'shooter': 'enemy_hitman',
+  'bat': 'enemy_green',
   'robot': 'enemy_robot',
   'drone': 'enemy_robot',
-  'demon': 'enemy_demon',
-  'fireElemental': 'enemy_demon',
-  'slime': 'enemy_slime',
-  'lavaSlime': 'enemy_slime',
-  'bat': 'enemy_bat',
-  'mosquito': 'enemy_bat',
-  'boss': 'enemy_boss',
-  'mothership': 'enemy_boss',
+  'slime': 'enemy_green',
+  'lavaSlime': 'enemy_green',
+  'mosquito': 'enemy_green',
+  'knight': 'enemy_guard',
+  'archer': 'enemy_hitman',
+  'mage': 'enemy_woman',
+  'boss': 'enemy_robot',
+  'mothership': 'enemy_robot',
+  'fireElemental': 'enemy_brown',
+  'magmaGolem': 'enemy_blue',
+  'inferno': 'enemy_brown',
+  'ufo': 'enemy_robot',
+  'asteroid': 'enemy_blue',
+  'alien': 'enemy_green',
+  'frog': 'enemy_green',
+  'crystal': 'enemy_blue',
+  'spitter': 'enemy_green',
 };
 
 /**

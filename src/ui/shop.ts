@@ -126,6 +126,7 @@ let shopScrollOffset = 0;
 
 /**
  * Desenha a tela completa da loja com armas e upgrades.
+ * Estilo RPG Fantasy com fundo decorativo e botões temáticos.
  * @param ctx - contexto 2D do canvas
  * @param width - largura do canvas
  * @param height - altura do canvas
@@ -133,64 +134,181 @@ let shopScrollOffset = 0;
  * @param mouseY - posição vertical do mouse
  */
 export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: number, mouseX: number, mouseY: number) {
-  ctx.fillStyle = 'rgba(5,5,15,0.95)';
+  // Fundo decorativo
+  ctx.fillStyle = 'rgba(15, 10, 25, 0.98)';
   ctx.fillRect(0, 0, width, height);
-
-  for (let i = 0; i < 30; i++) {
+  
+  // Padrão de textura sutil
+  for (let i = 0; i < 50; i++) {
     const x = (i * 137 + Date.now() / 50) % width;
     const y = (i * 97 + Date.now() / 80) % height;
-    ctx.fillStyle = `rgba(241,196,15,${0.1 + Math.sin(Date.now() / 1000 + i) * 0.05})`;
+    ctx.fillStyle = `rgba(241, 196, 15, ${0.03 + Math.sin(Date.now() / 1000 + i) * 0.02})`;
     ctx.beginPath();
-    ctx.arc(x, y, 2, 0, Math.PI * 2);
+    ctx.arc(x, y, 1.5, 0, Math.PI * 2);
     ctx.fill();
   }
-
+  
+  // Borda decorativa superior
+  ctx.strokeStyle = 'rgba(180, 140, 80, 0.4)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, 70);
+  ctx.lineTo(width, 70);
+  ctx.stroke();
+  
+  // Título
   ctx.fillStyle = '#f1c40f';
-  ctx.font = 'bold 40px monospace';
+  ctx.font = 'bold 48px "Cinzel", serif';
   ctx.textAlign = 'center';
   ctx.shadowColor = '#f1c40f';
-  ctx.shadowBlur = 20;
-  ctx.fillText(`LOJA`, width / 2, 50);
+  ctx.shadowBlur = 25;
+  ctx.fillText('MERCADOR', width / 2, 55);
   ctx.shadowBlur = 0;
-
-  ctx.font = '22px monospace';
+  
+  // Moedas
+  ctx.font = '24px "Cinzel", serif';
   ctx.fillStyle = '#f1c40f';
-  ctx.fillText(`${shopCoins} Moedas`, width / 2, 85);
-
-  const colW = width / 2 - 40;
-  const leftX = 20;
+  ctx.fillText(`💰 ${shopCoins} Ouros`, width / 2, 95);
+  
+  // Layout em 2 colunas
+  const colW = width / 2 - 60;
+  const leftX = 40;
   const rightX = width / 2 + 20;
-
+  
+  // === COLUNA ESQUERDA: ARMAS ===
   ctx.fillStyle = '#e67e22';
-  ctx.font = 'bold 18px monospace';
+  ctx.font = 'bold 20px "Cinzel", serif';
   ctx.textAlign = 'left';
-  ctx.fillText('ARMAS', leftX, 125);
-
+  ctx.shadowColor = '#e67e22';
+  ctx.shadowBlur = 10;
+  ctx.fillText('⚔ ARMAS', leftX, 135);
+  ctx.shadowBlur = 0;
+  
+  // Separador
+  ctx.strokeStyle = 'rgba(230, 126, 34, 0.3)';
+  ctx.beginPath();
+  ctx.moveTo(leftX, 145);
+  ctx.lineTo(leftX + colW, 145);
+  ctx.stroke();
+  
   WEAPONS.forEach((w, i) => {
-    const y = 145 + i * 42;
+    const y = 160 + i * 48;
     const owned = purchasedWeapons.includes(i);
     const canBuy = !owned && shopCoins >= w.price;
-    const hover = mouseX >= leftX && mouseX <= leftX + colW && mouseY >= y && mouseY <= y + 36;
-    drawButton(ctx, leftX, y, colW, 36, `${w.name} - ${owned ? '✓' : w.price + '$'}`, owned ? '#2ecc71' : canBuy ? w.color : '#666', hover);
+    const hover = mouseX >= leftX && mouseX <= leftX + colW && mouseY >= y && mouseY <= y + 42;
+    
+    // Fundo do item
+    ctx.fillStyle = hover ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.03)';
+    ctx.beginPath();
+    ctx.roundRect(leftX, y, colW, 42, 6);
+    ctx.fill();
+    
+    // Borda
+    ctx.strokeStyle = owned ? '#2ecc71' : canBuy ? w.color : 'rgba(255,255,255,0.1)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    
+    // Nome da arma
+    ctx.fillStyle = owned ? '#2ecc71' : canBuy ? '#fff' : '#666';
+    ctx.font = '14px "Cinzel", serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(w.name, leftX + 12, y + 18);
+    
+    // Preço ou status
+    ctx.textAlign = 'right';
+    ctx.font = '12px monospace';
+    if (owned) {
+      ctx.fillStyle = '#2ecc71';
+      ctx.fillText('✓ ADQUIRIDA', leftX + colW - 12, y + 18);
+    } else {
+      ctx.fillStyle = canBuy ? '#f1c40f' : '#666';
+      ctx.fillText(`${w.price} 💰`, leftX + colW - 12, y + 18);
+    }
+    
+    // Stats da arma
+    ctx.fillStyle = '#888';
+    ctx.font = '10px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText(`DMG: ${w.damage} | SPD: ${w.shootRate}s`, leftX + 12, y + 35);
   });
-
+  
+  // === COLUNA DIREITA: UPGRADES ===
   ctx.fillStyle = '#9b59b6';
-  ctx.font = 'bold 18px monospace';
+  ctx.font = 'bold 20px "Cinzel", serif';
   ctx.textAlign = 'left';
-  ctx.fillText('UPGRADES', rightX, 125);
-
+  ctx.shadowColor = '#9b59b6';
+  ctx.shadowBlur = 10;
+  ctx.fillText('✨ UPGRADES', rightX, 135);
+  ctx.shadowBlur = 0;
+  
+  // Separador
+  ctx.strokeStyle = 'rgba(155, 89, 182, 0.3)';
+  ctx.beginPath();
+  ctx.moveTo(rightX, 145);
+  ctx.lineTo(rightX + colW, 145);
+  ctx.stroke();
+  
   UPGRADES.forEach((u, i) => {
-    const y = 145 + i * 42;
+    const y = 160 + i * 48;
     const owned = purchasedUpgrades.includes(u.name);
     const canBuy = !owned && shopCoins >= u.price;
-    const hover = mouseX >= rightX && mouseX <= rightX + colW && mouseY >= y && mouseY <= y + 36;
-    drawButton(ctx, rightX, y, colW, 36, `${u.name} - ${owned ? '✓' : u.price + '$'}`, owned ? '#2ecc71' : canBuy ? '#9b59b6' : '#666', hover);
+    const hover = mouseX >= rightX && mouseX <= rightX + colW && mouseY >= y && mouseY <= y + 42;
+    
+    // Fundo do item
+    ctx.fillStyle = hover ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.03)';
+    ctx.beginPath();
+    ctx.roundRect(rightX, y, colW, 42, 6);
+    ctx.fill();
+    
+    // Borda
+    ctx.strokeStyle = owned ? '#2ecc71' : canBuy ? '#9b59b6' : 'rgba(255,255,255,0.1)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    
+    // Nome do upgrade
+    ctx.fillStyle = owned ? '#2ecc71' : canBuy ? '#fff' : '#666';
+    ctx.font = '14px "Cinzel", serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(u.name, rightX + 12, y + 18);
+    
+    // Preço ou status
+    ctx.textAlign = 'right';
+    ctx.font = '12px monospace';
+    if (owned) {
+      ctx.fillStyle = '#2ecc71';
+      ctx.fillText('✓ ATIVO', rightX + colW - 12, y + 18);
+    } else {
+      ctx.fillStyle = canBuy ? '#f1c40f' : '#666';
+      ctx.fillText(`${u.price} 💰`, rightX + colW - 12, y + 18);
+    }
+    
+    // Efeito do upgrade
+    ctx.fillStyle = '#888';
+    ctx.font = '10px monospace';
+    ctx.textAlign = 'left';
+    const effectText = u.effect === 'health' ? `+${u.value} Vida` :
+      u.effect === 'speed' ? `+${u.value * 100}% Vel` :
+      u.effect === 'damage' ? `+${u.value * 100}% Dano` :
+      u.effect === 'shield' ? '+1 Escudo' :
+      u.effect === 'magnet' ? 'Magnetismo' :
+      u.effect === 'crit' ? `+${u.value * 100}% Crítico` :
+      u.effect === 'pierce' ? '+1 Pierce' : u.effect;
+    ctx.fillText(effectText, rightX + 12, y + 35);
   });
-
+  
+  // Borda decorativa inferior
+  ctx.strokeStyle = 'rgba(180, 140, 80, 0.4)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, height - 50);
+  ctx.lineTo(width, height - 50);
+  ctx.stroke();
+  
+  // Instrução
   ctx.fillStyle = '#2ecc71';
-  ctx.font = '16px monospace';
+  ctx.font = '16px "Cinzel", serif';
   ctx.textAlign = 'center';
-  ctx.fillText('Pressione ENTER para continuar', width / 2, height - 30);
+  ctx.fillText('Pressione ENTER para continuar', width / 2, height - 25);
 }
 
 /**
