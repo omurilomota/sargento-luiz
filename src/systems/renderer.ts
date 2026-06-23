@@ -9,6 +9,7 @@ import { Enemy, Bullet, Particle, Coin, PowerUp } from '../types';
 import { ENEMY_TYPES, POWERUP_TYPES } from '../config';
 import { Player } from '../entities/player';
 import { hasPowerUp } from '../powerups';
+import { isSkillActive } from './skills';
 
 /** Contexto 2D do canvas */
 let ctx: CanvasRenderingContext2D;
@@ -317,13 +318,64 @@ export function drawEnemies(enemies: Enemy[], playerX: number, playerY: number):
 export function drawPlayer(player: Player): void {
   const flash = player.invincible > 0 && Math.floor(player.invincible * 25) % 2;
   if (!flash) {
-    ctx.fillStyle = hasPowerUp('invincible') ? '#f1c40f' : player.shield > 0 ? '#3498db' : '#2ecc71';
-    ctx.shadowColor = ctx.fillStyle;
+    // Determine player color based on active effects
+    let playerColor = '#2ecc71'; // Default green
+    if (hasPowerUp('invincible')) {
+      playerColor = '#f1c40f';
+    } else if (isSkillActive('shield')) {
+      playerColor = '#3498db';
+    } else if (isSkillActive('fury')) {
+      playerColor = '#e74c3c';
+    } else if (player.shield > 0) {
+      playerColor = '#3498db';
+    }
+    
+    ctx.fillStyle = playerColor;
+    ctx.shadowColor = playerColor;
     ctx.shadowBlur = 15;
     ctx.beginPath();
     ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
     ctx.fill();
     ctx.shadowBlur = 0;
+    
+    // Shield skill aura (blue pulsing ring)
+    if (isSkillActive('shield')) {
+      ctx.strokeStyle = 'rgba(52, 152, 219, 0.8)';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, player.radius + 10 + Math.sin(Date.now() / 100) * 3, 0, Math.PI * 2);
+      ctx.stroke();
+      
+      // Second ring
+      ctx.strokeStyle = 'rgba(52, 152, 219, 0.4)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, player.radius + 18 + Math.sin(Date.now() / 150) * 5, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    
+    // Fury skill aura (red pulsing flames)
+    if (isSkillActive('fury')) {
+      ctx.strokeStyle = 'rgba(231, 76, 60, 0.8)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, player.radius + 8 + Math.sin(Date.now() / 80) * 4, 0, Math.PI * 2);
+      ctx.stroke();
+      
+      // Flame particles around player
+      for (let i = 0; i < 6; i++) {
+        const angle = (Date.now() / 200 + i * Math.PI / 3);
+        const dist = player.radius + 15 + Math.sin(Date.now() / 100 + i) * 5;
+        const fx = player.x + Math.cos(angle) * dist;
+        const fy = player.y + Math.sin(angle) * dist;
+        ctx.fillStyle = `rgba(231, 76, 60, ${0.5 + Math.sin(Date.now() / 50 + i) * 0.3})`;
+        ctx.beginPath();
+        ctx.arc(fx, fy, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    
+    // Invincibility powerup effect
     if (hasPowerUp('invincible')) {
       ctx.strokeStyle = '#f1c40f';
       ctx.lineWidth = 2;
@@ -331,19 +383,25 @@ export function drawPlayer(player: Player): void {
       ctx.arc(player.x, player.y, player.radius + 5 + Math.sin(Date.now() / 100) * 3, 0, Math.PI * 2);
       ctx.stroke();
     }
-    if (player.shield > 0) {
+    
+    // Shield item effect
+    if (player.shield > 0 && !isSkillActive('shield')) {
       ctx.strokeStyle = 'rgba(52,152,219,0.5)';
       ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.arc(player.x, player.y, player.radius + 8, 0, Math.PI * 2);
       ctx.stroke();
     }
+    
+    // Gun barrel
     ctx.strokeStyle = '#fff';
     ctx.lineWidth = 4;
     ctx.beginPath();
     ctx.moveTo(player.x, player.y);
     ctx.lineTo(player.x + Math.cos(player.angle) * 28, player.y + Math.sin(player.angle) * 28);
     ctx.stroke();
+    
+    // Eyes
     const eOff = player.radius * 0.3;
     const eR = player.radius * 0.2;
     ctx.fillStyle = '#fff';
