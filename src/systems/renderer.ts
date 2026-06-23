@@ -362,24 +362,6 @@ export function drawEnemies(enemies: Enemy[], playerX: number, playerY: number):
       ctx.fillRect(-barW / 2, -e.radius - 12, barW * (e.health / e.maxHealth), 5);
     }
     
-    // Eyes
-    const eyeAngle = Math.atan2(playerY - e.y, playerX - e.x) - e.angle;
-    const eyeOff = e.radius * 0.35;
-    const eyeR = e.radius * 0.18;
-    ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    ctx.arc(Math.cos(eyeAngle - 0.4) * eyeOff, Math.sin(eyeAngle - 0.4) * eyeOff, eyeR, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(Math.cos(eyeAngle + 0.4) * eyeOff, Math.sin(eyeAngle + 0.4) * eyeOff, eyeR, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#111';
-    ctx.beginPath();
-    ctx.arc(Math.cos(eyeAngle - 0.4) * eyeOff * 1.2, Math.sin(eyeAngle - 0.4) * eyeOff * 1.2, eyeR * 0.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(Math.cos(eyeAngle + 0.4) * eyeOff * 1.2, Math.sin(eyeAngle + 0.4) * eyeOff * 1.2, eyeR * 0.5, 0, Math.PI * 2);
-    ctx.fill();
     ctx.restore();
   }
 }
@@ -504,24 +486,6 @@ export function drawPlayer(player: Player): void {
     ctx.moveTo(player.x, player.y);
     ctx.lineTo(player.x + Math.cos(player.angle) * 28, player.y + Math.sin(player.angle) * 28);
     ctx.stroke();
-    
-    // Eyes
-    const eOff = player.radius * 0.3;
-    const eR = player.radius * 0.2;
-    ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    ctx.arc(player.x + Math.cos(player.angle - 0.5) * eOff, player.y + Math.sin(player.angle - 0.5) * eOff, eR, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(player.x + Math.cos(player.angle + 0.5) * eOff, player.y + Math.sin(player.angle + 0.5) * eOff, eR, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#111';
-    ctx.beginPath();
-    ctx.arc(player.x + Math.cos(player.angle - 0.5) * eOff * 1.1, player.y + Math.sin(player.angle - 0.5) * eOff * 1.1, eR * 0.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(player.x + Math.cos(player.angle + 0.5) * eOff * 1.1, player.y + Math.sin(player.angle + 0.5) * eOff * 1.1, eR * 0.5, 0, Math.PI * 2);
-    ctx.fill();
   }
 }
 

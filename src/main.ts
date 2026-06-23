@@ -32,7 +32,7 @@ import { spawnParticles, updateParticles, clearParticles, getParticles } from '.
 import { spawnWaveEnemies, resetSpawner, spawnEnemy } from './systems/spawner';
 import { checkBulletEnemyCollisions, checkEnemyPlayerCollision } from './systems/collision';
 import { createExplosion, updateExplosions, clearExplosions, getExplosions } from './systems/explosions';
-import { initRenderer, drawMenu, drawGameOver, drawGameBackground, drawPhaseTransition, drawCoins as renderCoins, drawPowerUps as renderPowerUps, drawParticles as renderParticles, drawBullets as renderBullets, drawEnemies as renderEnemies, drawPlayer as renderPlayer, drawDamageNumbers, drawCombo, drawWeaponInfo, drawActivePowerUps as renderActivePowerUps, restoreCanvas } from './systems/renderer';
+import { initRenderer, drawMenu, drawGameOver, drawGameBackground, drawCoins as renderCoins, drawPowerUps as renderPowerUps, drawParticles as renderParticles, drawBullets as renderBullets, drawEnemies as renderEnemies, drawPlayer as renderPlayer, drawDamageNumbers, drawCombo, drawWeaponInfo, drawActivePowerUps as renderActivePowerUps, restoreCanvas } from './systems/renderer';
 
 // UI
 import { initHud, updateHud } from './ui/hud';
@@ -92,7 +92,6 @@ canvas.addEventListener('contextmenu', e => e.preventDefault());
 import { Enemy } from './types';
 let enemies: Enemy[] = [];
 let damageNumbers: { x: number; y: number; text: string; color: string; life: number; vy: number }[] = [];
-let phaseTransition = 0;
 let lastTime = 0;
 let currentFlash: string | null = null;
 
@@ -162,11 +161,6 @@ function update(dt: number) {
   updateCombo(dt);
   setMagnetActive(hasPowerUp('magnet'));
 
-  if (phaseTransition > 0) {
-    phaseTransition -= dt;
-    return;
-  }
-
   const p = player.getPlayer();
   const speedMult = hasPowerUp('speed') ? 1.5 : 1;
   player.movePlayer(keys, dt, canvas.width, canvas.height, speedMult);
@@ -198,9 +192,6 @@ function update(dt: number) {
     nextWave();
     player.healOnWaveComplete();
     sfxWaveStart();
-    if (getGameState() !== 'shop') {
-      phaseTransition = 1.5;
-    }
   }
 
   // Enemy AI
@@ -375,7 +366,6 @@ function draw() {
 
   const bg = getCurrentPhase();
   drawGameBackground(bg?.bg || '#1a1a2e', bg?.gridColor || 'rgba(255,255,255,0.03)', { x: 0, y: 0 });
-  drawPhaseTransition(phaseTransition, getCurrentWave(), bg?.name);
   renderCoins(getCoins());
   renderPowerUps(powerups);
   renderParticles(getParticles());
