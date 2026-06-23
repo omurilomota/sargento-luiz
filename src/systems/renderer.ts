@@ -10,6 +10,7 @@ import { ENEMY_TYPES, POWERUP_TYPES } from '../config';
 import { Player } from '../entities/player';
 import { hasPowerUp } from '../powerups';
 import { isSkillActive } from './skills';
+import { getSprite, getEnemySpriteKey, isSpritesEnabled } from './sprites';
 
 /** Contexto 2D do canvas */
 let ctx: CanvasRenderingContext2D;
@@ -247,112 +248,112 @@ export function drawEnemies(enemies: Enemy[], playerX: number, playerY: number):
   for (const e of enemies) {
     ctx.save();
     ctx.translate(e.x, e.y);
-    const def = ENEMY_TYPES[e.type];
-    ctx.fillStyle = e.color;
-    ctx.shadowColor = e.color;
     
-    // Different shapes based on enemy type
-    if (def?.armor) {
-      // Armored enemies - hexagon shape
-      ctx.shadowBlur = 8;
-      ctx.beginPath();
-      for (let i = 0; i < 6; i++) {
-        const a = e.angle + (i * Math.PI * 2) / 6;
-        const r = e.radius * (i % 2 === 0 ? 1 : 0.8);
-        if (i === 0) ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
-        else ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
-      }
-      ctx.closePath();
-      ctx.fill();
-      // Armor detail lines
-      ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-    } else if (def?.isBoss) {
-      // Boss - star shape with glow
-      ctx.shadowBlur = 25;
-      ctx.beginPath();
-      for (let i = 0; i < 8; i++) {
-        const a = e.angle + (i * Math.PI * 2) / 8;
-        const r = e.radius * (i % 2 === 0 ? 1 : 0.6);
-        if (i === 0) ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
-        else ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
-      }
-      ctx.closePath();
-      ctx.fill();
-      // Boss inner glow
-      const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, e.radius);
-      gradient.addColorStop(0, 'rgba(255,255,255,0.3)');
-      gradient.addColorStop(1, 'transparent');
-      ctx.fillStyle = gradient;
-      ctx.fill();
-      ctx.shadowBlur = 0;
-    } else if (e.type === 'slime' || e.type === 'lavaSlime') {
-      // Slime - blob shape
-      ctx.shadowBlur = 10;
-      ctx.beginPath();
-      ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
-      ctx.fill();
-      // Slime shine
-      ctx.fillStyle = 'rgba(255,255,255,0.2)';
-      ctx.beginPath();
-      ctx.arc(-e.radius * 0.3, -e.radius * 0.3, e.radius * 0.3, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.shadowBlur = 0;
-    } else if (e.type === 'ufo' || e.type === 'drone') {
-      // Flying enemies - diamond shape
-      ctx.shadowBlur = 12;
-      ctx.beginPath();
-      ctx.moveTo(0, -e.radius);
-      ctx.lineTo(e.radius * 0.7, 0);
-      ctx.lineTo(0, e.radius);
-      ctx.lineTo(-e.radius * 0.7, 0);
-      ctx.closePath();
-      ctx.fill();
-      // Glow ring
-      ctx.strokeStyle = e.color;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(0, 0, e.radius + 3, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-    } else if (e.type === 'mosquito') {
-      // Mosquito - small fast triangle
-      ctx.shadowBlur = 6;
-      ctx.beginPath();
-      ctx.moveTo(e.radius, 0);
-      ctx.lineTo(-e.radius * 0.6, -e.radius * 0.5);
-      ctx.lineTo(-e.radius * 0.6, e.radius * 0.5);
-      ctx.closePath();
-      ctx.fill();
-      ctx.shadowBlur = 0;
-    } else if (e.type === 'knight' || e.type === 'magmaGolem') {
-      // Heavy enemies - square with notches
-      ctx.shadowBlur = 10;
-      const r = e.radius * 0.85;
-      ctx.beginPath();
-      ctx.rect(-r, -r, r * 2, r * 2);
-      ctx.fill();
-      // Corner notches
-      ctx.fillStyle = 'rgba(0,0,0,0.3)';
-      ctx.fillRect(-r, -r, r * 0.4, r * 0.4);
-      ctx.fillRect(r * 0.6, -r, r * 0.4, r * 0.4);
-      ctx.fillRect(-r, r * 0.6, r * 0.4, r * 0.4);
-      ctx.fillRect(r * 0.6, r * 0.6, r * 0.4, r * 0.4);
-      ctx.shadowBlur = 0;
+    // Try to use sprite if available
+    const spriteKey = getEnemySpriteKey(e.type);
+    const sprite = spriteKey ? getSprite(spriteKey) : null;
+    
+    if (sprite && isSpritesEnabled()) {
+      // Draw sprite
+      ctx.drawImage(sprite, -e.radius, -e.radius, e.radius * 2, e.radius * 2);
     } else {
-      // Default - circle with outline
-      ctx.shadowBlur = 10;
-      ctx.beginPath();
-      ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
-      ctx.fill();
-      // Subtle outline
-      ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-      ctx.shadowBlur = 0;
+      // Fallback to canvas drawing
+      const def = ENEMY_TYPES[e.type];
+      ctx.fillStyle = e.color;
+      ctx.shadowColor = e.color;
+      
+      // Different shapes based on enemy type
+      if (def?.armor) {
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+          const a = e.angle + (i * Math.PI * 2) / 6;
+          const r = e.radius * (i % 2 === 0 ? 1 : 0.8);
+          if (i === 0) ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+          else ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      } else if (def?.isBoss) {
+        ctx.shadowBlur = 25;
+        ctx.beginPath();
+        for (let i = 0; i < 8; i++) {
+          const a = e.angle + (i * Math.PI * 2) / 8;
+          const r = e.radius * (i % 2 === 0 ? 1 : 0.6);
+          if (i === 0) ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+          else ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+        }
+        ctx.closePath();
+        ctx.fill();
+        const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, e.radius);
+        gradient.addColorStop(0, 'rgba(255,255,255,0.3)');
+        gradient.addColorStop(1, 'transparent');
+        ctx.fillStyle = gradient;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      } else if (e.type === 'slime' || e.type === 'lavaSlime') {
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+        ctx.beginPath();
+        ctx.arc(-e.radius * 0.3, -e.radius * 0.3, e.radius * 0.3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      } else if (e.type === 'ufo' || e.type === 'drone') {
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.moveTo(0, -e.radius);
+        ctx.lineTo(e.radius * 0.7, 0);
+        ctx.lineTo(0, e.radius);
+        ctx.lineTo(-e.radius * 0.7, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = e.color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, e.radius + 3, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      } else if (e.type === 'mosquito') {
+        ctx.shadowBlur = 6;
+        ctx.beginPath();
+        ctx.moveTo(e.radius, 0);
+        ctx.lineTo(-e.radius * 0.6, -e.radius * 0.5);
+        ctx.lineTo(-e.radius * 0.6, e.radius * 0.5);
+        ctx.closePath();
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      } else if (e.type === 'knight' || e.type === 'magmaGolem') {
+        ctx.shadowBlur = 10;
+        const r = e.radius * 0.85;
+        ctx.beginPath();
+        ctx.rect(-r, -r, r * 2, r * 2);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.fillRect(-r, -r, r * 0.4, r * 0.4);
+        ctx.fillRect(r * 0.6, -r, r * 0.4, r * 0.4);
+        ctx.fillRect(-r, r * 0.6, r * 0.4, r * 0.4);
+        ctx.fillRect(r * 0.6, r * 0.6, r * 0.4, r * 0.4);
+        ctx.shadowBlur = 0;
+      } else {
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      }
     }
+    
+    // Health bar
     if (e.health < e.maxHealth) {
       const barW = e.radius * 2;
       ctx.fillStyle = '#333';
@@ -360,6 +361,8 @@ export function drawEnemies(enemies: Enemy[], playerX: number, playerY: number):
       ctx.fillStyle = '#e74c3c';
       ctx.fillRect(-barW / 2, -e.radius - 12, barW * (e.health / e.maxHealth), 5);
     }
+    
+    // Eyes
     const eyeAngle = Math.atan2(playerY - e.y, playerX - e.x) - e.angle;
     const eyeOff = e.radius * 0.35;
     const eyeR = e.radius * 0.18;
@@ -390,25 +393,54 @@ export function drawEnemies(enemies: Enemy[], playerX: number, playerY: number):
 export function drawPlayer(player: Player): void {
   const flash = player.invincible > 0 && Math.floor(player.invincible * 25) % 2;
   if (!flash) {
-    // Determine player color based on active effects
-    let playerColor = '#2ecc71'; // Default green
-    if (hasPowerUp('invincible')) {
-      playerColor = '#f1c40f';
-    } else if (isSkillActive('shield')) {
-      playerColor = '#3498db';
-    } else if (isSkillActive('fury')) {
-      playerColor = '#e74c3c';
-    } else if (player.shield > 0) {
-      playerColor = '#3498db';
+    // Try to use sprite if available
+    const sprite = getSprite('player');
+    if (sprite && isSpritesEnabled()) {
+      // Draw sprite with effects overlay
+      ctx.save();
+      ctx.translate(player.x, player.y);
+      
+      // Apply color tint based on active effects
+      if (isSkillActive('fury')) {
+        ctx.globalAlpha = 0.8;
+        ctx.drawImage(sprite, -player.radius, -player.radius, player.radius * 2, player.radius * 2);
+        ctx.globalCompositeOperation = 'source-atop';
+        ctx.fillStyle = 'rgba(231, 76, 60, 0.4)';
+        ctx.fillRect(-player.radius, -player.radius, player.radius * 2, player.radius * 2);
+        ctx.globalCompositeOperation = 'source-over';
+      } else if (isSkillActive('shield')) {
+        ctx.drawImage(sprite, -player.radius, -player.radius, player.radius * 2, player.radius * 2);
+        ctx.strokeStyle = 'rgba(52, 152, 219, 0.8)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(0, 0, player.radius + 8, 0, Math.PI * 2);
+        ctx.stroke();
+      } else {
+        ctx.drawImage(sprite, -player.radius, -player.radius, player.radius * 2, player.radius * 2);
+      }
+      
+      ctx.restore();
+    } else {
+      // Fallback to canvas drawing
+      let playerColor = '#2ecc71';
+      if (hasPowerUp('invincible')) {
+        playerColor = '#f1c40f';
+      } else if (isSkillActive('shield')) {
+        playerColor = '#3498db';
+      } else if (isSkillActive('fury')) {
+        playerColor = '#e74c3c';
+      } else if (player.shield > 0) {
+        playerColor = '#3498db';
+      }
+      
+      ctx.fillStyle = playerColor;
+      ctx.shadowColor = playerColor;
+      ctx.shadowBlur = 15;
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
     }
-    
-    ctx.fillStyle = playerColor;
-    ctx.shadowColor = playerColor;
-    ctx.shadowBlur = 15;
-    ctx.beginPath();
-    ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.shadowBlur = 0;
     
     // Shield skill aura (blue pulsing ring)
     if (isSkillActive('shield')) {

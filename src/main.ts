@@ -417,4 +417,12 @@ function loop(time: number) {
   requestAnimationFrame(loop);
 }
 
-requestAnimationFrame(time => { lastTime = time; loop(time); });
+// Load sprites and start game
+import { loadAllSprites } from './systems/sprites';
+
+async function init() {
+  await loadAllSprites();
+  requestAnimationFrame(time => { lastTime = time; loop(time); });
+}
+
+init();
