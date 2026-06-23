@@ -250,7 +250,10 @@ export function drawEnemies(enemies: Enemy[], playerX: number, playerY: number):
     const def = ENEMY_TYPES[e.type];
     ctx.fillStyle = e.color;
     ctx.shadowColor = e.color;
+    
+    // Different shapes based on enemy type
     if (def?.armor) {
+      // Armored enemies - hexagon shape
       ctx.shadowBlur = 8;
       ctx.beginPath();
       for (let i = 0; i < 6; i++) {
@@ -261,24 +264,93 @@ export function drawEnemies(enemies: Enemy[], playerX: number, playerY: number):
       }
       ctx.closePath();
       ctx.fill();
+      // Armor detail lines
+      ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
       ctx.shadowBlur = 0;
     } else if (def?.isBoss) {
-      ctx.shadowBlur = 20;
+      // Boss - star shape with glow
+      ctx.shadowBlur = 25;
       ctx.beginPath();
       for (let i = 0; i < 8; i++) {
         const a = e.angle + (i * Math.PI * 2) / 8;
-        const r = e.radius * (i % 2 === 0 ? 1 : 0.7);
+        const r = e.radius * (i % 2 === 0 ? 1 : 0.6);
         if (i === 0) ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
         else ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
       }
       ctx.closePath();
       ctx.fill();
+      // Boss inner glow
+      const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, e.radius);
+      gradient.addColorStop(0, 'rgba(255,255,255,0.3)');
+      gradient.addColorStop(1, 'transparent');
+      ctx.fillStyle = gradient;
+      ctx.fill();
       ctx.shadowBlur = 0;
-    } else {
+    } else if (e.type === 'slime' || e.type === 'lavaSlime') {
+      // Slime - blob shape
       ctx.shadowBlur = 10;
       ctx.beginPath();
       ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
       ctx.fill();
+      // Slime shine
+      ctx.fillStyle = 'rgba(255,255,255,0.2)';
+      ctx.beginPath();
+      ctx.arc(-e.radius * 0.3, -e.radius * 0.3, e.radius * 0.3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    } else if (e.type === 'ufo' || e.type === 'drone') {
+      // Flying enemies - diamond shape
+      ctx.shadowBlur = 12;
+      ctx.beginPath();
+      ctx.moveTo(0, -e.radius);
+      ctx.lineTo(e.radius * 0.7, 0);
+      ctx.lineTo(0, e.radius);
+      ctx.lineTo(-e.radius * 0.7, 0);
+      ctx.closePath();
+      ctx.fill();
+      // Glow ring
+      ctx.strokeStyle = e.color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, e.radius + 3, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    } else if (e.type === 'mosquito') {
+      // Mosquito - small fast triangle
+      ctx.shadowBlur = 6;
+      ctx.beginPath();
+      ctx.moveTo(e.radius, 0);
+      ctx.lineTo(-e.radius * 0.6, -e.radius * 0.5);
+      ctx.lineTo(-e.radius * 0.6, e.radius * 0.5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    } else if (e.type === 'knight' || e.type === 'magmaGolem') {
+      // Heavy enemies - square with notches
+      ctx.shadowBlur = 10;
+      const r = e.radius * 0.85;
+      ctx.beginPath();
+      ctx.rect(-r, -r, r * 2, r * 2);
+      ctx.fill();
+      // Corner notches
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.fillRect(-r, -r, r * 0.4, r * 0.4);
+      ctx.fillRect(r * 0.6, -r, r * 0.4, r * 0.4);
+      ctx.fillRect(-r, r * 0.6, r * 0.4, r * 0.4);
+      ctx.fillRect(r * 0.6, r * 0.6, r * 0.4, r * 0.4);
+      ctx.shadowBlur = 0;
+    } else {
+      // Default - circle with outline
+      ctx.shadowBlur = 10;
+      ctx.beginPath();
+      ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
+      ctx.fill();
+      // Subtle outline
+      ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
       ctx.shadowBlur = 0;
     }
     if (e.health < e.maxHealth) {
