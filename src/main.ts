@@ -6,6 +6,7 @@ import { getCurrentPhase, getCurrentWave, getGameState, setGameState, nextWave, 
 import { ENEMY_TYPES } from './config';
 import { Enemy, Bullet, Particle } from './types';
 import { getDashState, activateDash, updateDash, resetDash, isDashInvincible } from './dash';
+import { getUltimateState, addUltimateCharge, activateUltimate, updateUltimate, resetUltimate, isUltimateReady, getUltimateChargePercent } from './ultimate';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d')!;
@@ -39,6 +40,7 @@ function resetPlayer() {
   player.invincible = 0;
   player.shield = 0;
   resetDash();
+  resetUltimate();
 }
 
 function spawnBullet(x: number, y: number, vx: number, vy: number, damage: number, isEnemy: boolean, color: string) {
@@ -156,6 +158,21 @@ function update(dt: number) {
   player.y = Math.max(player.radius, Math.min(canvas.height - player.radius, player.y));
   player.angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
 
+  if (keys['e'] && isUltimateReady()) {
+    activateUltimate();
+  }
+
+  const ultimateResult = updateUltimate(dt);
+  if (ultimateResult.active) {
+    for (const e of enemies) {
+      if (dist(e, player) < ultimateResult.radius) {
+        e.health -= ultimateResult.damage;
+        spawnParticles(e.x, e.y, '#f1c40f', 10, 200);
+      }
+    }
+    spawnParticles(player.x, player.y, '#f1c40f', 30, 300);
+  }
+
   player.shootCooldown -= dt;
   if (mouse.down && player.shootCooldown <= 0) {
     const weapon = getCurrentWeapon();
@@ -230,6 +247,7 @@ function update(dt: number) {
   for (let i = enemies.length - 1; i >= 0; i--) {
     if (enemies[i].health <= 0) {
       addScore(enemies[i].scoreValue);
+      addUltimateCharge(10);
       const def = ENEMY_TYPES[enemies[i].type];
       if (def?.coinDrop) spawnCoins(enemies[i].x, enemies[i].y, def.coinDrop);
       spawnParticles(enemies[i].x, enemies[i].y, enemies[i].color, 15, 250);
@@ -375,6 +393,24 @@ function draw() {
     ctx.fill();
     ctx.globalAlpha = 1;
   }
+
+  const ultCharge = getUltimateChargePercent();
+  const barWidth = 200;
+  const barHeight = 20;
+  const barX = canvas.width / 2 - barWidth / 2;
+  const barY = 20;
+
+  ctx.fillStyle = '#333';
+  ctx.fillRect(barX, barY, barWidth, barHeight);
+  ctx.fillStyle = isUltimateReady() ? '#f1c40f' : '#9b59b6';
+  ctx.fillRect(barX, barY, barWidth * (ultCharge / 100), barHeight);
+  ctx.strokeStyle = '#fff';
+  ctx.strokeRect(barX, barY, barWidth, barHeight);
+
+  ctx.fillStyle = '#fff';
+  ctx.font = '12px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('ULTIMATE [E]', canvas.width / 2, barY + 14);
 }
 
 function loop(time: number) {
