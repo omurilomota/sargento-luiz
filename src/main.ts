@@ -44,7 +44,7 @@ import { powerups, spawnPowerUp, updatePowerUps, hasPowerUp, activePowerups } fr
 
 // Audio & Visual Juice
 import { initAudio, sfxShoot, sfxShotgun, sfxExplosion, sfxBossDeath, sfxPlayerHit, sfxCoin, sfxPowerup, sfxLevelUp, sfxWaveStart, sfxBuy, sfxError, sfxGameOver, sfxHitStop, sfxEnemyShoot, startMusic } from './systems/audio';
-import { updateScreenShake, triggerScreenShake, triggerDamageFlash, triggerLevelUpFlash, triggerBossKillFlash, updateFlash, updateSlowMotion, triggerSlowMotion, triggerHitStop, updateHitStop, resetEffects } from './systems/effects';
+import { triggerDamageFlash, triggerLevelUpFlash, triggerBossKillFlash, updateFlash, updateSlowMotion, triggerSlowMotion, triggerHitStop, updateHitStop, resetEffects } from './systems/effects';
 
 // ─── Canvas Setup ──────────────────────────────────────────────
 const canvas = document.getElementById('game') as HTMLCanvasElement;
@@ -240,7 +240,6 @@ function update(dt: number) {
     }
     e.health = 0;
     spawnParticles(e.x, e.y, e.color, 12, 200);
-    triggerScreenShake(6, 0.15);
   });
 
   const bullets = getBullets();
@@ -267,12 +266,9 @@ function update(dt: number) {
       sfxExplosion();
       if (def?.isBoss) {
         spawnParticles(enemies[i].x, enemies[i].y, '#f1c40f', 50, 400);
-        triggerScreenShake(15, 0.5);
         triggerSlowMotion(0.3, 0.8);
         triggerBossKillFlash();
         sfxBossDeath();
-      } else {
-        triggerScreenShake(2, 0.06);
       }
       if (Math.random() < 0.08) spawnPowerUp(enemies[i].x, enemies[i].y);
       enemies[i] = enemies[enemies.length - 1];
@@ -345,8 +341,7 @@ function draw() {
   if (state === 'gameover') { drawGameOver(getScore(), getKillStreak()); return; }
 
   const bg = getCurrentPhase();
-  const shake = updateScreenShake(0);
-  drawGameBackground(bg?.bg || '#1a1a2e', bg?.gridColor || 'rgba(255,255,255,0.03)', shake);
+  drawGameBackground(bg?.bg || '#1a1a2e', bg?.gridColor || 'rgba(255,255,255,0.03)', { x: 0, y: 0 });
   drawPhaseTransition(phaseTransition, getCurrentWave(), bg?.name);
   renderCoins(getCoins());
   renderPowerUps(powerups);
