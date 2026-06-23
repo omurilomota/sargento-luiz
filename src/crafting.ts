@@ -1,4 +1,5 @@
 import { MATERIALS, CRAFTING_RECIPES } from './config';
+import { applyElement } from './elements';
 
 let inventory: Record<string, number> = {};
 
@@ -41,6 +42,11 @@ export function craft(recipeIndex: number): { success: boolean; result: string; 
     if (mat !== 'weapon' && mat !== 'upgrade') {
       inventory[mat]--;
     }
+  }
+
+  if (recipe.resultType === 'element') {
+    const elementTypes = ['fire', 'ice', 'lightning'];
+    applyElement(elementTypes[Math.floor(Math.random() * elementTypes.length)]);
   }
 
   return { success: true, result: recipe.result, type: recipe.resultType };

@@ -9,6 +9,7 @@ import { getDashState, activateDash, updateDash, resetDash, isDashInvincible } f
 import { getUltimateState, addUltimateCharge, activateUltimate, updateUltimate, resetUltimate, isUltimateReady, getUltimateChargePercent } from './ultimate';
 import { addMaterial } from './crafting';
 import { spawnHazards, checkHazardCollision, drawHazards, resetHazards } from './hazards';
+import { applyElement, updateElements, resetElements, getBulletElement, getBulletElementColor, drawElementIndicator } from './elements';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d')!;
@@ -44,10 +45,11 @@ function resetPlayer() {
   resetDash();
   resetUltimate();
   resetHazards();
+  resetElements();
 }
 
-function spawnBullet(x: number, y: number, vx: number, vy: number, damage: number, isEnemy: boolean, color: string) {
-  bullets.push({ x, y, vx, vy, life: 1.5, damage, isEnemy, color });
+function spawnBullet(x: number, y: number, vx: number, vy: number, damage: number, isEnemy: boolean, color: string, element?: string) {
+  bullets.push({ x, y, vx, vy, life: 1.5, damage, isEnemy, color, element });
 }
 
 function spawnEnemy(type: string) {
@@ -195,7 +197,8 @@ function update(dt: number) {
     const weapon = getCurrentWeapon();
     player.shootCooldown = weapon.shootRate;
     const newBullets = shoot(player.x, player.y, player.angle);
-    newBullets.forEach(b => spawnBullet(b.x, b.y, b.vx, b.vy, b.damage, false, b.color));
+    const element = getBulletElement();
+    newBullets.forEach(b => spawnBullet(b.x, b.y, b.vx, b.vy, b.damage, false, b.color, element || undefined));
     spawnParticles(player.x + Math.cos(player.angle) * 20, player.y + Math.sin(player.angle) * 20, '#2ecc71', 3, 100);
   }
 
@@ -240,6 +243,22 @@ function update(dt: number) {
     for (const e of enemies) {
       if (dist(b, e) < e.radius + 4) {
         e.health -= b.damage;
+
+        if (b.element) {
+          const elementResult = updateElements(dt);
+          if (elementResult.active) {
+            if (elementResult.effect === 'slow') {
+              e.speed *= 0.5;
+              setTimeout(() => { e.speed /= 0.5; }, 2000);
+            } else if (elementResult.effect === 'stun') {
+              e.speed = 0;
+              setTimeout(() => { e.speed = ENEMY_TYPES[e.type]?.speed || 80; }, 500);
+            } else if (elementResult.effect === 'burn') {
+              e.health -= elementResult.damage;
+            }
+          }
+        }
+
         b.life = 0;
         spawnParticles(b.x, b.y, '#fff', 3, 150);
         break;
@@ -418,6 +437,8 @@ function draw() {
     ctx.fill();
     ctx.globalAlpha = 1;
   }
+
+  drawElementIndicator(ctx, player.x, player.y);
 
   const ultCharge = getUltimateChargePercent();
   const barWidth = 200;
