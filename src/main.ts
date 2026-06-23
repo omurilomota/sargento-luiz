@@ -31,6 +31,7 @@ import { getCoins, spawnCoins, updateCoins, clearCoins, setMagnetActive } from '
 import { spawnParticles, updateParticles, clearParticles, getParticles } from './systems/particles';
 import { spawnWaveEnemies, resetSpawner, spawnEnemy } from './systems/spawner';
 import { checkBulletEnemyCollisions, checkEnemyPlayerCollision } from './systems/collision';
+import { createExplosion, updateExplosions, clearExplosions, getExplosions } from './systems/explosions';
 import { initRenderer, drawMenu, drawGameOver, drawGameBackground, drawPhaseTransition, drawCoins as renderCoins, drawPowerUps as renderPowerUps, drawParticles as renderParticles, drawBullets as renderBullets, drawEnemies as renderEnemies, drawPlayer as renderPlayer, drawDamageNumbers, drawCombo, drawWeaponInfo, drawActivePowerUps as renderActivePowerUps, restoreCanvas } from './systems/renderer';
 
 // UI
@@ -39,12 +40,18 @@ import { drawShop, handleShopClick, setShopCoins, getShopCoins, addShopCoins, re
 
 // Existing modules (unchanged)
 import { shoot, getCurrentWeapon, resetWeapons } from './weapons';
-import { getCurrentPhase, getCurrentWave, getGameState, setGameState, nextWave, nextPhase, resetPhases, addScore, getScore, getCombo, updateCombo, resetCombo, getKillStreak } from './phases';
+import { getCurrentPhase, getCurrentWave, getGameState, setGameState, nextWave, nextPhase, resetPhases, addScore, addScoreFlat, getScore, getCombo, updateCombo, resetCombo, getKillStreak } from './phases';
 import { powerups, spawnPowerUp, updatePowerUps, hasPowerUp, activePowerups } from './powerups';
 
 // Audio & Visual Juice
 import { initAudio, sfxShoot, sfxShotgun, sfxExplosion, sfxBossDeath, sfxPlayerHit, sfxCoin, sfxPowerup, sfxLevelUp, sfxWaveStart, sfxBuy, sfxError, sfxGameOver, sfxHitStop, sfxEnemyShoot, startMusic } from './systems/audio';
-import { triggerDamageFlash, triggerLevelUpFlash, triggerBossKillFlash, updateFlash, updateSlowMotion, triggerSlowMotion, triggerHitStop, updateHitStop, resetEffects } from './systems/effects';
+import { triggerScreenShake, triggerDamageFlash, triggerLevelUpFlash, triggerBossKillFlash, updateFlash, updateSlowMotion, triggerSlowMotion, triggerHitStop, updateHitStop, resetEffects } from './systems/effects';
+
+// Player Skills
+import { useSkill, isSkillActive, updateSkills, resetSkills, getDamageMultiplier, getDamageTakenMultiplier } from './systems/skills';
+
+// Environment Events
+import { updateEnvironmentEvents, resetEnvironmentEvents } from './systems/environment';
 
 // ─── Canvas Setup ──────────────────────────────────────────────
 const canvas = document.getElementById('game') as HTMLCanvasElement;
@@ -59,7 +66,17 @@ initHud();
 // ─── Input ─────────────────────────────────────────────────────
 const keys: Record<string, boolean> = {};
 const mouse = { x: 0, y: 0, down: false };
-document.addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; });
+document.addEventListener('keydown', e => {
+  const key = e.key.toLowerCase();
+  keys[key] = true;
+  
+  // Skill keys (only during gameplay)
+  if (getGameState() === 'playing') {
+    if (key === 'q') useSkill('dash');
+    if (key === 'w' && !keys['shift']) useSkill('shield');
+    if (key === 'e') useSkill('fury');
+  }
+});
 document.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
 canvas.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
 canvas.addEventListener('mousedown', e => {
@@ -89,11 +106,14 @@ function resetGame() {
   resetShop();
   resetSpawner();
   resetEffects();
+  resetSkills();
+  resetEnvironmentEvents();
   enemies.length = 0;
   damageNumbers.length = 0;
   clearBullets();
   clearCoins();
   clearParticles();
+  clearExplosions();
 }
 
 // ─── Update ────────────────────────────────────────────────────
@@ -150,6 +170,9 @@ function update(dt: number) {
   const speedMult = hasPowerUp('speed') ? 1.5 : 1;
   player.movePlayer(keys, dt, canvas.width, canvas.height, speedMult);
   p.angle = Math.atan2(mouse.y - p.y, mouse.x - p.x);
+  
+  updateSkills(dt, p);
+  updateEnvironmentEvents(dt, enemies, p.x, p.y);
 
   // Shooting
   p.shootCooldown -= dt;
@@ -157,8 +180,8 @@ function update(dt: number) {
     const weapon = getCurrentWeapon();
     p.shootCooldown = weapon.shootRate;
     const multiShot = hasPowerUp('multiShot');
-    const newBullets = shoot(p.x, p.y, p.angle, multiShot);
-    newBullets.forEach(b => spawnBullet(b.x, b.y, b.vx, b.vy, b.damage, false, b.color, b.pierce));
+    const newBullets = shoot(p.x, p.y, p.angle, multiShot, getDamageMultiplier());
+    newBullets.forEach(b => spawnBullet(b.x, b.y, b.vx, b.vy, b.damage, false, b.color, b.pierce, b.explosive, b.explosionRadius));
     const muzzleX = p.x + Math.cos(p.angle) * 24;
     const muzzleY = p.y + Math.sin(p.angle) * 24;
     spawnParticles(muzzleX, muzzleY, weapon.color, 4, 120);
@@ -232,7 +255,8 @@ function update(dt: number) {
 
   // Collision
   checkEnemyPlayerCollision(enemies, p.x, p.y, p.radius, p.invincible, (e) => {
-    const dmg = hasPowerUp('invincible') ? 0 : e.damage;
+    const baseDmg = hasPowerUp('invincible') ? 0 : e.damage;
+    const dmg = Math.floor(baseDmg * getDamageTakenMultiplier());
     if (dmg > 0) {
       player.enemyCollisionDamage(dmg);
       sfxPlayerHit();
@@ -244,13 +268,20 @@ function update(dt: number) {
 
   const bullets = getBullets();
   checkBulletEnemyCollisions(bullets, enemies, (b, e) => {
-    e.health -= b.damage;
-    damageNumbers.push({
-      x: e.x + (Math.random() - 0.5) * 20, y: e.y - 20,
-      text: b.color === '#f1c40f' ? `${Math.floor(b.damage)}!` : String(Math.floor(b.damage)),
-      color: b.color === '#f1c40f' ? '#f1c40f' : '#fff',
-      life: 1, vy: -80,
-    });
+    // Explosive bullets create area damage
+    if (b.explosive && b.explosionRadius) {
+      createExplosion(b.x, b.y, b.explosionRadius, b.damage, enemies, b.color);
+      sfxExplosion();
+      triggerScreenShake(8, 0.2);
+    } else {
+      e.health -= b.damage;
+      damageNumbers.push({
+        x: e.x + (Math.random() - 0.5) * 20, y: e.y - 20,
+        text: b.color === '#f1c40f' ? `${Math.floor(b.damage)}!` : String(Math.floor(b.damage)),
+        color: b.color === '#f1c40f' ? '#f1c40f' : '#fff',
+        life: 1, vy: -80,
+      });
+    }
     if (!b.pierce) b.life = 0;
     spawnParticles(b.x, b.y, b.color, 3, 150);
     triggerHitStop(0.015);
@@ -279,6 +310,7 @@ function update(dt: number) {
   // Update systems
   updateBullets(dt, canvas.width, canvas.height);
   updateParticles(dt);
+  updateExplosions(dt);
 
   for (const d of damageNumbers) {
     d.y += d.vy * dt;
@@ -293,7 +325,7 @@ function update(dt: number) {
   }
 
   updateCoins(dt, p.x, p.y, p.radius, (v) => {
-    addScore(v);
+    addScoreFlat(v);
     addShopCoins(v);
     sfxCoin();
   });

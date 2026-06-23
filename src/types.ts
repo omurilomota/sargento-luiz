@@ -28,6 +28,10 @@ export interface Bullet {
   color: string;
   /** Indica se o projétil atravessa múltiplos alvos */
   pierce: boolean;
+  /** Indica se o projétil é explosivo */
+  explosive?: boolean;
+  /** Raio da explosão em pixels */
+  explosionRadius?: number;
 }
 
 /** Representa um inimigo no campo de batalha */
@@ -134,6 +138,10 @@ export interface Weapon {
   price: number;
   /** Indica se o projétil atravessa inimigos */
   pierce: boolean;
+  /** Indica se o projétil é explosivo (explode ao atingir) */
+  explosive?: boolean;
+  /** Raio da explosão em pixels (apenas para armas explosivas) */
+  explosionRadius?: number;
 }
 
 /** Define um upgrade permanente disponível na loja */

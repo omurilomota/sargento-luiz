@@ -56,6 +56,8 @@ export const WEAPONS: Weapon[] = [
   { name: 'RPG', damage: 80, shootRate: 1.2, bulletSpeed: 400, bulletCount: 1, spread: 0, color: '#e67e22', price: 200, pierce: false },
   { name: 'Raios', damage: 25, shootRate: 0.15, bulletSpeed: 800, bulletCount: 3, spread: 0.15, color: '#9b59b6', price: 180, pierce: true },
   { name: 'Gel', damage: 12, shootRate: 0.1, bulletSpeed: 550, bulletCount: 2, spread: 0.2, color: '#3498db', price: 100, pierce: false },
+  { name: 'Granada', damage: 40, shootRate: 1.0, bulletSpeed: 350, bulletCount: 1, spread: 0, color: '#e74c3c', price: 150, pierce: false, explosive: true, explosionRadius: 80 },
+  { name: 'Mina', damage: 60, shootRate: 2.0, bulletSpeed: 0, bulletCount: 1, spread: 0, color: '#f39c12', price: 120, pierce: false, explosive: true, explosionRadius: 100 },
 ];
 
 /** Lista de upgrades permanentes disponíveis na loja */

@@ -87,6 +87,15 @@ export function addScore(amount: number) {
 }
 
 /**
+ * Adiciona pontuação SEM incrementar o combo.
+ * Usado para moedas e outros eventos que não são kills.
+ * @param amount - pontos a adicionar
+ */
+export function addScoreFlat(amount: number) {
+  score += amount;
+}
+
+/**
  * Atualiza o timer do combo. Reseta o combo quando o timer expira.
  * @param dt - delta time em segundos
  */
