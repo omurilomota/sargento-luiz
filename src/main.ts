@@ -50,6 +50,9 @@ import { triggerScreenShake, triggerDamageFlash, triggerLevelUpFlash, triggerBos
 // Player Skills
 import { useSkill, isSkillActive, updateSkills, resetSkills, getDamageMultiplier, getDamageTakenMultiplier } from './systems/skills';
 
+// Environment Events
+import { updateEnvironmentEvents, resetEnvironmentEvents } from './systems/environment';
+
 // ─── Canvas Setup ──────────────────────────────────────────────
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d')!;
@@ -104,6 +107,7 @@ function resetGame() {
   resetSpawner();
   resetEffects();
   resetSkills();
+  resetEnvironmentEvents();
   enemies.length = 0;
   damageNumbers.length = 0;
   clearBullets();
@@ -168,6 +172,7 @@ function update(dt: number) {
   p.angle = Math.atan2(mouse.y - p.y, mouse.x - p.x);
   
   updateSkills(dt, p);
+  updateEnvironmentEvents(dt, enemies, p.x, p.y);
 
   // Shooting
   p.shootCooldown -= dt;
