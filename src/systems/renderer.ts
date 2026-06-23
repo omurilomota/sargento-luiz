@@ -1,0 +1,361 @@
+// src/systems/renderer.ts
+import { Enemy, Bullet, Particle, Coin, PowerUp } from '../types';
+import { ENEMY_TYPES, POWERUP_TYPES } from '../config';
+import { Player } from '../entities/player';
+import { hasPowerUp } from '../powerups';
+
+let ctx: CanvasRenderingContext2D;
+let canvas: HTMLCanvasElement;
+
+export function initRenderer(canvasEl: HTMLCanvasElement, ctxEl: CanvasRenderingContext2D): void {
+  canvas = canvasEl;
+  ctx = ctxEl;
+}
+
+export function drawMenu(): void {
+  ctx.fillStyle = '#0a0a1a';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  for (let i = 0; i < 50; i++) {
+    const x = (i * 73 + Date.now() / 20) % canvas.width;
+    const y = (i * 47 + Date.now() / 30) % canvas.height;
+    ctx.fillStyle = `rgba(46,204,113,${0.2 + Math.sin(Date.now() / 500 + i) * 0.1})`;
+    ctx.beginPath();
+    ctx.arc(x, y, 2 + Math.sin(Date.now() / 1000 + i) * 1, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.fillStyle = '#2ecc71';
+  ctx.font = 'bold 52px monospace';
+  ctx.textAlign = 'center';
+  ctx.shadowColor = '#2ecc71';
+  ctx.shadowBlur = 30;
+  ctx.fillText('BUBBLE SHOOTER', canvas.width / 2, canvas.height / 2 - 60);
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#aaa';
+  ctx.font = '16px monospace';
+  ctx.fillText('WASD para mover | Mouse para mirar | Click para atirar', canvas.width / 2, canvas.height / 2);
+  ctx.fillStyle = '#fff';
+  ctx.font = '22px monospace';
+  const pulse = 0.7 + Math.sin(Date.now() / 400) * 0.3;
+  ctx.globalAlpha = pulse;
+  ctx.fillText('Pressione ENTER para jogar', canvas.width / 2, canvas.height / 2 + 50);
+  ctx.globalAlpha = 1;
+}
+
+export function drawGameOver(score: number, killStreak: number): void {
+  ctx.fillStyle = '#0a0a1a';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  for (let i = 0; i < 30; i++) {
+    const x = (i * 100 + Date.now() / 40) % canvas.width;
+    const y = (i * 80 + Date.now() / 50) % canvas.height;
+    ctx.fillStyle = `rgba(231,76,60,${0.15 + Math.sin(Date.now() / 800 + i) * 0.05})`;
+    ctx.beginPath();
+    ctx.arc(x, y, 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.fillStyle = '#e74c3c';
+  ctx.font = 'bold 56px monospace';
+  ctx.textAlign = 'center';
+  ctx.shadowColor = '#e74c3c';
+  ctx.shadowBlur = 30;
+  ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 70);
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#fff';
+  ctx.font = '20px monospace';
+  ctx.fillText(`Pontos: ${score}`, canvas.width / 2, canvas.height / 2 - 10);
+  ctx.fillText(`Kills: ${killStreak}`, canvas.width / 2, canvas.height / 2 + 20);
+  const pulse = 0.7 + Math.sin(Date.now() / 400) * 0.3;
+  ctx.globalAlpha = pulse;
+  ctx.fillText('Pressione ENTER para reiniciar', canvas.width / 2, canvas.height / 2 + 70);
+  ctx.globalAlpha = 1;
+}
+
+export function drawGameBackground(bg: string, gridColor: string, screenShake: number): void {
+  const shakeX = screenShake > 0 ? (Math.random() - 0.5) * screenShake * 20 : 0;
+  const shakeY = screenShake > 0 ? (Math.random() - 0.5) * screenShake * 20 : 0;
+  ctx.save();
+  ctx.translate(shakeX, shakeY);
+  ctx.fillStyle = bg;
+  ctx.fillRect(-10, -10, canvas.width + 20, canvas.height + 20);
+  const gridSize = 50;
+  ctx.strokeStyle = gridColor;
+  ctx.lineWidth = 1;
+  for (let x = 0; x < canvas.width; x += gridSize) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+  }
+  for (let y = 0; y < canvas.height; y += gridSize) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+  }
+}
+
+export function drawPhaseTransition(phaseTransition: number, currentWave: number, phaseName: string | undefined): void {
+  if (phaseTransition > 0) {
+    const alpha = Math.min(1, phaseTransition / 1.5);
+    ctx.fillStyle = `rgba(0,0,0,${alpha * 0.5})`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+    ctx.font = 'bold 40px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(`Onda ${currentWave + 1}`, canvas.width / 2, canvas.height / 2);
+    if (phaseName) {
+      ctx.font = '24px monospace';
+      ctx.fillText(phaseName, canvas.width / 2, canvas.height / 2 + 40);
+    }
+  }
+}
+
+export function drawCoins(coins: Coin[]): void {
+  for (const c of coins) {
+    const pulse = 1 + Math.sin(Date.now() / 300 + c.x) * 0.15;
+    const alpha = Math.min(1, c.life / 3);
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = '#f1c40f';
+    ctx.shadowColor = '#f1c40f';
+    ctx.shadowBlur = 10;
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, 7 * pulse, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#d4ac0d';
+    ctx.beginPath();
+    ctx.arc(c.x - 1, c.y - 1, 4 * pulse, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 8px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('$', c.x, c.y + 1);
+  }
+  ctx.globalAlpha = 1;
+}
+
+export function drawPowerUps(powerups: PowerUp[]): void {
+  for (const p of powerups) {
+    const def = POWERUP_TYPES[p.type];
+    const bob = Math.sin(Date.now() / 200 + p.x) * 3;
+    const alpha = Math.min(1, p.life / 2);
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = def.color;
+    ctx.shadowColor = def.color;
+    ctx.shadowBlur = 12;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y + bob, 12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 12px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(def.symbol, p.x, p.y + bob);
+  }
+  ctx.globalAlpha = 1;
+}
+
+export function drawParticles(particles: Particle[]): void {
+  for (const p of particles) {
+    const alpha = p.life / p.maxLife;
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.radius * alpha, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+export function drawBullets(bullets: Bullet[]): void {
+  for (const b of bullets) {
+    ctx.fillStyle = b.color;
+    ctx.shadowColor = b.color;
+    ctx.shadowBlur = 10;
+    const trailLen = b.isEnemy ? 8 : 12;
+    const speed = Math.hypot(b.vx, b.vy) || 1;
+    const tx = b.x - (b.vx / speed) * trailLen;
+    const ty = b.y - (b.vy / speed) * trailLen;
+    const grad = ctx.createLinearGradient(tx, ty, b.x, b.y);
+    grad.addColorStop(0, 'transparent');
+    grad.addColorStop(1, b.color);
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(tx, ty);
+    ctx.lineTo(b.x, b.y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.isEnemy ? 3 : 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+}
+
+export function drawEnemies(enemies: Enemy[], playerX: number, playerY: number): void {
+  for (const e of enemies) {
+    ctx.save();
+    ctx.translate(e.x, e.y);
+    const def = ENEMY_TYPES[e.type];
+    ctx.fillStyle = e.color;
+    ctx.shadowColor = e.color;
+    if (def?.armor) {
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const a = e.angle + (i * Math.PI * 2) / 6;
+        const r = e.radius * (i % 2 === 0 ? 1 : 0.8);
+        if (i === 0) ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+        else ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    } else if (def?.isBoss) {
+      ctx.shadowBlur = 20;
+      ctx.beginPath();
+      for (let i = 0; i < 8; i++) {
+        const a = e.angle + (i * Math.PI * 2) / 8;
+        const r = e.radius * (i % 2 === 0 ? 1 : 0.7);
+        if (i === 0) ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+        else ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    } else {
+      ctx.shadowBlur = 10;
+      ctx.beginPath();
+      ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+    if (e.health < e.maxHealth) {
+      const barW = e.radius * 2;
+      ctx.fillStyle = '#333';
+      ctx.fillRect(-barW / 2, -e.radius - 12, barW, 5);
+      ctx.fillStyle = '#e74c3c';
+      ctx.fillRect(-barW / 2, -e.radius - 12, barW * (e.health / e.maxHealth), 5);
+    }
+    const eyeAngle = Math.atan2(playerY - e.y, playerX - e.x) - e.angle;
+    const eyeOff = e.radius * 0.35;
+    const eyeR = e.radius * 0.18;
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(Math.cos(eyeAngle - 0.4) * eyeOff, Math.sin(eyeAngle - 0.4) * eyeOff, eyeR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(Math.cos(eyeAngle + 0.4) * eyeOff, Math.sin(eyeAngle + 0.4) * eyeOff, eyeR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#111';
+    ctx.beginPath();
+    ctx.arc(Math.cos(eyeAngle - 0.4) * eyeOff * 1.2, Math.sin(eyeAngle - 0.4) * eyeOff * 1.2, eyeR * 0.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(Math.cos(eyeAngle + 0.4) * eyeOff * 1.2, Math.sin(eyeAngle + 0.4) * eyeOff * 1.2, eyeR * 0.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+export function drawPlayer(player: Player): void {
+  const flash = player.invincible > 0 && Math.floor(player.invincible * 25) % 2;
+  if (!flash) {
+    ctx.fillStyle = hasPowerUp('invincible') ? '#f1c40f' : player.shield > 0 ? '#3498db' : '#2ecc71';
+    ctx.shadowColor = ctx.fillStyle;
+    ctx.shadowBlur = 15;
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    if (hasPowerUp('invincible')) {
+      ctx.strokeStyle = '#f1c40f';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, player.radius + 5 + Math.sin(Date.now() / 100) * 3, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    if (player.shield > 0) {
+      ctx.strokeStyle = 'rgba(52,152,219,0.5)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, player.radius + 8, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(player.x, player.y);
+    ctx.lineTo(player.x + Math.cos(player.angle) * 28, player.y + Math.sin(player.angle) * 28);
+    ctx.stroke();
+    const eOff = player.radius * 0.3;
+    const eR = player.radius * 0.2;
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(player.x + Math.cos(player.angle - 0.5) * eOff, player.y + Math.sin(player.angle - 0.5) * eOff, eR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(player.x + Math.cos(player.angle + 0.5) * eOff, player.y + Math.sin(player.angle + 0.5) * eOff, eR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#111';
+    ctx.beginPath();
+    ctx.arc(player.x + Math.cos(player.angle - 0.5) * eOff * 1.1, player.y + Math.sin(player.angle - 0.5) * eOff * 1.1, eR * 0.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(player.x + Math.cos(player.angle + 0.5) * eOff * 1.1, player.y + Math.sin(player.angle + 0.5) * eOff * 1.1, eR * 0.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+export function drawDamageNumbers(damageNumbers: { x: number; y: number; text: string; color: string; life: number; vy: number }[]): void {
+  for (const d of damageNumbers) {
+    const alpha = Math.min(1, d.life / 0.5);
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = d.color;
+    ctx.font = 'bold 16px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(d.text, d.x, d.y);
+  }
+  ctx.globalAlpha = 1;
+}
+
+export function drawCombo(combo: number): void {
+  if (combo > 1) {
+    ctx.fillStyle = '#f1c40f';
+    ctx.font = 'bold 24px monospace';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = '#f1c40f';
+    ctx.shadowBlur = 10;
+    ctx.fillText(`COMBO x${combo}`, canvas.width / 2, 40);
+    ctx.shadowBlur = 0;
+  }
+}
+
+export function drawWeaponInfo(weaponName: string): void {
+  ctx.fillStyle = '#aaa';
+  ctx.font = '14px monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText(weaponName, 20, canvas.height - 20);
+}
+
+export function drawActivePowerUps(activePowerups: Record<string, number>): void {
+  let x = canvas.width - 20;
+  for (const key in activePowerups) {
+    const def = POWERUP_TYPES[key];
+    const remaining = activePowerups[key];
+    ctx.fillStyle = def.color;
+    ctx.globalAlpha = 0.8;
+    ctx.beginPath();
+    ctx.arc(x, 30, 15, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 10px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(def.symbol, x, 30);
+    ctx.fillStyle = '#fff';
+    ctx.font = '10px monospace';
+    ctx.fillText(remaining.toFixed(1), x, 52);
+    x -= 35;
+  }
+  ctx.globalAlpha = 1;
+}
+
+export function restoreCanvas(): void {
+  ctx.restore();
+}
