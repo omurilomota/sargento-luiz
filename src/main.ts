@@ -68,13 +68,14 @@ const keys: Record<string, boolean> = {};
 const mouse = { x: 0, y: 0, down: false };
 document.addEventListener('keydown', e => {
   const key = e.key.toLowerCase();
+  if (keys[key]) return; // Ignore repeated keydowns
   keys[key] = true;
   
   // Skill keys (only during gameplay)
   if (getGameState() === 'playing') {
-    if (key === 'q') useSkill('dash');
-    if (key === 'w' && !keys['shift']) useSkill('shield');
-    if (key === 'e') useSkill('fury');
+    if (key === ' ' && useSkill('dash')) sfxPowerup();
+    if (key === 'f' && useSkill('shield')) sfxPowerup();
+    if (key === 'r' && useSkill('fury')) sfxLevelUp();
   }
 });
 document.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
