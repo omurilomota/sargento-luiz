@@ -138,11 +138,19 @@ function update(dt: number) {
           setGameState('playing');
         }
       }
-    } else if (keys['enter']) {
-      initAudio();
-      startMusic();
-      resetGame();
-      showCutscene();
+    } else {
+      // Mode selection
+      if (keys['1']) setGameMode('campaign');
+      if (keys['2']) setGameMode('survival');
+      if (keys['3']) setGameMode('missions');
+      if (keys['4']) setGameMode('bossrush');
+      
+      if (keys['enter']) {
+        initAudio();
+        startMusic();
+        resetGame();
+        showCutscene();
+      }
     }
     return;
   }

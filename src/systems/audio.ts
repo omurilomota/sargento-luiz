@@ -166,50 +166,51 @@ export function sfxHitStop(): void {
 let musicOsc1: OscillatorNode | null = null;
 let musicOsc2: OscillatorNode | null = null;
 let musicInterval: ReturnType<typeof setInterval> | null = null;
+let currentMusicSource: AudioBufferSourceNode | null = null;
 
-/** Melodia principal - mais emotiva e épica */
+/** Música de batalha (CC3 - Kevin MacLeod) */
+const BATTLE_MUSIC_URL = 'assets/music/battle.mp3';
+
+/** Carrega e toca música de fundo */
+export async function loadAndPlayMusic(): Promise<void> {
+  const ac = ensureCtx();
+  if (!musicGain) return;
+
+  try {
+    const response = await fetch(BATTLE_MUSIC_URL);
+    const arrayBuffer = await response.arrayBuffer();
+    const audioBuffer = await ac.decodeAudioData(arrayBuffer);
+    
+    currentMusicSource = ac.createBufferSource();
+    currentMusicSource.buffer = audioBuffer;
+    currentMusicSource.loop = true;
+    currentMusicSource.connect(musicGain);
+    currentMusicSource.start();
+  } catch (error) {
+    console.log('Erro ao carregar música, usando procedural:', error);
+    startProceduralMusic();
+  }
+}
+
+/** Música procedural (fallback) */
 const MAIN_MELODY = [
-  // Frase 1 - Introdução suave
-  { note: 330, dur: 0.3 },  // E4
-  { note: 392, dur: 0.3 },  // G4
-  { note: 440, dur: 0.5 },  // A4
-  { note: 392, dur: 0.3 },  // G4
-  { note: 330, dur: 0.3 },  // E4
-  { note: 294, dur: 0.5 },  // D4
-  
-  // Frase 2 - Subida épica
-  { note: 330, dur: 0.2 },  // E4
-  { note: 392, dur: 0.2 },  // G4
-  { note: 440, dur: 0.2 },  // A4
-  { note: 523, dur: 0.4 },  // C5
-  { note: 494, dur: 0.4 },  // B4
-  { note: 440, dur: 0.6 },  // A4
-  
-  // Frase 3 - Clímax
-  { note: 523, dur: 0.2 },  // C5
-  { note: 587, dur: 0.2 },  // D5
-  { note: 659, dur: 0.4 },  // E5
-  { note: 587, dur: 0.2 },  // D5
-  { note: 523, dur: 0.2 },  // C5
-  { note: 440, dur: 0.4 },  // A4
-  { note: 392, dur: 0.6 },  // G4
-  
-  // Frase 4 - Resolução
-  { note: 330, dur: 0.3 },  // E4
-  { note: 294, dur: 0.3 },  // D4
-  { note: 262, dur: 0.8 },  // C4
+  { note: 330, dur: 0.3 },
+  { note: 392, dur: 0.3 },
+  { note: 440, dur: 0.5 },
+  { note: 392, dur: 0.3 },
+  { note: 330, dur: 0.3 },
+  { note: 294, dur: 0.5 },
+  { note: 330, dur: 0.2 },
+  { note: 392, dur: 0.2 },
+  { note: 440, dur: 0.2 },
+  { note: 523, dur: 0.4 },
+  { note: 494, dur: 0.4 },
+  { note: 440, dur: 0.6 },
 ];
 
-/** Baixo de acompanhamento */
-const BASS_LINE = [
-  131, 131, 165, 165, 175, 175, 131, 131,
-  131, 131, 165, 165, 196, 196, 175, 175,
-  165, 165, 196, 196, 220, 220, 196, 196,
-  131, 131, 165, 165, 131, 131,
-];
+const BASS_LINE = [131, 131, 165, 165, 175, 175, 131, 131];
 
-/** Inicia música de fundo emocional */
-export function startMusic(): void {
+function startProceduralMusic(): void {
   const ac = ensureCtx();
   if (!musicGain || musicInterval) return;
 
@@ -219,8 +220,6 @@ export function startMusic(): void {
 
   function playNote() {
     if (!musicGain) return;
-    
-    // Toca melodia
     const note = MAIN_MELODY[melodyIndex % MAIN_MELODY.length];
     const osc = ac.createOscillator();
     const gain = ac.createGain();
@@ -233,7 +232,6 @@ export function startMusic(): void {
     osc.start(time);
     osc.stop(time + note.dur);
     
-    // Toca baixo
     const bassFreq = BASS_LINE[bassIndex % BASS_LINE.length];
     const bassOsc = ac.createOscillator();
     const bassGain = ac.createGain();
@@ -249,18 +247,24 @@ export function startMusic(): void {
     time += note.dur;
     melodyIndex++;
     bassIndex++;
-    
-    // Agendar próxima nota
-    const nextNote = MAIN_MELODY[melodyIndex % MAIN_MELODY.length];
-    setTimeout(playNote, nextNote.dur * 1000);
+    setTimeout(playNote, note.dur * 1000);
   }
 
   playNote();
-  musicInterval = setInterval(() => {}, 1000); // Placeholder para cancelamento
+  musicInterval = setInterval(() => {}, 1000);
+}
+
+/** Inicia música de fundo */
+export function startMusic(): void {
+  loadAndPlayMusic();
 }
 
 /** Para a música de fundo */
 export function stopMusic(): void {
+  if (currentMusicSource) {
+    currentMusicSource.stop();
+    currentMusicSource = null;
+  }
   if (musicInterval) {
     clearInterval(musicInterval);
     musicInterval = null;

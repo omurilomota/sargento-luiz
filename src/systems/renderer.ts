@@ -34,6 +34,8 @@ export function initRenderer(canvasEl: HTMLCanvasElement, ctxEl: CanvasRendering
 export function drawMenu(): void {
   ctx.fillStyle = '#0a0a1a';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Particles
   for (let i = 0; i < 50; i++) {
     const x = (i * 73 + Date.now() / 20) % canvas.width;
     const y = (i * 47 + Date.now() / 30) % canvas.height;
@@ -42,21 +44,55 @@ export function drawMenu(): void {
     ctx.arc(x, y, 2 + Math.sin(Date.now() / 1000 + i) * 1, 0, Math.PI * 2);
     ctx.fill();
   }
+  
+  // Title
   ctx.fillStyle = '#2ecc71';
   ctx.font = 'bold 52px monospace';
   ctx.textAlign = 'center';
   ctx.shadowColor = '#2ecc71';
   ctx.shadowBlur = 30;
-  ctx.fillText('BUBBLE SHOOTER', canvas.width / 2, canvas.height / 2 - 60);
+  ctx.fillText('BUBBLE SHOOTER', canvas.width / 2, canvas.height / 2 - 120);
   ctx.shadowBlur = 0;
-  ctx.fillStyle = '#aaa';
+  
+  // Subtitle
+  ctx.fillStyle = '#666';
+  ctx.font = '14px monospace';
+  ctx.fillText('PÓS-APOCALÍPTICO', canvas.width / 2, canvas.height / 2 - 80);
+  
+  // Game modes
+  ctx.fillStyle = '#888';
   ctx.font = '16px monospace';
-  ctx.fillText('WASD para mover | Mouse para mirar | Click para atirar', canvas.width / 2, canvas.height / 2);
+  ctx.fillText('Selecione o modo:', canvas.width / 2, canvas.height / 2 - 30);
+  
+  const modes = [
+    { key: '1', name: 'CAMPANHA', desc: 'História com cutscenes' },
+    { key: '2', name: 'SOBREVIVÊNCIA', desc: 'Ondas infinitas' },
+    { key: '3', name: 'MISSÕES', desc: 'Objetivos específicos' },
+    { key: '4', name: 'BOSS RUSH', desc: 'Apenas bosses' },
+  ];
+  
+  modes.forEach((mode, i) => {
+    const y = canvas.height / 2 + i * 35;
+    ctx.fillStyle = '#aaa';
+    ctx.font = '18px monospace';
+    ctx.fillText(`[${mode.key}] ${mode.name}`, canvas.width / 2, y);
+    ctx.fillStyle = '#555';
+    ctx.font = '12px monospace';
+    ctx.fillText(mode.desc, canvas.width / 2, y + 18);
+  });
+  
+  // Controls
+  ctx.fillStyle = '#666';
+  ctx.font = '12px monospace';
+  ctx.fillText('WASD: Mover | Mouse: Mirar | Click: Atirar', canvas.width / 2, canvas.height / 2 + 180);
+  ctx.fillText('Espaço: Dash | F: Escudo | R: Fúria', canvas.width / 2, canvas.height / 2 + 200);
+  
+  // Start
   ctx.fillStyle = '#fff';
-  ctx.font = '22px monospace';
-  const pulse = 0.7 + Math.sin(Date.now() / 400) * 0.3;
+  ctx.font = '20px monospace';
+  const pulse = 0.5 + Math.sin(Date.now() / 400) * 0.3;
   ctx.globalAlpha = pulse;
-  ctx.fillText('Pressione ENTER para jogar', canvas.width / 2, canvas.height / 2 + 50);
+  ctx.fillText('Pressione ENTER para jogar', canvas.width / 2, canvas.height / 2 + 250);
   ctx.globalAlpha = 1;
 }
 
