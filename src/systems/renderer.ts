@@ -54,7 +54,7 @@ export function drawMenu(): void {
   ctx.fillText('BUBBLE SHOOTER', canvas.width / 2, canvas.height / 2 - 140);
   ctx.shadowBlur = 0;
   
-  // Subtitle - clean and simple
+  // Subtitle
   ctx.fillStyle = '#aaa';
   ctx.font = '16px monospace';
   ctx.fillText('PÓS-APOCALÍPTICO', canvas.width / 2, canvas.height / 2 - 95);
@@ -85,7 +85,7 @@ export function drawMenu(): void {
     ctx.lineWidth = 2;
     ctx.stroke();
     
-    // Key number (large and bold)
+    // Key number
     ctx.fillStyle = mode.color;
     ctx.font = 'bold 24px monospace';
     ctx.textAlign = 'left';

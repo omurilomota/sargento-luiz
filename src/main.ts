@@ -71,15 +71,23 @@ initHud();
 const keys: Record<string, boolean> = {};
 const mouse = { x: 0, y: 0, down: false };
 document.addEventListener('keydown', e => {
-  const key = e.key.toLowerCase();
-  if (keys[key]) return; // Ignore repeated keydowns
-  keys[key] = true;
+  const key = e.key;
+  
+  // Mode selection in menu (number keys)
+  if (getGameState() === 'menu' && !isShowingCutscene()) {
+    if (key === '1') selectedMode = 'campaign';
+    if (key === '2') selectedMode = 'survival';
+    if (key === '3') selectedMode = 'missions';
+    if (key === '4') selectedMode = 'bossrush';
+  }
+  
+  keys[key.toLowerCase()] = true;
   
   // Skill keys (only during gameplay)
   if (getGameState() === 'playing') {
     if (key === ' ' && useSkill('dash')) sfxPowerup();
-    if (key === 'f' && useSkill('shield')) sfxPowerup();
-    if (key === 'r' && useSkill('fury')) sfxLevelUp();
+    if (key.toLowerCase() === 'f' && useSkill('shield')) sfxPowerup();
+    if (key.toLowerCase() === 'r' && useSkill('fury')) sfxLevelUp();
   }
 });
 document.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
@@ -98,6 +106,7 @@ let enemies: Enemy[] = [];
 let damageNumbers: { x: number; y: number; text: string; color: string; life: number; vy: number }[] = [];
 let lastTime = 0;
 let currentFlash: string | null = null;
+let selectedMode: GameMode = 'campaign';
 
 /**
  * Reseta todo o estado do jogo para o início.
@@ -135,16 +144,11 @@ function update(dt: number) {
       if (keys['enter'] || keys[' ']) {
         hideCutscene();
         if (!isShowingCutscene()) {
+          setGameMode(selectedMode);
           setGameState('playing');
         }
       }
     } else {
-      // Mode selection with number keys
-      if (keys['1']) { setGameMode('campaign'); keys['1'] = false; }
-      if (keys['2']) { setGameMode('survival'); keys['2'] = false; }
-      if (keys['3']) { setGameMode('missions'); keys['3'] = false; }
-      if (keys['4']) { setGameMode('bossrush'); keys['4'] = false; }
-      
       if (keys['enter']) {
         initAudio();
         startMusic();
