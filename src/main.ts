@@ -139,11 +139,11 @@ function update(dt: number) {
         }
       }
     } else {
-      // Mode selection
-      if (keys['1']) setGameMode('campaign');
-      if (keys['2']) setGameMode('survival');
-      if (keys['3']) setGameMode('missions');
-      if (keys['4']) setGameMode('bossrush');
+      // Mode selection with number keys
+      if (keys['1']) { setGameMode('campaign'); keys['1'] = false; }
+      if (keys['2']) { setGameMode('survival'); keys['2'] = false; }
+      if (keys['3']) { setGameMode('missions'); keys['3'] = false; }
+      if (keys['4']) { setGameMode('bossrush'); keys['4'] = false; }
       
       if (keys['enter']) {
         initAudio();

@@ -45,54 +45,80 @@ export function drawMenu(): void {
     ctx.fill();
   }
   
-  // Title
+  // Title with better contrast
   ctx.fillStyle = '#2ecc71';
-  ctx.font = 'bold 52px monospace';
+  ctx.font = 'bold 56px monospace';
   ctx.textAlign = 'center';
   ctx.shadowColor = '#2ecc71';
-  ctx.shadowBlur = 30;
-  ctx.fillText('BUBBLE SHOOTER', canvas.width / 2, canvas.height / 2 - 120);
+  ctx.shadowBlur = 40;
+  ctx.fillText('BUBBLE SHOOTER', canvas.width / 2, canvas.height / 2 - 140);
   ctx.shadowBlur = 0;
   
   // Subtitle
-  ctx.fillStyle = '#666';
-  ctx.font = '14px monospace';
-  ctx.fillText('PÓS-APOCALÍPTICO', canvas.width / 2, canvas.height / 2 - 80);
+  ctx.fillStyle = '#f1c40f';
+  ctx.font = 'bold 18px monospace';
+  ctx.fillText('PÓS-APOCALÍPTICO', canvas.width / 2, canvas.height / 2 - 95);
   
-  // Game modes
-  ctx.fillStyle = '#888';
-  ctx.font = '16px monospace';
-  ctx.fillText('Selecione o modo:', canvas.width / 2, canvas.height / 2 - 30);
+  // Separator line
+  ctx.strokeStyle = 'rgba(46,204,113,0.3)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(canvas.width / 2 - 150, canvas.height / 2 - 70);
+  ctx.lineTo(canvas.width / 2 + 150, canvas.height / 2 - 70);
+  ctx.stroke();
+  
+  // Game modes with better visibility
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 20px monospace';
+  ctx.fillText('SELECIONE O MODO:', canvas.width / 2, canvas.height / 2 - 40);
   
   const modes = [
-    { key: '1', name: 'CAMPANHA', desc: 'História com cutscenes' },
-    { key: '2', name: 'SOBREVIVÊNCIA', desc: 'Ondas infinitas' },
-    { key: '3', name: 'MISSÕES', desc: 'Objetivos específicos' },
-    { key: '4', name: 'BOSS RUSH', desc: 'Apenas bosses' },
+    { key: '1', name: 'CAMPANHA', desc: 'História com cutscenes', color: '#2ecc71' },
+    { key: '2', name: 'SOBREVIVÊNCIA', desc: 'Ondas infinitas', color: '#e74c3c' },
+    { key: '3', name: 'MISSÕES', desc: 'Objetivos específicos', color: '#f39c12' },
+    { key: '4', name: 'BOSS RUSH', desc: 'Apenas bosses', color: '#9b59b6' },
   ];
   
   modes.forEach((mode, i) => {
-    const y = canvas.height / 2 + i * 35;
-    ctx.fillStyle = '#aaa';
-    ctx.font = '18px monospace';
-    ctx.fillText(`[${mode.key}] ${mode.name}`, canvas.width / 2, y);
-    ctx.fillStyle = '#555';
-    ctx.font = '12px monospace';
-    ctx.fillText(mode.desc, canvas.width / 2, y + 18);
+    const y = canvas.height / 2 + i * 45;
+    
+    // Background for each mode
+    ctx.fillStyle = 'rgba(255,255,255,0.03)';
+    ctx.beginPath();
+    ctx.roundRect(canvas.width / 2 - 180, y - 15, 360, 35, 6);
+    ctx.fill();
+    
+    // Key
+    ctx.fillStyle = mode.color;
+    ctx.font = 'bold 20px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText(`[${mode.key}]`, canvas.width / 2 - 160, y + 5);
+    
+    // Name
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 18px monospace';
+    ctx.fillText(mode.name, canvas.width / 2 - 100, y + 5);
+    
+    // Description
+    ctx.fillStyle = '#888';
+    ctx.font = '14px monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText(mode.desc, canvas.width / 2 + 170, y + 5);
+    ctx.textAlign = 'center';
   });
   
   // Controls
   ctx.fillStyle = '#666';
-  ctx.font = '12px monospace';
-  ctx.fillText('WASD: Mover | Mouse: Mirar | Click: Atirar', canvas.width / 2, canvas.height / 2 + 180);
-  ctx.fillText('Espaço: Dash | F: Escudo | R: Fúria', canvas.width / 2, canvas.height / 2 + 200);
+  ctx.font = '14px monospace';
+  ctx.fillText('WASD: Mover | Mouse: Mirar | Click: Atirar', canvas.width / 2, canvas.height / 2 + 200);
+  ctx.fillText('Espaço: Dash | F: Escudo | R: Fúria', canvas.width / 2, canvas.height / 2 + 225);
   
-  // Start
+  // Start prompt
   ctx.fillStyle = '#fff';
-  ctx.font = '20px monospace';
-  const pulse = 0.5 + Math.sin(Date.now() / 400) * 0.3;
+  ctx.font = 'bold 22px monospace';
+  const pulse = 0.5 + Math.sin(Date.now() / 400) * 0.4;
   ctx.globalAlpha = pulse;
-  ctx.fillText('Pressione ENTER para jogar', canvas.width / 2, canvas.height / 2 + 250);
+  ctx.fillText('Pressione ENTER para jogar', canvas.width / 2, canvas.height / 2 + 280);
   ctx.globalAlpha = 1;
 }
 
