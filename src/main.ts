@@ -75,10 +75,10 @@ document.addEventListener('keydown', e => {
   
   // Mode selection in menu (number keys)
   if (getGameState() === 'menu' && !isShowingCutscene()) {
-    if (key === '1') selectedMode = 'campaign';
-    if (key === '2') selectedMode = 'survival';
-    if (key === '3') selectedMode = 'missions';
-    if (key === '4') selectedMode = 'bossrush';
+    if (key === '1') { selectedMode = 'campaign'; console.log('Selected: campaign'); }
+    if (key === '2') { selectedMode = 'survival'; console.log('Selected: survival'); }
+    if (key === '3') { selectedMode = 'missions'; console.log('Selected: missions'); }
+    if (key === '4') { selectedMode = 'bossrush'; console.log('Selected: bossrush'); }
   }
   
   keys[key.toLowerCase()] = true;
@@ -94,6 +94,29 @@ document.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
 canvas.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
 canvas.addEventListener('mousedown', e => {
   mouse.down = true;
+  
+  // Mode selection via click in menu
+  if (getGameState() === 'menu' && !isShowingCutscene()) {
+    const rect = canvas.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
+    
+    const modes: { key: string; mode: GameMode }[] = [
+      { key: '1', mode: 'campaign' },
+      { key: '2', mode: 'survival' },
+      { key: '3', mode: 'missions' },
+      { key: '4', mode: 'bossrush' },
+    ];
+    modes.forEach(({ mode }, i) => {
+      const y = canvas.height / 2 + i * 50;
+      if (clickX >= canvas.width / 2 - 200 && clickX <= canvas.width / 2 + 200 &&
+          clickY >= y - 15 && clickY <= y + 25) {
+        selectedMode = mode;
+        console.log('Selected mode via click:', mode);
+      }
+    });
+  }
+  
   if (getGameState() === 'shop') handleShopClick(e.clientX, e.clientY);
   e.preventDefault();
 });
