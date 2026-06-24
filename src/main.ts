@@ -32,7 +32,7 @@ import { spawnParticles, updateParticles, clearParticles, getParticles } from '.
 import { spawnWaveEnemies, resetSpawner, spawnEnemy } from './systems/spawner';
 import { checkBulletEnemyCollisions, checkEnemyPlayerCollision } from './systems/collision';
 import { createExplosion, updateExplosions, clearExplosions, getExplosions } from './systems/explosions';
-import { initRenderer, drawMenu, drawGameOver, drawGameBackground, drawCoins as renderCoins, drawPowerUps as renderPowerUps, drawParticles as renderParticles, drawBullets as renderBullets, drawEnemies as renderEnemies, drawPlayer as renderPlayer, drawDamageNumbers, drawCombo, drawWeaponInfo, drawActivePowerUps as renderActivePowerUps, restoreCanvas } from './systems/renderer';
+import { initRenderer, drawMenu, drawCutscene, drawGameOver, drawGameBackground, drawCoins as renderCoins, drawPowerUps as renderPowerUps, drawParticles as renderParticles, drawBullets as renderBullets, drawEnemies as renderEnemies, drawPlayer as renderPlayer, drawDamageNumbers, drawCombo, drawWeaponInfo, drawActivePowerUps as renderActivePowerUps, restoreCanvas } from './systems/renderer';
 
 // UI
 import { initHud, updateHud, setHudVisible } from './ui/hud';
@@ -52,6 +52,10 @@ import { useSkill, isSkillActive, updateSkills, resetSkills, getDamageMultiplier
 
 // Environment Events
 import { updateEnvironmentEvents, resetEnvironmentEvents } from './systems/environment';
+
+// Story & Game Modes
+import { showCutscene, hideCutscene, isShowingCutscene, updateCutscene, getCurrentCutscene, nextCutscene, resetStory } from './systems/story';
+import { getCurrentMode, setGameMode, GameMode } from './systems/gameModes';
 
 // ─── Canvas Setup ──────────────────────────────────────────────
 const canvas = document.getElementById('game') as HTMLCanvasElement;
@@ -126,11 +130,19 @@ function update(dt: number) {
   const state = getGameState();
 
   if (state === 'menu') {
-    if (keys['enter']) {
+    if (isShowingCutscene()) {
+      updateCutscene(dt);
+      if (keys['enter'] || keys[' ']) {
+        hideCutscene();
+        if (!isShowingCutscene()) {
+          setGameState('playing');
+        }
+      }
+    } else if (keys['enter']) {
       initAudio();
       startMusic();
       resetGame();
-      setGameState('playing');
+      showCutscene();
     }
     return;
   }
@@ -359,7 +371,14 @@ function update(dt: number) {
 function draw() {
   const state = getGameState();
 
-  if (state === 'menu') { drawMenu(); return; }
+  if (state === 'menu') {
+    if (isShowingCutscene()) {
+      drawCutscene();
+    } else {
+      drawMenu();
+    }
+    return;
+  }
   if (state === 'shop') {
     drawShop(ctx, canvas.width, canvas.height, mouse.x, mouse.y);
     return;

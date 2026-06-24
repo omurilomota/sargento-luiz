@@ -11,6 +11,7 @@ import { Player } from '../entities/player';
 import { hasPowerUp } from '../powerups';
 import { isSkillActive } from './skills';
 import { getSprite, getEnemySpriteKey, isSpritesEnabled } from './sprites';
+import { getCurrentCutscene } from './story';
 
 /** Contexto 2D do canvas */
 let ctx: CanvasRenderingContext2D;
@@ -56,6 +57,72 @@ export function drawMenu(): void {
   const pulse = 0.7 + Math.sin(Date.now() / 400) * 0.3;
   ctx.globalAlpha = pulse;
   ctx.fillText('Pressione ENTER para jogar', canvas.width / 2, canvas.height / 2 + 50);
+  ctx.globalAlpha = 1;
+}
+
+/**
+ * Desenha uma cutscene da história.
+ */
+export function drawCutscene(): void {
+  const cutscene = getCurrentCutscene();
+  
+  // Fundo escuro
+  ctx.fillStyle = '#0a0a1a';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Partículas sutis
+  for (let i = 0; i < 30; i++) {
+    const x = (i * 97 + Date.now() / 30) % canvas.width;
+    const y = (i * 63 + Date.now() / 40) % canvas.height;
+    ctx.fillStyle = `rgba(255,255,255,${0.03 + Math.sin(Date.now() / 2000 + i) * 0.02})`;
+    ctx.beginPath();
+    ctx.arc(x, y, 1, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  
+  // Linha decorativa superior
+  ctx.strokeStyle = cutscene.color;
+  ctx.lineWidth = 2;
+  ctx.globalAlpha = 0.5;
+  ctx.beginPath();
+  ctx.moveTo(canvas.width * 0.2, canvas.height * 0.25);
+  ctx.lineTo(canvas.width * 0.8, canvas.height * 0.25);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+  
+  // Título
+  ctx.fillStyle = cutscene.color;
+  ctx.font = 'bold 36px "Cinzel", serif';
+  ctx.textAlign = 'center';
+  ctx.shadowColor = cutscene.color;
+  ctx.shadowBlur = 15;
+  ctx.fillText(cutscene.title, canvas.width / 2, canvas.height * 0.32);
+  ctx.shadowBlur = 0;
+  
+  // Texto narrativo
+  ctx.fillStyle = '#ccc';
+  ctx.font = '18px "Cinzel", serif';
+  const lines = cutscene.text.split('\n');
+  lines.forEach((line, i) => {
+    ctx.fillText(line, canvas.width / 2, canvas.height * 0.4 + i * 30);
+  });
+  
+  // Linha decorativa inferior
+  ctx.strokeStyle = cutscene.color;
+  ctx.lineWidth = 2;
+  ctx.globalAlpha = 0.5;
+  ctx.beginPath();
+  ctx.moveTo(canvas.width * 0.2, canvas.height * 0.75);
+  ctx.lineTo(canvas.width * 0.8, canvas.height * 0.75);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+  
+  // Instrução
+  ctx.fillStyle = '#888';
+  ctx.font = '14px monospace';
+  const pulse = 0.5 + Math.sin(Date.now() / 500) * 0.3;
+  ctx.globalAlpha = pulse;
+  ctx.fillText('Pressione ENTER ou ESPAÇO para continuar', canvas.width / 2, canvas.height * 0.85);
   ctx.globalAlpha = 1;
 }
 
