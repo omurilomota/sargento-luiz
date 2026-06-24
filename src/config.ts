@@ -48,16 +48,16 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
 
 /** Lista de armas disponíveis, ordenadas por desbloqueio */
 export const WEAPONS: Weapon[] = [
-  { name: 'Pistola', damage: 15, shootRate: 0.25, bulletSpeed: 600, bulletCount: 1, spread: 0, color: '#2ecc71', price: 0, pierce: false },
-  { name: 'Shotgun', damage: 10, shootRate: 0.4, bulletSpeed: 500, bulletCount: 3, spread: 0.3, color: '#f39c12', price: 50, pierce: false },
-  { name: 'Metralhadora', damage: 8, shootRate: 0.05, bulletSpeed: 700, bulletCount: 1, spread: 0.1, color: '#e74c3c', price: 80, pierce: false },
-  { name: 'Sniper', damage: 60, shootRate: 0.8, bulletSpeed: 1000, bulletCount: 1, spread: 0, color: '#3498db', price: 120, pierce: true },
-  { name: 'Laser', damage: 5, shootRate: 0.02, bulletSpeed: 1200, bulletCount: 1, spread: 0, color: '#e74c3c', price: 150, pierce: true },
-  { name: 'RPG', damage: 80, shootRate: 1.2, bulletSpeed: 400, bulletCount: 1, spread: 0, color: '#e67e22', price: 200, pierce: false },
-  { name: 'Raios', damage: 25, shootRate: 0.15, bulletSpeed: 800, bulletCount: 3, spread: 0.15, color: '#9b59b6', price: 180, pierce: true },
-  { name: 'Gel', damage: 12, shootRate: 0.1, bulletSpeed: 550, bulletCount: 2, spread: 0.2, color: '#3498db', price: 100, pierce: false },
-  { name: 'Granada', damage: 40, shootRate: 1.0, bulletSpeed: 350, bulletCount: 1, spread: 0, color: '#e74c3c', price: 150, pierce: false, explosive: true, explosionRadius: 80 },
-  { name: 'Mina', damage: 60, shootRate: 2.0, bulletSpeed: 0, bulletCount: 1, spread: 0, color: '#f39c12', price: 120, pierce: false, explosive: true, explosionRadius: 100 },
+  { name: 'Pistola', damage: 12, shootRate: 0.3, bulletSpeed: 600, bulletCount: 1, spread: 0, color: '#2ecc71', price: 0, pierce: false },
+  { name: 'Shotgun', damage: 8, shootRate: 0.6, bulletSpeed: 500, bulletCount: 3, spread: 0.3, color: '#f39c12', price: 50, pierce: false },
+  { name: 'Metralhadora', damage: 6, shootRate: 0.12, bulletSpeed: 700, bulletCount: 1, spread: 0.1, color: '#e74c3c', price: 80, pierce: false },
+  { name: 'Sniper', damage: 45, shootRate: 1.0, bulletSpeed: 1000, bulletCount: 1, spread: 0, color: '#3498db', price: 120, pierce: true },
+  { name: 'Laser', damage: 3, shootRate: 0.05, bulletSpeed: 1200, bulletCount: 1, spread: 0, color: '#e74c3c', price: 150, pierce: true },
+  { name: 'RPG', damage: 60, shootRate: 1.5, bulletSpeed: 400, bulletCount: 1, spread: 0, color: '#e67e22', price: 200, pierce: false },
+  { name: 'Raios', damage: 18, shootRate: 0.2, bulletSpeed: 800, bulletCount: 3, spread: 0.15, color: '#9b59b6', price: 180, pierce: true },
+  { name: 'Gel', damage: 8, shootRate: 0.15, bulletSpeed: 550, bulletCount: 2, spread: 0.2, color: '#3498db', price: 100, pierce: false },
+  { name: 'Granada', damage: 30, shootRate: 1.2, bulletSpeed: 350, bulletCount: 1, spread: 0, color: '#e74c3c', price: 150, pierce: false, explosive: true, explosionRadius: 80 },
+  { name: 'Mina', damage: 45, shootRate: 2.5, bulletSpeed: 0, bulletCount: 1, spread: 0, color: '#f39c12', price: 120, pierce: false, explosive: true, explosionRadius: 100 },
 ];
 
 /** Lista de upgrades permanentes disponíveis na loja */

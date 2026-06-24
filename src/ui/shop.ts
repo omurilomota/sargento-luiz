@@ -324,15 +324,15 @@ export function handleShopClick(mouseX: number, mouseY: number) {
   const rightX = width / 2 + 20;
 
   WEAPONS.forEach((w, i) => {
-    const y = 145 + i * 42;
-    if (mouseX >= leftX && mouseX <= leftX + colW && mouseY >= y && mouseY <= y + 36) {
+    const y = 160 + i * 48;
+    if (mouseX >= leftX && mouseX <= leftX + colW && mouseY >= y && mouseY <= y + 42) {
       buyWeapon(i);
     }
   });
 
   UPGRADES.forEach((u, i) => {
-    const y = 145 + i * 42;
-    if (mouseX >= rightX && mouseX <= rightX + colW && mouseY >= y && mouseY <= y + 36) {
+    const y = 160 + i * 48;
+    if (mouseX >= rightX && mouseX <= rightX + colW && mouseY >= y && mouseY <= y + 42) {
       buyUpgrade(u.name);
     }
   });
