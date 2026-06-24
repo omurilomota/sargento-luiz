@@ -72,13 +72,16 @@ const keys: Record<string, boolean> = {};
 const mouse = { x: 0, y: 0, down: false };
 document.addEventListener('keydown', e => {
   const key = e.key;
+  console.log('Key pressed:', key, 'State:', getGameState(), 'Cutscene:', isShowingCutscene());
   
   // Mode selection in menu (number keys)
   if (getGameState() === 'menu' && !isShowingCutscene()) {
+    console.log('In menu, not showing cutscene');
     if (key === '1') { selectedMode = 'campaign'; console.log('Selected: campaign'); }
     if (key === '2') { selectedMode = 'survival'; console.log('Selected: survival'); }
     if (key === '3') { selectedMode = 'missions'; console.log('Selected: missions'); }
     if (key === '4') { selectedMode = 'bossrush'; console.log('Selected: bossrush'); }
+    console.log('Current selectedMode:', selectedMode);
   }
   
   keys[key.toLowerCase()] = true;
@@ -94,12 +97,16 @@ document.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
 canvas.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
 canvas.addEventListener('mousedown', e => {
   mouse.down = true;
+  console.log('Canvas clicked at:', e.clientX, e.clientY);
   
   // Mode selection via click in menu
   if (getGameState() === 'menu' && !isShowingCutscene()) {
+    console.log('In menu, checking click...');
     const rect = canvas.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
     const clickY = e.clientY - rect.top;
+    console.log('Click position relative to canvas:', clickX, clickY);
+    console.log('Canvas size:', canvas.width, canvas.height);
     
     const modes: { key: string; mode: GameMode }[] = [
       { key: '1', mode: 'campaign' },
@@ -109,12 +116,14 @@ canvas.addEventListener('mousedown', e => {
     ];
     modes.forEach(({ mode }, i) => {
       const y = canvas.height / 2 + i * 50;
+      console.log(`Mode ${mode} at y=${y}, checking if clickY=${clickY} is between ${y - 15} and ${y + 25}`);
       if (clickX >= canvas.width / 2 - 200 && clickX <= canvas.width / 2 + 200 &&
           clickY >= y - 15 && clickY <= y + 25) {
         selectedMode = mode;
         console.log('Selected mode via click:', mode);
       }
     });
+    console.log('Current selectedMode:', selectedMode);
   }
   
   if (getGameState() === 'shop') handleShopClick(e.clientX, e.clientY);
