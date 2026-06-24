@@ -45,7 +45,7 @@ export function drawMenu(): void {
     ctx.fill();
   }
   
-  // Title with better contrast
+  // Title
   ctx.fillStyle = '#2ecc71';
   ctx.font = 'bold 56px monospace';
   ctx.textAlign = 'center';
@@ -54,23 +54,15 @@ export function drawMenu(): void {
   ctx.fillText('BUBBLE SHOOTER', canvas.width / 2, canvas.height / 2 - 140);
   ctx.shadowBlur = 0;
   
-  // Subtitle
-  ctx.fillStyle = '#f1c40f';
-  ctx.font = 'bold 18px monospace';
+  // Subtitle - clean and simple
+  ctx.fillStyle = '#aaa';
+  ctx.font = '16px monospace';
   ctx.fillText('PÓS-APOCALÍPTICO', canvas.width / 2, canvas.height / 2 - 95);
   
-  // Separator line
-  ctx.strokeStyle = 'rgba(46,204,113,0.3)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(canvas.width / 2 - 150, canvas.height / 2 - 70);
-  ctx.lineTo(canvas.width / 2 + 150, canvas.height / 2 - 70);
-  ctx.stroke();
-  
-  // Game modes with better visibility
+  // Game modes
   ctx.fillStyle = '#fff';
-  ctx.font = 'bold 20px monospace';
-  ctx.fillText('SELECIONE O MODO:', canvas.width / 2, canvas.height / 2 - 40);
+  ctx.font = 'bold 18px monospace';
+  ctx.fillText('SELECIONE O MODO:', canvas.width / 2, canvas.height / 2 - 50);
   
   const modes = [
     { key: '1', name: 'CAMPANHA', desc: 'História com cutscenes', color: '#2ecc71' },
@@ -80,45 +72,50 @@ export function drawMenu(): void {
   ];
   
   modes.forEach((mode, i) => {
-    const y = canvas.height / 2 + i * 45;
+    const y = canvas.height / 2 + i * 50;
     
-    // Background for each mode
-    ctx.fillStyle = 'rgba(255,255,255,0.03)';
+    // Background
+    ctx.fillStyle = 'rgba(255,255,255,0.05)';
     ctx.beginPath();
-    ctx.roundRect(canvas.width / 2 - 180, y - 15, 360, 35, 6);
+    ctx.roundRect(canvas.width / 2 - 200, y - 15, 400, 40, 8);
     ctx.fill();
     
-    // Key
+    // Border
+    ctx.strokeStyle = mode.color;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    // Key number (large and bold)
     ctx.fillStyle = mode.color;
-    ctx.font = 'bold 20px monospace';
+    ctx.font = 'bold 24px monospace';
     ctx.textAlign = 'left';
-    ctx.fillText(`[${mode.key}]`, canvas.width / 2 - 160, y + 5);
+    ctx.fillText(mode.key, canvas.width / 2 - 170, y + 10);
     
     // Name
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 18px monospace';
-    ctx.fillText(mode.name, canvas.width / 2 - 100, y + 5);
+    ctx.fillText(mode.name, canvas.width / 2 - 120, y + 10);
     
     // Description
     ctx.fillStyle = '#888';
     ctx.font = '14px monospace';
     ctx.textAlign = 'right';
-    ctx.fillText(mode.desc, canvas.width / 2 + 170, y + 5);
+    ctx.fillText(mode.desc, canvas.width / 2 + 190, y + 10);
     ctx.textAlign = 'center';
   });
   
   // Controls
   ctx.fillStyle = '#666';
   ctx.font = '14px monospace';
-  ctx.fillText('WASD: Mover | Mouse: Mirar | Click: Atirar', canvas.width / 2, canvas.height / 2 + 200);
-  ctx.fillText('Espaço: Dash | F: Escudo | R: Fúria', canvas.width / 2, canvas.height / 2 + 225);
+  ctx.fillText('WASD: Mover | Mouse: Mirar | Click: Atirar', canvas.width / 2, canvas.height / 2 + 220);
+  ctx.fillText('Espaço: Dash | F: Escudo | R: Fúria', canvas.width / 2, canvas.height / 2 + 245);
   
   // Start prompt
   ctx.fillStyle = '#fff';
   ctx.font = 'bold 22px monospace';
   const pulse = 0.5 + Math.sin(Date.now() / 400) * 0.4;
   ctx.globalAlpha = pulse;
-  ctx.fillText('Pressione ENTER para jogar', canvas.width / 2, canvas.height / 2 + 280);
+  ctx.fillText('Pressione ENTER para jogar', canvas.width / 2, canvas.height / 2 + 290);
   ctx.globalAlpha = 1;
 }
 
