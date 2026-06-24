@@ -167,29 +167,96 @@ let musicOsc1: OscillatorNode | null = null;
 let musicOsc2: OscillatorNode | null = null;
 let musicInterval: ReturnType<typeof setInterval> | null = null;
 
-/** Inicia música de fundo simples em loop */
+/** Melodia principal - mais emotiva e épica */
+const MAIN_MELODY = [
+  // Frase 1 - Introdução suave
+  { note: 330, dur: 0.3 },  // E4
+  { note: 392, dur: 0.3 },  // G4
+  { note: 440, dur: 0.5 },  // A4
+  { note: 392, dur: 0.3 },  // G4
+  { note: 330, dur: 0.3 },  // E4
+  { note: 294, dur: 0.5 },  // D4
+  
+  // Frase 2 - Subida épica
+  { note: 330, dur: 0.2 },  // E4
+  { note: 392, dur: 0.2 },  // G4
+  { note: 440, dur: 0.2 },  // A4
+  { note: 523, dur: 0.4 },  // C5
+  { note: 494, dur: 0.4 },  // B4
+  { note: 440, dur: 0.6 },  // A4
+  
+  // Frase 3 - Clímax
+  { note: 523, dur: 0.2 },  // C5
+  { note: 587, dur: 0.2 },  // D5
+  { note: 659, dur: 0.4 },  // E5
+  { note: 587, dur: 0.2 },  // D5
+  { note: 523, dur: 0.2 },  // C5
+  { note: 440, dur: 0.4 },  // A4
+  { note: 392, dur: 0.6 },  // G4
+  
+  // Frase 4 - Resolução
+  { note: 330, dur: 0.3 },  // E4
+  { note: 294, dur: 0.3 },  // D4
+  { note: 262, dur: 0.8 },  // C4
+];
+
+/** Baixo de acompanhamento */
+const BASS_LINE = [
+  131, 131, 165, 165, 175, 175, 131, 131,
+  131, 131, 165, 165, 196, 196, 175, 175,
+  165, 165, 196, 196, 220, 220, 196, 196,
+  131, 131, 165, 165, 131, 131,
+];
+
+/** Inicia música de fundo emocional */
 export function startMusic(): void {
   const ac = ensureCtx();
   if (!musicGain || musicInterval) return;
 
-  const notes = [262, 294, 330, 349, 392, 349, 330, 294];
-  let noteIndex = 0;
+  let melodyIndex = 0;
+  let bassIndex = 0;
+  let time = ac.currentTime;
 
-  musicInterval = setInterval(() => {
+  function playNote() {
     if (!musicGain) return;
-    const freq = notes[noteIndex % notes.length];
+    
+    // Toca melodia
+    const note = MAIN_MELODY[melodyIndex % MAIN_MELODY.length];
     const osc = ac.createOscillator();
     const gain = ac.createGain();
     osc.type = 'triangle';
-    osc.frequency.value = freq;
-    gain.gain.value = 0.08;
-    gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.4);
+    osc.frequency.value = note.note;
+    gain.gain.value = 0.12;
+    gain.gain.exponentialRampToValueAtTime(0.001, time + note.dur * 0.9);
     osc.connect(gain);
     gain.connect(musicGain);
-    osc.start(ac.currentTime);
-    osc.stop(ac.currentTime + 0.4);
-    noteIndex++;
-  }, 400);
+    osc.start(time);
+    osc.stop(time + note.dur);
+    
+    // Toca baixo
+    const bassFreq = BASS_LINE[bassIndex % BASS_LINE.length];
+    const bassOsc = ac.createOscillator();
+    const bassGain = ac.createGain();
+    bassOsc.type = 'sine';
+    bassOsc.frequency.value = bassFreq;
+    bassGain.gain.value = 0.06;
+    bassGain.gain.exponentialRampToValueAtTime(0.001, time + note.dur * 0.8);
+    bassOsc.connect(bassGain);
+    bassGain.connect(musicGain);
+    bassOsc.start(time);
+    bassOsc.stop(time + note.dur);
+    
+    time += note.dur;
+    melodyIndex++;
+    bassIndex++;
+    
+    // Agendar próxima nota
+    const nextNote = MAIN_MELODY[melodyIndex % MAIN_MELODY.length];
+    setTimeout(playNote, nextNote.dur * 1000);
+  }
+
+  playNote();
+  musicInterval = setInterval(() => {}, 1000); // Placeholder para cancelamento
 }
 
 /** Para a música de fundo */

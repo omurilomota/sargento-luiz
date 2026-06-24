@@ -118,3 +118,13 @@ export function updateHud(data: HudData): void {
     els.combo.classList.remove('active');
   }
 }
+
+/**
+ * Mostra ou esconde o HUD baseado no estado do jogo.
+ * @param visible - true para mostrar, false para esconder
+ */
+export function setHudVisible(visible: boolean): void {
+  const display = visible ? 'block' : 'none';
+  document.getElementById('hud')!.style.display = display;
+  document.getElementById('score-display')!.style.display = display;
+}

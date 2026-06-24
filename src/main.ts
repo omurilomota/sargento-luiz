@@ -35,7 +35,7 @@ import { createExplosion, updateExplosions, clearExplosions, getExplosions } fro
 import { initRenderer, drawMenu, drawGameOver, drawGameBackground, drawCoins as renderCoins, drawPowerUps as renderPowerUps, drawParticles as renderParticles, drawBullets as renderBullets, drawEnemies as renderEnemies, drawPlayer as renderPlayer, drawDamageNumbers, drawCombo, drawWeaponInfo, drawActivePowerUps as renderActivePowerUps, restoreCanvas } from './systems/renderer';
 
 // UI
-import { initHud, updateHud } from './ui/hud';
+import { initHud, updateHud, setHudVisible } from './ui/hud';
 import { drawShop, handleShopClick, setShopCoins, getShopCoins, addShopCoins, resetShop } from './ui/shop';
 
 // Existing modules (unchanged)
@@ -144,7 +144,9 @@ function update(dt: number) {
   }
 
   if (state === 'shop') {
+    setHudVisible(false);
     if (keys['enter']) {
+      setHudVisible(true);
       nextPhase();
       player.initPlayer(canvas.width, canvas.height);
       enemies.length = 0;
