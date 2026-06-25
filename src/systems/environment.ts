@@ -122,7 +122,8 @@ export function updateEnvironmentEvents(
           triggerScreenShake(12, 3);
           earthquakeActive = true;
         } else if (type === 'lightning') {
-          triggerDamageFlash();
+          // Flash branco para relâmpago (apenas visual)
+          triggerScreenShake(6, 0.3);
         } else if (type === 'storm') {
           stormActive = true;
         }

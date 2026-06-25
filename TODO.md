@@ -33,7 +33,7 @@
 - [x] Dano persiste na onda 2 que tomo dano aleatoriamente mesmo após correções.
 - [x] Upgrades da loja passando da tela.
 - [x] Evento de ambiente ficando em cima dos pontos.
-- [ ] Existe um bug que na onda 2 tomo um dano aleatório ou aparece o efeito de dano, mesmo estando no centro do mapa.
+- [x] Existe um bug que na onda 2 tomo um dano aleatório ou aparece o efeito de dano, mesmo estando no centro do mapa.
 
 // ═══════════════════════════════════════════════════════════════
 // SUGESTÕES (avaliar quais implementar)

@@ -191,6 +191,7 @@ let enemies: Enemy[] = [];
 let damageNumbers: { x: number; y: number; text: string; color: string; life: number; vy: number }[] = [];
 let lastTime = 0;
 let debugLog: { time: number; source: string; damage: number }[] = [];
+let phaseTransitionTimer = 0;
 
 function logDamage(source: string, damage: number) {
   const entry = { time: performance.now(), source, damage };
@@ -294,11 +295,16 @@ function update(dt: number) {
       clearCoins();
       clearParticles();
       resetCombo();
+      phaseTransitionTimer = 2.0;
     }
     return;
   }
 
   if (state !== 'playing') return;
+
+  if (phaseTransitionTimer > 0) {
+    phaseTransitionTimer -= dt;
+  }
 
   updateCombo(dt);
   updateCombos();
@@ -474,6 +480,7 @@ function update(dt: number) {
       if (dist < p.radius + bot.radius && p.invincible <= 0) {
         const dmg = Math.floor(bot.damage * getDamageTakenMultiplier());
         if (dmg > 0) {
+          logDamage(`BOT_COMPETITIVO`, dmg);
           player.enemyCollisionDamage(dmg);
           sfxPlayerHit();
           triggerDamageFlash();
