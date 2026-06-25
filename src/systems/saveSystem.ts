@@ -1,0 +1,74 @@
+/**
+ * Sistema de save/load using localStorage.
+ * Salva progresso do jogo: fase, onda, arma, upgrades, moedas, score.
+ */
+
+/** Dados salvos do jogo */
+interface SaveData {
+  /** Fase atual (índice) */
+  phase: number;
+  /** Onda atual */
+  wave: number;
+  /** Índice da arma equipada */
+  weaponIndex: number;
+  /** Moedas acumuladas */
+  coins: number;
+  /** Score total */
+  score: number;
+  /** Upgrades comprados */
+  upgrades: string[];
+  /** Armas compradas */
+  weapons: number[];
+  /** Nome da fase para exibição */
+  phaseName: string;
+  /** Timestamp do save */
+  timestamp: number;
+}
+
+const SAVE_KEY = 'bubbleShooter_save';
+
+/**
+ * Salva o progresso do jogo no localStorage.
+ */
+export function saveGame(
+  phase: number, wave: number, weaponIndex: number,
+  coins: number, score: number, upgrades: string[], weapons: number[], phaseName: string
+): void {
+  const data: SaveData = {
+    phase, wave, weaponIndex, coins, score, upgrades, weapons, phaseName,
+    timestamp: Date.now(),
+  };
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+  } catch {
+    // localStorage may be full or unavailable
+  }
+}
+
+/**
+ * Carrega o progresso salvo.
+ * @returns dados salvos ou null se não houver save
+ */
+export function loadGame(): SaveData | null {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as SaveData;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Verifica se existe um save.
+ */
+export function hasSave(): boolean {
+  return localStorage.getItem(SAVE_KEY) !== null;
+}
+
+/**
+ * Remove o save.
+ */
+export function deleteSave(): void {
+  localStorage.removeItem(SAVE_KEY);
+}

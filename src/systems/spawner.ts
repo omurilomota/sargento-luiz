@@ -65,7 +65,7 @@ export function spawnEnemy(type: string, canvasWidth: number, canvasHeight: numb
     damage: Math.floor(def.damage * waveScale), color: def.color, scoreValue: def.scoreValue,
     shootTimer: rand(0, def.shootRate || 0), shootRate: def.shootRate || 0,
     canShoot: def.canShoot || false, type, angle: rand(0, Math.PI * 2),
-    attackTimer: 0, summonTimer: 0, spawnDelay: 0.5,
+    attackTimer: 0, summonTimer: 0, spawnDelay: 0.5, hitFlash: 0,
   };
 }
 
