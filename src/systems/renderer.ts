@@ -13,6 +13,7 @@ import { isSkillActive } from './skills';
 import { getSprite, getEnemySpriteKey, isSpritesEnabled } from './sprites';
 import { getCurrentCutscene, getCurrentLine, isLineComplete, getTextProgress, getPortraitInfo, Character } from './story';
 import { getEquippedSkin } from './skins';
+import { hasSave } from './saveSystem';
 
 /** Contexto 2D do canvas */
 let ctx: CanvasRenderingContext2D;
@@ -146,6 +147,13 @@ export function drawMenu(selectedMode: string = 'campaign'): void {
   ctx.font = '10px monospace';
   ctx.fillText('WASD: Mover | Mouse: Mirar | Click: Atirar', W / 2, controlsY);
   ctx.fillText('Espaco: Dash | F: Escudo | E: Furia | R: Recarregar', W / 2, controlsY + 14);
+
+  // Continue option if save exists
+  if (hasSave()) {
+    ctx.fillStyle = '#a08050';
+    ctx.font = '12px monospace';
+    ctx.fillText('C: Continuar jogo salvo', W / 2, startPromptY - 18);
+  }
 
   // Start prompt
   ctx.fillStyle = '#777';
@@ -457,13 +465,12 @@ export function drawEnemies(enemies: Enemy[], playerX: number, playerY: number):
   for (const e of enemies) {
     ctx.save();
     ctx.translate(e.x, e.y);
-    
+
     // Try to use sprite if available
     const spriteKey = getEnemySpriteKey(e.type);
     const sprite = spriteKey ? getSprite(spriteKey) : null;
-    
+
     if (sprite && isSpritesEnabled()) {
-      // Draw sprite
       ctx.drawImage(sprite, -e.radius, -e.radius, e.radius * 2, e.radius * 2);
     } else {
       // Fallback to canvas drawing
@@ -567,10 +574,20 @@ export function drawEnemies(enemies: Enemy[], playerX: number, playerY: number):
       const barW = e.radius * 2;
       ctx.fillStyle = '#333';
       ctx.fillRect(-barW / 2, -e.radius - 12, barW, 5);
-      ctx.fillStyle = '#e74c3c';
+      ctx.fillStyle = '#8b4040';
       ctx.fillRect(-barW / 2, -e.radius - 12, barW * (e.health / e.maxHealth), 5);
     }
-    
+
+    // Hit flash overlay
+    if (e.hitFlash > 0) {
+      ctx.globalAlpha = e.hitFlash / 0.15 * 0.6;
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
     ctx.restore();
   }
 }

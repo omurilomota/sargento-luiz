@@ -70,6 +70,8 @@ export interface Enemy {
   summonTimer: number;
   /** Delay antes de começar a se mover (segundos) */
   spawnDelay: number;
+  /** Timer de flash de dano (segundos restantes) */
+  hitFlash: number;
 }
 
 /** Representa uma partícula visual (explosão, rastro, etc.) */
@@ -215,4 +217,4 @@ export interface EnemyType {
 }
 
 /** Estados possíveis do ciclo de vida do jogo */
-export type GameStateType = 'menu' | 'playing' | 'shop' | 'gameover';
+export type GameStateType = 'menu' | 'playing' | 'shop' | 'gameover' | 'paused';
