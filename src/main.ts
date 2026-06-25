@@ -190,6 +190,14 @@ import { Enemy } from './types';
 let enemies: Enemy[] = [];
 let damageNumbers: { x: number; y: number; text: string; color: string; life: number; vy: number }[] = [];
 let lastTime = 0;
+let debugLog: { time: number; source: string; damage: number }[] = [];
+
+function logDamage(source: string, damage: number) {
+  const entry = { time: performance.now(), source, damage };
+  debugLog.push(entry);
+  if (debugLog.length > 20) debugLog.shift();
+  console.log(`[DANO] ${source}: ${damage}`);
+}
 let currentFlash: string | null = null;
 let selectedMode: GameMode = 'campaign';
 
@@ -489,6 +497,7 @@ function update(dt: number) {
     const baseDmg = hasPowerUp('invincible') ? 0 : e.damage;
     const dmg = Math.floor(baseDmg * getDamageTakenMultiplier());
     if (dmg > 0) {
+      logDamage(`CORPO_INIMIGO (tipo:${e.type})`, dmg);
       player.enemyCollisionDamage(dmg);
       sfxPlayerHit();
       triggerDamageFlash();
@@ -503,6 +512,7 @@ function update(dt: number) {
   checkEnemyBulletPlayerCollision(bullets, p.x, p.y, p.radius, p.invincible, (b) => {
     const dmg = Math.floor(b.damage * getDamageTakenMultiplier());
     if (dmg > 0) {
+      logDamage(`PROJETIL_INIMIGO (cor:${b.color})`, dmg);
       player.enemyCollisionDamage(dmg);
       sfxPlayerHit();
       triggerDamageFlash();
@@ -721,14 +731,14 @@ function draw() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
-  // Environment event indicators
+  // Environment event indicators (top-center, below score)
   if (isEarthquakeActive()) {
     ctx.fillStyle = 'rgba(176,112,80,0.08)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = '#b07050';
     ctx.font = 'bold 12px monospace';
-    ctx.textAlign = 'right';
-    ctx.fillText('TERREMOTO', canvas.width - 15, 20);
+    ctx.textAlign = 'center';
+    ctx.fillText('TERREMOTO', canvas.width / 2, 40);
     ctx.textAlign = 'left';
   }
   if (isStormActive()) {
@@ -736,8 +746,8 @@ function draw() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = '#608090';
     ctx.font = 'bold 12px monospace';
-    ctx.textAlign = 'right';
-    ctx.fillText('TEMPESTADE', canvas.width - 15, 20);
+    ctx.textAlign = 'center';
+    ctx.fillText('TEMPESTADE', canvas.width / 2, 40);
     ctx.textAlign = 'left';
   }
 
@@ -745,13 +755,13 @@ function draw() {
   drawWeaponInfo(getCurrentWeapon().name);
   renderActivePowerUps(activePowerups);
 
-  // Skill cooldown indicators (bottom-left)
+  // Skill cooldown indicators (top-left, below phase name)
   const skillData: { key: string; name: string; color: string; type: 'dash' | 'shield' | 'fury' }[] = [
     { key: 'SPACE', name: 'Dash', color: '#608090', type: 'dash' },
     { key: 'F', name: 'Escudo', color: '#608090', type: 'shield' },
     { key: 'E', name: 'Furia', color: '#608090', type: 'fury' },
   ];
-  let skillY = canvas.height - 60;
+  let skillY = 50;
   for (const s of skillData) {
     const cd = getSkillCooldown(s.type);
     const maxCd = getSkillMaxCooldown(s.type);
@@ -783,6 +793,25 @@ function draw() {
     const label = active ? `${s.name} ATIVO` : cd > 0 ? `${s.name} ${Math.ceil(cd)}s` : `${s.key}: ${s.name}`;
     ctx.fillText(label, 16, skillY + 15);
     skillY -= 26;
+  }
+
+  // Debug damage log (bottom-right)
+  const now = performance.now();
+  const recentLogs = debugLog.filter(l => now - l.time < 3000);
+  if (recentLogs.length > 0) {
+    let logY = canvas.height - 50;
+    ctx.textAlign = 'right';
+    for (let i = recentLogs.length - 1; i >= 0 && i >= recentLogs.length - 5; i--) {
+      const l = recentLogs[i];
+      const age = (now - l.time) / 3000;
+      ctx.globalAlpha = 1 - age;
+      ctx.fillStyle = '#e74c3c';
+      ctx.font = '10px monospace';
+      ctx.fillText(`[DANO] ${l.source}: ${l.damage}`, canvas.width - 15, logY);
+      logY -= 14;
+    }
+    ctx.globalAlpha = 1;
+    ctx.textAlign = 'left';
   }
 
   // Combo build indicators

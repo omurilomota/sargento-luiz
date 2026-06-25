@@ -432,8 +432,8 @@ export function drawBullets(bullets: Bullet[]): void {
   for (const b of bullets) {
     ctx.fillStyle = b.color;
     ctx.shadowColor = b.color;
-    ctx.shadowBlur = 10;
-    const trailLen = b.isEnemy ? 8 : 12;
+    ctx.shadowBlur = b.isEnemy ? 14 : 10;
+    const trailLen = b.isEnemy ? 12 : 12;
     const speed = Math.hypot(b.vx, b.vy) || 1;
     const tx = b.x - (b.vx / speed) * trailLen;
     const ty = b.y - (b.vy / speed) * trailLen;
@@ -441,13 +441,13 @@ export function drawBullets(bullets: Bullet[]): void {
     grad.addColorStop(0, 'transparent');
     grad.addColorStop(1, b.color);
     ctx.strokeStyle = grad;
-    ctx.lineWidth = 4;
+    ctx.lineWidth = b.isEnemy ? 5 : 4;
     ctx.beginPath();
     ctx.moveTo(tx, ty);
     ctx.lineTo(b.x, b.y);
     ctx.stroke();
     ctx.beginPath();
-    ctx.arc(b.x, b.y, b.isEnemy ? 3 : 4, 0, Math.PI * 2);
+    ctx.arc(b.x, b.y, b.isEnemy ? 5 : 4, 0, Math.PI * 2);
     ctx.fill();
     ctx.shadowBlur = 0;
   }
