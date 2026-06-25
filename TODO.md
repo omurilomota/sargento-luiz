@@ -28,7 +28,8 @@
 - [x] Projeto com muitos arquivos soltos, falta um cleanup geral.
 - [x] Tela inicial ainda está uma bosta, itens sobrepondo-se. Tente refazer a tela inicial.
 - [x] Diálogo passando muito rápido e não dá nem pra ler, recomendo enter para continuar...
-- [ ] Tempo de recarga do poderes
+- [ ] Tempo de recarga do poderes, poderes ficando em cima da barra de informações em baixo dele.
+- [ ] Eventos do ambiente ficando em cima do tempo dos power-ups.
 - [x] Dano persiste na onda 2 que tomo dano aleatoriamente mesmo após correções.
 - [x] Upgrades da loja passando da tela.
 - [x] Evento de ambiente ficando em cima dos pontos.
@@ -54,7 +55,7 @@
 - [ ] Sistema de crítico visual (tela fica em câmera lenta no headshot) - Legal
 
 // --- UI/UX ---
-- [ ] Tela de pausa com ESC (opção de voltar ao menu) - Legal, poeriamos também colocar um modo qe voce volta onde parou.
+- [ ] Tela de pausa com ESC (opção de voltar ao menu) - Legal, poderiamos também colocar um modo que voce volta onde parou.
 - [ ] Mini-mapa no canto mostrando posição dos inimigos - Legal
 - [ ] Animação de morte do jogador (não só sumir) - Legal
 - [ ] Transição animada entre fases (fade + nome da fase) - Legal
