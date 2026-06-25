@@ -10,6 +10,7 @@ import { addMaxHealth, addSpeed, addShield, enableRegen } from '../entities/play
 import { enablePermanentMagnet } from '../entities/coin';
 import { getAllSkins, buySkin, equipSkin, getEquippedSkin, Skin } from '../systems/skins';
 import { canWatchAd, startWatchingAd, getIsWatchingAd, getAdProgress, getAdCooldown, getLastAdReward, getNextAdReward, getAdsWatched, updateAd } from '../systems/ads';
+import { getGameState } from '../phases';
 
 /** Saldo atual de moedas do jogador */
 let shopCoins = 0;
@@ -101,6 +102,7 @@ function applyUpgrade(effect: string, value: number) {
 export function resetShop() {
   purchasedWeapons = [0];
   purchasedUpgrades = [];
+  shopScrollOffset = 0;
 }
 
 /**
@@ -140,10 +142,15 @@ function drawButton(ctx: CanvasRenderingContext2D, x: number, y: number, w: numb
   ctx.fillText(text, x + w / 2, y + h / 2);
 }
 
-/** Índice Y da loja (para scroll futuro) */
-let shopHoverY = 0;
 /** Offset de scroll da loja */
 let shopScrollOffset = 0;
+
+/** Handler do wheel para scroll na loja */
+function onShopWheel(e: WheelEvent) {
+  if (getGameState() !== 'shop') return;
+  shopScrollOffset = Math.max(0, shopScrollOffset + e.deltaY * 0.5);
+}
+document.addEventListener('wheel', onShopWheel);
 
 /**
  * Desenha a tela completa da loja com armas e upgrades.
@@ -155,70 +162,76 @@ let shopScrollOffset = 0;
  * @param mouseY - posição vertical do mouse
  */
 export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: number, mouseX: number, mouseY: number) {
-  // Fundo sólido, sem efeitos decorativos
+  // Calcular altura total do conteúdo scrollável
+  const colW = width / 2 - 60;
+  const leftX = 40;
+  const contentStart = 100;
+  const allSkins = getAllSkins();
+  const skinCols = 5;
+  const skinSize = 44;
+  const skinGap = 6;
+  const skinsBlockH = Math.ceil(allSkins.length / skinCols) * (skinSize + skinGap + 12);
+  const totalContentH = Math.max(WEAPONS.length, UPGRADES.length) * 42 + 20 + skinsBlockH + 100;
+  const maxScroll = Math.max(0, totalContentH - (height - contentStart - 40));
+  shopScrollOffset = Math.min(shopScrollOffset, maxScroll);
+
+  // Fundo
   ctx.fillStyle = '#111';
   ctx.fillRect(0, 0, width, height);
 
-  // Linha separadora sutil
-  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(0, 60);
-  ctx.lineTo(width, 60);
-  ctx.stroke();
-
-  // Título — sem glow, cor sóbria
+  // Header fixo (não rola)
   ctx.fillStyle = '#a08050';
   ctx.font = 'bold 32px monospace';
   ctx.textAlign = 'center';
   ctx.fillText('MERCADOR', width / 2, 45);
-
-  // Moedas
   ctx.font = '16px monospace';
-  ctx.fillStyle = '#a08050';
   ctx.fillText(`${shopCoins} moedas`, width / 2, 82);
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, contentStart);
+  ctx.lineTo(width, contentStart);
+  ctx.stroke();
 
-  // Layout em 2 colunas
-  const colW = width / 2 - 60;
-  const leftX = 40;
+  // Clip e scroll para conteúdo
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, contentStart, width, height - contentStart - 40);
+  ctx.clip();
+  ctx.translate(0, -shopScrollOffset);
+
   const rightX = width / 2 + 20;
 
-  // === COLUNA ESQUERDA: ARMAS ===
+  // === ARMAS ===
   ctx.fillStyle = '#b07050';
   ctx.font = 'bold 14px monospace';
   ctx.textAlign = 'left';
   ctx.fillText('ARMAS', leftX, 120);
-
   ctx.strokeStyle = 'rgba(176,112,80,0.2)';
   ctx.beginPath();
   ctx.moveTo(leftX, 130);
   ctx.lineTo(leftX + colW, 130);
   ctx.stroke();
-  
+
   WEAPONS.forEach((w, i) => {
     const y = 145 + i * 42;
     const owned = purchasedWeapons.includes(i);
     const canBuy = !owned && shopCoins >= w.price;
-    const hover = mouseX >= leftX && mouseX <= leftX + colW && mouseY >= y && mouseY <= y + 38;
+    const hover = mouseX >= leftX && mouseX <= leftX + colW && mouseY + shopScrollOffset >= y && mouseY + shopScrollOffset <= y + 38;
 
-    // Fundo do item
     ctx.fillStyle = hover ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.02)';
     ctx.beginPath();
     ctx.roundRect(leftX, y, colW, 38, 4);
     ctx.fill();
-
-    // Borda
     ctx.strokeStyle = owned ? '#7a9a6a' : canBuy ? 'rgba(176,112,80,0.4)' : 'rgba(255,255,255,0.05)';
     ctx.lineWidth = 1;
     ctx.stroke();
 
-    // Nome da arma
     ctx.fillStyle = owned ? '#7a9a6a' : canBuy ? '#ccc' : '#555';
     ctx.font = '13px monospace';
     ctx.textAlign = 'left';
     ctx.fillText(w.name, leftX + 10, y + 16);
 
-    // Preço ou status
     ctx.textAlign = 'right';
     ctx.font = '11px monospace';
     if (owned) {
@@ -229,7 +242,6 @@ export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: n
       ctx.fillText(`${w.price}`, leftX + colW - 10, y + 16);
     }
 
-    // Stats da arma
     ctx.fillStyle = '#555';
     ctx.font = '10px monospace';
     ctx.textAlign = 'left';
@@ -253,15 +265,12 @@ export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: n
     const y = 145 + i * 42;
     const owned = purchasedUpgrades.includes(u.name);
     const canBuy = !owned && shopCoins >= u.price;
-    const hover = mouseX >= rightX && mouseX <= rightX + colW && mouseY >= y && mouseY <= y + 38;
+    const hover = mouseX >= rightX && mouseX <= rightX + colW && mouseY + shopScrollOffset >= y && mouseY + shopScrollOffset <= y + 38;
 
-    // Fundo do item
     ctx.fillStyle = hover ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.02)';
     ctx.beginPath();
     ctx.roundRect(rightX, y, colW, 38, 4);
     ctx.fill();
-
-    // Borda
     ctx.strokeStyle = owned ? '#7a9a6a' : canBuy ? 'rgba(128,112,160,0.4)' : 'rgba(255,255,255,0.05)';
     ctx.lineWidth = 1;
     ctx.stroke();
@@ -300,7 +309,6 @@ export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: n
   });
 
   // === SKINS SECTION ===
-  const allSkins = getAllSkins();
   const skinsY = 145 + UPGRADES.length * 42 + 20;
 
   ctx.fillStyle = '#608090';
@@ -314,9 +322,6 @@ export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: n
   ctx.lineTo(leftX + colW, skinsY + 10);
   ctx.stroke();
 
-  const skinCols = 5;
-  const skinSize = 44;
-  const skinGap = 6;
   const skinStartX = leftX;
   const skinStartY = skinsY + 20;
 
@@ -328,7 +333,7 @@ export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: n
     const equipped = skin.equipped;
     const unlocked = skin.unlocked;
     const canBuy = !unlocked && shopCoins >= skin.price;
-    const skinHover = mouseX >= x && mouseX <= x + skinSize && mouseY >= y && mouseY <= y + skinSize;
+    const skinHover = mouseX >= x && mouseX <= x + skinSize && mouseY + shopScrollOffset >= y && mouseY + shopScrollOffset <= y + skinSize;
 
     // Background
     ctx.fillStyle = equipped ? 'rgba(122,154,106,0.2)' : skinHover ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.02)';
@@ -457,6 +462,8 @@ export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: n
     ctx.fillText(`+${getNextAdReward()}`, adBtnX + adBtnW / 2, adBtnY + 40);
   }
 
+  ctx.restore();
+
   // Linha inferior
   ctx.strokeStyle = 'rgba(255,255,255,0.06)';
   ctx.lineWidth = 1;
@@ -483,17 +490,18 @@ export function handleShopClick(mouseX: number, mouseY: number) {
   const colW = width / 2 - 40;
   const leftX = 20;
   const rightX = width / 2 + 20;
+  const scrollY = mouseY + shopScrollOffset;
 
   WEAPONS.forEach((w, i) => {
     const y = 145 + i * 42;
-    if (mouseX >= leftX && mouseX <= leftX + colW && mouseY >= y && mouseY <= y + 38) {
+    if (mouseX >= leftX && mouseX <= leftX + colW && scrollY >= y && scrollY <= y + 38) {
       buyWeapon(i);
     }
   });
 
   UPGRADES.forEach((u, i) => {
     const y = 145 + i * 42;
-    if (mouseX >= rightX && mouseX <= rightX + colW && mouseY >= y && mouseY <= y + 38) {
+    if (mouseX >= rightX && mouseX <= rightX + colW && scrollY >= y && scrollY <= y + 38) {
       buyUpgrade(u.name);
     }
   });
@@ -513,7 +521,7 @@ export function handleShopClick(mouseX: number, mouseY: number) {
     const x = skinStartX + col * (skinSize + skinGap);
     const y = skinStartY + row * (skinSize + skinGap + 12);
 
-    if (mouseX >= x && mouseX <= x + skinSize && mouseY >= y && mouseY <= y + skinSize) {
+    if (mouseX >= x && mouseX <= x + skinSize && scrollY >= y && scrollY <= y + skinSize) {
       if (skin.unlocked) {
         equipSkin(i);
       } else {
@@ -533,7 +541,7 @@ export function handleShopClick(mouseX: number, mouseY: number) {
   const adBtnW = 280;
   const adBtnH = 60;
 
-  if (mouseX >= adBtnX && mouseX <= adBtnX + adBtnW && mouseY >= adBtnY && mouseY <= adBtnY + adBtnH) {
+  if (mouseX >= adBtnX && mouseX <= adBtnX + adBtnW && scrollY >= adBtnY && scrollY <= adBtnY + adBtnH) {
     if (canWatchAd()) {
       startWatchingAd();
     }
