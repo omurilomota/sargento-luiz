@@ -68,6 +68,8 @@ export interface Enemy {
   attackTimer: number;
   /** Temporizador para invocar aliados (chefes) */
   summonTimer: number;
+  /** Delay antes de começar a se mover (segundos) */
+  spawnDelay: number;
 }
 
 /** Representa uma partícula visual (explosão, rastro, etc.) */
@@ -142,6 +144,10 @@ export interface Weapon {
   explosive?: boolean;
   /** Raio da explosão em pixels (apenas para armas explosivas) */
   explosionRadius?: number;
+  /** Tamanho do pente (máximo de balas antes de recarregar) */
+  magazineSize: number;
+  /** Tempo de recarga em segundos */
+  reloadTime: number;
 }
 
 /** Define um upgrade permanente disponível na loja */

@@ -4,7 +4,7 @@
  */
 
 /** Tipos de modo de jogo */
-export type GameMode = 'campaign' | 'survival' | 'missions' | 'bossrush';
+export type GameMode = 'campaign' | 'survival' | 'missions' | 'bossrush' | 'competitive' | 'local';
 
 /** Dados de uma missão */
 export interface Mission {

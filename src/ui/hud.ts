@@ -26,6 +26,12 @@ export interface HudData {
   weapon: string;
   /** Multiplicador de combo (0 = sem combo) */
   combo: number;
+  /** Munição atual no pente */
+  ammo: number;
+  /** Tamanho do pente */
+  maxAmmo: number;
+  /** Se está recarregando */
+  reloading: boolean;
 }
 
 /** Referências aos elementos DOM */
@@ -47,6 +53,7 @@ export function initHud(): void {
     weapon: document.getElementById('weapon')!,
     combo: document.getElementById('combo')!,
     comboText: document.getElementById('combo-text')!,
+    ammo: document.getElementById('ammo')!,
     hud: document.getElementById('hud')!,
   };
 }
@@ -85,8 +92,12 @@ export function updateHud(data: HudData): void {
   // Enemies
   els.enemies.textContent = String(data.enemies);
 
-  // Weapon
-  els.weapon.textContent = data.weapon;
+  // Weapon & Ammo
+  if (data.reloading) {
+    els.weapon.textContent = `${data.weapon} [RECARREGANDO...]`;
+  } else {
+    els.weapon.textContent = `${data.weapon} ${data.ammo}/${data.maxAmmo}`;
+  }
 
   // Combo
   if (data.combo > 1) {
