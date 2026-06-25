@@ -159,7 +159,6 @@ export function updateEnvironmentEvents(
               spawnParticles(target.x, target.y - 100, '#fff', 5, 100);
               enemyDamages.push({ x: target.x, y: target.y - 20, damage: LIGHTNING_DAMAGE, color: '#3498db' });
             }
-            playerDamage += LIGHTNING_DAMAGE;
             event.duration = 0.3;
           }
           break;
@@ -171,7 +170,6 @@ export function updateEnvironmentEvents(
               enemyDamages.push({ x: e.x, y: e.y - 15, damage: STORM_DAMAGE, color: '#9b59b6' });
               spawnParticles(e.x, e.y, '#9b59b6', 1, 60);
             }
-            playerDamage += STORM_DAMAGE;
           }
           break;
       }

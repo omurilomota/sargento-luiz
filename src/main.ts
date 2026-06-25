@@ -338,6 +338,7 @@ function update(dt: number) {
   if (envResult.playerDamage > 0 && p.invincible <= 0) {
     const dmg = Math.floor(envResult.playerDamage * getDamageTakenMultiplier());
     if (dmg > 0) {
+      logDamage(`EVENTO_AMBIENTAL`, dmg);
       player.enemyCollisionDamage(dmg);
       sfxPlayerHit();
       triggerDamageFlash();

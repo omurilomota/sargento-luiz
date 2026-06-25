@@ -28,8 +28,8 @@
 - [x] Projeto com muitos arquivos soltos, falta um cleanup geral.
 - [x] Tela inicial ainda está uma bosta, itens sobrepondo-se. Tente refazer a tela inicial.
 - [x] Diálogo passando muito rápido e não dá nem pra ler, recomendo enter para continuar...
-- [ ] Tempo de recarga do poderes, poderes ficando em cima da barra de informações em baixo dele.
-- [ ] Eventos do ambiente ficando em cima do tempo dos power-ups.
+- [x] Tempo de recarga do poderes, poderes ficando em cima da barra de informações em baixo dele.
+- [x] Eventos do ambiente ficando em cima do tempo dos power-ups.
 - [x] Dano persiste na onda 2 que tomo dano aleatoriamente mesmo após correções.
 - [x] Upgrades da loja passando da tela.
 - [x] Evento de ambiente ficando em cima dos pontos.
