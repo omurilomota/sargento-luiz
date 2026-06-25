@@ -77,16 +77,16 @@ export function getEventTimer(type: EnvironmentEvent): number {
   return events[type].timer;
 }
 
-/** Informação de dano causado por evento ambiente */
 export interface EnvironmentDamage {
-  /** Posição X do alvo */
   x: number;
-  /** Posição Y do alvo */
   y: number;
-  /** Quantidade de dano */
   damage: number;
-  /** Cor da fonte de dano */
   color: string;
+}
+
+export interface EnvironmentResult {
+  enemyDamages: EnvironmentDamage[];
+  playerDamage: number;
 }
 
 /**
@@ -102,8 +102,9 @@ export function updateEnvironmentEvents(
   enemies: Enemy[],
   playerX: number,
   playerY: number
-): EnvironmentDamage[] {
-  const damages: EnvironmentDamage[] = [];
+): EnvironmentResult {
+  const enemyDamages: EnvironmentDamage[] = [];
+  let playerDamage = 0;
 
   for (const type of Object.keys(events) as EnvironmentEvent[]) {
     const event = events[type];
@@ -134,35 +135,37 @@ export function updateEnvironmentEvents(
 
       switch (type) {
         case 'earthquake':
-          // Dano periódico a todos os inimigos
           if (Math.random() < dt * 2) {
             for (const e of enemies) {
               e.health -= EARTHQUAKE_DAMAGE;
-              damages.push({ x: e.x, y: e.y - 15, damage: EARTHQUAKE_DAMAGE, color: '#e67e22' });
+              enemyDamages.push({ x: e.x, y: e.y - 15, damage: EARTHQUAKE_DAMAGE, color: '#e67e22' });
               spawnParticles(e.x, e.y, '#e67e22', 2, 80);
             }
+            playerDamage += EARTHQUAKE_DAMAGE;
           }
           break;
 
         case 'lightning':
-          // Relâmpago em inimigo aleatório
-          if (event.duration > 0.3 && enemies.length > 0) {
-            const target = enemies[Math.floor(rand(0, enemies.length))];
-            createExplosion(target.x, target.y, LIGHTNING_RADIUS, LIGHTNING_DAMAGE, enemies, '#3498db');
-            spawnParticles(target.x, target.y - 100, '#fff', 5, 100);
-            damages.push({ x: target.x, y: target.y - 20, damage: LIGHTNING_DAMAGE, color: '#3498db' });
-            event.duration = 0.3; // Só um relâmpago
+          if (event.duration > 0.3) {
+            if (enemies.length > 0) {
+              const target = enemies[Math.floor(rand(0, enemies.length))];
+              createExplosion(target.x, target.y, LIGHTNING_RADIUS, LIGHTNING_DAMAGE, enemies, '#3498db');
+              spawnParticles(target.x, target.y - 100, '#fff', 5, 100);
+              enemyDamages.push({ x: target.x, y: target.y - 20, damage: LIGHTNING_DAMAGE, color: '#3498db' });
+            }
+            playerDamage += LIGHTNING_DAMAGE;
+            event.duration = 0.3;
           }
           break;
 
         case 'storm':
-          // Dano periódico a todos
           if (Math.random() < dt) {
             for (const e of enemies) {
               e.health -= STORM_DAMAGE;
-              damages.push({ x: e.x, y: e.y - 15, damage: STORM_DAMAGE, color: '#9b59b6' });
+              enemyDamages.push({ x: e.x, y: e.y - 15, damage: STORM_DAMAGE, color: '#9b59b6' });
               spawnParticles(e.x, e.y, '#9b59b6', 1, 60);
             }
+            playerDamage += STORM_DAMAGE;
           }
           break;
       }
@@ -175,7 +178,7 @@ export function updateEnvironmentEvents(
     }
   }
 
-  return damages;
+  return { enemyDamages, playerDamage };
 }
 
 /**
