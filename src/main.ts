@@ -34,7 +34,7 @@ import { initRenderer, drawMenu, drawCutscene, drawGameOver, drawGameBackground,
 
 // UI
 import { initHud, updateHud, setHudVisible } from './ui/hud';
-import { drawShop, handleShopClick, setShopCoins, getShopCoins, addShopCoins, resetShop, updateShopAds } from './ui/shop';
+import { drawShop, handleShopClick, setShopCoins, getShopCoins, addShopCoins, resetShop, updateShopAds, getPurchasedUpgrades, getPurchasedWeapons } from './ui/shop';
 
 // Existing modules (unchanged)
 import { shoot, getCurrentWeapon, resetWeapons, canShoot, useAmmo, startReload, updateReload, getCurrentAmmo, getIsReloading, getReloadTimer } from './weapons';
@@ -59,6 +59,9 @@ import { resetSkins } from './systems/skins';
 
 // Ads
 import { resetAds } from './systems/ads';
+
+// Save/Load
+import { saveGame, loadGame, hasSave } from './systems/saveSystem';
 
 // Bots (Competitive Mode)
 import { getBots, createBot, updateBots, removeDeadBots, resetBots, addBot, BotDifficulty } from './systems/bots';
@@ -95,15 +98,46 @@ document.addEventListener('keydown', e => {
     if (key === '4') selectedMode = 'bossrush';
     if (key === '5') selectedMode = 'competitive';
     if (key === '6') selectedMode = 'local';
+    // Continue saved game
+    if (key.toLowerCase() === 'c' && hasSave()) {
+      const save = loadGame();
+      if (save) {
+        initAudio();
+        startMusic();
+        resetGame();
+        setGameMode('campaign');
+        setGameState('playing');
+        for (const k in keys) keys[k] = false;
+        // Restore state from save
+        for (let i = 0; i < save.phase; i++) nextPhase();
+        setShopCoins(save.coins);
+        addScoreFlat(save.score);
+      }
+    }
     keys[key.toLowerCase()] = true;
     return;
   }
 
   // Don't register game keys in menu/shop/gameover
-  if (state !== 'playing') {
+  if (state !== 'playing' && state !== 'paused') {
     keys[key.toLowerCase()] = true;
     return;
   }
+
+  // Pause toggle
+  if (key === 'Escape') {
+    if (state === 'playing') {
+      setGameState('paused');
+      return;
+    }
+    if (state === 'paused') {
+      setGameState('playing');
+      return;
+    }
+  }
+
+  // Don't register game keys while paused
+  if (state === 'paused') return;
 
   keys[key.toLowerCase()] = true;
 
@@ -223,6 +257,15 @@ function update(dt: number) {
     return;
   }
 
+  if (state === 'paused') {
+    setHudVisible(false);
+    if (keys['enter']) {
+      resetGame();
+      setGameState('menu');
+    }
+    return;
+  }
+
   if (state === 'gameover') {
     if (keys['enter']) {
       resetGame();
@@ -322,11 +365,25 @@ function update(dt: number) {
     nextWave();
     player.healOnWaveComplete();
     sfxWaveStart();
+    // Auto-save when entering shop
+    if (getGameState() === 'shop') {
+      saveGame(
+        getCurrentPhase()?.name ? PHASES.indexOf(getCurrentPhase()!) : 0,
+        getCurrentWave(),
+        0,
+        getShopCoins(),
+        getScore(),
+        getPurchasedUpgrades(),
+        getPurchasedWeapons(),
+        getCurrentPhase()?.name || ''
+      );
+    }
   }
 
   // Enemy AI
   for (const e of enemies) {
     e.angle += dt * 2;
+    if (e.hitFlash > 0) e.hitFlash -= dt;
     if (e.spawnDelay > 0) {
       e.spawnDelay -= dt;
       continue;
@@ -447,6 +504,7 @@ function update(dt: number) {
   });
 
   checkBulletEnemyCollisions(bullets, enemies, (b, e) => {
+    e.hitFlash = 0.15;
     // Explosive bullets create area damage
     if (b.explosive && b.explosionRadius) {
       createExplosion(b.x, b.y, b.explosionRadius, b.damage, enemies, b.color);
@@ -583,6 +641,27 @@ function draw() {
     return;
   }
   if (state === 'gameover') { drawGameOver(getScore(), getKillStreak()); return; }
+
+  if (state === 'paused') {
+    // Draw game scene frozen
+    const bg = getCurrentPhase();
+    drawGameBackground(bg?.bg || '#1a1a2e', bg?.gridColor || 'rgba(255,255,255,0.03)', { x: 0, y: 0 });
+    renderEnemies(enemies, player.getPlayer().x, player.getPlayer().y);
+    renderPlayer(player.getPlayer());
+    restoreCanvas();
+    // Pause overlay
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#ccc';
+    ctx.font = 'bold 28px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('PAUSADO', canvas.width / 2, canvas.height / 2 - 30);
+    ctx.fillStyle = '#666';
+    ctx.font = '13px monospace';
+    ctx.fillText('ESC para continuar', canvas.width / 2, canvas.height / 2 + 10);
+    ctx.fillText('ENTER para voltar ao menu', canvas.width / 2, canvas.height / 2 + 30);
+    return;
+  }
 
   const bg = getCurrentPhase();
   drawGameBackground(bg?.bg || '#1a1a2e', bg?.gridColor || 'rgba(255,255,255,0.03)', { x: 0, y: 0 });

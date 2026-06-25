@@ -142,6 +142,12 @@ export function updateEnvironmentEvents(
               spawnParticles(e.x, e.y, '#e67e22', 2, 80);
             }
           }
+          // Poeira no chão
+          if (Math.random() < dt * 5) {
+            const px = Math.random() * 2000;
+            const py = Math.random() * 1200;
+            spawnParticles(px, py, '#8a7a60', 3, 40);
+          }
           break;
 
         case 'lightning':
