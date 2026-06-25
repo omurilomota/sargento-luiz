@@ -316,8 +316,8 @@ function update(dt: number) {
     }
   }
 
-  const envDamages = updateEnvironmentEvents(dt, enemies, p.x, p.y);
-  for (const d of envDamages) {
+  const envResult = updateEnvironmentEvents(dt, enemies, p.x, p.y);
+  for (const d of envResult.enemyDamages) {
     damageNumbers.push({
       x: d.x + (Math.random() - 0.5) * 16,
       y: d.y,
@@ -326,6 +326,14 @@ function update(dt: number) {
       life: 0.8,
       vy: -60,
     });
+  }
+  if (envResult.playerDamage > 0 && p.invincible <= 0) {
+    const dmg = Math.floor(envResult.playerDamage * getDamageTakenMultiplier());
+    if (dmg > 0) {
+      player.enemyCollisionDamage(dmg);
+      sfxPlayerHit();
+      triggerDamageFlash();
+    }
   }
 
   // Shooting
@@ -718,18 +726,18 @@ function draw() {
     ctx.fillStyle = 'rgba(176,112,80,0.08)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = '#b07050';
-    ctx.font = 'bold 14px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('TERREMOTO', canvas.width / 2, 30);
+    ctx.font = 'bold 12px monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText('TERREMOTO', canvas.width - 15, 20);
     ctx.textAlign = 'left';
   }
   if (isStormActive()) {
     ctx.fillStyle = 'rgba(96,128,144,0.06)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = '#608090';
-    ctx.font = 'bold 14px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('TEMPESTADE', canvas.width / 2, 30);
+    ctx.font = 'bold 12px monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText('TEMPESTADE', canvas.width - 15, 20);
     ctx.textAlign = 'left';
   }
 

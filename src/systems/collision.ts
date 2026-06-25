@@ -78,9 +78,11 @@ export function checkEnemyPlayerCollision(
   invincible: number,
   onHit: (enemy: Enemy) => void
 ): void {
+  if (invincible > 0) return;
   for (const e of enemies) {
-    if (dist(e, { x: playerX, y: playerY }) < e.radius + playerRadius && invincible <= 0) {
+    if (dist(e, { x: playerX, y: playerY }) < e.radius + playerRadius) {
       onHit(e);
+      break;
     }
   }
 }
