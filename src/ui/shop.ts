@@ -5,7 +5,11 @@
  */
 
 import { WEAPONS, UPGRADES } from '../config';
-import { setWeapon, addDamageMultiplier, addPierce, addCrit } from '../weapons';
+import { setWeapon, addDamageMultiplier, addPierce, addCrit, addReloadSpeed } from '../weapons';
+import { addMaxHealth, addSpeed, addShield, enableRegen } from '../entities/player';
+import { enablePermanentMagnet } from '../entities/coin';
+import { getAllSkins, buySkin, equipSkin, getEquippedSkin, Skin } from '../systems/skins';
+import { canWatchAd, startWatchingAd, getIsWatchingAd, getAdProgress, getAdCooldown, getLastAdReward, getNextAdReward, getAdsWatched, updateAd } from '../systems/ads';
 
 /** Saldo atual de moedas do jogador */
 let shopCoins = 0;
@@ -83,6 +87,12 @@ function applyUpgrade(effect: string, value: number) {
   if (effect === 'damage') addDamageMultiplier(value);
   if (effect === 'pierce') addPierce(value);
   if (effect === 'crit') addCrit(value);
+  if (effect === 'health') addMaxHealth(value);
+  if (effect === 'speed') addSpeed(value);
+  if (effect === 'shield') addShield(value);
+  if (effect === 'magnet') enablePermanentMagnet();
+  if (effect === 'regen') enableRegen();
+  if (effect === 'reloadSpeed') addReloadSpeed(value);
 }
 
 /**
@@ -91,6 +101,17 @@ function applyUpgrade(effect: string, value: number) {
 export function resetShop() {
   purchasedWeapons = [0];
   purchasedUpgrades = [];
+}
+
+/**
+ * Atualiza o timer de ads (chamar quando na loja).
+ * @param dt - delta time em segundos
+ */
+export function updateShopAds(dt: number) {
+  const reward = updateAd(dt);
+  if (reward > 0) {
+    shopCoins += reward;
+  }
 }
 
 /**
@@ -134,156 +155,136 @@ let shopScrollOffset = 0;
  * @param mouseY - posição vertical do mouse
  */
 export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: number, mouseX: number, mouseY: number) {
-  // Fundo decorativo
-  ctx.fillStyle = 'rgba(15, 10, 25, 0.98)';
+  // Fundo sólido, sem efeitos decorativos
+  ctx.fillStyle = '#111';
   ctx.fillRect(0, 0, width, height);
-  
-  // Padrão de textura sutil
-  for (let i = 0; i < 50; i++) {
-    const x = (i * 137 + Date.now() / 50) % width;
-    const y = (i * 97 + Date.now() / 80) % height;
-    ctx.fillStyle = `rgba(241, 196, 15, ${0.03 + Math.sin(Date.now() / 1000 + i) * 0.02})`;
-    ctx.beginPath();
-    ctx.arc(x, y, 1.5, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  
-  // Borda decorativa superior
-  ctx.strokeStyle = 'rgba(180, 140, 80, 0.4)';
-  ctx.lineWidth = 2;
+
+  // Linha separadora sutil
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(0, 70);
-  ctx.lineTo(width, 70);
+  ctx.moveTo(0, 60);
+  ctx.lineTo(width, 60);
   ctx.stroke();
-  
-  // Título
-  ctx.fillStyle = '#f1c40f';
-  ctx.font = 'bold 48px "Cinzel", serif';
+
+  // Título — sem glow, cor sóbria
+  ctx.fillStyle = '#a08050';
+  ctx.font = 'bold 32px monospace';
   ctx.textAlign = 'center';
-  ctx.shadowColor = '#f1c40f';
-  ctx.shadowBlur = 25;
-  ctx.fillText('MERCADOR', width / 2, 55);
-  ctx.shadowBlur = 0;
-  
+  ctx.fillText('MERCADOR', width / 2, 45);
+
   // Moedas
-  ctx.font = '24px "Cinzel", serif';
-  ctx.fillStyle = '#f1c40f';
-  ctx.fillText(`💰 ${shopCoins} Ouros`, width / 2, 95);
-  
+  ctx.font = '16px monospace';
+  ctx.fillStyle = '#a08050';
+  ctx.fillText(`${shopCoins} moedas`, width / 2, 82);
+
   // Layout em 2 colunas
   const colW = width / 2 - 60;
   const leftX = 40;
   const rightX = width / 2 + 20;
-  
+
   // === COLUNA ESQUERDA: ARMAS ===
-  ctx.fillStyle = '#e67e22';
-  ctx.font = 'bold 20px "Cinzel", serif';
+  ctx.fillStyle = '#b07050';
+  ctx.font = 'bold 14px monospace';
   ctx.textAlign = 'left';
-  ctx.shadowColor = '#e67e22';
-  ctx.shadowBlur = 10;
-  ctx.fillText('⚔ ARMAS', leftX, 135);
-  ctx.shadowBlur = 0;
-  
-  // Separador
-  ctx.strokeStyle = 'rgba(230, 126, 34, 0.3)';
+  ctx.fillText('ARMAS', leftX, 120);
+
+  ctx.strokeStyle = 'rgba(176,112,80,0.2)';
   ctx.beginPath();
-  ctx.moveTo(leftX, 145);
-  ctx.lineTo(leftX + colW, 145);
+  ctx.moveTo(leftX, 130);
+  ctx.lineTo(leftX + colW, 130);
   ctx.stroke();
   
   WEAPONS.forEach((w, i) => {
-    const y = 160 + i * 48;
+    const y = 145 + i * 42;
     const owned = purchasedWeapons.includes(i);
     const canBuy = !owned && shopCoins >= w.price;
-    const hover = mouseX >= leftX && mouseX <= leftX + colW && mouseY >= y && mouseY <= y + 42;
-    
+    const hover = mouseX >= leftX && mouseX <= leftX + colW && mouseY >= y && mouseY <= y + 38;
+
     // Fundo do item
-    ctx.fillStyle = hover ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.03)';
+    ctx.fillStyle = hover ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.02)';
     ctx.beginPath();
-    ctx.roundRect(leftX, y, colW, 42, 6);
+    ctx.roundRect(leftX, y, colW, 38, 4);
     ctx.fill();
-    
+
     // Borda
-    ctx.strokeStyle = owned ? '#2ecc71' : canBuy ? w.color : 'rgba(255,255,255,0.1)';
-    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = owned ? '#7a9a6a' : canBuy ? 'rgba(176,112,80,0.4)' : 'rgba(255,255,255,0.05)';
+    ctx.lineWidth = 1;
     ctx.stroke();
-    
+
     // Nome da arma
-    ctx.fillStyle = owned ? '#2ecc71' : canBuy ? '#fff' : '#666';
-    ctx.font = '14px "Cinzel", serif';
+    ctx.fillStyle = owned ? '#7a9a6a' : canBuy ? '#ccc' : '#555';
+    ctx.font = '13px monospace';
     ctx.textAlign = 'left';
-    ctx.fillText(w.name, leftX + 12, y + 18);
-    
+    ctx.fillText(w.name, leftX + 10, y + 16);
+
     // Preço ou status
     ctx.textAlign = 'right';
-    ctx.font = '12px monospace';
+    ctx.font = '11px monospace';
     if (owned) {
-      ctx.fillStyle = '#2ecc71';
-      ctx.fillText('✓ ADQUIRIDA', leftX + colW - 12, y + 18);
+      ctx.fillStyle = '#7a9a6a';
+      ctx.fillText('ADQUIRIDA', leftX + colW - 10, y + 16);
     } else {
-      ctx.fillStyle = canBuy ? '#f1c40f' : '#666';
-      ctx.fillText(`${w.price} 💰`, leftX + colW - 12, y + 18);
+      ctx.fillStyle = canBuy ? '#a08050' : '#444';
+      ctx.fillText(`${w.price}`, leftX + colW - 10, y + 16);
     }
-    
+
     // Stats da arma
-    ctx.fillStyle = '#888';
+    ctx.fillStyle = '#555';
     ctx.font = '10px monospace';
     ctx.textAlign = 'left';
-    ctx.fillText(`DMG: ${w.damage} | SPD: ${w.shootRate}s`, leftX + 12, y + 35);
+    ctx.fillText(`DMG:${w.damage} SPD:${w.shootRate}s`, leftX + 10, y + 30);
   });
-  
+
   // === COLUNA DIREITA: UPGRADES ===
-  ctx.fillStyle = '#9b59b6';
-  ctx.font = 'bold 20px "Cinzel", serif';
+  ctx.fillStyle = '#8070a0';
+  ctx.font = 'bold 14px monospace';
   ctx.textAlign = 'left';
-  ctx.shadowColor = '#9b59b6';
-  ctx.shadowBlur = 10;
-  ctx.fillText('✨ UPGRADES', rightX, 135);
-  ctx.shadowBlur = 0;
-  
+  ctx.fillText('UPGRADES', rightX, 120);
+
   // Separador
-  ctx.strokeStyle = 'rgba(155, 89, 182, 0.3)';
+  ctx.strokeStyle = 'rgba(128,112,160,0.2)';
   ctx.beginPath();
-  ctx.moveTo(rightX, 145);
-  ctx.lineTo(rightX + colW, 145);
+  ctx.moveTo(rightX, 130);
+  ctx.lineTo(rightX + colW, 130);
   ctx.stroke();
-  
+
   UPGRADES.forEach((u, i) => {
-    const y = 160 + i * 48;
+    const y = 145 + i * 42;
     const owned = purchasedUpgrades.includes(u.name);
     const canBuy = !owned && shopCoins >= u.price;
-    const hover = mouseX >= rightX && mouseX <= rightX + colW && mouseY >= y && mouseY <= y + 42;
-    
+    const hover = mouseX >= rightX && mouseX <= rightX + colW && mouseY >= y && mouseY <= y + 38;
+
     // Fundo do item
-    ctx.fillStyle = hover ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.03)';
+    ctx.fillStyle = hover ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.02)';
     ctx.beginPath();
-    ctx.roundRect(rightX, y, colW, 42, 6);
+    ctx.roundRect(rightX, y, colW, 38, 4);
     ctx.fill();
-    
+
     // Borda
-    ctx.strokeStyle = owned ? '#2ecc71' : canBuy ? '#9b59b6' : 'rgba(255,255,255,0.1)';
-    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = owned ? '#7a9a6a' : canBuy ? 'rgba(128,112,160,0.4)' : 'rgba(255,255,255,0.05)';
+    ctx.lineWidth = 1;
     ctx.stroke();
-    
+
     // Nome do upgrade
-    ctx.fillStyle = owned ? '#2ecc71' : canBuy ? '#fff' : '#666';
-    ctx.font = '14px "Cinzel", serif';
+    ctx.fillStyle = owned ? '#7a9a6a' : canBuy ? '#ccc' : '#555';
+    ctx.font = '13px monospace';
     ctx.textAlign = 'left';
-    ctx.fillText(u.name, rightX + 12, y + 18);
-    
+    ctx.fillText(u.name, rightX + 10, y + 16);
+
     // Preço ou status
     ctx.textAlign = 'right';
-    ctx.font = '12px monospace';
+    ctx.font = '11px monospace';
     if (owned) {
-      ctx.fillStyle = '#2ecc71';
-      ctx.fillText('✓ ATIVO', rightX + colW - 12, y + 18);
+      ctx.fillStyle = '#7a9a6a';
+      ctx.fillText('ATIVO', rightX + colW - 10, y + 16);
     } else {
-      ctx.fillStyle = canBuy ? '#f1c40f' : '#666';
-      ctx.fillText(`${u.price} 💰`, rightX + colW - 12, y + 18);
+      ctx.fillStyle = canBuy ? '#a08050' : '#444';
+      ctx.fillText(`${u.price}`, rightX + colW - 10, y + 16);
     }
-    
+
     // Efeito do upgrade
-    ctx.fillStyle = '#888';
+    ctx.fillStyle = '#555';
     ctx.font = '10px monospace';
     ctx.textAlign = 'left';
     const effectText = u.effect === 'health' ? `+${u.value} Vida` :
@@ -291,24 +292,184 @@ export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: n
       u.effect === 'damage' ? `+${u.value * 100}% Dano` :
       u.effect === 'shield' ? '+1 Escudo' :
       u.effect === 'magnet' ? 'Magnetismo' :
-      u.effect === 'crit' ? `+${u.value * 100}% Crítico` :
-      u.effect === 'pierce' ? '+1 Pierce' : u.effect;
-    ctx.fillText(effectText, rightX + 12, y + 35);
+      u.effect === 'crit' ? `+${u.value * 100}% Crit` :
+      u.effect === 'pierce' ? '+1 Pierce' :
+      u.effect === 'regen' ? 'Regeneracao' :
+      u.effect === 'reloadSpeed' ? `+${Math.round(u.value * 100)}% Recarga` : u.effect;
+    ctx.fillText(effectText, rightX + 10, y + 30);
   });
-  
-  // Borda decorativa inferior
-  ctx.strokeStyle = 'rgba(180, 140, 80, 0.4)';
-  ctx.lineWidth = 2;
+
+  // === SKINS SECTION ===
+  const allSkins = getAllSkins();
+  const skinsY = 145 + UPGRADES.length * 42 + 20;
+
+  ctx.fillStyle = '#608090';
+  ctx.font = 'bold 14px monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText('SKINS', leftX, skinsY);
+
+  ctx.strokeStyle = 'rgba(96,128,144,0.2)';
   ctx.beginPath();
-  ctx.moveTo(0, height - 50);
-  ctx.lineTo(width, height - 50);
+  ctx.moveTo(leftX, skinsY + 10);
+  ctx.lineTo(leftX + colW, skinsY + 10);
   ctx.stroke();
-  
+
+  const skinCols = 5;
+  const skinSize = 44;
+  const skinGap = 6;
+  const skinStartX = leftX;
+  const skinStartY = skinsY + 20;
+
+  allSkins.forEach((skin, i) => {
+    const col = i % skinCols;
+    const row = Math.floor(i / skinCols);
+    const x = skinStartX + col * (skinSize + skinGap);
+    const y = skinStartY + row * (skinSize + skinGap + 12);
+    const equipped = skin.equipped;
+    const unlocked = skin.unlocked;
+    const canBuy = !unlocked && shopCoins >= skin.price;
+    const skinHover = mouseX >= x && mouseX <= x + skinSize && mouseY >= y && mouseY <= y + skinSize;
+
+    // Background
+    ctx.fillStyle = equipped ? 'rgba(122,154,106,0.2)' : skinHover ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.02)';
+    ctx.beginPath();
+    ctx.roundRect(x, y, skinSize, skinSize, 4);
+    ctx.fill();
+
+    // Border
+    ctx.strokeStyle = equipped ? '#7a9a6a' : unlocked ? 'rgba(255,255,255,0.1)' : canBuy ? 'rgba(96,128,144,0.3)' : 'rgba(255,255,255,0.04)';
+    ctx.lineWidth = equipped ? 2 : 1;
+    ctx.stroke();
+
+    // Skin preview (circle)
+    ctx.fillStyle = unlocked ? skin.bodyColor : '#222';
+    ctx.beginPath();
+    ctx.arc(x + skinSize / 2, y + skinSize / 2, 12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = unlocked ? skin.borderColor : '#333';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Lock icon
+    if (!unlocked) {
+      ctx.fillStyle = '#444';
+      ctx.font = '12px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('#', x + skinSize / 2, y + skinSize / 2 + 4);
+    }
+
+    // Name below
+    ctx.fillStyle = unlocked ? '#999' : '#444';
+    ctx.font = '9px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(skin.name, x + skinSize / 2, y + skinSize + 11);
+
+    // Price or equipped status
+    if (!unlocked) {
+      ctx.fillStyle = canBuy ? '#a08050' : '#333';
+      ctx.font = '9px monospace';
+      ctx.fillText(`${skin.price}`, x + skinSize / 2, y + skinSize + 20);
+    }
+  });
+
+  // === ADS SECTION ===
+  const adsY = skinStartY + Math.ceil(allSkins.length / skinCols) * (skinSize + skinGap + 12) + 15;
+
+  ctx.fillStyle = '#b07050';
+  ctx.font = 'bold 14px monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText('ANUNCIOS', leftX, adsY);
+
+  ctx.strokeStyle = 'rgba(176,112,80,0.2)';
+  ctx.beginPath();
+  ctx.moveTo(leftX, adsY + 10);
+  ctx.lineTo(leftX + colW, adsY + 10);
+  ctx.stroke();
+
+  const adBtnX = leftX;
+  const adBtnY = adsY + 25;
+  const adBtnW = 280;
+  const adBtnH = 60;
+  const adHover = mouseX >= adBtnX && mouseX <= adBtnX + adBtnW && mouseY >= adBtnY && mouseY <= adBtnY + adBtnH;
+
+  if (getIsWatchingAd()) {
+    // Watching ad - show progress
+    ctx.fillStyle = 'rgba(176,112,80,0.15)';
+    ctx.beginPath();
+    ctx.roundRect(adBtnX, adBtnY, adBtnW, adBtnH, 4);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(176,112,80,0.3)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Progress bar
+    const progress = getAdProgress();
+    ctx.fillStyle = '#b07050';
+    ctx.fillRect(adBtnX + 8, adBtnY + 22, (adBtnW - 16) * progress, 8);
+
+    ctx.fillStyle = '#ccc';
+    ctx.font = '12px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(`Assistindo... ${Math.floor(progress * 100)}%`, adBtnX + adBtnW / 2, adBtnY + 16);
+
+    ctx.fillStyle = '#666';
+    ctx.font = '10px monospace';
+    ctx.fillText(`+${getNextAdReward()}`, adBtnX + adBtnW / 2, adBtnY + 45);
+  } else if (canWatchAd()) {
+    // Can watch - show button
+    ctx.fillStyle = adHover ? 'rgba(176,112,80,0.2)' : 'rgba(255,255,255,0.03)';
+    ctx.beginPath();
+    ctx.roundRect(adBtnX, adBtnY, adBtnW, adBtnH, 4);
+    ctx.fill();
+    ctx.strokeStyle = adHover ? 'rgba(176,112,80,0.4)' : 'rgba(255,255,255,0.06)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.fillStyle = '#ccc';
+    ctx.font = '13px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('ASSISTIR ANUNCIO', adBtnX + adBtnW / 2, adBtnY + 20);
+
+    ctx.fillStyle = '#a08050';
+    ctx.font = '11px monospace';
+    ctx.fillText(`+${getNextAdReward()}`, adBtnX + adBtnW / 2, adBtnY + 38);
+
+    ctx.fillStyle = '#555';
+    ctx.font = '10px monospace';
+    ctx.fillText(`Assistidos: ${getAdsWatched()}`, adBtnX + adBtnW / 2, adBtnY + 52);
+  } else {
+    // Cooldown
+    ctx.fillStyle = 'rgba(255,255,255,0.02)';
+    ctx.beginPath();
+    ctx.roundRect(adBtnX, adBtnY, adBtnW, adBtnH, 4);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.fillStyle = '#555';
+    ctx.font = '12px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(`Cooldown: ${Math.ceil(getAdCooldown())}s`, adBtnX + adBtnW / 2, adBtnY + 22);
+
+    ctx.fillStyle = '#444';
+    ctx.font = '10px monospace';
+    ctx.fillText(`+${getNextAdReward()}`, adBtnX + adBtnW / 2, adBtnY + 40);
+  }
+
+  // Linha inferior
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, height - 40);
+  ctx.lineTo(width, height - 40);
+  ctx.stroke();
+
   // Instrução
-  ctx.fillStyle = '#2ecc71';
-  ctx.font = '16px "Cinzel", serif';
+  ctx.fillStyle = '#666';
+  ctx.font = '12px monospace';
   ctx.textAlign = 'center';
-  ctx.fillText('Pressione ENTER para continuar', width / 2, height - 25);
+  ctx.fillText('ENTER para continuar', width / 2, height - 20);
 }
 
 /**
@@ -324,16 +485,57 @@ export function handleShopClick(mouseX: number, mouseY: number) {
   const rightX = width / 2 + 20;
 
   WEAPONS.forEach((w, i) => {
-    const y = 160 + i * 48;
-    if (mouseX >= leftX && mouseX <= leftX + colW && mouseY >= y && mouseY <= y + 42) {
+    const y = 145 + i * 42;
+    if (mouseX >= leftX && mouseX <= leftX + colW && mouseY >= y && mouseY <= y + 38) {
       buyWeapon(i);
     }
   });
 
   UPGRADES.forEach((u, i) => {
-    const y = 160 + i * 48;
-    if (mouseX >= rightX && mouseX <= rightX + colW && mouseY >= y && mouseY <= y + 42) {
+    const y = 145 + i * 42;
+    if (mouseX >= rightX && mouseX <= rightX + colW && mouseY >= y && mouseY <= y + 38) {
       buyUpgrade(u.name);
     }
   });
+
+  // Skin clicks
+  const allSkins = getAllSkins();
+  const skinsY = 145 + UPGRADES.length * 42 + 20;
+  const skinSize = 44;
+  const skinGap = 6;
+  const skinStartX = leftX;
+  const skinStartY = skinsY + 20;
+  const skinCols = 5;
+
+  allSkins.forEach((skin, i) => {
+    const col = i % skinCols;
+    const row = Math.floor(i / skinCols);
+    const x = skinStartX + col * (skinSize + skinGap);
+    const y = skinStartY + row * (skinSize + skinGap + 12);
+
+    if (mouseX >= x && mouseX <= x + skinSize && mouseY >= y && mouseY <= y + skinSize) {
+      if (skin.unlocked) {
+        equipSkin(i);
+      } else {
+        const result = buySkin(i, shopCoins);
+        if (result.success) {
+          shopCoins -= result.cost;
+          equipSkin(i);
+        }
+      }
+    }
+  });
+
+  // Ad button click
+  const adsY = skinStartY + Math.ceil(allSkins.length / skinCols) * (skinSize + skinGap + 12) + 15;
+  const adBtnX = leftX;
+  const adBtnY = adsY + 25;
+  const adBtnW = 280;
+  const adBtnH = 60;
+
+  if (mouseX >= adBtnX && mouseX <= adBtnX + adBtnW && mouseY >= adBtnY && mouseY <= adBtnY + adBtnH) {
+    if (canWatchAd()) {
+      startWatchingAd();
+    }
+  }
 }

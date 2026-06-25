@@ -1,132 +1,267 @@
 /**
  * Sistema de história e cutscenes.
- * Gerencia a narrativa pós-apocalíptica do jogo.
+ * Narração com diálogos, retratos de personagens e efeito de máquina de escrever.
  */
 
-/** Dados de uma cutscene */
-export interface Cutscene {
-  /** Título da cutscene */
-  title: string;
-  /** Texto narrativo */
+/** Personagens da história */
+export type Character = 'narrador' | 'rios' | 'comandante' | 'cientista' | 'mensagem';
+
+/** Uma fala na cutscene */
+export interface DialogueLine {
+  /** Quem fala */
+  speaker: Character;
+  /** Texto da fala */
   text: string;
-  /** Cor de destaque */
-  color: string;
 }
 
-/** Cutscenes entre fases */
+/** Uma cutscene completa */
+export interface Cutscene {
+  /** Título da cena */
+  title: string;
+  /** Cor da cena */
+  color: string;
+  /** Diálogos em sequência */
+  lines: DialogueLine[];
+}
+
+/** Retratos dos personagens (desenhos Canvas2D) */
+const PORTRAITS: Record<Character, { name: string; color: string }> = {
+  narrador: { name: '', color: '#888' },
+  rios: { name: 'SARGENTO RIOS', color: '#7a9a6a' },
+  comandante: { name: 'COMANDANTE VALE', color: '#b07050' },
+  cientista: { name: 'DRA. FERREIRA', color: '#608090' },
+  mensagem: { name: 'MENSAGEM Interceptada', color: '#a08050' },
+};
+
+/** Cutscenes do jogo */
 export const CUTSCENES: Cutscene[] = [
   {
     title: 'PRÓLOGO',
-    text: '2087. Uma pandemia transformou 80% da humanidade em mutantes.\n\nVocê é o Sargento Rios, último sobrevivente do esquadrão Alpha.\nSua missão: atravessar os territórios infestados até o Bunker Central.\nLá, cientistas trabalham na cura.\n\nMas antes... você precisa sobreviver.',
-    color: '#e74c3c',
+    color: '#b07050',
+    lines: [
+      { speaker: 'mensagem', text: '[ TRANSMISSÃO INTERCEPTADA — 12/03/2087 ]' },
+      { speaker: 'comandante', text: 'Alpha-1, aqui é Vale. Você recebeu?' },
+      { speaker: 'rios', text: 'Recebi, comandante. Mas não vou gostar disso.' },
+      { speaker: 'comandante', text: 'A pandemia se espalhou. 80% da população transformada.' },
+      { speaker: 'comandante', text: 'Seu esquadrão foi designado para chegar ao Bunker Central.' },
+      { speaker: 'rios', text: 'Meu esquadrão? Comandante, sobrou eu e o silêncio.' },
+      { speaker: 'comandante', text: '...Lamento, Rios. Mas a Dra. Ferreira tem uma hipótese.' },
+      { speaker: 'comandante', text: 'Se você chegar lá, pode haver uma cura. Pode.' },
+      { speaker: 'rios', text: '"Pode." Ótimo. Só preciso atravessar meio mundo infestado.' },
+      { speaker: 'comandante', text: 'Você é o último, Rios. Não temos outra opção.' },
+      { speaker: 'rios', text: 'Entendido. Saindo agora.' },
+    ],
   },
   {
     title: 'FLORESTA',
-    text: 'A floresta silenciosa... mas não vazia.\n\nOs primeiros mutantes aparecem entre as árvores.\nEles eram humanos, uma vez.\nAgora são apenas fome e raiva.\n\nVocê avança. Não há volta.',
-    color: '#2ecc71',
+    color: '#7a9a6a',
+    lines: [
+      { speaker: 'narrador', text: 'A floresta ao norte da cidade. Onde tudo parou.' },
+      { speaker: 'rios', text: 'Silêncio demais. Isso é pior que barulho.' },
+      { speaker: 'narrador', text: 'Entre as árvores, figuras se movem. Devagar. Com fome.' },
+      { speaker: 'rios', text: 'Eles... ainda usam roupas. Eram pessoas.' },
+      { speaker: 'rios', text: 'Não olho para trás. Não posso.' },
+      { speaker: 'narrador', text: 'Os primeiros mutantes. Fracos, mas numerosos.' },
+      { speaker: 'rios', text: 'Se isso é o começo, o que vem depois?' },
+    ],
   },
   {
     title: 'CAVERNA',
-    text: 'No escuro, eles são mais rápidos.\n\nA caverna ecoa com sons estranhos.\nMorcegos mutados voam nas trevas.\nKrystals brilham com energia estranha.\n\nContinue. O Bunker não está longe.',
-    color: '#3498db',
+    color: '#608090',
+    lines: [
+      { speaker: 'narrador', text: 'A caverna de crystal. Ninguém volta de lá.' },
+      { speaker: 'rios', text: 'Escuro total. Perfeito para morrer.' },
+      { speaker: 'narrador', text: 'Brilhos estranhos nas paredes. Energia pura.' },
+      { speaker: 'rios', text: 'Os morcegos... eles voam em formação. Isso não é normal.' },
+      { speaker: 'narrador', text: 'Os mutantes aqui são mais rápidos. Mais inteligentes.' },
+      { speaker: 'rios', text: 'Algo está dirigindo eles. Não é instinto.' },
+    ],
   },
   {
     title: 'FÁBRICA',
-    text: 'A fábrica abandonada... onde tudo começou.\n\nOs primeiros experimentos foram aqui.\nRobôs de segurança foram contaminados.\nAgora patrulham os corredores,\nprotegendo segredos que deveriam ter sido enterrados.',
-    color: '#7f8c8d',
+    color: '#999',
+    lines: [
+      { speaker: 'rios', text: 'A BioGen Corp. Onde tudo começou.' },
+      { speaker: 'narrador', text: 'Placa na entrada: "PROJETO GENESIS — NÃO AUTORIZADO."' },
+      { speaker: 'rios', text: 'Genesis. Eles chamaram isso de progresso.' },
+      { speaker: 'narrador', text: 'Robôs de segurança patrulham os corredores. Contaminados.' },
+      { speaker: 'rios', text: 'Até as máquinas ficaram doentes aqui.' },
+      { speaker: 'rios', text: 'Preciso encontrar os registros. A Dra. Ferreira precisa saber.' },
+    ],
   },
   {
     title: 'PÂNTANO',
-    text: 'A zona tóxica. Nada sobrevive aqui.\n\nMas os mutantes se adaptaram.\nSlimes venenosos, mosquitos gigantes,\nfrog que escaldam com toque.\n\nO ar é pesado. Cada respiração custa.',
-    color: '#1abc9c',
+    color: '#5a8a7a',
+    lines: [
+      { speaker: 'narrador', text: 'A zona tóxica. O ar queima os pulmões.' },
+      { speaker: 'rios', text: 'Cada respiração é um pedaço de mim que vai embora.' },
+      { speaker: 'narrador', text: 'Slimes venenosos. Mosquitos do tamanho de cachorros.' },
+      { speaker: 'rios', text: 'O pantano não quer me ver passar. Concordo com ele.' },
+      { speaker: 'rios', text: 'Mas o Bunker está do outro lado. Não posso parar.' },
+    ],
   },
   {
     title: 'CASTELO',
-    text: 'A fortaleza dos mutantes.\n\nCavaleiros de ossos, arqueiros mortos,\nmagos que comandam exércitos.\nE no topo... o Rei.\n\nDerrote-o para avançar.',
-    color: '#9b59b6',
+    color: '#8070a0',
+    lines: [
+      { speaker: 'narrador', text: 'A fortaleza. Onde os mutantes se organizam.' },
+      { speaker: 'rios', text: 'Eles constuíram algo. Não é caos. É sociedade.' },
+      { speaker: 'narrador', text: 'Cavaleiros de ossos guardam os portões.' },
+      { speaker: 'rios', text: 'E no topo... o Rei. O primeiro mutante. O mais forte.' },
+      { speaker: 'rios', text: 'Se eu passar dele, o caminho fica aberto.' },
+      { speaker: 'rios', text: 'Se eu não passar... bem, pelo menos tentei.' },
+    ],
   },
   {
     title: 'VULCÃO',
-    text: 'A zona industrial em chamas.\n\nElementais de fogo, golems de magma,\na própria terra queima sob seus pés.\n\nO Bunker está além desta fumaça.\nSegure a respiração.',
-    color: '#e74c3c',
+    color: '#b07050',
+    lines: [
+      { speaker: 'narrador', text: 'A zona industrial em chamas. O calor é insuportável.' },
+      { speaker: 'rios', text: 'A terra treme. Não é terremoto. É raiva.' },
+      { speaker: 'narrador', text: 'Elementais de fogo surgem da lava.' },
+      { speaker: 'rios', text: 'O Bunker está além dessa fumaça. Eu sinto.' },
+      { speaker: 'rios', text: 'Mais um passo. Só mais um.' },
+    ],
   },
   {
     title: 'ESPAÇO',
-    text: 'A estação orbital. Último obstáculo.\n\nOVNs patrulham, alienígenas invadem,\na Mãe-Nave espera no centro.\n\nDestrua-a. Salve a humanidade.',
-    color: '#8e44ad',
+    color: '#8070a0',
+    lines: [
+      { speaker: 'mensagem', text: '[ TRANSMISSÃO — ESTAÇÃO ORBITAL EREBUS ]' },
+      { speaker: 'rios', text: 'Uma estação orbital? Como chegou aqui em cima?' },
+      { speaker: 'narrador', text: 'OVNs patrulham o espaço. A Mãe-Nave espera no centro.' },
+      { speaker: 'rios', text: 'Tudo que eu passei... foi pra chegar aqui.' },
+      { speaker: 'rios', text: 'Vou destruir essa porra. Pela Terra. Pelos que ficaram.' },
+    ],
   },
   {
     title: 'EPÍLOGO',
-    text: 'A Mãe-Nave caiu.\n\nOs mutantes começam a enfraquecer.\nA cura está próxima.\n\nVocê fez o impossível, Sargento Rios.\nA humanidade sobreviverá.\n\nObrigado por jogar.',
-    color: '#f1c40f',
+    color: '#a08050',
+    lines: [
+      { speaker: 'narrador', text: 'A Mãe-Nave caiu. Os mutantes enfraquecem.' },
+      { speaker: 'comandante', text: 'Rios? RIOS! Você está aí?' },
+      { speaker: 'rios', text: 'Estou... por aqui, comandante.' },
+      { speaker: 'comandante', text: 'A cura está a caminho. Você conseguiu.' },
+      { speaker: 'rios', text: 'Não fui só eu. Foram todos que caíram no caminho.' },
+      { speaker: 'comandante', text: 'A humanidade não vai esquecer, Rios.' },
+      { speaker: 'rios', text: 'Espero que não. Agora... me deixa dormir.' },
+      { speaker: 'narrador', text: 'FIM.' },
+    ],
   },
 ];
 
-/** Estado da narrativa atual */
+/** Estado da narrativa */
 let currentCutsceneIndex = 0;
+let currentLineIndex = 0;
 let showingCutscene = false;
 let cutsceneTimer = 0;
+let textProgress = 0;
+let lineComplete = false;
+let fadeAlpha = 0;
+let fadingIn = true;
 
-/**
- * Retorna a cutscene atual.
- */
+/** Velocidade do texto (caracteres por segundo) */
+const TEXT_SPEED = 18;
+
 export function getCurrentCutscene(): Cutscene {
   return CUTSCENES[currentCutsceneIndex] || CUTSCENES[0];
 }
 
-/**
- * Verifica se está mostrando cutscene.
- */
+export function getCurrentLine(): DialogueLine {
+  const scene = getCurrentCutscene();
+  return scene.lines[currentLineIndex] || { speaker: 'narrador', text: '' };
+}
+
 export function isShowingCutscene(): boolean {
   return showingCutscene;
 }
 
-/**
- * Avança para próxima cutscene.
- */
+export function isLineComplete(): boolean {
+  return lineComplete;
+}
+
+export function getTextProgress(): number {
+  return textProgress;
+}
+
+export function getFadeAlpha(): number {
+  return fadeAlpha;
+}
+
 export function nextCutscene(): void {
   if (currentCutsceneIndex < CUTSCENES.length - 1) {
     currentCutsceneIndex++;
   }
 }
 
-/**
- * Reseta para primeira cutscene.
- */
 export function resetStory(): void {
   currentCutsceneIndex = 0;
+  currentLineIndex = 0;
   showingCutscene = false;
   cutsceneTimer = 0;
+  textProgress = 0;
+  lineComplete = false;
+  fadeAlpha = 0;
+  fadingIn = true;
 }
 
-/**
- * Mostra uma cutscene.
- */
 export function showCutscene(): void {
   showingCutscene = true;
   cutsceneTimer = 0;
+  currentLineIndex = 0;
+  textProgress = 0;
+  lineComplete = false;
+  fadeAlpha = 0;
+  fadingIn = true;
 }
 
-/**
- * Esconde a cutscene atual.
- */
-export function hideCutscene(): void {
+export function advanceCutscene(): boolean {
+  if (!showingCutscene) return false;
+
+  if (!lineComplete) return false;
+
+  const scene = getCurrentCutscene();
+  if (currentLineIndex < scene.lines.length - 1) {
+    currentLineIndex++;
+    textProgress = 0;
+    lineComplete = false;
+    return false;
+  }
+
   showingCutscene = false;
   currentCutsceneIndex++;
+  currentLineIndex = 0;
+  return true;
 }
 
-/**
- * Atualiza o timer da cutscene.
- */
+export function skipCutsceneText(): void {
+  if (!showingCutscene || lineComplete) return;
+  lineComplete = true;
+  textProgress = getCurrentLine().text.length;
+}
+
 export function updateCutscene(dt: number): void {
-  if (showingCutscene) {
-    cutsceneTimer += dt;
+  if (!showingCutscene) return;
+  cutsceneTimer += dt;
+
+  if (fadingIn) {
+    fadeAlpha = Math.min(1, fadeAlpha + dt * 2);
+    if (fadeAlpha >= 1) fadingIn = false;
+  }
+
+  if (!lineComplete) {
+    const line = getCurrentLine();
+    textProgress = Math.min(line.text.length, textProgress + TEXT_SPEED * dt);
+    if (textProgress >= line.text.length) {
+      lineComplete = true;
+    }
   }
 }
 
-/**
- * Retorna o timer da cutscene.
- */
 export function getCutsceneTimer(): number {
   return cutsceneTimer;
+}
+
+export function getPortraitInfo(speaker: Character): { name: string; color: string } {
+  return PORTRAITS[speaker];
 }

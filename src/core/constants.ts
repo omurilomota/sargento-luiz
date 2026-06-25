@@ -47,4 +47,6 @@ export const WAVE_MIN_SPAWN_RATE = 0.2;
 /** Quantidade de vida recuperada ao completar uma onda */
 export const WAVE_HEAL_ON_COMPLETE = 15;
 /** Fator de escala de stats dos inimigos por onda */
-export const WAVE_SCALE_PER_LEVEL = 0.1;
+export const WAVE_SCALE_PER_LEVEL = 0.15;
+/** Fator de escala de velocidade dos inimigos por onda */
+export const WAVE_SPEED_SCALE_PER_LEVEL = 0.05;

@@ -69,16 +69,78 @@ function playNoise(duration: number, volume = 0.2): void {
 
 // ─── Sons do Jogo ───────────────────────────────────────────
 
-/** Som de tiro do jogador */
-export function sfxShoot(): void {
-  playTone(800, 0.05, 'square', 0.15);
-  playTone(600, 0.03, 'square', 0.1);
+/** Som de tiro da Pistola */
+export function sfxPistol(): void {
+  playTone(900, 0.04, 'square', 0.15);
+  playTone(700, 0.03, 'square', 0.1);
 }
 
-/** Som de tiro da shotgun */
+/** Som de tiro da Shotgun */
 export function sfxShotgun(): void {
   playNoise(0.08, 0.2);
   playTone(200, 0.06, 'sawtooth', 0.15);
+}
+
+/** Som de tiro da Metralhadora */
+export function sfxMachinegun(): void {
+  playTone(500, 0.02, 'square', 0.12);
+  playNoise(0.02, 0.08);
+}
+
+/** Som de tiro da Sniper */
+export function sfxSniper(): void {
+  playTone(1200, 0.06, 'sine', 0.2);
+  playTone(800, 0.08, 'sine', 0.15);
+  playNoise(0.04, 0.1);
+}
+
+/** Som de tiro do Laser */
+export function sfxLaser(): void {
+  const ac = ensureCtx();
+  if (!sfxGain) return;
+  const osc = ac.createOscillator();
+  const gain = ac.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(1400, ac.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(400, ac.currentTime + 0.08);
+  gain.gain.value = 0.15;
+  gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.08);
+  osc.connect(gain);
+  gain.connect(sfxGain);
+  osc.start(ac.currentTime);
+  osc.stop(ac.currentTime + 0.08);
+}
+
+/** Som de tiro do RPG */
+export function sfxRPG(): void {
+  playTone(150, 0.1, 'sawtooth', 0.2);
+  playTone(100, 0.15, 'sine', 0.15);
+  playNoise(0.06, 0.12);
+}
+
+/** Som de tiro dos Raios */
+export function sfxRaios(): void {
+  playTone(1000, 0.03, 'sine', 0.15);
+  playTone(1200, 0.03, 'sine', 0.12);
+  playTone(800, 0.04, 'triangle', 0.1);
+}
+
+/** Som de tiro do Gel */
+export function sfxGel(): void {
+  playTone(600, 0.05, 'sine', 0.1);
+  playTone(500, 0.04, 'triangle', 0.08);
+}
+
+/** Som de tiro da Granada */
+export function sfxGranade(): void {
+  playTone(200, 0.08, 'sawtooth', 0.15);
+  playNoise(0.04, 0.1);
+}
+
+/** Som de tiro da Mina */
+export function sfxMina(): void {
+  playTone(300, 0.06, 'square', 0.12);
+  playTone(250, 0.08, 'sine', 0.1);
 }
 
 /** Som de tiro inimigo */
