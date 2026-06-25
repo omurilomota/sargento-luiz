@@ -124,7 +124,8 @@ export function enemyCollisionDamage(enemyDamage: number): void {
   if (player.shield > 0) {
     player.shield--;
   } else {
-    player.health -= enemyDamage;
+    const reduced = Math.floor(enemyDamage * (1 - armorLevel));
+    player.health -= Math.max(1, reduced);
   }
   player.invincible = INVINCIBLE_DURATION;
 }
@@ -172,12 +173,30 @@ export function addShield(amount: number): void {
 
 /** Se a regeneração permanente está ativa */
 let regenActive = false;
+/** Nível de armadura (0-1, reduz dano recebido) */
+let armorLevel = 0;
 
 /**
  * Ativa a regeneração permanente (1 vida por segundo).
  */
 export function enableRegen(): void {
   regenActive = true;
+}
+
+/**
+ * Adiciona armadura ao jogador.
+ * @param value - nível de armadura (0-1, ex: 0.15 = 15% redução)
+ */
+export function addArmor(value: number): void {
+  armorLevel = Math.min(0.5, armorLevel + value);
+}
+
+/**
+ * Retorna o nível de armadura.
+ * @returns valor entre 0 e 0.5
+ */
+export function getArmorLevel(): number {
+  return armorLevel;
 }
 
 /**

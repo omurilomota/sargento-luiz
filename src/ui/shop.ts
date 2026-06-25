@@ -6,7 +6,7 @@
 
 import { WEAPONS, UPGRADES } from '../config';
 import { setWeapon, addDamageMultiplier, addPierce, addCrit, addReloadSpeed } from '../weapons';
-import { addMaxHealth, addSpeed, addShield, enableRegen } from '../entities/player';
+import { addMaxHealth, addSpeed, addShield, enableRegen, addArmor } from '../entities/player';
 import { enablePermanentMagnet } from '../entities/coin';
 import { getAllSkins, buySkin, equipSkin, getEquippedSkin, Skin } from '../systems/skins';
 import { canWatchAd, startWatchingAd, getIsWatchingAd, getAdProgress, getAdCooldown, getLastAdReward, getNextAdReward, getAdsWatched, updateAd } from '../systems/ads';
@@ -94,6 +94,7 @@ function applyUpgrade(effect: string, value: number) {
   if (effect === 'magnet') enablePermanentMagnet();
   if (effect === 'regen') enableRegen();
   if (effect === 'reloadSpeed') addReloadSpeed(value);
+  if (effect === 'armor') addArmor(value);
 }
 
 /**

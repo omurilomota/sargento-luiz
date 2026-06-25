@@ -21,7 +21,7 @@ import { PHASES, ENEMY_TYPES, POWERUP_TYPES } from './config';
 
 // Entities
 import * as player from './entities/player';
-import { applyRegen, resetRegen } from './entities/player';
+import { applyRegen, resetRegen, getArmorLevel } from './entities/player';
 import { getBullets, spawnBullet, updateBullets, clearBullets } from './entities/bullet';
 import { getCoins, spawnCoins, updateCoins, clearCoins, setMagnetActive, resetPermanentMagnet } from './entities/coin';
 
