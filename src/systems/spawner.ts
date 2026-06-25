@@ -7,7 +7,7 @@
 import { Enemy } from '../types';
 import { ENEMY_TYPES, PHASES } from '../config';
 import { rand } from '../utils';
-import { WAVE_BASE_ENEMIES, WAVE_ENEMIES_PER_LEVEL, WAVE_BASE_SPAWN_RATE, WAVE_SPAWN_RATE_DECAY, WAVE_MIN_SPAWN_RATE, WAVE_SCALE_PER_LEVEL } from '../core/constants';
+import { WAVE_BASE_ENEMIES, WAVE_ENEMIES_PER_LEVEL, WAVE_BASE_SPAWN_RATE, WAVE_SPAWN_RATE_DECAY, WAVE_MIN_SPAWN_RATE, WAVE_SCALE_PER_LEVEL, WAVE_SPEED_SCALE_PER_LEVEL } from '../core/constants';
 
 /** Temporizador acumulado desde o último spawn */
 let waveTimer = 0;
@@ -49,20 +49,23 @@ export function spawnEnemy(type: string, canvasWidth: number, canvasHeight: numb
 
   let x = 0, y = 0;
   const side = Math.floor(rand(0, 4));
-  if (side === 0) { x = -40; y = rand(0, canvasHeight); }
-  else if (side === 1) { x = canvasWidth + 40; y = rand(0, canvasHeight); }
-  else if (side === 2) { x = rand(0, canvasWidth); y = -40; }
-  else { x = rand(0, canvasWidth); y = canvasHeight + 40; }
+  const spawnDist = 120;
+  if (side === 0) { x = -spawnDist; y = rand(0, canvasHeight); }
+  else if (side === 1) { x = canvasWidth + spawnDist; y = rand(0, canvasHeight); }
+  else if (side === 2) { x = rand(0, canvasWidth); y = -spawnDist; }
+  else { x = rand(0, canvasWidth); y = canvasHeight + spawnDist; }
 
   const waveScale = 1 + currentWave * WAVE_SCALE_PER_LEVEL;
+  const speedScale = 1 + currentWave * WAVE_SPEED_SCALE_PER_LEVEL;
+  const variance = 0.9 + Math.random() * 0.2;
 
   return {
-    x, y, radius: def.radius, speed: def.speed + rand(-10, 10),
-    health: Math.floor(def.health * waveScale), maxHealth: Math.floor(def.health * waveScale),
+    x, y, radius: def.radius, speed: Math.floor(def.speed * speedScale * variance),
+    health: Math.floor(def.health * waveScale * variance), maxHealth: Math.floor(def.health * waveScale * variance),
     damage: Math.floor(def.damage * waveScale), color: def.color, scoreValue: def.scoreValue,
     shootTimer: rand(0, def.shootRate || 0), shootRate: def.shootRate || 0,
     canShoot: def.canShoot || false, type, angle: rand(0, Math.PI * 2),
-    attackTimer: 0, summonTimer: 0,
+    attackTimer: 0, summonTimer: 0, spawnDelay: 0.5,
   };
 }
 

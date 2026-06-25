@@ -15,6 +15,12 @@ let damageMultiplier = 1;
 let pierceCount = 0;
 /** Chance de acerto crítico (0-1) acumulada por upgrades */
 let critChance = 0;
+/** Munição atual no pente */
+let currentAmmo = 0;
+/** Se está recarregando */
+let isReloading = false;
+/** Timer de recarga restante */
+let reloadTimer = 0;
 
 /**
  * Retorna a arma atualmente equipada.
@@ -22,14 +28,6 @@ let critChance = 0;
  */
 export function getCurrentWeapon(): Weapon {
   return WEAPONS[currentWeaponIndex];
-}
-
-/**
- * Define a arma equipada pelo índice.
- * @param index - índice da arma no array WEAPONS
- */
-export function setWeapon(index: number) {
-  currentWeaponIndex = index;
 }
 
 /**
@@ -64,6 +62,24 @@ export function addCrit(amount: number) {
   critChance += amount;
 }
 
+/** Multiplicador de velocidade de recarga (menor = mais rápido) */
+let reloadSpeedMultiplier = 1;
+
+/**
+ * Retorna o multiplicador de velocidade de recarga.
+ */
+export function getReloadSpeedMultiplier(): number {
+  return reloadSpeedMultiplier;
+}
+
+/**
+ * Reduz o tempo de recarga.
+ * @param amount - valor a subtrair do multiplicador (ex: 0.3 = 30% mais rápido)
+ */
+export function addReloadSpeed(amount: number) {
+  reloadSpeedMultiplier = Math.max(0.3, reloadSpeedMultiplier - amount);
+}
+
 /**
  * Retorna a quantidade de pierce extra.
  * @returns número de cargas de pierce
@@ -89,6 +105,83 @@ export function resetWeapons() {
   damageMultiplier = 1;
   pierceCount = 0;
   critChance = 0;
+  currentAmmo = WEAPONS[0].magazineSize;
+  isReloading = false;
+  reloadTimer = 0;
+  reloadSpeedMultiplier = 1;
+}
+
+/**
+ * Retorna a munição atual no pente.
+ * @returns munição restante
+ */
+export function getCurrentAmmo(): number {
+  return currentAmmo;
+}
+
+/**
+ * Retorna se a arma está recarregando.
+ * @returns true se recarregando
+ */
+export function getIsReloading(): boolean {
+  return isReloading;
+}
+
+/**
+ * Retorna o timer de recarga restante.
+ * @returns segundos restantes de recarga
+ */
+export function getReloadTimer(): number {
+  return reloadTimer;
+}
+
+/**
+ * Retorna se a arma pode disparar.
+ * @returns true se pode disparar (tem munição e não está recarregando)
+ */
+export function canShoot(): boolean {
+  return currentAmmo > 0 && !isReloading;
+}
+
+/**
+ * Consome uma unidade de munição.
+ */
+export function useAmmo(): void {
+  if (currentAmmo > 0) currentAmmo--;
+}
+
+/**
+ * Inicia a recarga da arma atual.
+ */
+export function startReload(): void {
+  if (isReloading || currentAmmo >= WEAPONS[currentWeaponIndex].magazineSize) return;
+  isReloading = true;
+  reloadTimer = WEAPONS[currentWeaponIndex].reloadTime * reloadSpeedMultiplier;
+}
+
+/**
+ * Atualiza o timer de recarga.
+ * @param dt - delta time em segundos
+ */
+export function updateReload(dt: number): void {
+  if (!isReloading) return;
+  reloadTimer -= dt;
+  if (reloadTimer <= 0) {
+    isReloading = false;
+    currentAmmo = WEAPONS[currentWeaponIndex].magazineSize;
+    reloadTimer = 0;
+  }
+}
+
+/**
+ * Define a arma equipada pelo índice e recarrega.
+ * @param index - índice da arma no array WEAPONS
+ */
+export function setWeapon(index: number) {
+  currentWeaponIndex = index;
+  currentAmmo = WEAPONS[index].magazineSize;
+  isReloading = false;
+  reloadTimer = 0;
 }
 
 /**
@@ -121,5 +214,6 @@ export function shoot(x: number, y: number, angle: number, multiShot: boolean, s
       explosionRadius: weapon.explosionRadius || 0,
     });
   }
+  currentAmmo = Math.max(0, currentAmmo - 1);
   return newBullets;
 }

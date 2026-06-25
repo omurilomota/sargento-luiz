@@ -12,6 +12,8 @@ import { COIN_LIFE, COLLECT_RADIUS, MAGNET_RADIUS, MAGNET_SPEED } from '../core/
 const coinList: Coin[] = [];
 /** Indica se o power-up de magnetismo está ativo */
 let magnetActive = false;
+/** Indica se o magnetismo permanente (upgrade da loja) está ativo */
+let permanentMagnet = false;
 
 /**
  * Retorna a lista de moedas ativas para renderização.
@@ -24,6 +26,16 @@ export function getCoins(): Coin[] { return coinList; }
  * @param active - true para ativar magnetismo
  */
 export function setMagnetActive(active: boolean): void { magnetActive = active; }
+
+/**
+ * Ativa o magnetismo permanente (upgrade da loja).
+ */
+export function enablePermanentMagnet(): void { permanentMagnet = true; }
+
+/**
+ * Reseta o magnetismo permanente.
+ */
+export function resetPermanentMagnet(): void { permanentMagnet = false; }
 
 /**
  * Cria moedas em uma posição com velocidades aleatórias.
@@ -71,10 +83,10 @@ export function updateCoins(
     const dx = playerX - c.x;
     const dy = playerY - c.y;
     const d = Math.hypot(dx, dy);
-    const collectRadius = magnetActive ? MAGNET_RADIUS : playerRadius + COLLECT_RADIUS;
+    const collectRadius = (magnetActive || permanentMagnet) ? MAGNET_RADIUS : playerRadius + COLLECT_RADIUS;
 
     if (d < collectRadius) {
-      const speed = magnetActive ? MAGNET_SPEED : 200;
+      const speed = (magnetActive || permanentMagnet) ? MAGNET_SPEED : 200;
       const nx = dx / (d || 1);
       const ny = dy / (d || 1);
       c.x += nx * speed * dt;

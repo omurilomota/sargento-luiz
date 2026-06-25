@@ -144,3 +144,62 @@ export function healPlayer(amount: number): void {
 export function healOnWaveComplete(): void {
   player.health = Math.min(player.maxHealth, player.health + WAVE_HEAL_ON_COMPLETE);
 }
+
+/**
+ * Aumenta a vida máxima do jogador e cura pela mesma quantidade.
+ * @param amount - quantidade a adicionar ao máximo e à vida atual
+ */
+export function addMaxHealth(amount: number): void {
+  player.maxHealth += amount;
+  player.health += amount;
+}
+
+/**
+ * Aumenta a velocidade base do jogador.
+ * @param multiplier - valor percentual a adicionar (ex: 0.15 = +15%)
+ */
+export function addSpeed(multiplier: number): void {
+  player.speed += player.speed * multiplier;
+}
+
+/**
+ * Adiciona cargas de escudo ao jogador.
+ * @param amount - quantidade de cargas a adicionar
+ */
+export function addShield(amount: number): void {
+  player.shield += amount;
+}
+
+/** Se a regeneração permanente está ativa */
+let regenActive = false;
+
+/**
+ * Ativa a regeneração permanente (1 vida por segundo).
+ */
+export function enableRegen(): void {
+  regenActive = true;
+}
+
+/**
+ * Retorna se a regeneração está ativa.
+ */
+export function isRegenActive(): boolean {
+  return regenActive;
+}
+
+/**
+ * Aplica regeneração se ativa.
+ * @param dt - delta time em segundos
+ */
+export function applyRegen(dt: number): void {
+  if (regenActive && player.health < player.maxHealth) {
+    player.health = Math.min(player.maxHealth, player.health + dt);
+  }
+}
+
+/**
+ * Reseta a regeneração.
+ */
+export function resetRegen(): void {
+  regenActive = false;
+}

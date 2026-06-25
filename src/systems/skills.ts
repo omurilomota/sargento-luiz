@@ -71,6 +71,24 @@ export function getSkillCooldown(type: SkillType): number {
 }
 
 /**
+ * Retorna o cooldown máximo de uma habilidade.
+ * @param type - tipo da habilidade
+ * @returns segundos totais de cooldown
+ */
+export function getSkillMaxCooldown(type: SkillType): number {
+  return skills[type].maxCooldown;
+}
+
+/**
+ * Retorna se uma habilidade está em cooldown.
+ * @param type - tipo da habilidade
+ * @returns true se em cooldown
+ */
+export function isSkillOnCooldown(type: SkillType): boolean {
+  return skills[type].cooldown > 0;
+}
+
+/**
  * Retorna o multiplicador de dano baseado nas habilidades ativas.
  * @returns multiplicador de dano
  */

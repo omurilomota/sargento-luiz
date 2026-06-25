@@ -48,16 +48,16 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
 
 /** Lista de armas disponíveis, ordenadas por desbloqueio */
 export const WEAPONS: Weapon[] = [
-  { name: 'Pistola', damage: 12, shootRate: 0.3, bulletSpeed: 600, bulletCount: 1, spread: 0, color: '#2ecc71', price: 0, pierce: false },
-  { name: 'Shotgun', damage: 8, shootRate: 0.6, bulletSpeed: 500, bulletCount: 3, spread: 0.3, color: '#f39c12', price: 50, pierce: false },
-  { name: 'Metralhadora', damage: 6, shootRate: 0.12, bulletSpeed: 700, bulletCount: 1, spread: 0.1, color: '#e74c3c', price: 80, pierce: false },
-  { name: 'Sniper', damage: 45, shootRate: 1.0, bulletSpeed: 1000, bulletCount: 1, spread: 0, color: '#3498db', price: 120, pierce: true },
-  { name: 'Laser', damage: 3, shootRate: 0.05, bulletSpeed: 1200, bulletCount: 1, spread: 0, color: '#e74c3c', price: 150, pierce: true },
-  { name: 'RPG', damage: 60, shootRate: 1.5, bulletSpeed: 400, bulletCount: 1, spread: 0, color: '#e67e22', price: 200, pierce: false },
-  { name: 'Raios', damage: 18, shootRate: 0.2, bulletSpeed: 800, bulletCount: 3, spread: 0.15, color: '#9b59b6', price: 180, pierce: true },
-  { name: 'Gel', damage: 8, shootRate: 0.15, bulletSpeed: 550, bulletCount: 2, spread: 0.2, color: '#3498db', price: 100, pierce: false },
-  { name: 'Granada', damage: 30, shootRate: 1.2, bulletSpeed: 350, bulletCount: 1, spread: 0, color: '#e74c3c', price: 150, pierce: false, explosive: true, explosionRadius: 80 },
-  { name: 'Mina', damage: 45, shootRate: 2.5, bulletSpeed: 0, bulletCount: 1, spread: 0, color: '#f39c12', price: 120, pierce: false, explosive: true, explosionRadius: 100 },
+  { name: 'Pistola', damage: 12, shootRate: 0.3, bulletSpeed: 600, bulletCount: 1, spread: 0, color: '#2ecc71', price: 0, pierce: false, magazineSize: 12, reloadTime: 1.0 },
+  { name: 'Shotgun', damage: 8, shootRate: 0.6, bulletSpeed: 500, bulletCount: 3, spread: 0.3, color: '#f39c12', price: 50, pierce: false, magazineSize: 6, reloadTime: 1.5 },
+  { name: 'Metralhadora', damage: 6, shootRate: 0.12, bulletSpeed: 700, bulletCount: 1, spread: 0.1, color: '#e74c3c', price: 80, pierce: false, magazineSize: 30, reloadTime: 1.8 },
+  { name: 'Sniper', damage: 45, shootRate: 1.0, bulletSpeed: 1000, bulletCount: 1, spread: 0, color: '#3498db', price: 120, pierce: true, magazineSize: 5, reloadTime: 2.0 },
+  { name: 'Laser', damage: 3, shootRate: 0.05, bulletSpeed: 1200, bulletCount: 1, spread: 0, color: '#e74c3c', price: 150, pierce: true, magazineSize: 50, reloadTime: 1.2 },
+  { name: 'RPG', damage: 60, shootRate: 1.5, bulletSpeed: 400, bulletCount: 1, spread: 0, color: '#e67e22', price: 200, pierce: false, magazineSize: 3, reloadTime: 2.5 },
+  { name: 'Raios', damage: 18, shootRate: 0.2, bulletSpeed: 800, bulletCount: 3, spread: 0.15, color: '#9b59b6', price: 180, pierce: true, magazineSize: 20, reloadTime: 1.5 },
+  { name: 'Gel', damage: 8, shootRate: 0.15, bulletSpeed: 550, bulletCount: 2, spread: 0.2, color: '#3498db', price: 100, pierce: false, magazineSize: 25, reloadTime: 1.3 },
+  { name: 'Granada', damage: 30, shootRate: 1.2, bulletSpeed: 350, bulletCount: 1, spread: 0, color: '#e74c3c', price: 150, pierce: false, explosive: true, explosionRadius: 80, magazineSize: 4, reloadTime: 2.0 },
+  { name: 'Mina', damage: 45, shootRate: 2.5, bulletSpeed: 0, bulletCount: 1, spread: 0, color: '#f39c12', price: 120, pierce: false, explosive: true, explosionRadius: 100, magazineSize: 3, reloadTime: 2.5 },
 ];
 
 /** Lista de upgrades permanentes disponíveis na loja */
@@ -70,6 +70,14 @@ export const UPGRADES: Upgrade[] = [
   { name: 'Magnetismo', effect: 'magnet', value: 1, price: 60 },
   { name: 'Crítico 2x', effect: 'crit', value: 0.25, price: 100 },
   { name: 'Pierce', effect: 'pierce', value: 1, price: 120 },
+  { name: 'Vida +100', effect: 'health', value: 100, price: 100 },
+  { name: 'Velocidade +25%', effect: 'speed', value: 0.25, price: 80 },
+  { name: 'Dano +50%', effect: 'damage', value: 0.50, price: 150 },
+  { name: 'Escudo Duplo', effect: 'shield', value: 2, price: 150 },
+  { name: 'Crítico 3x', effect: 'crit', value: 0.40, price: 180 },
+  { name: 'Pierce Duplo', effect: 'pierce', value: 2, price: 200 },
+  { name: 'Regeneração', effect: 'regen', value: 1, price: 120 },
+  { name: 'Recarga Rápida', effect: 'reloadSpeed', value: 0.3, price: 90 },
 ];
 
 /** Mapa de tipos de power-ups com suas propriedades visuais e de duração */

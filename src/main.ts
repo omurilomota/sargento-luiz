@@ -19,42 +19,55 @@
 import { dist, normalize } from './utils';
 import { PHASES, ENEMY_TYPES, POWERUP_TYPES } from './config';
 
-// Core
-import { getState, setState } from './core/gameState';
-
 // Entities
 import * as player from './entities/player';
+import { applyRegen, resetRegen } from './entities/player';
 import { getBullets, spawnBullet, updateBullets, clearBullets } from './entities/bullet';
-import { getCoins, spawnCoins, updateCoins, clearCoins, setMagnetActive } from './entities/coin';
+import { getCoins, spawnCoins, updateCoins, clearCoins, setMagnetActive, resetPermanentMagnet } from './entities/coin';
 
 // Systems
 import { spawnParticles, updateParticles, clearParticles, getParticles } from './systems/particles';
 import { spawnWaveEnemies, resetSpawner, spawnEnemy } from './systems/spawner';
-import { checkBulletEnemyCollisions, checkEnemyPlayerCollision } from './systems/collision';
+import { checkBulletEnemyCollisions, checkEnemyPlayerCollision, checkEnemyBulletPlayerCollision } from './systems/collision';
 import { createExplosion, updateExplosions, clearExplosions, getExplosions } from './systems/explosions';
 import { initRenderer, drawMenu, drawCutscene, drawGameOver, drawGameBackground, drawCoins as renderCoins, drawPowerUps as renderPowerUps, drawParticles as renderParticles, drawBullets as renderBullets, drawEnemies as renderEnemies, drawPlayer as renderPlayer, drawDamageNumbers, drawCombo, drawWeaponInfo, drawActivePowerUps as renderActivePowerUps, restoreCanvas } from './systems/renderer';
 
 // UI
 import { initHud, updateHud, setHudVisible } from './ui/hud';
-import { drawShop, handleShopClick, setShopCoins, getShopCoins, addShopCoins, resetShop } from './ui/shop';
+import { drawShop, handleShopClick, setShopCoins, getShopCoins, addShopCoins, resetShop, updateShopAds } from './ui/shop';
 
 // Existing modules (unchanged)
-import { shoot, getCurrentWeapon, resetWeapons } from './weapons';
+import { shoot, getCurrentWeapon, resetWeapons, canShoot, useAmmo, startReload, updateReload, getCurrentAmmo, getIsReloading, getReloadTimer } from './weapons';
 import { getCurrentPhase, getCurrentWave, getGameState, setGameState, nextWave, nextPhase, resetPhases, addScore, addScoreFlat, getScore, getCombo, updateCombo, resetCombo, getKillStreak } from './phases';
 import { powerups, spawnPowerUp, updatePowerUps, hasPowerUp, activePowerups } from './powerups';
 
 // Audio & Visual Juice
-import { initAudio, sfxShoot, sfxShotgun, sfxExplosion, sfxBossDeath, sfxPlayerHit, sfxCoin, sfxPowerup, sfxLevelUp, sfxWaveStart, sfxBuy, sfxError, sfxGameOver, sfxHitStop, sfxEnemyShoot, startMusic } from './systems/audio';
+import { initAudio, sfxPistol, sfxShotgun, sfxMachinegun, sfxSniper, sfxLaser, sfxRPG, sfxRaios, sfxGel, sfxGranade, sfxMina, sfxExplosion, sfxBossDeath, sfxPlayerHit, sfxCoin, sfxPowerup, sfxLevelUp, sfxWaveStart, sfxBuy, sfxError, sfxGameOver, sfxHitStop, sfxEnemyShoot, startMusic } from './systems/audio';
 import { triggerScreenShake, triggerDamageFlash, triggerLevelUpFlash, triggerBossKillFlash, updateFlash, updateSlowMotion, triggerSlowMotion, triggerHitStop, updateHitStop, resetEffects } from './systems/effects';
 
 // Player Skills
-import { useSkill, isSkillActive, updateSkills, resetSkills, getDamageMultiplier, getDamageTakenMultiplier } from './systems/skills';
+import { useSkill, isSkillActive, updateSkills, resetSkills, getDamageMultiplier, getDamageTakenMultiplier, getSkillCooldown, getSkillMaxCooldown, isSkillOnCooldown } from './systems/skills';
 
 // Environment Events
-import { updateEnvironmentEvents, resetEnvironmentEvents } from './systems/environment';
+import { updateEnvironmentEvents, resetEnvironmentEvents, isEarthquakeActive, isStormActive } from './systems/environment';
+
+// Combo Builds
+import { updateCombos, getActiveCombos, getComboDamageBonus, getComboFireRateBonus, resetCombos } from './systems/combos';
+
+// Skins
+import { resetSkins } from './systems/skins';
+
+// Ads
+import { resetAds } from './systems/ads';
+
+// Bots (Competitive Mode)
+import { getBots, createBot, updateBots, removeDeadBots, resetBots, addBot, BotDifficulty } from './systems/bots';
+
+// Local Multiplayer
+import { isEnabled as isLocalEnabled, initLocalMultiplayer, movePlayer2, shootPlayer2, damagePlayer2, getPlayer2, resetLocalMultiplayer, isGameOver as isLocalGameOver, getWinner as getLocalWinner, checkPlayer2EnemyCollision } from './systems/localMultiplayer';
 
 // Story & Game Modes
-import { showCutscene, hideCutscene, isShowingCutscene, updateCutscene, getCurrentCutscene, nextCutscene, resetStory } from './systems/story';
+import { showCutscene, advanceCutscene, skipCutsceneText, isShowingCutscene, updateCutscene, getCurrentCutscene, nextCutscene, resetStory, isLineComplete } from './systems/story';
 import { getCurrentMode, setGameMode, GameMode } from './systems/gameModes';
 
 // ─── Canvas Setup ──────────────────────────────────────────────
@@ -72,60 +85,66 @@ const keys: Record<string, boolean> = {};
 const mouse = { x: 0, y: 0, down: false };
 document.addEventListener('keydown', e => {
   const key = e.key;
-  console.log('Key pressed:', key, 'State:', getGameState(), 'Cutscene:', isShowingCutscene());
-  
+  const state = getGameState();
+
   // Mode selection in menu (number keys)
-  if (getGameState() === 'menu' && !isShowingCutscene()) {
-    console.log('In menu, not showing cutscene');
-    if (key === '1') { selectedMode = 'campaign'; console.log('Selected: campaign'); }
-    if (key === '2') { selectedMode = 'survival'; console.log('Selected: survival'); }
-    if (key === '3') { selectedMode = 'missions'; console.log('Selected: missions'); }
-    if (key === '4') { selectedMode = 'bossrush'; console.log('Selected: bossrush'); }
-    console.log('Current selectedMode:', selectedMode);
+  if (state === 'menu' && !isShowingCutscene()) {
+    if (key === '1') selectedMode = 'campaign';
+    if (key === '2') selectedMode = 'survival';
+    if (key === '3') selectedMode = 'missions';
+    if (key === '4') selectedMode = 'bossrush';
+    if (key === '5') selectedMode = 'competitive';
+    if (key === '6') selectedMode = 'local';
+    keys[key.toLowerCase()] = true;
+    return;
   }
-  
+
+  // Don't register game keys in menu/shop/gameover
+  if (state !== 'playing') {
+    keys[key.toLowerCase()] = true;
+    return;
+  }
+
   keys[key.toLowerCase()] = true;
-  
+
   // Skill keys (only during gameplay)
+  if (key === ' ' && useSkill('dash')) sfxPowerup();
+  if (key.toLowerCase() === 'f' && useSkill('shield')) sfxPowerup();
+  if (key.toLowerCase() === 'e' && useSkill('fury')) sfxLevelUp();
+  if (key.toLowerCase() === 'r') startReload();
+});
+document.addEventListener('keyup', e => {
   if (getGameState() === 'playing') {
-    if (key === ' ' && useSkill('dash')) sfxPowerup();
-    if (key.toLowerCase() === 'f' && useSkill('shield')) sfxPowerup();
-    if (key.toLowerCase() === 'r' && useSkill('fury')) sfxLevelUp();
+    keys[e.key.toLowerCase()] = false;
   }
 });
-document.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
 canvas.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
 canvas.addEventListener('mousedown', e => {
   mouse.down = true;
-  console.log('Canvas clicked at:', e.clientX, e.clientY);
-  
+
   // Mode selection via click in menu
   if (getGameState() === 'menu' && !isShowingCutscene()) {
-    console.log('In menu, checking click...');
     const rect = canvas.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
     const clickY = e.clientY - rect.top;
-    console.log('Click position relative to canvas:', clickX, clickY);
-    console.log('Canvas size:', canvas.width, canvas.height);
-    
+
     const modes: { key: string; mode: GameMode }[] = [
       { key: '1', mode: 'campaign' },
       { key: '2', mode: 'survival' },
       { key: '3', mode: 'missions' },
       { key: '4', mode: 'bossrush' },
+      { key: '5', mode: 'competitive' },
+      { key: '6', mode: 'local' },
     ];
     modes.forEach(({ mode }, i) => {
       const y = canvas.height / 2 + i * 50;
-      console.log(`Mode ${mode} at y=${y}, checking if clickY=${clickY} is between ${y - 15} and ${y + 25}`);
       if (clickX >= canvas.width / 2 - 200 && clickX <= canvas.width / 2 + 200 &&
           clickY >= y - 15 && clickY <= y + 25) {
         selectedMode = mode;
-        console.log('Selected mode via click:', mode);
       }
     });
-    console.log('Current selectedMode:', selectedMode);
   }
-  
+
   if (getGameState() === 'shop') handleShopClick(e.clientX, e.clientY);
   e.preventDefault();
 });
@@ -153,6 +172,12 @@ function resetGame() {
   resetEffects();
   resetSkills();
   resetEnvironmentEvents();
+  resetPermanentMagnet();
+  resetCombos();
+  resetBots();
+  resetRegen();
+  resetSkins();
+  resetAds();
   enemies.length = 0;
   damageNumbers.length = 0;
   clearBullets();
@@ -173,11 +198,18 @@ function update(dt: number) {
   if (state === 'menu') {
     if (isShowingCutscene()) {
       updateCutscene(dt);
+      if (keys['backspace']) {
+        skipCutsceneText();
+      }
       if (keys['enter'] || keys[' ']) {
-        hideCutscene();
-        if (!isShowingCutscene()) {
+        const sceneFinished = advanceCutscene();
+        if (sceneFinished) {
           setGameMode(selectedMode);
           setGameState('playing');
+          for (const k in keys) keys[k] = false;
+          if (selectedMode === 'local') {
+            initLocalMultiplayer(canvas.width, canvas.height);
+          }
         }
       }
     } else {
@@ -201,6 +233,7 @@ function update(dt: number) {
 
   if (state === 'shop') {
     setHudVisible(false);
+    updateShopAds(dt);
     if (keys['enter']) {
       setHudVisible(true);
       nextPhase();
@@ -217,6 +250,7 @@ function update(dt: number) {
   if (state !== 'playing') return;
 
   updateCombo(dt);
+  updateCombos();
   setMagnetActive(hasPowerUp('magnet'));
 
   const p = player.getPlayer();
@@ -225,20 +259,58 @@ function update(dt: number) {
   p.angle = Math.atan2(mouse.y - p.y, mouse.x - p.x);
   
   updateSkills(dt, p);
-  updateEnvironmentEvents(dt, enemies, p.x, p.y);
+  applyRegen(dt);
+
+  // Local multiplayer - player 2
+  if (isLocalEnabled()) {
+    movePlayer2(keys, dt, canvas.width, canvas.height);
+    const p2 = getPlayer2();
+    if (p2 && p2.alive && keys['l']) {
+      const bullet = shootPlayer2();
+      if (bullet) {
+        spawnBullet(bullet.x, bullet.y, bullet.vx, bullet.vy, bullet.damage, bullet.isEnemy, bullet.color, false);
+      }
+    }
+  }
+
+  const envDamages = updateEnvironmentEvents(dt, enemies, p.x, p.y);
+  for (const d of envDamages) {
+    damageNumbers.push({
+      x: d.x + (Math.random() - 0.5) * 16,
+      y: d.y,
+      text: String(Math.floor(d.damage)),
+      color: d.color,
+      life: 0.8,
+      vy: -60,
+    });
+  }
 
   // Shooting
   p.shootCooldown -= dt;
-  if (mouse.down && p.shootCooldown <= 0) {
+  updateReload(dt);
+  if (mouse.down && p.shootCooldown <= 0 && canShoot()) {
     const weapon = getCurrentWeapon();
-    p.shootCooldown = weapon.shootRate;
+    p.shootCooldown = weapon.shootRate * getComboFireRateBonus();
     const multiShot = hasPowerUp('multiShot');
-    const newBullets = shoot(p.x, p.y, p.angle, multiShot, getDamageMultiplier());
+    const newBullets = shoot(p.x, p.y, p.angle, multiShot, getDamageMultiplier() * getComboDamageBonus());
     newBullets.forEach(b => spawnBullet(b.x, b.y, b.vx, b.vy, b.damage, false, b.color, b.pierce, b.explosive, b.explosionRadius));
     const muzzleX = p.x + Math.cos(p.angle) * 24;
     const muzzleY = p.y + Math.sin(p.angle) * 24;
     spawnParticles(muzzleX, muzzleY, weapon.color, 4, 120);
-    if (weapon.name === 'Shotgun') sfxShotgun(); else sfxShoot();
+    const weaponSounds: Record<string, () => void> = {
+      'Pistola': sfxPistol,
+      'Shotgun': sfxShotgun,
+      'Metralhadora': sfxMachinegun,
+      'Sniper': sfxSniper,
+      'Laser': sfxLaser,
+      'RPG': sfxRPG,
+      'Raios': sfxRaios,
+      'Gel': sfxGel,
+      'Granada': sfxGranade,
+      'Mina': sfxMina,
+    };
+    (weaponSounds[weapon.name] || sfxPistol)();
+    if (getCurrentAmmo() <= 0) startReload();
   }
 
   if (p.invincible > 0) p.invincible -= dt;
@@ -255,6 +327,10 @@ function update(dt: number) {
   // Enemy AI
   for (const e of enemies) {
     e.angle += dt * 2;
+    if (e.spawnDelay > 0) {
+      e.spawnDelay -= dt;
+      continue;
+    }
     const dir = normalize({ x: p.x - e.x, y: p.y - e.y });
     const spd = e.type === 'mosquito' ? e.speed * 1.3 : e.speed;
     e.x += dir.x * spd * dt;
@@ -303,8 +379,48 @@ function update(dt: number) {
     }
   }
 
-  // Collision
-  checkEnemyPlayerCollision(enemies, p.x, p.y, p.radius, p.invincible, (e) => {
+  // Competitive mode - Bot logic
+  if (getCurrentMode() === 'competitive') {
+    const botList = getBots();
+    // Spawn bots periodically
+    if (botList.length < 3 && Math.random() < dt * 0.5) {
+      const difficulties: BotDifficulty[] = ['easy', 'medium', 'hard'];
+      const diff = difficulties[Math.floor(Math.random() * 3)];
+      addBot(createBot(diff, canvas.width, canvas.height));
+    }
+    // Update bot AI
+    const bullets = getBullets();
+    const botBullets = updateBots(dt, p.x, p.y, bullets, canvas.width, canvas.height);
+    for (const b of botBullets) {
+      spawnBullet(b.x, b.y, b.vx, b.vy, b.damage, true, b.color, false);
+    }
+    // Bot-player collision
+    for (const bot of botList) {
+      const dist = Math.hypot(p.x - bot.x, p.y - bot.y);
+      if (dist < p.radius + bot.radius && p.invincible <= 0) {
+        const dmg = Math.floor(bot.damage * getDamageTakenMultiplier());
+        if (dmg > 0) {
+          player.enemyCollisionDamage(dmg);
+          sfxPlayerHit();
+          triggerDamageFlash();
+        }
+        bot.health = 0;
+        spawnParticles(bot.x, bot.y, bot.color, 12, 200);
+      }
+    }
+    // Remove dead bots
+    const deadBots = removeDeadBots();
+    for (const bot of deadBots) {
+      addScore(bot.scoreValue);
+      spawnCoins(bot.x, bot.y, bot.coinDrop);
+      spawnParticles(bot.x, bot.y, bot.color, 20, 300);
+      sfxExplosion();
+    }
+  }
+
+  // Collision (skip enemies still in spawn delay)
+  const activeEnemies = enemies.filter(e => e.spawnDelay <= 0);
+  checkEnemyPlayerCollision(activeEnemies, p.x, p.y, p.radius, p.invincible, (e) => {
     const baseDmg = hasPowerUp('invincible') ? 0 : e.damage;
     const dmg = Math.floor(baseDmg * getDamageTakenMultiplier());
     if (dmg > 0) {
@@ -317,6 +433,19 @@ function update(dt: number) {
   });
 
   const bullets = getBullets();
+
+  // Enemy bullets vs player
+  checkEnemyBulletPlayerCollision(bullets, p.x, p.y, p.radius, p.invincible, (b) => {
+    const dmg = Math.floor(b.damage * getDamageTakenMultiplier());
+    if (dmg > 0) {
+      player.enemyCollisionDamage(dmg);
+      sfxPlayerHit();
+      triggerDamageFlash();
+    }
+    b.life = 0;
+    spawnParticles(b.x, b.y, b.color, 3, 100);
+  });
+
   checkBulletEnemyCollisions(bullets, enemies, (b, e) => {
     // Explosive bullets create area damage
     if (b.explosive && b.explosionRadius) {
@@ -336,6 +465,29 @@ function update(dt: number) {
     spawnParticles(b.x, b.y, b.color, 3, 150);
     triggerHitStop(0.015);
   });
+
+  // Bullet-Bot collision (competitive mode)
+  if (getCurrentMode() === 'competitive') {
+    for (const b of bullets) {
+      if (b.isEnemy) continue;
+      for (const bot of getBots()) {
+        if (b.life <= 0) break;
+        const dist = Math.hypot(b.x - bot.x, b.y - bot.y);
+        if (dist < bot.radius + 5) {
+          bot.health -= b.damage;
+          damageNumbers.push({
+            x: bot.x + (Math.random() - 0.5) * 20, y: bot.y - 20,
+            text: b.color === '#f1c40f' ? `${Math.floor(b.damage)}!` : String(Math.floor(b.damage)),
+            color: b.color === '#f1c40f' ? '#f1c40f' : '#fff',
+            life: 1, vy: -80,
+          });
+          if (!b.pierce) b.life = 0;
+          spawnParticles(b.x, b.y, b.color, 3, 150);
+          triggerHitStop(0.015);
+        }
+      }
+    }
+  }
 
   // Remove dead enemies
   for (let i = enemies.length - 1; i >= 0; i--) {
@@ -404,6 +556,9 @@ function update(dt: number) {
     enemies: enemies.length,
     weapon: getCurrentWeapon().name,
     combo: getCombo(),
+    ammo: getCurrentAmmo(),
+    maxAmmo: getCurrentWeapon().magazineSize,
+    reloading: getIsReloading(),
   });
 }
 
@@ -419,7 +574,7 @@ function draw() {
     if (isShowingCutscene()) {
       drawCutscene();
     } else {
-      drawMenu();
+      drawMenu(selectedMode);
     }
     return;
   }
@@ -436,6 +591,39 @@ function draw() {
   renderParticles(getParticles());
   renderBullets(getBullets());
   renderEnemies(enemies, player.getPlayer().x, player.getPlayer().y);
+
+  // Render bots (competitive mode)
+  if (getCurrentMode() === 'competitive') {
+    for (const bot of getBots()) {
+      // Bot body
+      ctx.fillStyle = bot.color;
+      ctx.beginPath();
+      ctx.arc(bot.x, bot.y, bot.radius, 0, Math.PI * 2);
+      ctx.fill();
+      // Bot direction indicator
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(bot.x, bot.y);
+      ctx.lineTo(bot.x + Math.cos(bot.angle) * bot.radius, bot.y + Math.sin(bot.angle) * bot.radius);
+      ctx.stroke();
+      // Health bar
+      const barW = 32;
+      const barH = 4;
+      const barX = bot.x - barW / 2;
+      const barY = bot.y - bot.radius - 10;
+      ctx.fillStyle = '#333';
+      ctx.fillRect(barX, barY, barW, barH);
+      ctx.fillStyle = bot.color;
+      ctx.fillRect(barX, barY, barW * (bot.health / bot.maxHealth), barH);
+      // Name
+      ctx.fillStyle = '#fff';
+      ctx.font = '10px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(bot.name, bot.x, barY - 4);
+    }
+  }
+
   renderPlayer(player.getPlayer());
   drawDamageNumbers(damageNumbers);
   restoreCanvas();
@@ -446,9 +634,87 @@ function draw() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
+  // Environment event indicators
+  if (isEarthquakeActive()) {
+    ctx.fillStyle = 'rgba(176,112,80,0.08)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#b07050';
+    ctx.font = 'bold 14px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('TERREMOTO', canvas.width / 2, 30);
+    ctx.textAlign = 'left';
+  }
+  if (isStormActive()) {
+    ctx.fillStyle = 'rgba(96,128,144,0.06)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#608090';
+    ctx.font = 'bold 14px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('TEMPESTADE', canvas.width / 2, 30);
+    ctx.textAlign = 'left';
+  }
+
   drawCombo(getCombo());
   drawWeaponInfo(getCurrentWeapon().name);
   renderActivePowerUps(activePowerups);
+
+  // Skill cooldown indicators (bottom-left)
+  const skillData: { key: string; name: string; color: string; type: 'dash' | 'shield' | 'fury' }[] = [
+    { key: 'SPACE', name: 'Dash', color: '#608090', type: 'dash' },
+    { key: 'F', name: 'Escudo', color: '#608090', type: 'shield' },
+    { key: 'E', name: 'Furia', color: '#608090', type: 'fury' },
+  ];
+  let skillY = canvas.height - 60;
+  for (const s of skillData) {
+    const cd = getSkillCooldown(s.type);
+    const maxCd = getSkillMaxCooldown(s.type);
+    const ready = cd <= 0 && !isSkillActive(s.type);
+    const active = isSkillActive(s.type);
+
+    // Background
+    ctx.fillStyle = active ? 'rgba(122,154,106,0.3)' : 'rgba(255,255,255,0.04)';
+    ctx.beginPath();
+    ctx.roundRect(10, skillY, 100, 22, 3);
+    ctx.fill();
+
+    // Cooldown fill
+    if (cd > 0) {
+      const pct = 1 - cd / maxCd;
+      ctx.fillStyle = 'rgba(255,255,255,0.08)';
+      ctx.fillRect(10, skillY, 100 * pct, 22);
+    }
+
+    // Border
+    ctx.strokeStyle = active ? '#7a9a6a' : ready ? 'rgba(122,154,106,0.4)' : 'rgba(255,255,255,0.06)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Text
+    ctx.fillStyle = active ? '#7a9a6a' : ready ? '#999' : '#555';
+    ctx.font = '10px monospace';
+    ctx.textAlign = 'left';
+    const label = active ? `${s.name} ATIVO` : cd > 0 ? `${s.name} ${Math.ceil(cd)}s` : `${s.key}: ${s.name}`;
+    ctx.fillText(label, 16, skillY + 15);
+    skillY -= 26;
+  }
+
+  // Combo build indicators
+  const combos = getActiveCombos();
+  if (combos.length > 0) {
+    let comboY = canvas.height - 100;
+    for (const c of combos) {
+      ctx.fillStyle = c.color;
+      ctx.font = 'bold 13px monospace';
+      ctx.textAlign = 'right';
+      ctx.globalAlpha = 0.8;
+      ctx.fillText(`⚡ ${c.name}`, canvas.width - 15, comboY);
+      ctx.font = '10px monospace';
+      ctx.fillStyle = '#ccc';
+      ctx.fillText(c.description, canvas.width - 15, comboY + 14);
+      ctx.globalAlpha = 1;
+      comboY -= 32;
+    }
+  }
 }
 
 // ─── Game Loop ─────────────────────────────────────────────────
