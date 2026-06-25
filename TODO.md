@@ -34,7 +34,7 @@
 - [x] Upgrades da loja passando da tela.
 - [x] Evento de ambiente ficando em cima dos pontos.
 - [x] Existe um bug que na onda 2 tomo um dano aleatório ou aparece o efeito de dano, mesmo estando no centro do mapa.
-- [ ] Dei uma bela jogada no game, resumo : Armas muito barataas e muito dano, a arma de raios, basicamente é hitkill, porque ela repete o dano dela muitas vezes em um único tiro só, aumentaria o preço geral de todos os itens. Poderia ter armadura e regeneração natural, mas teria de comprar para melhorar tudo. Os eventos ambientais, não achei ruim. Na parte da história, poderíamos travar um diálogo, por exemplo: Um fala, pause, backspace para continuar. Aí ele mostraria a evolução em cada parte do game, por exemplo, da floresta para o castelo, etc. 
+- [x] Dei uma bela jogada no game, resumo : Armas muito barataas e muito dano, a arma de raios, basicamente é hitkill, porque ela repete o dano dela muitas vezes em um único tiro só, aumentaria o preço geral de todos os itens. Poderia ter armadura e regeneração natural, mas teria de comprar para melhorar tudo. Os eventos ambientais, não achei ruim. Na parte da história, poderíamos travar um diálogo, por exemplo: Um fala, pause, backspace para continuar. Aí ele mostraria a evolução em cada parte do game, por exemplo, da floresta para o castelo, etc.
 - [ ] Precisamos de mais assets para os eventos ambientais, chão de cada level, etc.
 // ═══════════════════════════════════════════════════════════════
 // SUGESTÕES (avaliar quais implementar)
