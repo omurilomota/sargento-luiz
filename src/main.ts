@@ -586,8 +586,11 @@ function update(dt: number) {
         triggerSlowMotion(0.3, 0.8);
         triggerBossKillFlash();
         sfxBossDeath();
+        spawnPowerUp(enemies[i].x, enemies[i].y);
+        spawnPowerUp(enemies[i].x - 20, enemies[i].y + 20);
+      } else if (Math.random() < 0.15) {
+        spawnPowerUp(enemies[i].x, enemies[i].y);
       }
-      if (Math.random() < 0.08) spawnPowerUp(enemies[i].x, enemies[i].y);
       enemies[i] = enemies[enemies.length - 1];
       enemies.pop();
     }
@@ -838,6 +841,35 @@ function draw() {
       ctx.globalAlpha = 1;
       comboY -= 32;
     }
+  }
+
+  // Minimap (top-right corner)
+  const mmW = 120;
+  const mmH = 80;
+  const mmX = canvas.width - mmW - 12;
+  const mmY = 12;
+  const scaleX = mmW / canvas.width;
+  const scaleY = mmH / canvas.height;
+  const pp = player.getPlayer();
+
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fillRect(mmX, mmY, mmW, mmH);
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(mmX, mmY, mmW, mmH);
+
+  // Player dot
+  ctx.fillStyle = '#7a9a6a';
+  ctx.beginPath();
+  ctx.arc(mmX + pp.x * scaleX, mmY + pp.y * scaleY, 2, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Enemy dots
+  ctx.fillStyle = '#b07050';
+  for (const e of enemies) {
+    ctx.beginPath();
+    ctx.arc(mmX + e.x * scaleX, mmY + e.y * scaleY, 1.5, 0, Math.PI * 2);
+    ctx.fill();
   }
 }
 
