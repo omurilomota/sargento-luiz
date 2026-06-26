@@ -249,8 +249,20 @@ export function selectChoice(index: number): void {
   const line = getCurrentLine();
   if (line.choices && index < line.choices.length) {
     selectedChoice = index;
-    storyChoices[`scene_${currentCutsceneIndex}_line_${currentLineIndex}`] = line.choices[index].effect;
+    const effect = line.choices[index].effect;
+    storyChoices[`scene_${currentCutsceneIndex}_line_${currentLineIndex}`] = effect;
     waitingForChoice = false;
+
+    // Insert ending lines based on choice
+    const scene = getCurrentCutscene();
+    const endingLines = ENDINGS[effect];
+    if (endingLines) {
+      const insertAt = currentLineIndex + 1;
+      for (let i = endingLines.length - 1; i >= 0; i--) {
+        scene.lines.splice(insertAt, 0, { speaker: 'narrador', text: endingLines[i] });
+      }
+    }
+
     currentLineIndex++;
     textProgress = 0;
     lineComplete = false;
@@ -316,4 +328,35 @@ export function getCutsceneTimer(): number {
 
 export function getPortraitInfo(speaker: Character): { name: string; color: string } {
   return PORTRAITS[speaker];
+}
+
+const ENDINGS: Record<string, string[]> = {
+  home: [
+    'Rios caminhou de volta pela estrada devastada.',
+    'O sol nascia sobre as ruínas, mas ele seguiu em frente.',
+    'Em casa, encontrou o que restava — e escolheu reconstruir ali.',
+    'O mundo havia acabado. Mas para Rios, uma nova jornada começava.',
+  ],
+  rebuild: [
+    'Rios ficou. Junto aos poucos sobreviventes, ergueram tijolo sobre tijolo.',
+    'A cidade renasceu das cinzas, não como era antes — mas como deveria ser.',
+    'Rios nunca mais carregou uma arma. Agora carregava esperança.',
+    'A humanidade não tinha acabado. Estava apenas recomeçando.',
+  ],
+  search: [
+    'Rios seguiu sozinho, seguindo rumores de outros grupos.',
+    'Meses depois, encontrou um acampamento — 12 almas que se recusavam a desistir.',
+    'Eles o receberam como herói. Rios só queria ser mais um.',
+    'Enquanto houvesse alguém para encontrar, o mundo não tinha acabado.',
+  ],
+};
+
+export function getEndingText(): string[] | null {
+  const choice = storyChoices['scene_8_line_9'];
+  if (choice && ENDINGS[choice]) return ENDINGS[choice];
+  return null;
+}
+
+export function getChosenEnding(): string | null {
+  return storyChoices['scene_8_line_9'] || null;
 }
