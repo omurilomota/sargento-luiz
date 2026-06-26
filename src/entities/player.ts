@@ -20,6 +20,8 @@ export interface Player {
   invincible: number;
   shield: number;
   hitFlash: number;
+  deathTimer: number;
+  deathAngle: number;
 }
 
 /** Instância singleton do jogador */
@@ -36,6 +38,7 @@ export function initPlayer(canvasWidth: number, canvasHeight: number): void {
     radius: PLAYER_RADIUS, speed: PLAYER_BASE_SPEED,
     health: PLAYER_BASE_HEALTH, maxHealth: PLAYER_BASE_HEALTH,
     angle: 0, shootCooldown: 0, invincible: 0, shield: 0, hitFlash: 0,
+    deathTimer: 0, deathAngle: 0,
   };
 }
 

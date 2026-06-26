@@ -180,6 +180,63 @@ export function drawCutscene(): void {
   ctx.fillStyle = '#111';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+  // Scene background elements based on cutscene title
+  const t = Date.now() / 1000;
+  ctx.globalAlpha = 0.15;
+
+  if (cutscene.title === 'FLORESTA') {
+    // Trees
+    for (let i = 0; i < 8; i++) {
+      const tx = (i * 130 + 40) % canvas.width;
+      const ty = canvas.height * 0.85 + Math.sin(t + i) * 3;
+      ctx.fillStyle = '#2a4a2a';
+      ctx.fillRect(tx - 4, ty - 60, 8, 60);
+      ctx.beginPath();
+      ctx.arc(tx, ty - 70, 25, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else if (cutscene.title === 'CAVERNA') {
+    // Stalactites
+    for (let i = 0; i < 10; i++) {
+      const sx = (i * 100 + 20) % canvas.width;
+      ctx.fillStyle = '#3a3a5a';
+      ctx.beginPath();
+      ctx.moveTo(sx - 8, 0);
+      ctx.lineTo(sx, 40 + Math.sin(t + i) * 5);
+      ctx.lineTo(sx + 8, 0);
+      ctx.fill();
+    }
+  } else if (cutscene.title === 'FÁBRICA') {
+    // Gears
+    for (let i = 0; i < 3; i++) {
+      const gx = canvas.width * (0.2 + i * 0.3);
+      const gy = canvas.height * 0.8;
+      ctx.strokeStyle = '#5a4a3a';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(gx, gy, 30, t + i, t + i + Math.PI * 1.5);
+      ctx.stroke();
+    }
+  } else if (cutscene.title === 'VULCÃO') {
+    // Lava glow
+    const gradient = ctx.createRadialGradient(canvas.width / 2, canvas.height, 0, canvas.width / 2, canvas.height, canvas.height * 0.6);
+    gradient.addColorStop(0, '#8b2500');
+    gradient.addColorStop(1, 'transparent');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  } else if (cutscene.title === 'ESPAÇO') {
+    // Stars
+    for (let i = 0; i < 20; i++) {
+      const sx = (i * 97 + 13) % canvas.width;
+      const sy = (i * 73 + 7) % canvas.height;
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(sx, sy, 1 + Math.sin(t * 2 + i) * 0.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  ctx.globalAlpha = 1;
+
   // Linha superior sutil
   ctx.strokeStyle = 'rgba(255,255,255,0.06)';
   ctx.lineWidth = 1;
@@ -194,9 +251,10 @@ export function drawCutscene(): void {
   ctx.textAlign = 'center';
   ctx.fillText(cutscene.title, canvas.width / 2, canvas.height * 0.15);
 
-  // Retrato do personagem (círculo simples)
+  // Retrato do personagem (círculo com flutuação sutil)
   const portraitX = canvas.width * 0.2;
-  const portraitY = canvas.height * 0.45;
+  const portraitFloat = Math.sin(Date.now() / 800) * 4;
+  const portraitY = canvas.height * 0.45 + portraitFloat;
   const portraitR = 35;
 
   ctx.fillStyle = 'rgba(255,255,255,0.04)';
@@ -641,6 +699,26 @@ export function drawEnemies(enemies: Enemy[], playerX: number, playerY: number):
  * @param player - objeto do jogador com suas propriedades atuais
  */
 export function drawPlayer(player: Player): void {
+  // Death animation: spin and shrink
+  if (player.deathTimer > 0) {
+    const progress = 1 - (player.deathTimer / 1.5);
+    const scale = 1 - progress * 0.8;
+    const alpha = 1 - progress;
+    ctx.save();
+    ctx.translate(player.x, player.y);
+    ctx.rotate(player.deathAngle);
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = '#7a9a6a';
+    ctx.beginPath();
+    ctx.arc(0, 0, player.radius * scale, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#5a7a4a';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
+
   const flash = player.invincible > 0 && Math.floor(player.invincible * 25) % 2;
   if (!flash) {
     // Try to use sprite if available
@@ -841,4 +919,60 @@ export function drawActivePowerUps(activePowerups: Record<string, number>): void
  */
 export function restoreCanvas(): void {
   ctx.restore();
+}
+
+interface NPCData {
+  x: number;
+  y: number;
+  name: string;
+  color: string;
+  health: number;
+  maxHealth: number;
+  radius: number;
+  alive: boolean;
+  message: string;
+  messageTimer: number;
+}
+
+export function drawNPCs(npcs: NPCData[]): void {
+  for (const npc of npcs) {
+    if (!npc.alive && npc.messageTimer <= 0) continue;
+
+    ctx.globalAlpha = npc.alive ? 1 : 0.4;
+
+    ctx.beginPath();
+    ctx.arc(npc.x, npc.y, npc.radius, 0, Math.PI * 2);
+    ctx.fillStyle = npc.color;
+    ctx.fill();
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    if (npc.health < npc.maxHealth && npc.alive) {
+      const barW = npc.radius * 2;
+      const barH = 4;
+      const barX = npc.x - barW / 2;
+      const barY = npc.y - npc.radius - 10;
+      ctx.fillStyle = '#333';
+      ctx.fillRect(barX, barY, barW, barH);
+      ctx.fillStyle = '#8b4040';
+      ctx.fillRect(barX, barY, barW * (npc.health / npc.maxHealth), barH);
+    }
+
+    ctx.fillStyle = '#ccc';
+    ctx.font = '9px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(npc.name, npc.x, npc.y - npc.radius - 14);
+
+    if (npc.messageTimer > 0 && npc.alive) {
+      ctx.fillStyle = 'rgba(0,0,0,0.7)';
+      const tw = ctx.measureText(npc.message).width;
+      ctx.fillRect(npc.x - tw / 2 - 6, npc.y - npc.radius - 34, tw + 12, 18);
+      ctx.fillStyle = '#ccc';
+      ctx.font = '11px monospace';
+      ctx.fillText(npc.message, npc.x, npc.y - npc.radius - 20);
+    }
+
+    ctx.globalAlpha = 1;
+  }
 }
