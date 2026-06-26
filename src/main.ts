@@ -69,6 +69,9 @@ import { addLeaderboardEntry } from './systems/leaderboard';
 // Achievements
 import { loadAchievements, checkAchievements, resetRunCounters, getAllAchievements } from './systems/achievements';
 
+// Diary
+import { loadDiary, unlockDiaryEntry, getUnlockedDiary } from './systems/diary';
+
 // Bots (Competitive Mode)
 import { getBots, createBot, updateBots, removeDeadBots, resetBots, addBot, BotDifficulty } from './systems/bots';
 
@@ -260,6 +263,7 @@ function update(dt: number) {
           setGameMode(selectedMode);
           setGameState('playing');
           loadAchievements();
+          loadDiary();
           resetRunCounters();
           playerDied = false;
           for (const k in keys) keys[k] = false;
@@ -421,6 +425,10 @@ function update(dt: number) {
       resetCombo();
       phaseTransitionTimer = 2.0;
     } else if (getGameState() === 'shop') {
+      // Unlock diary entry for completed phase
+      const phaseIdx = getCurrentPhase()?.name ? PHASES.indexOf(getCurrentPhase()!) : 0;
+      unlockDiaryEntry(phaseIdx);
+
       // Auto-save when entering shop
       saveGame(
         getCurrentPhase()?.name ? PHASES.indexOf(getCurrentPhase()!) : 0,
@@ -590,6 +598,7 @@ function update(dt: number) {
 
   checkBulletEnemyCollisions(bullets, enemies, (b, e) => {
     e.hitFlash = 0.15;
+    const isCrit = b.color === '#f1c40f';
     // Explosive bullets create area damage
     if (b.explosive && b.explosionRadius) {
       createExplosion(b.x, b.y, b.explosionRadius, b.damage, enemies, b.color);
@@ -599,10 +608,15 @@ function update(dt: number) {
       e.health -= b.damage;
       damageNumbers.push({
         x: e.x + (Math.random() - 0.5) * 20, y: e.y - 20,
-        text: b.color === '#f1c40f' ? `${Math.floor(b.damage)}!` : String(Math.floor(b.damage)),
-        color: b.color === '#f1c40f' ? '#f1c40f' : '#fff',
+        text: isCrit ? `${Math.floor(b.damage)}!` : String(Math.floor(b.damage)),
+        color: isCrit ? '#f1c40f' : '#fff',
         life: 1, vy: -80,
       });
+    }
+    // Crit visual: slow motion + extra particles
+    if (isCrit) {
+      triggerSlowMotion(0.15, 0.3);
+      spawnParticles(b.x, b.y, '#f1c40f', 8, 200);
     }
     if (!b.pierce) b.life = 0;
     spawnParticles(b.x, b.y, b.color, 3, 150);

@@ -8,6 +8,7 @@ import { WEAPONS, UPGRADES } from '../config';
 import { isGameCompleted } from '../systems/saveSystem';
 import { setWeapon, addDamageMultiplier, addPierce, addCrit, addReloadSpeed } from '../weapons';
 import { addMaxHealth, addSpeed, addShield, enableRegen, addArmor } from '../entities/player';
+import { getUnlockedDiary } from '../systems/diary';
 import { enablePermanentMagnet } from '../entities/coin';
 import { getAllSkins, buySkin, equipSkin, getEquippedSkin, Skin } from '../systems/skins';
 import { canWatchAd, startWatchingAd, getIsWatchingAd, getAdProgress, getAdCooldown, getLastAdReward, getNextAdReward, getAdsWatched, updateAd } from '../systems/ads';
@@ -463,6 +464,35 @@ export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: n
     ctx.fillStyle = '#444';
     ctx.font = '10px monospace';
     ctx.fillText(`+${getNextAdReward()}`, adBtnX + adBtnW / 2, adBtnY + 40);
+  }
+
+  // === DIÁRIO ===
+  const diaryEntries = getUnlockedDiary();
+  if (diaryEntries.length > 0) {
+    const diaryY = adsY + 90;
+    ctx.fillStyle = '#608090';
+    ctx.font = 'bold 14px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText('DIÁRIO DE BORDO', leftX, diaryY);
+
+    ctx.strokeStyle = 'rgba(96,128,144,0.2)';
+    ctx.beginPath();
+    ctx.moveTo(leftX, diaryY + 10);
+    ctx.lineTo(leftX + colW, diaryY + 10);
+    ctx.stroke();
+
+    let entryY = diaryY + 25;
+    for (const entry of diaryEntries.slice(-3)) {
+      ctx.fillStyle = '#888';
+      ctx.font = 'bold 11px monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText(entry.title, leftX, entryY);
+      ctx.fillStyle = '#555';
+      ctx.font = '10px monospace';
+      const preview = entry.text.substring(0, 80) + '...';
+      ctx.fillText(preview, leftX, entryY + 14);
+      entryY += 32;
+    }
   }
 
   ctx.restore();
