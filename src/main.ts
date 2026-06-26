@@ -43,7 +43,7 @@ import { powerups, spawnPowerUp, updatePowerUps, hasPowerUp, activePowerups } fr
 
 // Audio & Visual Juice
 import { initAudio, sfxPistol, sfxShotgun, sfxMachinegun, sfxSniper, sfxLaser, sfxRPG, sfxRaios, sfxGel, sfxGranade, sfxMina, sfxExplosion, sfxBossDeath, sfxPlayerHit, sfxCoin, sfxPowerup, sfxLevelUp, sfxWaveStart, sfxBuy, sfxError, sfxGameOver, sfxHitStop, sfxEnemyShoot, startMusic } from './systems/audio';
-import { triggerScreenShake, triggerDamageFlash, triggerLevelUpFlash, triggerBossKillFlash, updateFlash, updateSlowMotion, triggerSlowMotion, triggerHitStop, updateHitStop, resetEffects } from './systems/effects';
+import { triggerScreenShake, triggerDamageFlash, triggerLevelUpFlash, triggerBossKillFlash, updateFlash, updateSlowMotion, triggerSlowMotion, triggerHitStop, updateHitStop, resetEffects, triggerBossZoom, updateBossZoom } from './systems/effects';
 
 // Player Skills
 import { useSkill, isSkillActive, updateSkills, resetSkills, getDamageMultiplier, getDamageTakenMultiplier, getSkillCooldown, getSkillMaxCooldown, isSkillOnCooldown } from './systems/skills';
@@ -223,6 +223,8 @@ let debugLog: { time: number; source: string; damage: number }[] = [];
 let phaseTransitionTimer = 0;
 let achievementNotifications: { name: string; time: number }[] = [];
 let playerDied = false;
+let bossZoomTriggered = false;
+let currentBossZoom = 1;
 
 function logDamage(source: string, damage: number) {
   const entry = { time: performance.now(), source, damage };
@@ -252,6 +254,7 @@ function resetGame() {
   resetSkins();
   resetAds();
   resetNPCs();
+  bossZoomTriggered = false;
   enemies.length = 0;
   damageNumbers.length = 0;
   clearBullets();
@@ -370,7 +373,7 @@ function update(dt: number) {
     }
   }
 
-  const envResult = updateEnvironmentEvents(dt, enemies, p.x, p.y);
+  const envResult = updateEnvironmentEvents(dt, enemies, p.x, p.y, canvas.width, canvas.height);
   for (const d of envResult.enemyDamages) {
     damageNumbers.push({
       x: d.x + (Math.random() - 0.5) * 16,
@@ -481,6 +484,18 @@ function update(dt: number) {
 
   // Enemy AI
   const tendency = getPlayerTendency();
+
+  // Boss zoom on first spawn
+  if (!bossZoomTriggered) {
+    for (const e of enemies) {
+      if (ENEMY_TYPES[e.type]?.isBoss) {
+        triggerBossZoom();
+        bossZoomTriggered = true;
+        break;
+      }
+    }
+  }
+
   for (const e of enemies) {
     e.angle += dt * 2;
     if (e.hitFlash > 0) e.hitFlash -= dt;
@@ -646,7 +661,7 @@ function update(dt: number) {
     if (b.explosive && b.explosionRadius) {
       createExplosion(b.x, b.y, b.explosionRadius, b.damage, enemies, b.color);
       sfxExplosion();
-      triggerScreenShake(8, 0.2);
+      triggerScreenShake(5, 0.15);
     } else {
       e.health -= b.damage;
       e.hitFlash = 0.15;
@@ -778,6 +793,7 @@ function update(dt: number) {
   }
 
   currentFlash = updateFlash(dt);
+  currentBossZoom = updateBossZoom(dt);
 
   updateHud({
     phase: getCurrentPhase()?.name || '1',
@@ -840,6 +856,17 @@ function draw() {
   }
 
   const bg = getCurrentPhase();
+
+  // Boss zoom effect
+  if (currentBossZoom !== 1) {
+    ctx.save();
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+    ctx.translate(cx, cy);
+    ctx.scale(currentBossZoom, currentBossZoom);
+    ctx.translate(-cx, -cy);
+  }
+
   drawGameBackground(bg?.bg || '#1a1a2e', bg?.gridColor || 'rgba(255,255,255,0.03)', { x: 0, y: 0 }, bg?.name);
   renderCoins(getCoins());
   renderPowerUps(powerups);
@@ -882,6 +909,12 @@ function draw() {
 
   renderPlayer(player.getPlayer());
   drawDamageNumbers(damageNumbers);
+
+  // Restore boss zoom if active
+  if (currentBossZoom !== 1) {
+    ctx.restore();
+  }
+
   restoreCanvas();
 
   // Phase transition overlay

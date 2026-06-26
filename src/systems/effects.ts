@@ -139,6 +139,36 @@ export function updateHitStop(dt: number): boolean {
 }
 
 // ─── Reset ───────────────────────────────────────────────────
+
+// ─── Boss Zoom ───────────────────────────────────────────────
+let bossZoomActive = false;
+let bossZoomTimer = 0;
+let bossZoomScale = 1;
+
+export function triggerBossZoom(): void {
+  bossZoomActive = true;
+  bossZoomTimer = 2.0;
+  bossZoomScale = 1;
+}
+
+export function updateBossZoom(dt: number): number {
+  if (!bossZoomActive) return 1;
+  bossZoomTimer -= dt;
+  const progress = 1 - (bossZoomTimer / 2.0);
+  if (progress < 0.3) {
+    bossZoomScale = 1 + progress * 0.67;
+  } else if (progress < 0.7) {
+    bossZoomScale = 1.2;
+  } else {
+    bossZoomScale = 1.2 - (progress - 0.7) * 0.67;
+  }
+  if (bossZoomTimer <= 0) {
+    bossZoomActive = false;
+    bossZoomScale = 1;
+  }
+  return bossZoomScale;
+}
+
 /** Reseta todos os efeitos (chamar ao iniciar nova run) */
 export function resetEffects(): void {
   screenShakeIntensity = 0;
@@ -147,4 +177,7 @@ export function resetEffects(): void {
   slowMotionScale = 1;
   slowMotionDuration = 0;
   hitStopDuration = 0;
+  bossZoomActive = false;
+  bossZoomTimer = 0;
+  bossZoomScale = 1;
 }

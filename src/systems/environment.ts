@@ -110,7 +110,9 @@ export function updateEnvironmentEvents(
   dt: number,
   enemies: Enemy[],
   playerX: number,
-  playerY: number
+  playerY: number,
+  canvasWidth: number = 1000,
+  canvasHeight: number = 700
 ): EnvironmentResult {
   const enemyDamages: EnvironmentDamage[] = [];
   let playerDamage = 0;
@@ -132,11 +134,10 @@ export function updateEnvironmentEvents(
 
         // Efeitos visuais ao iniciar
         if (type === 'earthquake') {
-          triggerScreenShake(6, 2);
+          triggerScreenShake(3, 1.5);
           earthquakeActive = true;
         } else if (type === 'lightning') {
-          // Flash branco para relâmpago (apenas visual)
-          triggerScreenShake(6, 0.3);
+          triggerScreenShake(2, 0.2);
         } else if (type === 'storm') {
           stormActive = true;
         }
@@ -158,11 +159,12 @@ export function updateEnvironmentEvents(
             }
             playerDamage += EARTHQUAKE_DAMAGE;
           }
-          // Poeira no chão
-          if (Math.random() < dt * 5) {
-            const px = Math.random() * 2000;
-            const py = Math.random() * 1200;
-            spawnParticles(px, py, '#8a7a60', 3, 40);
+          // Poeira no chão durante terremoto
+          if (Math.random() < dt * 8) {
+            const px = Math.random() * canvasWidth;
+            const py = Math.random() * canvasHeight;
+            spawnParticles(px, py, '#8a7a60', 5, 60);
+            spawnParticles(px, py, '#6a5a40', 2, 30);
           }
           break;
 
