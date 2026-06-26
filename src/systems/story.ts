@@ -12,6 +12,8 @@ export interface DialogueLine {
   speaker: Character;
   /** Texto da fala */
   text: string;
+  /** Opções de escolha (opcional) */
+  choices?: { text: string; effect: string }[];
 }
 
 /** Uma cutscene completa */
@@ -155,7 +157,14 @@ export const CUTSCENES: Cutscene[] = [
       { speaker: 'comandante', text: 'A cura está a caminho. Você conseguiu.' },
       { speaker: 'rios', text: 'Não fui só eu. Foram todos que caíram no caminho.' },
       { speaker: 'comandante', text: 'A humanidade não vai esquecer, Rios.' },
-      { speaker: 'rios', text: 'Espero que não. Agora... me deixa dormir.' },
+      {
+        speaker: 'rios', text: 'O que você faria agora, comandante?',
+        choices: [
+          { text: 'Voltar para casa', effect: 'home' },
+          { text: 'Ajudar a reconstruir', effect: 'rebuild' },
+          { text: 'Encontrar outros sobreviventes', effect: 'search' },
+        ],
+      },
       { speaker: 'narrador', text: 'FIM.' },
     ],
   },
@@ -170,6 +179,9 @@ let textProgress = 0;
 let lineComplete = false;
 let fadeAlpha = 0;
 let fadingIn = true;
+let waitingForChoice = false;
+let selectedChoice = -1;
+let storyChoices: Record<string, string> = {};
 
 /** Velocidade do texto (caracteres por segundo) */
 const TEXT_SPEED = 18;
@@ -224,12 +236,41 @@ export function showCutscene(): void {
   lineComplete = false;
   fadeAlpha = 0;
   fadingIn = true;
+  waitingForChoice = false;
+  selectedChoice = -1;
+}
+
+export function isWaitingForChoice(): boolean {
+  return waitingForChoice;
+}
+
+export function selectChoice(index: number): void {
+  if (!waitingForChoice) return;
+  const line = getCurrentLine();
+  if (line.choices && index < line.choices.length) {
+    selectedChoice = index;
+    storyChoices[`scene_${currentCutsceneIndex}_line_${currentLineIndex}`] = line.choices[index].effect;
+    waitingForChoice = false;
+    currentLineIndex++;
+    textProgress = 0;
+    lineComplete = false;
+  }
+}
+
+export function getStoryChoice(key: string): string | undefined {
+  return storyChoices[key];
 }
 
 export function advanceCutscene(): boolean {
   if (!showingCutscene) return false;
 
   if (!lineComplete) return false;
+
+  const line = getCurrentLine();
+  if (line.choices && line.choices.length > 0) {
+    waitingForChoice = true;
+    return false;
+  }
 
   const scene = getCurrentCutscene();
   if (currentLineIndex < scene.lines.length - 1) {

@@ -82,7 +82,7 @@ import { getBots, createBot, updateBots, removeDeadBots, resetBots, addBot, BotD
 import { isEnabled as isLocalEnabled, initLocalMultiplayer, movePlayer2, shootPlayer2, damagePlayer2, getPlayer2, resetLocalMultiplayer, isGameOver as isLocalGameOver, getWinner as getLocalWinner, checkPlayer2EnemyCollision } from './systems/localMultiplayer';
 
 // Story & Game Modes
-import { showCutscene, advanceCutscene, skipCutsceneText, isShowingCutscene, updateCutscene, getCurrentCutscene, nextCutscene, resetStory, isLineComplete } from './systems/story';
+import { showCutscene, advanceCutscene, skipCutsceneText, isShowingCutscene, updateCutscene, getCurrentCutscene, nextCutscene, resetStory, isLineComplete, isWaitingForChoice, selectChoice } from './systems/story';
 import { getCurrentMode, setGameMode, GameMode } from './systems/gameModes';
 
 // ─── Canvas Setup ──────────────────────────────────────────────
@@ -101,6 +101,15 @@ const mouse = { x: 0, y: 0, down: false };
 document.addEventListener('keydown', e => {
   const key = e.key;
   const state = getGameState();
+
+  // Cutscene choice selection
+  if (isShowingCutscene() && isWaitingForChoice()) {
+    if (key === '1') selectChoice(0);
+    if (key === '2') selectChoice(1);
+    if (key === '3') selectChoice(2);
+    keys[key.toLowerCase()] = true;
+    return;
+  }
 
   // Mode selection in menu (number keys)
   if (state === 'menu' && !isShowingCutscene()) {

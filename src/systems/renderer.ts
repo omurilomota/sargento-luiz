@@ -11,7 +11,7 @@ import { Player } from '../entities/player';
 import { hasPowerUp } from '../powerups';
 import { isSkillActive } from './skills';
 import { getSprite, getEnemySpriteKey, isSpritesEnabled } from './sprites';
-import { getCurrentCutscene, getCurrentLine, isLineComplete, getTextProgress, getPortraitInfo, Character } from './story';
+import { getCurrentCutscene, getCurrentLine, isLineComplete, getTextProgress, getPortraitInfo, isWaitingForChoice, Character } from './story';
 import { getEquippedSkin } from './skins';
 import { hasSave } from './saveSystem';
 import { getLeaderboard, addLeaderboardEntry } from './leaderboard';
@@ -239,8 +239,28 @@ export function drawCutscene(): void {
 
   wrapText(ctx, displayedText, textX, textY, maxWidth, 22);
 
+  // Choice display
+  if (isWaitingForChoice() && line.choices) {
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.beginPath();
+    ctx.roundRect(canvas.width / 2 - 200, canvas.height / 2 + 30, 400, line.choices.length * 40 + 20, 5);
+    ctx.fill();
+
+    line.choices.forEach((choice, i) => {
+      const cy = canvas.height / 2 + 50 + i * 40;
+      ctx.fillStyle = '#a08050';
+      ctx.font = '14px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(`${i + 1}. ${choice.text}`, canvas.width / 2, cy);
+    });
+
+    ctx.fillStyle = '#666';
+    ctx.font = '11px monospace';
+    ctx.fillText('Pressione 1, 2 ou 3', canvas.width / 2, canvas.height / 2 + 50 + line.choices.length * 40 + 10);
+  }
+
   // Indicador de continuação
-  if (complete) {
+  if (complete && !isWaitingForChoice()) {
     ctx.fillStyle = '#555';
     ctx.font = '12px monospace';
     ctx.textAlign = 'right';
