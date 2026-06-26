@@ -66,6 +66,9 @@ import { saveGame, loadGame, hasSave } from './systems/saveSystem';
 // Leaderboard
 import { addLeaderboardEntry } from './systems/leaderboard';
 
+// Achievements
+import { loadAchievements, checkAchievements, resetRunCounters, getAllAchievements } from './systems/achievements';
+
 // Bots (Competitive Mode)
 import { getBots, createBot, updateBots, removeDeadBots, resetBots, addBot, BotDifficulty } from './systems/bots';
 
@@ -195,6 +198,7 @@ let damageNumbers: { x: number; y: number; text: string; color: string; life: nu
 let lastTime = 0;
 let debugLog: { time: number; source: string; damage: number }[] = [];
 let phaseTransitionTimer = 0;
+let achievementNotifications: { name: string; time: number }[] = [];
 
 function logDamage(source: string, damage: number) {
   const entry = { time: performance.now(), source, damage };
@@ -252,6 +256,8 @@ function update(dt: number) {
         if (sceneFinished) {
           setGameMode(selectedMode);
           setGameState('playing');
+          loadAchievements();
+          resetRunCounters();
           for (const k in keys) keys[k] = false;
           if (selectedMode === 'local') {
             initLocalMultiplayer(canvas.width, canvas.height);
@@ -311,6 +317,8 @@ function update(dt: number) {
 
   updateCombo(dt);
   updateCombos();
+  const comboAch = checkAchievements('combo', getCombo());
+  if (comboAch) achievementNotifications.push({ name: comboAch.name, time: 3 });
   setMagnetActive(hasPowerUp('magnet'));
 
   const p = player.getPlayer();
@@ -348,6 +356,7 @@ function update(dt: number) {
     const dmg = Math.floor(envResult.playerDamage * getDamageTakenMultiplier());
     if (dmg > 0) {
       logDamage(`EVENTO_AMBIENTAL`, dmg);
+      checkAchievements('damage_taken');
       player.enemyCollisionDamage(dmg);
       sfxPlayerHit();
       triggerDamageFlash();
@@ -391,6 +400,8 @@ function update(dt: number) {
     nextWave();
     player.healOnWaveComplete();
     sfxWaveStart();
+    const waveAch = checkAchievements('wave', getCurrentWave());
+    if (waveAch) achievementNotifications.push({ name: waveAch.name, time: 3 });
     // Auto-save when entering shop
     if (getGameState() === 'shop') {
       saveGame(
@@ -534,6 +545,7 @@ function update(dt: number) {
     const dmg = Math.floor(baseDmg * getDamageTakenMultiplier());
     if (dmg > 0) {
       logDamage(`CORPO_INIMIGO (tipo:${e.type})`, dmg);
+      checkAchievements('damage_taken');
       player.enemyCollisionDamage(dmg);
       sfxPlayerHit();
       triggerDamageFlash();
@@ -549,6 +561,7 @@ function update(dt: number) {
     const dmg = Math.floor(b.damage * getDamageTakenMultiplier());
     if (dmg > 0) {
       logDamage(`PROJETIL_INIMIGO (cor:${b.color})`, dmg);
+      checkAchievements('damage_taken');
       player.enemyCollisionDamage(dmg);
       sfxPlayerHit();
       triggerDamageFlash();
@@ -609,7 +622,13 @@ function update(dt: number) {
       if (def?.coinDrop) spawnCoins(enemies[i].x, enemies[i].y, def.coinDrop);
       spawnParticles(enemies[i].x, enemies[i].y, enemies[i].color, 20, 300);
       sfxExplosion();
+      const killAch = checkAchievements('kill');
+      if (killAch) achievementNotifications.push({ name: killAch.name, time: 3 });
+      const scoreAch = checkAchievements('score', getScore());
+      if (scoreAch) achievementNotifications.push({ name: scoreAch.name, time: 3 });
       if (def?.isBoss) {
+        const bossAch = checkAchievements('boss_kill');
+        if (bossAch) achievementNotifications.push({ name: bossAch.name, time: 3 });
         spawnParticles(enemies[i].x, enemies[i].y, '#f1c40f', 50, 400);
         triggerSlowMotion(0.3, 0.8);
         triggerBossKillFlash();
@@ -900,6 +919,26 @@ function draw() {
     ctx.arc(mmX + e.x * scaleX, mmY + e.y * scaleY, 1.5, 0, Math.PI * 2);
     ctx.fill();
   }
+
+  // Achievement notifications (top-center)
+  let achY = 60;
+  for (let i = achievementNotifications.length - 1; i >= 0; i--) {
+    const n = achievementNotifications[i];
+    n.time -= 1 / 60;
+    if (n.time <= 0) {
+      achievementNotifications.splice(i, 1);
+      continue;
+    }
+    const alpha = Math.min(1, n.time);
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = '#a08050';
+    ctx.font = 'bold 12px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(`ACHIEVEMENT: ${n.name}`, canvas.width / 2, achY);
+    achY += 18;
+  }
+  ctx.globalAlpha = 1;
+  ctx.textAlign = 'left';
 }
 
 // ─── Game Loop ─────────────────────────────────────────────────
