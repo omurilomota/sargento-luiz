@@ -153,6 +153,27 @@ export function addMaxHealth(amount: number): void {
   player.health += amount;
 }
 
+let comboHealthMultiplier = 1;
+
+/**
+ * Define o multiplicador de vida dos combos.
+ * @param multiplier - multiplicador (ex: 1.25 = +25% vida)
+ */
+export function setComboHealthMultiplier(multiplier: number): void {
+  const oldMax = getEffectiveMaxHealth();
+  comboHealthMultiplier = multiplier;
+  const newMax = getEffectiveMaxHealth();
+  player.maxHealth += (newMax - oldMax);
+  player.health = Math.min(player.health, player.maxHealth);
+}
+
+/**
+ * Retorna a vida máxima efetiva (base + combo bonus).
+ */
+export function getEffectiveMaxHealth(): number {
+  return Math.floor(player.maxHealth * comboHealthMultiplier);
+}
+
 /**
  * Aumenta a velocidade base do jogador.
  * @param multiplier - valor percentual a adicionar (ex: 0.15 = +15%)
@@ -169,16 +190,17 @@ export function addShield(amount: number): void {
   player.shield += amount;
 }
 
-/** Se a regeneração permanente está ativa */
-let regenActive = false;
+/** Nível de regeneração (0 = inativo, 1+ = HP/s) */
+let regenLevel = 0;
 /** Nível de armadura (0-1, reduz dano recebido) */
 let armorLevel = 0;
 
 /**
- * Ativa a regeneração permanente (1 vida por segundo).
+ * Ativa/regeneração permanente. Stacking: cada compra aumenta o nível.
+ * @param value - HP por segundo a adicionar (ex: 1 para Regeneração, 2 para Regen Avançada)
  */
-export function enableRegen(): void {
-  regenActive = true;
+export function enableRegen(value: number = 1): void {
+  regenLevel += value;
 }
 
 /**
@@ -201,7 +223,7 @@ export function getArmorLevel(): number {
  * Retorna se a regeneração está ativa.
  */
 export function isRegenActive(): boolean {
-  return regenActive;
+  return regenLevel > 0;
 }
 
 /**
@@ -210,10 +232,8 @@ export function isRegenActive(): boolean {
  */
 export function applyRegen(dt: number): void {
   if (getHardcore()) return;
-  if (player.health < player.maxHealth) {
-    const baseRate = 0.2;
-    const bonusRate = regenActive ? 1 : 0;
-    player.health = Math.min(player.maxHealth, player.health + (baseRate + bonusRate) * dt);
+  if (player.health < player.maxHealth && regenLevel > 0) {
+    player.health = Math.min(player.maxHealth, player.health + regenLevel * dt);
   }
 }
 
@@ -221,5 +241,5 @@ export function applyRegen(dt: number): void {
  * Reseta a regeneração.
  */
 export function resetRegen(): void {
-  regenActive = false;
+  regenLevel = 0;
 }

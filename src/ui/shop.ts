@@ -94,7 +94,7 @@ function applyUpgrade(effect: string, value: number) {
   if (effect === 'speed') addSpeed(value);
   if (effect === 'shield') addShield(value);
   if (effect === 'magnet') enablePermanentMagnet();
-  if (effect === 'regen') enableRegen();
+  if (effect === 'regen') enableRegen(value);
   if (effect === 'reloadSpeed') addReloadSpeed(value);
   if (effect === 'armor') addArmor(value);
 }

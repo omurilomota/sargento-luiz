@@ -16,12 +16,12 @@
  * 3. Game Over → ENTER → Menu
  */
 
-import { dist, normalize } from './utils';
+import { normalize } from './utils';
 import { PHASES, ENEMY_TYPES, POWERUP_TYPES } from './config';
 
 // Entities
 import * as player from './entities/player';
-import { applyRegen, resetRegen, getArmorLevel } from './entities/player';
+import { applyRegen, resetRegen, getArmorLevel, setComboHealthMultiplier } from './entities/player';
 import { getBullets, spawnBullet, updateBullets, clearBullets } from './entities/bullet';
 import { getCoins, spawnCoins, updateCoins, clearCoins, setMagnetActive, resetPermanentMagnet } from './entities/coin';
 
@@ -37,13 +37,13 @@ import { initHud, updateHud, setHudVisible } from './ui/hud';
 import { drawShop, handleShopClick, setShopCoins, getShopCoins, addShopCoins, resetShop, updateShopAds, getPurchasedUpgrades, getPurchasedWeapons } from './ui/shop';
 
 // Existing modules (unchanged)
-import { shoot, getCurrentWeapon, resetWeapons, canShoot, useAmmo, startReload, updateReload, getCurrentAmmo, getIsReloading, getReloadTimer } from './weapons';
+import { shoot, getCurrentWeapon, resetWeapons, canShoot, startReload, updateReload, getCurrentAmmo, getIsReloading } from './weapons';
 import { getCurrentPhase, getCurrentWave, getGameState, setGameState, nextWave, nextPhase, resetPhases, addScore, addScoreFlat, getScore, getCombo, updateCombo, resetCombo, getKillStreak, wasGameCompleted } from './phases';
 import { powerups, spawnPowerUp, updatePowerUps, hasPowerUp, activePowerups } from './powerups';
 
 // Audio & Visual Juice
-import { initAudio, sfxPistol, sfxShotgun, sfxMachinegun, sfxSniper, sfxLaser, sfxRPG, sfxRaios, sfxGel, sfxGranade, sfxMina, sfxExplosion, sfxBossDeath, sfxPlayerHit, sfxCoin, sfxPowerup, sfxLevelUp, sfxWaveStart, sfxBuy, sfxError, sfxGameOver, sfxHitStop, sfxEnemyShoot, startMusic } from './systems/audio';
-import { triggerScreenShake, triggerDamageFlash, triggerLevelUpFlash, triggerBossKillFlash, updateFlash, updateSlowMotion, triggerSlowMotion, triggerHitStop, updateHitStop, resetEffects, triggerBossZoom, updateBossZoom } from './systems/effects';
+import { initAudio, sfxPistol, sfxShotgun, sfxMachinegun, sfxSniper, sfxLaser, sfxRPG, sfxRaios, sfxGel, sfxGranade, sfxMina, sfxExplosion, sfxBossDeath, sfxPlayerHit, sfxCoin, sfxPowerup, sfxLevelUp, sfxWaveStart, sfxGameOver, sfxEnemyShoot, startMusic } from './systems/audio';
+import { triggerScreenShake, triggerDamageFlash, triggerBossKillFlash, updateFlash, updateSlowMotion, triggerSlowMotion, triggerHitStop, updateHitStop, resetEffects, triggerBossZoom, updateBossZoom } from './systems/effects';
 
 // Player Skills
 import { useSkill, isSkillActive, updateSkills, resetSkills, getDamageMultiplier, getDamageTakenMultiplier, getSkillCooldown, getSkillMaxCooldown, isSkillOnCooldown } from './systems/skills';
@@ -52,7 +52,7 @@ import { useSkill, isSkillActive, updateSkills, resetSkills, getDamageMultiplier
 import { updateEnvironmentEvents, resetEnvironmentEvents, isEarthquakeActive, isStormActive } from './systems/environment';
 
 // Combo Builds
-import { updateCombos, getActiveCombos, getComboDamageBonus, getComboFireRateBonus, resetCombos } from './systems/combos';
+import { updateCombos, getActiveCombos, getComboDamageBonus, getComboFireRateBonus, getComboHealthBonus, resetCombos } from './systems/combos';
 
 // Skins
 import { resetSkins } from './systems/skins';
@@ -85,7 +85,7 @@ import { spawnNPC, updateNPCs, getNPCs, resetNPCs } from './systems/npcs';
 import { getBots, createBot, updateBots, removeDeadBots, resetBots, addBot, BotDifficulty } from './systems/bots';
 
 // Local Multiplayer
-import { isEnabled as isLocalEnabled, initLocalMultiplayer, movePlayer2, shootPlayer2, damagePlayer2, getPlayer2, resetLocalMultiplayer, isGameOver as isLocalGameOver, getWinner as getLocalWinner, checkPlayer2EnemyCollision } from './systems/localMultiplayer';
+import { isEnabled as isLocalEnabled, initLocalMultiplayer, movePlayer2, shootPlayer2, getPlayer2, resetLocalMultiplayer, checkPlayer2EnemyCollision } from './systems/localMultiplayer';
 
 // Story & Game Modes
 import { showCutscene, advanceCutscene, skipCutsceneText, isShowingCutscene, updateCutscene, getCurrentCutscene, nextCutscene, resetStory, isLineComplete, isWaitingForChoice, selectChoice } from './systems/story';
@@ -348,6 +348,7 @@ function update(dt: number) {
 
   updateCombo(dt);
   updateCombos();
+  setComboHealthMultiplier(getComboHealthBonus());
   updateTutorial(dt);
   const comboAch = checkAchievements('combo', getCombo());
   if (comboAch) achievementNotifications.push({ name: comboAch.name, time: 3 });
