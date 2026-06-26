@@ -63,6 +63,9 @@ import { resetAds } from './systems/ads';
 // Save/Load
 import { saveGame, loadGame, hasSave } from './systems/saveSystem';
 
+// Leaderboard
+import { addLeaderboardEntry } from './systems/leaderboard';
+
 // Bots (Competitive Mode)
 import { getBots, createBot, updateBots, removeDeadBots, resetBots, addBot, BotDifficulty } from './systems/bots';
 
@@ -419,19 +422,44 @@ function update(dt: number) {
     if (e.canShoot) {
       e.shootTimer -= dt;
       if (e.shootTimer <= 0) {
-        e.shootTimer = e.shootRate;
         const angle = Math.atan2(p.y - e.y, p.x - e.x);
         const bColor = ENEMY_TYPES[e.type]?.projectileColor || '#3498db';
-        if (ENEMY_TYPES[e.type]?.spreadShot) {
+        const isBoss = ENEMY_TYPES[e.type]?.isBoss;
+        const hpPct = e.health / e.maxHealth;
+
+        if (isBoss) {
+          // Boss attack phases based on HP
+          if (hpPct > 0.6) {
+            // Phase 1: normal shots
+            e.shootTimer = e.shootRate;
+            spawnBullet(e.x, e.y, Math.cos(angle) * 300, Math.sin(angle) * 300, e.damage, true, bColor, false);
+          } else if (hpPct > 0.3) {
+            // Phase 2: spread shots
+            e.shootTimer = e.shootRate * 0.8;
+            for (let s = -2; s <= 2; s++) {
+              spawnBullet(e.x, e.y, Math.cos(angle + s * 0.2) * 350, Math.sin(angle + s * 0.2) * 350, e.damage, true, bColor, false);
+            }
+          } else {
+            // Phase 3: frenzy - all directions + faster
+            e.shootTimer = e.shootRate * 0.5;
+            for (let s = 0; s < 8; s++) {
+              const a = angle + (s * Math.PI / 4);
+              spawnBullet(e.x, e.y, Math.cos(a) * 400, Math.sin(a) * 400, e.damage, true, bColor, false);
+            }
+          }
+        } else if (ENEMY_TYPES[e.type]?.spreadShot) {
+          e.shootTimer = e.shootRate;
           for (let s = -1; s <= 1; s++) {
             spawnBullet(e.x, e.y, Math.cos(angle + s * 0.3) * 250, Math.sin(angle + s * 0.3) * 250, e.damage, true, bColor, false);
           }
         } else if (ENEMY_TYPES[e.type]?.splitBullet) {
+          e.shootTimer = e.shootRate;
           for (let s = 0; s < 4; s++) {
             const a = angle + (s * Math.PI / 2);
             spawnBullet(e.x, e.y, Math.cos(a) * 200, Math.sin(a) * 200, e.damage, true, bColor, false);
           }
         } else {
+          e.shootTimer = e.shootRate;
           spawnBullet(e.x, e.y, Math.cos(angle) * 300, Math.sin(angle) * 300, e.damage, true, bColor, false);
         }
         sfxEnemyShoot();
@@ -626,6 +654,7 @@ function update(dt: number) {
   });
 
   if (p.health <= 0) {
+    addLeaderboardEntry('Jogador', getScore(), getCurrentWave());
     setGameState('gameover');
     sfxGameOver();
   }

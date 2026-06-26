@@ -14,6 +14,7 @@ import { getSprite, getEnemySpriteKey, isSpritesEnabled } from './sprites';
 import { getCurrentCutscene, getCurrentLine, isLineComplete, getTextProgress, getPortraitInfo, Character } from './story';
 import { getEquippedSkin } from './skins';
 import { hasSave } from './saveSystem';
+import { getLeaderboard, addLeaderboardEntry } from './leaderboard';
 
 /** Contexto 2D do canvas */
 let ctx: CanvasRenderingContext2D;
@@ -282,30 +283,50 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, x: number, y: num
  * @param killStreak - total de inimigos derrotados
  */
 export function drawGameOver(score: number, killStreak: number): void {
-  ctx.fillStyle = '#0a0a1a';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  for (let i = 0; i < 30; i++) {
-    const x = (i * 100 + Date.now() / 40) % canvas.width;
-    const y = (i * 80 + Date.now() / 50) % canvas.height;
-    ctx.fillStyle = `rgba(231,76,60,${0.15 + Math.sin(Date.now() / 800 + i) * 0.05})`;
-    ctx.beginPath();
-    ctx.arc(x, y, 3, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.fillStyle = '#e74c3c';
-  ctx.font = 'bold 56px monospace';
+  const W = canvas.width;
+  const H = canvas.height;
+
+  ctx.fillStyle = '#111';
+  ctx.fillRect(0, 0, W, H);
+
+  // Title
+  ctx.fillStyle = '#b07050';
+  ctx.font = 'bold 36px monospace';
   ctx.textAlign = 'center';
-  ctx.shadowColor = '#e74c3c';
-  ctx.shadowBlur = 30;
-  ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 70);
-  ctx.shadowBlur = 0;
-  ctx.fillStyle = '#fff';
-  ctx.font = '20px monospace';
-  ctx.fillText(`Pontos: ${score}`, canvas.width / 2, canvas.height / 2 - 10);
-  ctx.fillText(`Kills: ${killStreak}`, canvas.width / 2, canvas.height / 2 + 20);
-  const pulse = 0.7 + Math.sin(Date.now() / 400) * 0.3;
+  ctx.fillText('GAME OVER', W / 2, H * 0.12);
+
+  // Stats
+  ctx.fillStyle = '#ccc';
+  ctx.font = '18px monospace';
+  ctx.fillText(`Pontos: ${score}`, W / 2, H * 0.22);
+  ctx.fillText(`Kills: ${killStreak}`, W / 2, H * 0.28);
+
+  // Leaderboard
+  const lb = getLeaderboard();
+  if (lb.length > 0) {
+    ctx.fillStyle = '#a08050';
+    ctx.font = 'bold 14px monospace';
+    ctx.fillText('RECORDES', W / 2, H * 0.38);
+
+    ctx.font = '12px monospace';
+    lb.slice(0, 5).forEach((entry, i) => {
+      const y = H * 0.44 + i * 22;
+      const isNew = entry.score === score;
+      ctx.fillStyle = isNew ? '#a08050' : '#666';
+      ctx.textAlign = 'left';
+      ctx.fillText(`${i + 1}. ${entry.name}`, W / 2 - 120, y);
+      ctx.textAlign = 'right';
+      ctx.fillText(`${entry.score} pts`, W / 2 + 120, y);
+    });
+    ctx.textAlign = 'center';
+  }
+
+  // Controls
+  const pulse = 0.3 + Math.sin(Date.now() / 600) * 0.3;
   ctx.globalAlpha = pulse;
-  ctx.fillText('Pressione ENTER para reiniciar', canvas.width / 2, canvas.height / 2 + 70);
+  ctx.fillStyle = '#777';
+  ctx.font = '13px monospace';
+  ctx.fillText('ENTER para reiniciar', W / 2, H * 0.85);
   ctx.globalAlpha = 1;
 }
 
