@@ -4,7 +4,7 @@
  */
 
 /** Personagens da história */
-export type Character = 'narrador' | 'rios' | 'comandante' | 'cientista' | 'mensagem';
+export type Character = 'narrador' | 'rios' | 'comandante' | 'cientista' | 'mensagem' | 'medico';
 
 /** Uma fala na cutscene */
 export interface DialogueLine {
@@ -31,6 +31,7 @@ const PORTRAITS: Record<Character, { name: string; color: string }> = {
   comandante: { name: 'COMANDANTE VALE', color: '#b07050' },
   cientista: { name: 'DRA. FERREIRA', color: '#608090' },
   mensagem: { name: 'MENSAGEM Interceptada', color: '#a08050' },
+  medico: { name: 'CABO FERNANDES', color: '#9b59b6' },
 };
 
 /** Cutscenes do jogo */
@@ -84,9 +85,19 @@ export const CUTSCENES: Cutscene[] = [
       { speaker: 'rios', text: 'A BioGen Corp. Onde tudo começou.' },
       { speaker: 'narrador', text: 'Placa na entrada: "PROJETO GENESIS — NÃO AUTORIZADO."' },
       { speaker: 'rios', text: 'Genesis. Eles chamaram isso de progresso.' },
-      { speaker: 'narrador', text: 'Robôs de segurança patrulham os corredores. Contaminados.' },
-      { speaker: 'rios', text: 'Até as máquinas ficaram doentes aqui.' },
-      { speaker: 'rios', text: 'Preciso encontrar os registros. A Dra. Ferreira precisa saber.' },
+      { speaker: 'medico', text: 'Sargento! Eu sou o Cabo Fernandes. Sobrevivi ao ataque.' },
+      { speaker: 'rios', text: 'Fernandes? Você era do esquadrão Beta.' },
+      { speaker: 'medico', text: 'Era. Agora sou o que sobrou. Posso ajudar. Conheço a layout desta fábrica.' },
+      { speaker: 'rios', text: 'Preciso dos registros do Projeto Genesis. A Dra. Ferreira precisa saber.' },
+      { speaker: 'medico', text: 'Os registros estão no subsolo. Mas os robôs... eles não dormem.' },
+      { speaker: 'narrador', text: 'Avançam juntos pelos corredores escuros.' },
+      { speaker: 'medico', text: 'Sargento, à frente! Robô de segurança!' },
+      { speaker: 'narrador', text: 'Um robô emerge das sombras. Fernandes empurra Rios para trás.' },
+      { speaker: 'medico', text: 'Vai! Eu seguro eles! Pega os registros!' },
+      { speaker: 'narrador', text: 'Fernandes avança contra o robô. O som de metal contra metal ecoa.' },
+      { speaker: 'narrador', text: 'Quando Rios volta, Fernandes está no chão. Os olhos abertos. Sem expressão.' },
+      { speaker: 'rios', text: '...Fernandes. Obrigado, cabo.' },
+      { speaker: 'narrador', text: 'Rios pega os registros e segue em frente. Sozinho, de novo.' },
     ],
   },
   {

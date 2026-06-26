@@ -72,6 +72,9 @@ import { loadAchievements, checkAchievements, resetRunCounters, getAllAchievemen
 // Diary
 import { loadDiary, unlockDiaryEntry, getUnlockedDiary } from './systems/diary';
 
+// Tutorial
+import { startTutorial, isTutorialActive, getCurrentHint, updateTutorial } from './systems/tutorial';
+
 // Bots (Competitive Mode)
 import { getBots, createBot, updateBots, removeDeadBots, resetBots, addBot, BotDifficulty } from './systems/bots';
 
@@ -266,6 +269,7 @@ function update(dt: number) {
           loadDiary();
           resetRunCounters();
           playerDied = false;
+          if (selectedMode === 'campaign') startTutorial();
           for (const k in keys) keys[k] = false;
           if (selectedMode === 'local') {
             initLocalMultiplayer(canvas.width, canvas.height);
@@ -325,6 +329,7 @@ function update(dt: number) {
 
   updateCombo(dt);
   updateCombos();
+  updateTutorial(dt);
   const comboAch = checkAchievements('combo', getCombo());
   if (comboAch) achievementNotifications.push({ name: comboAch.name, time: 3 });
   setMagnetActive(hasPowerUp('magnet'));
@@ -922,6 +927,22 @@ function draw() {
     }
     ctx.globalAlpha = 1;
     ctx.textAlign = 'left';
+  }
+
+  // Tutorial hints (bottom-center)
+  if (isTutorialActive()) {
+    const hint = getCurrentHint();
+    if (hint) {
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.beginPath();
+      ctx.roundRect(canvas.width / 2 - 150, canvas.height - 80, 300, 30, 5);
+      ctx.fill();
+      ctx.fillStyle = '#a08050';
+      ctx.font = '12px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(`${hint.key}: ${hint.text}`, canvas.width / 2, canvas.height - 62);
+      ctx.textAlign = 'left';
+    }
   }
 
   // Combo build indicators
