@@ -1,10 +1,13 @@
 // Sempre leia antes de marcar X
+// Status detalhado: ver STATUS.md
 
+// ═══════════════════════════════════════════════════════════════
+// CONCLUÍDO
+// ═══════════════════════════════════════════════════════════════
 - [x] Sons para cada arma especificamente.
 - [x] Armas municiadas, podendo ter recarregamento.
 - [x] Bug existente em que do nada inimigos morrem ou eu tomo dano.
 - [x] Modo competitivo para jogar contra bots que seriam jogadores mais experientes.
-- [ ] Modo competitivo online para jogar com amigos.
 - [x] Expansão da loja
 - [x] Upgrades de personagens
 - [x] Moedas que comprarão skins
@@ -12,30 +15,69 @@
 - [x] Dinheiro para comprar skins
 - [x] Jogo com muita cara de IA, pouco natural
 - [x] Inimigos tomam dano do nada também.
-- [x] Buff geral nos inimigos ( a cada onda ficam mais fortes )
+- [x] Buff geral nos inimigos (a cada onda ficam mais fortes)
 - [x] Possibilidade de builds de combos para melhor vantagem no jogo.
-- [ ] Possibilidade de fazer jogo semelhante contando melhor a história ou possível continuação do jogo de 2D de lado estilo Zombotron.
 - [x] Loja com cliques errados, uns não podia comprar nem se quisesse e outras compravam o de cima.
 - [x] R passara a ser para recarregar furia será movida para outra tecla.
-- [x] inimigos tomam dano do nada e eu também, estou suspeitando de que seja alguns eventos de ambiente que a IA só implementou no código e faltou o visual.
-- [x] História bem documentada e decente para esse jogo com diálogos e animações em Canvas2D ou algo melhor e mais indicado.
+- [x] Eventos de ambiente sem visual.
 - [x] 1,2,3,4,5,6,7 etc não funcionam na tela inicial do jogo.
-- [x] Tomo dano como se tivesse trombado em zumbi (mas não trombei) especialmente em início de alguma onda aí.
+- [x] Tomo dano como se tivesse trombado em zumbi.
 - [x] Tela inicial com opções de modo sobrepondo as teclas do jogo.
-- [x] Sinto falta de um timer pra saber quando posso usar fúria, escudo e demais poderes...
-- [x] Bug de não cosneguir selecionar nenhum voltou, até consigo mudar o que quero, mas qando aperto ENTER, nada
-- [x] Novamente tomei dano e foi após iniciar a onda 2.
+- [x] Timer pra saber quando posso usar fúria, escudo e demais poderes.
+- [x] Bug de não conseguir selecionar nenhum, ENTER não funcionava.
+- [x] Dano persiste na onda 2.
 - [x] Projeto com muitos arquivos soltos, falta um cleanup geral.
-- [x] Tela inicial ainda está uma bosta, itens sobrepondo-se. Tente refazer a tela inicial.
-- [x] Diálogo passando muito rápido e não dá nem pra ler, recomendo enter para continuar...
-- [x] Tempo de recarga do poderes, poderes ficando em cima da barra de informações em baixo dele.
+- [x] Tela inicial com itens sobrepondo-se.
+- [x] Diálogo passando muito rápido.
+- [x] Tempo de recarga do poderes, poderes ficando em cima da barra.
 - [x] Eventos do ambiente ficando em cima do tempo dos power-ups.
-- [x] Dano persiste na onda 2 que tomo dano aleatoriamente mesmo após correções.
 - [x] Upgrades da loja passando da tela.
 - [x] Evento de ambiente ficando em cima dos pontos.
-- [x] Existe um bug que na onda 2 tomo um dano aleatório ou aparece o efeito de dano, mesmo estando no centro do mapa.
-- [x] Dei uma bela jogada no game, resumo : Armas muito barataas e muito dano, a arma de raios, basicamente é hitkill, porque ela repete o dano dela muitas vezes em um único tiro só, aumentaria o preço geral de todos os itens. Poderia ter armadura e regeneração natural, mas teria de comprar para melhorar tudo. Os eventos ambientais, não achei ruim. Na parte da história, poderíamos travar um diálogo, por exemplo: Um fala, pause, backspace para continuar. Aí ele mostraria a evolução em cada parte do game, por exemplo, da floresta para o castelo, etc.
-- [ ] Precisamos de mais assets para os eventos ambientais, chão de cada level, etc.
+- [x] Armas muito baratas e muito dano, arma de raios hitkill.
+- [x] História bem documentada com diálogos.
+- [x] Achievements/badges (13 conquistas)
+- [x] Leaderboard local (top 10)
+- [x] Boss com fases de ataque (3 fases)
+- [x] Modo hardcore (uma vida, sem loja)
+- [x] Arma secreta BFG
+- [x] Animação de morte do jogador (partículas + slow motion)
+- [x] Transição animada entre fases
+- [x] Sistema de save/load (localStorage)
+- [x] Minimap
+- [x] Power-up drops dos inimigos
+- [x] Dificuldade progressiva dinâmica
+- [x] Escolhas na história (3 opções no epílogo)
+- [x] Diário de bordo do Rios (8 entradas)
+- [x] Tutorial interativo (6 dicas)
+- [x] Crítico visual com slow motion
+- [x] Pausa com ESC
+
+// ═══════════════════════════════════════════════════════════════
+// PENDENTE
+// ═══════════════════════════════════════════════════════════════
+
+// --- ONLINE ---
+- [ ] Modo competitivo online para jogar com amigos.
+
+// --- HISTÓRIA / NARRATIVA ---
+- [x] Cutscenes com mais animação (fundo dinâmico por fase, retrato flutuando)
+- [x] Escolhas na história que afetam o final (3 finais diferentes)
+- [x] Personagens secundários integrados ao gameplay (NPCs spawam aleatoriamente)
+
+// --- GAMEPLAY ---
+- [ ] Continuação do jogo estilo Zombotron (2D lateral)
+
+// --- VISUAL ---
+- [ ] Tiles de terreno por fase (atualmente só grid colorido)
+- [x] Animação de morte completa do jogador (gira e encolhe por 1.5s)
+- [ ] Assets para eventos ambientais e chão de cada level
+
+// --- LIMPEZA ---
+- [x] Remover `src/engine/` (código morto, prototype raycaster)
+- [x] Limpar package.json (remover ~11 deps internas do Vite listadas por engano)
+- [x] Remover console.log de debug em `main.ts:228`
+- [x] Integrar constantes de `localMultiplayer.ts` com `constants.ts`
+- [ ] Mover velocidades de tiro dos inimigos para config (hardcoded em main.ts)
 
 // ═══════════════════════════════════════════════════════════════
 // ASSETS NECESSÁRIOS ( sprites que faltam )
@@ -56,46 +98,16 @@
 
 // --- Cenas ---
 // retratos dos personagens (Rios, Vale, Ferreira) para cutscenes
+
 // ═══════════════════════════════════════════════════════════════
-// SUGESTÕES (avaliar quais implementar)
+// SUGESTÕES AVANÇADAS (baixa prioridade)
 // ═══════════════════════════════════════════════════════════════
-
-// --- HISTÓRIA / NARRATIVA ---
-- [ ] Escolhas na história que afetam o final (bom/ruim/moral) - Legal
-- [ ] Cutscenes com mais animação (personagem andando, explosões, etc)  - Legal
-- [ ] Diário de bordo do Rios que desbloqueia a cada fase (lore opcional) - Legal 
-- [ ] Final secreto se o jogador nunca morrer - Legal
-- [ ] Personagens secundários que aparecem e morrem no caminho (impacto emocional) - Legal
-
-// --- GAMEPLAY ---
-- [ ] Sistema de difficulté progressiva mais dinâmico (inimigos aprendem padrões) - Legal
-- [ ] Bosses com fases de ataque (não só atirar e andar) - Legal
-- [ ] Modo survival com leaderboard local (salvar score no localStorage) - Legal, podemos evoluir para online/multiplayer
-- [ ] Modo hardcore (uma vida só, sem recarga entre ondas) - Legal
-- [ ] Arma secreta desbloqueável após completar o jogo - Legal
-- [ ] Inimigos que dropam power-ups temporários ao morrer - Legal
-- [ ] Sistema de crítico visual (tela fica em câmera lenta no headshot) - Legal
-
-// --- UI/UX ---
-- [ ] Tela de pausa com ESC (opção de voltar ao menu) - Legal, poderiamos também colocar um modo que voce volta onde parou.
-- [ ] Mini-mapa no canto mostrando posição dos inimigos - Legal
-- [ ] Animação de morte do jogador (não só sumir) - Legal
-- [ ] Transição animada entre fases (fade + nome da fase) - Legal
-- [ ] Contador de inimigos restantes na onda atual - na verdade já tem
-- [ ] Tutorial interativo na primeira fase (setas e textos) - pode ser
-
-// --- VISUAL / DESIGN ---
-- [ ] Efeito de screen shake mais sutil e consistente - por mim é restrito só a rpg e granada
-- [ ] Partículas de poeira no chão durante terremoto - legal
-- [ ] Indicador visual de dano nos inimigos (flash vermelho) - legal
-- [ ] Sombras dos personagens no chão - legal
-- [ ] Efeito de zoom lento no boss quando aparece - legal
-
-// --- CÓDIGO / ARQUITETURA ---
-- [ ] Sistema de save/load (localStorage) para continuar jogo - legal
-- [ ] Sistema de achievement/badges (primeiro kill, sobreviver 10 ondas, etc) - legal
-- [ ] Modularizar drawMenu em componente separado - legal
-- [ ] Testes unitários para sistemas de colisão e dano - legal
-- [ ] Performance: limitar partículas por frame (já tem cap, verificar se funciona) - legal
-
-// Todas essas melhorias envolvem muitos assets, seria interessante voce entrar na internet e pegar todos eles...
+- [ ] Modo survival com leaderboard online
+- [ ] Sistema de achievement/badges expandido
+- [ ] Testes unitários para sistemas de colisão e dano
+- [ ] Screen shake mais sutil e consistente (só RPG e granada)
+- [ ] Partículas de poeira no chão durante terremoto
+- [ ] Indicador visual de dano nos inimigos (hitFlash)
+- [ ] Sombras dos personagens no chão
+- [ ] Efeito de zoom lento no boss quando aparece
+- [ ] Performance: limitar partículas por frame (verificar cap existente)
