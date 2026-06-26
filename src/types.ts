@@ -204,6 +204,8 @@ export interface EnemyType {
   canShoot?: boolean;
   /** Intervalo entre disparos em segundos */
   shootRate?: number;
+  /** Velocidade dos projéteis disparados */
+  bulletSpeed?: number;
   /** Indica se é um chefe */
   isBoss?: boolean;
   /** Indica se possui armadura (forma hexagonal) */

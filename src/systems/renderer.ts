@@ -324,7 +324,7 @@ export function drawCutscene(): void {
     ctx.textAlign = 'right';
     const pulse = 0.3 + Math.sin(Date.now() / 500) * 0.3;
     ctx.globalAlpha = pulse;
-    ctx.fillText('BACKSPACE >>', canvas.width - 30, canvas.height - 30);
+    ctx.fillText('BACKSPACE ou Ç >>', canvas.width - 30, canvas.height - 30);
     ctx.globalAlpha = 1;
   }
 
@@ -415,11 +415,96 @@ export function drawGameOver(score: number, killStreak: number): void {
  * @param gridColor - cor da grade
  * @param screenShake - intensidade do tremor (0 = sem shake)
  */
-export function drawGameBackground(bg: string, gridColor: string, shake: { x: number; y: number }): void {
+export function drawGameBackground(bg: string, gridColor: string, shake: { x: number; y: number }, phaseName?: string): void {
   ctx.save();
   ctx.translate(shake.x, shake.y);
   ctx.fillStyle = bg;
   ctx.fillRect(-10, -10, canvas.width + 20, canvas.height + 20);
+
+  // Procedural terrain tiles based on phase
+  const t = Date.now() / 1000;
+  ctx.globalAlpha = 0.12;
+
+  if (phaseName === 'Floresta') {
+    // Grass tufts
+    for (let i = 0; i < 30; i++) {
+      const gx = (i * 137 + 42) % canvas.width;
+      const gy = (i * 91 + 17) % canvas.height;
+      ctx.fillStyle = '#2a5a2a';
+      ctx.beginPath();
+      ctx.arc(gx, gy + Math.sin(t + i) * 2, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else if (phaseName === 'Caverna') {
+    // Crystal formations
+    for (let i = 0; i < 20; i++) {
+      const cx = (i * 173 + 31) % canvas.width;
+      const cy = (i * 113 + 59) % canvas.height;
+      ctx.fillStyle = '#4a6a9a';
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - 8);
+      ctx.lineTo(cx + 5, cy + 4);
+      ctx.lineTo(cx - 5, cy + 4);
+      ctx.fill();
+    }
+  } else if (phaseName === 'Fábrica') {
+    // Gear patterns
+    for (let i = 0; i < 12; i++) {
+      const gx = (i * 199 + 67) % canvas.width;
+      const gy = (i * 149 + 33) % canvas.height;
+      ctx.strokeStyle = '#5a4a3a';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(gx, gy, 12, t * 0.5 + i, t * 0.5 + i + 4);
+      ctx.stroke();
+    }
+  } else if (phaseName === 'Pântano') {
+    // Water ripples
+    for (let i = 0; i < 15; i++) {
+      const wx = (i * 167 + 43) % canvas.width;
+      const wy = (i * 127 + 71) % canvas.height;
+      ctx.strokeStyle = '#3a6a6a';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.ellipse(wx, wy, 10 + Math.sin(t + i) * 3, 5, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  } else if (phaseName === 'Castelo') {
+    // Stone brick pattern
+    for (let i = 0; i < 25; i++) {
+      const sx = (i * 131 + 23) % canvas.width;
+      const sy = (i * 107 + 47) % canvas.height;
+      ctx.fillStyle = '#5a5a3a';
+      ctx.fillRect(sx, sy, 14, 8);
+    }
+  } else if (phaseName === 'Vulcão') {
+    // Lava cracks
+    for (let i = 0; i < 18; i++) {
+      const lx = (i * 157 + 53) % canvas.width;
+      const ly = (i * 139 + 29) % canvas.height;
+      ctx.strokeStyle = '#8b2500';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(lx, ly);
+      ctx.lineTo(lx + 15, ly + 8);
+      ctx.lineTo(lx + 10, ly + 20);
+      ctx.stroke();
+    }
+  } else if (phaseName === 'Espaço') {
+    // Stars
+    for (let i = 0; i < 40; i++) {
+      const sx = (i * 191 + 11) % canvas.width;
+      const sy = (i * 157 + 7) % canvas.height;
+      ctx.fillStyle = '#fff';
+      ctx.globalAlpha = 0.08 + Math.sin(t * 2 + i) * 0.04;
+      ctx.beginPath();
+      ctx.arc(sx, sy, 1, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  ctx.globalAlpha = 1;
+
   const gridSize = 50;
   ctx.strokeStyle = gridColor;
   ctx.lineWidth = 1;
@@ -429,6 +514,7 @@ export function drawGameBackground(bg: string, gridColor: string, shake: { x: nu
   for (let y = 0; y < canvas.height; y += gridSize) {
     ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
   }
+  ctx.restore();
 }
 
 /**
@@ -563,20 +649,42 @@ export function drawBullets(bullets: Bullet[]): void {
  */
 export function drawEnemies(enemies: Enemy[], playerX: number, playerY: number): void {
   for (const e of enemies) {
+    // Enemy shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.beginPath();
+    ctx.ellipse(e.x, e.y + e.radius + 2, e.radius * 0.7, e.radius * 0.25, 0, 0, Math.PI * 2);
+    ctx.fill();
+
     ctx.save();
     ctx.translate(e.x, e.y);
+
+    // Hit flash effect
+    if (e.hitFlash > 0) {
+      ctx.shadowColor = '#fff';
+      ctx.shadowBlur = 20;
+    }
 
     // Try to use sprite if available
     const spriteKey = getEnemySpriteKey(e.type);
     const sprite = spriteKey ? getSprite(spriteKey) : null;
 
     if (sprite && isSpritesEnabled()) {
-      ctx.drawImage(sprite, -e.radius, -e.radius, e.radius * 2, e.radius * 2);
+      if (e.hitFlash > 0) {
+        ctx.globalAlpha = 0.5 + e.hitFlash * 3;
+        ctx.drawImage(sprite, -e.radius, -e.radius, e.radius * 2, e.radius * 2);
+        ctx.globalCompositeOperation = 'source-atop';
+        ctx.fillStyle = 'rgba(255,255,255,0.6)';
+        ctx.fillRect(-e.radius, -e.radius, e.radius * 2, e.radius * 2);
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.globalAlpha = 1;
+      } else {
+        ctx.drawImage(sprite, -e.radius, -e.radius, e.radius * 2, e.radius * 2);
+      }
     } else {
       // Fallback to canvas drawing
       const def = ENEMY_TYPES[e.type];
-      ctx.fillStyle = e.color;
-      ctx.shadowColor = e.color;
+      ctx.fillStyle = e.hitFlash > 0 ? '#fff' : e.color;
+      ctx.shadowColor = e.hitFlash > 0 ? '#fff' : e.color;
       
       // Different shapes based on enemy type
       if (def?.armor) {
@@ -720,6 +828,13 @@ export function drawPlayer(player: Player): void {
   }
 
   const flash = player.invincible > 0 && Math.floor(player.invincible * 25) % 2;
+
+  // Shadow on ground
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.beginPath();
+  ctx.ellipse(player.x, player.y + player.radius + 3, player.radius * 0.8, player.radius * 0.3, 0, 0, Math.PI * 2);
+  ctx.fill();
+
   if (!flash) {
     // Try to use sprite if available
     const sprite = getSprite('player');
@@ -937,6 +1052,14 @@ interface NPCData {
 export function drawNPCs(npcs: NPCData[]): void {
   for (const npc of npcs) {
     if (!npc.alive && npc.messageTimer <= 0) continue;
+
+    ctx.globalAlpha = npc.alive ? 1 : 0.4;
+
+    // NPC shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.beginPath();
+    ctx.ellipse(npc.x, npc.y + npc.radius + 2, npc.radius * 0.7, npc.radius * 0.25, 0, 0, Math.PI * 2);
+    ctx.fill();
 
     ctx.globalAlpha = npc.alive ? 1 : 0.4;
 

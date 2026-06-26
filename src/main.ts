@@ -272,10 +272,10 @@ function update(dt: number) {
   if (state === 'menu') {
     if (isShowingCutscene()) {
       updateCutscene(dt);
-      if (keys['backspace']) {
+      if (keys['backspace'] || keys['ç']) {
         skipCutsceneText();
       }
-      if (keys['enter'] || keys[' ']) {
+      if (keys['enter'] || keys[' '] || keys['ç']) {
         const sceneFinished = advanceCutscene();
         if (sceneFinished) {
           setGameMode(selectedMode);
@@ -504,40 +504,42 @@ function update(dt: number) {
         const isBoss = ENEMY_TYPES[e.type]?.isBoss;
         const hpPct = e.health / e.maxHealth;
 
+        const baseSpeed = ENEMY_TYPES[e.type]?.bulletSpeed || 300;
+
         if (isBoss) {
           // Boss attack phases based on HP
           if (hpPct > 0.6) {
             // Phase 1: normal shots
             e.shootTimer = e.shootRate;
-            spawnBullet(e.x, e.y, Math.cos(angle) * 300, Math.sin(angle) * 300, e.damage, true, bColor, false);
+            spawnBullet(e.x, e.y, Math.cos(angle) * baseSpeed, Math.sin(angle) * baseSpeed, e.damage, true, bColor, false);
           } else if (hpPct > 0.3) {
             // Phase 2: spread shots
             e.shootTimer = e.shootRate * 0.8;
             for (let s = -2; s <= 2; s++) {
-              spawnBullet(e.x, e.y, Math.cos(angle + s * 0.2) * 350, Math.sin(angle + s * 0.2) * 350, e.damage, true, bColor, false);
+              spawnBullet(e.x, e.y, Math.cos(angle + s * 0.2) * baseSpeed * 1.17, Math.sin(angle + s * 0.2) * baseSpeed * 1.17, e.damage, true, bColor, false);
             }
           } else {
             // Phase 3: frenzy - all directions + faster
             e.shootTimer = e.shootRate * 0.5;
             for (let s = 0; s < 8; s++) {
               const a = angle + (s * Math.PI / 4);
-              spawnBullet(e.x, e.y, Math.cos(a) * 400, Math.sin(a) * 400, e.damage, true, bColor, false);
+              spawnBullet(e.x, e.y, Math.cos(a) * baseSpeed * 1.33, Math.sin(a) * baseSpeed * 1.33, e.damage, true, bColor, false);
             }
           }
         } else if (ENEMY_TYPES[e.type]?.spreadShot) {
           e.shootTimer = e.shootRate;
           for (let s = -1; s <= 1; s++) {
-            spawnBullet(e.x, e.y, Math.cos(angle + s * 0.3) * 250, Math.sin(angle + s * 0.3) * 250, e.damage, true, bColor, false);
+            spawnBullet(e.x, e.y, Math.cos(angle + s * 0.3) * baseSpeed * 0.83, Math.sin(angle + s * 0.3) * baseSpeed * 0.83, e.damage, true, bColor, false);
           }
         } else if (ENEMY_TYPES[e.type]?.splitBullet) {
           e.shootTimer = e.shootRate;
           for (let s = 0; s < 4; s++) {
             const a = angle + (s * Math.PI / 2);
-            spawnBullet(e.x, e.y, Math.cos(a) * 200, Math.sin(a) * 200, e.damage, true, bColor, false);
+            spawnBullet(e.x, e.y, Math.cos(a) * baseSpeed * 0.67, Math.sin(a) * baseSpeed * 0.67, e.damage, true, bColor, false);
           }
         } else {
           e.shootTimer = e.shootRate;
-          spawnBullet(e.x, e.y, Math.cos(angle) * 300, Math.sin(angle) * 300, e.damage, true, bColor, false);
+          spawnBullet(e.x, e.y, Math.cos(angle) * baseSpeed, Math.sin(angle) * baseSpeed, e.damage, true, bColor, false);
         }
         sfxEnemyShoot();
       }
@@ -647,6 +649,7 @@ function update(dt: number) {
       triggerScreenShake(8, 0.2);
     } else {
       e.health -= b.damage;
+      e.hitFlash = 0.15;
       damageNumbers.push({
         x: e.x + (Math.random() - 0.5) * 20, y: e.y - 20,
         text: isCrit ? `${Math.floor(b.damage)}!` : String(Math.floor(b.damage)),
@@ -818,7 +821,7 @@ function draw() {
   if (state === 'paused') {
     // Draw game scene frozen
     const bg = getCurrentPhase();
-    drawGameBackground(bg?.bg || '#1a1a2e', bg?.gridColor || 'rgba(255,255,255,0.03)', { x: 0, y: 0 });
+    drawGameBackground(bg?.bg || '#1a1a2e', bg?.gridColor || 'rgba(255,255,255,0.03)', { x: 0, y: 0 }, bg?.name);
     renderEnemies(enemies, player.getPlayer().x, player.getPlayer().y);
     renderPlayer(player.getPlayer());
     restoreCanvas();
@@ -837,7 +840,7 @@ function draw() {
   }
 
   const bg = getCurrentPhase();
-  drawGameBackground(bg?.bg || '#1a1a2e', bg?.gridColor || 'rgba(255,255,255,0.03)', { x: 0, y: 0 });
+  drawGameBackground(bg?.bg || '#1a1a2e', bg?.gridColor || 'rgba(255,255,255,0.03)', { x: 0, y: 0 }, bg?.name);
   renderCoins(getCoins());
   renderPowerUps(powerups);
   renderParticles(getParticles());

@@ -38,6 +38,7 @@ export function createExplosion(
       // Dano diminui com a distância
       const falloff = 1 - (d / radius);
       e.health -= Math.floor(damage * (0.5 + falloff * 0.5));
+      e.hitFlash = 0.15;
     }
   }
 

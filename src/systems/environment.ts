@@ -152,6 +152,7 @@ export function updateEnvironmentEvents(
           if (Math.random() < dt * 2) {
             for (const e of enemies) {
               e.health -= EARTHQUAKE_DAMAGE;
+              e.hitFlash = 0.15;
               enemyDamages.push({ x: e.x, y: e.y - 15, damage: EARTHQUAKE_DAMAGE, color: '#e67e22' });
               spawnParticles(e.x, e.y, '#e67e22', 2, 80);
             }
@@ -185,6 +186,7 @@ export function updateEnvironmentEvents(
           if (Math.random() < dt) {
             for (const e of enemies) {
               e.health -= STORM_DAMAGE;
+              e.hitFlash = 0.15;
               enemyDamages.push({ x: e.x, y: e.y - 15, damage: STORM_DAMAGE, color: '#9b59b6' });
               spawnParticles(e.x, e.y, '#9b59b6', 1, 60);
             }
