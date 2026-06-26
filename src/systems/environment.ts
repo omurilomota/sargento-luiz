@@ -32,6 +32,15 @@ const events: Record<EnvironmentEvent, EventState> = {
   storm: { active: false, duration: 0, timer: 60, interval: 90 },
 };
 
+const WARNING_TIME = 5;
+
+export interface EnvironmentWarning {
+  type: EnvironmentEvent;
+  timeLeft: number;
+}
+
+let warnings: EnvironmentWarning[] = [];
+
 /** Dano do terremoto por segundo */
 const EARTHQUAKE_DAMAGE = 5;
 /** Dano do relâmpago */
@@ -106,12 +115,16 @@ export function updateEnvironmentEvents(
   const enemyDamages: EnvironmentDamage[] = [];
   let playerDamage = 0;
 
+  warnings = [];
   for (const type of Object.keys(events) as EnvironmentEvent[]) {
     const event = events[type];
 
     // Timer para próximo evento
     if (!event.active) {
       event.timer -= dt;
+      if (event.timer <= WARNING_TIME && event.timer > 0) {
+        warnings.push({ type, timeLeft: event.timer });
+      }
       if (event.timer <= 0) {
         event.active = true;
         event.duration = type === 'storm' ? 5 : type === 'earthquake' ? 3 : 0.5;
@@ -119,7 +132,7 @@ export function updateEnvironmentEvents(
 
         // Efeitos visuais ao iniciar
         if (type === 'earthquake') {
-          triggerScreenShake(12, 3);
+          triggerScreenShake(6, 2);
           earthquakeActive = true;
         } else if (type === 'lightning') {
           // Flash branco para relâmpago (apenas visual)
@@ -156,9 +169,13 @@ export function updateEnvironmentEvents(
           if (event.duration > 0.3) {
             if (enemies.length > 0) {
               const target = enemies[Math.floor(rand(0, enemies.length))];
-              createExplosion(target.x, target.y, LIGHTNING_RADIUS, LIGHTNING_DAMAGE, enemies, '#3498db');
+              createExplosion(target.x, target.y, LIGHTNING_RADIUS, LIGHTNING_DAMAGE, enemies, '#608090');
               spawnParticles(target.x, target.y - 100, '#fff', 5, 100);
-              enemyDamages.push({ x: target.x, y: target.y - 20, damage: LIGHTNING_DAMAGE, color: '#3498db' });
+              enemyDamages.push({ x: target.x, y: target.y - 20, damage: LIGHTNING_DAMAGE, color: '#608090' });
+              const distToPlayer = Math.hypot(target.x - playerX, target.y - playerY);
+              if (distToPlayer < LIGHTNING_RADIUS * 2) {
+                playerDamage += LIGHTNING_DAMAGE;
+              }
             }
             event.duration = 0.3;
           }
@@ -191,6 +208,10 @@ export function updateEnvironmentEvents(
   return { enemyDamages, playerDamage };
 }
 
+export function getEnvironmentWarnings(): EnvironmentWarning[] {
+  return warnings;
+}
+
 /**
  * Reseta todos os eventos.
  */
@@ -204,4 +225,5 @@ export function resetEnvironmentEvents(): void {
   events.storm.timer = 60;
   earthquakeActive = false;
   stormActive = false;
+  warnings = [];
 }

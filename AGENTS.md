@@ -171,6 +171,7 @@ npx tsc --noEmit # Type check sem gerar output
 
 ```
 Receber tarefa
+  → Ler TODO.md. Se for alterar, gravar apenas se o conteúdo lido for idêntico ao que será escrito (evitar sobrescrever mudanças de outra sessão)
   → Entender o que foi pedido (não mais, não menos)
   → Explorar código relevante (não o projeto inteiro)
   → Implementar a mudança mínima necessária
