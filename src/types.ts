@@ -154,8 +154,6 @@ export interface Weapon {
   magazineSize: number;
   /** Tempo de recarga em segundos */
   reloadTime: number;
-  /** Arma secreta - só aparece se desbloqueada */
-  secret?: boolean;
 }
 
 /** Define um upgrade permanente disponível na loja */

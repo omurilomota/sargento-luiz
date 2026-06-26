@@ -5,6 +5,8 @@
  * Último em pé vence.
  */
 
+import { PLAYER_RADIUS, PLAYER_BASE_SPEED, PLAYER_BASE_HEALTH } from '../core/constants';
+
 /** Estado do segundo jogador */
 export interface LocalPlayer {
   x: number;
@@ -67,10 +69,10 @@ export function initLocalMultiplayer(canvasWidth: number, canvasHeight: number):
   player2 = {
     x: canvasWidth * 0.75,
     y: canvasHeight / 2,
-    radius: 18,
-    speed: 320,
-    health: 100,
-    maxHealth: 100,
+    radius: PLAYER_RADIUS,
+    speed: PLAYER_BASE_SPEED,
+    health: PLAYER_BASE_HEALTH,
+    maxHealth: PLAYER_BASE_HEALTH,
     angle: Math.PI,
     shootCooldown: 0,
     invincible: 0,

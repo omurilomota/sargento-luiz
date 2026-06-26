@@ -30,7 +30,7 @@ import { spawnParticles, updateParticles, clearParticles, getParticles } from '.
 import { spawnWaveEnemies, resetSpawner, spawnEnemy } from './systems/spawner';
 import { checkBulletEnemyCollisions, checkEnemyPlayerCollision, checkEnemyBulletPlayerCollision } from './systems/collision';
 import { createExplosion, updateExplosions, clearExplosions, getExplosions } from './systems/explosions';
-import { initRenderer, drawMenu, drawCutscene, drawGameOver, drawGameBackground, drawCoins as renderCoins, drawPowerUps as renderPowerUps, drawParticles as renderParticles, drawBullets as renderBullets, drawEnemies as renderEnemies, drawPlayer as renderPlayer, drawDamageNumbers, drawCombo, drawWeaponInfo, drawActivePowerUps as renderActivePowerUps, drawPhaseTransition, restoreCanvas } from './systems/renderer';
+import { initRenderer, drawMenu, drawCutscene, drawGameOver, drawGameBackground, drawCoins as renderCoins, drawPowerUps as renderPowerUps, drawParticles as renderParticles, drawBullets as renderBullets, drawEnemies as renderEnemies, drawPlayer as renderPlayer, drawDamageNumbers, drawCombo, drawWeaponInfo, drawActivePowerUps as renderActivePowerUps, drawPhaseTransition, restoreCanvas, drawNPCs } from './systems/renderer';
 
 // UI
 import { initHud, updateHud, setHudVisible } from './ui/hud';
@@ -77,6 +77,9 @@ import { startTutorial, isTutorialActive, getCurrentHint, updateTutorial } from 
 
 // Dynamic Difficulty
 import { updateBehavior, registerShot, registerHit, getPlayerTendency, resetBehavior } from './systems/dynamicDifficulty';
+
+// NPCs
+import { spawnNPC, updateNPCs, getNPCs, resetNPCs } from './systems/npcs';
 
 // Bots (Competitive Mode)
 import { getBots, createBot, updateBots, removeDeadBots, resetBots, addBot, BotDifficulty } from './systems/bots';
@@ -225,7 +228,6 @@ function logDamage(source: string, damage: number) {
   const entry = { time: performance.now(), source, damage };
   debugLog.push(entry);
   if (debugLog.length > 20) debugLog.shift();
-  console.log(`[DANO] ${source}: ${damage}`);
 }
 let currentFlash: string | null = null;
 let selectedMode: GameMode = 'campaign';
@@ -249,6 +251,7 @@ function resetGame() {
   resetRegen();
   resetSkins();
   resetAds();
+  resetNPCs();
   enemies.length = 0;
   damageNumbers.length = 0;
   clearBullets();
@@ -447,6 +450,17 @@ function update(dt: number) {
       // Unlock diary entry for completed phase
       const phaseIdx = getCurrentPhase()?.name ? PHASES.indexOf(getCurrentPhase()!) : 0;
       unlockDiaryEntry(phaseIdx);
+
+      // Spawn NPC at random edge position (40% chance per wave)
+      if (Math.random() < 0.4) {
+        const side = Math.floor(Math.random() * 4);
+        let nx: number, ny: number;
+        if (side === 0) { nx = Math.random() * canvas.width; ny = -20; }
+        else if (side === 1) { nx = canvas.width + 20; ny = Math.random() * canvas.height; }
+        else if (side === 2) { nx = Math.random() * canvas.width; ny = canvas.height + 20; }
+        else { nx = -20; ny = Math.random() * canvas.height; }
+        spawnNPC(nx, ny, Math.floor(Math.random() * 3));
+      }
 
       // Auto-save when entering shop
       saveGame(
@@ -731,15 +745,24 @@ function update(dt: number) {
     sfxPowerup();
   });
 
-  if (p.health <= 0) {
+  updateNPCs(dt, p.x, p.y, enemies);
+
+  if (p.health <= 0 && p.deathTimer === 0) {
     playerDied = true;
+    p.deathTimer = 1.5;
     addLeaderboardEntry('Jogador', getScore(), getCurrentWave());
-    // Death animation particles
     spawnParticles(p.x, p.y, '#7a9a6a', 30, 300);
     spawnParticles(p.x, p.y, '#fff', 15, 200);
-    triggerSlowMotion(0.5, 0.5);
-    setGameState('gameover');
+    triggerSlowMotion(0.3, 1.0);
     sfxGameOver();
+  }
+
+  if (p.deathTimer > 0) {
+    p.deathTimer -= dt;
+    p.deathAngle += 8 * dt;
+    if (p.deathTimer <= 0) {
+      setGameState('gameover');
+    }
   }
 
   // Check if game was completed (all phases beaten)
@@ -820,6 +843,7 @@ function draw() {
   renderParticles(getParticles());
   renderBullets(getBullets());
   renderEnemies(enemies, player.getPlayer().x, player.getPlayer().y);
+  drawNPCs(getNPCs());
 
   // Render bots (competitive mode)
   if (getCurrentMode() === 'competitive') {

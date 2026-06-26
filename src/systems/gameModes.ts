@@ -142,3 +142,7 @@ export function resetMissions(): void {
   missionNoDamageTimer = 0;
   currentMission = null;
 }
+
+export function getHardcore(): boolean {
+  return currentMode === 'hardcore';
+}
