@@ -72,6 +72,8 @@ export interface Enemy {
   spawnDelay: number;
   /** Timer de flash de dano (segundos restantes) */
   hitFlash: number;
+  /** Fase de ataque do boss (0-2, apenas para isBoss) */
+  bossPhase: number;
 }
 
 /** Representa uma partícula visual (explosão, rastro, etc.) */
@@ -150,6 +152,8 @@ export interface Weapon {
   magazineSize: number;
   /** Tempo de recarga em segundos */
   reloadTime: number;
+  /** Arma secreta - só aparece se desbloqueada */
+  secret?: boolean;
 }
 
 /** Define um upgrade permanente disponível na loja */

@@ -6,6 +6,7 @@
 
 import { PHASES } from './config';
 import { GameStateType } from './types';
+import { checkSecretEnding } from './systems/achievements';
 
 /** Índice da fase atual (0-indexado) */
 let currentPhase = 0;
@@ -138,6 +139,7 @@ export function nextPhase() {
   currentWave = 0;
   if (currentPhase >= PHASES.length) {
     gameState = 'gameover';
+    checkSecretEnding();
   } else {
     gameState = 'playing';
   }

@@ -30,7 +30,7 @@ import { spawnParticles, updateParticles, clearParticles, getParticles } from '.
 import { spawnWaveEnemies, resetSpawner, spawnEnemy } from './systems/spawner';
 import { checkBulletEnemyCollisions, checkEnemyPlayerCollision, checkEnemyBulletPlayerCollision } from './systems/collision';
 import { createExplosion, updateExplosions, clearExplosions, getExplosions } from './systems/explosions';
-import { initRenderer, drawMenu, drawCutscene, drawGameOver, drawGameBackground, drawCoins as renderCoins, drawPowerUps as renderPowerUps, drawParticles as renderParticles, drawBullets as renderBullets, drawEnemies as renderEnemies, drawPlayer as renderPlayer, drawDamageNumbers, drawCombo, drawWeaponInfo, drawActivePowerUps as renderActivePowerUps, restoreCanvas } from './systems/renderer';
+import { initRenderer, drawMenu, drawCutscene, drawGameOver, drawGameBackground, drawCoins as renderCoins, drawPowerUps as renderPowerUps, drawParticles as renderParticles, drawBullets as renderBullets, drawEnemies as renderEnemies, drawPlayer as renderPlayer, drawDamageNumbers, drawCombo, drawActivePowerUps as renderActivePowerUps, drawMinimap, restoreCanvas } from './systems/renderer';
 
 // UI
 import { initHud, updateHud, setHudVisible } from './ui/hud';
@@ -49,7 +49,7 @@ import { triggerScreenShake, triggerDamageFlash, triggerLevelUpFlash, triggerBos
 import { useSkill, isSkillActive, updateSkills, resetSkills, getDamageMultiplier, getDamageTakenMultiplier, getSkillCooldown, getSkillMaxCooldown, isSkillOnCooldown } from './systems/skills';
 
 // Environment Events
-import { updateEnvironmentEvents, resetEnvironmentEvents, isEarthquakeActive, isStormActive } from './systems/environment';
+import { updateEnvironmentEvents, resetEnvironmentEvents, isEarthquakeActive, isStormActive, getEnvironmentWarnings } from './systems/environment';
 
 // Combo Builds
 import { updateCombos, getActiveCombos, getComboDamageBonus, getComboFireRateBonus, resetCombos } from './systems/combos';
@@ -63,15 +63,24 @@ import { resetAds } from './systems/ads';
 // Save/Load
 import { saveGame, loadGame, hasSave } from './systems/saveSystem';
 
+// Leaderboard
+import { submitScore, getLeaderboard, isHighScore } from './systems/leaderboard';
+
+// Achievements
+import { initAchievements, unlock, updateAchievementToast, getCurrentToast, markDeath, checkSecretEnding } from './systems/achievements';
+
 // Bots (Competitive Mode)
 import { getBots, createBot, updateBots, removeDeadBots, resetBots, addBot, BotDifficulty } from './systems/bots';
+
+// NPCs
+import { spawnNPC, updateNPCs, getNPCs, resetNPCs } from './systems/npcs';
 
 // Local Multiplayer
 import { isEnabled as isLocalEnabled, initLocalMultiplayer, movePlayer2, shootPlayer2, damagePlayer2, getPlayer2, resetLocalMultiplayer, isGameOver as isLocalGameOver, getWinner as getLocalWinner, checkPlayer2EnemyCollision } from './systems/localMultiplayer';
 
 // Story & Game Modes
 import { showCutscene, advanceCutscene, skipCutsceneText, isShowingCutscene, updateCutscene, getCurrentCutscene, nextCutscene, resetStory, isLineComplete } from './systems/story';
-import { getCurrentMode, setGameMode, GameMode } from './systems/gameModes';
+import { getCurrentMode, setGameMode, GameMode, setHardcore, getHardcore } from './systems/gameModes';
 
 // ─── Canvas Setup ──────────────────────────────────────────────
 const canvas = document.getElementById('game') as HTMLCanvasElement;
@@ -82,6 +91,7 @@ window.addEventListener('resize', () => { canvas.width = window.innerWidth; canv
 
 initRenderer(canvas, ctx);
 initHud();
+initAchievements();
 
 // ─── Input ─────────────────────────────────────────────────────
 const keys: Record<string, boolean> = {};
@@ -98,6 +108,7 @@ document.addEventListener('keydown', e => {
     if (key === '4') selectedMode = 'bossrush';
     if (key === '5') selectedMode = 'competitive';
     if (key === '6') selectedMode = 'local';
+    if (key === '7') { selectedMode = 'campaign'; setHardcore(true); }
     // Continue saved game
     if (key.toLowerCase() === 'c' && hasSave()) {
       const save = loadGame();
@@ -107,6 +118,7 @@ document.addEventListener('keydown', e => {
         resetGame();
         setGameMode('campaign');
         setGameState('playing');
+        setHudVisible(true);
         for (const k in keys) keys[k] = false;
         // Restore state from save
         for (let i = 0; i < save.phase; i++) nextPhase();
@@ -127,10 +139,12 @@ document.addEventListener('keydown', e => {
   // Pause toggle
   if (key === 'Escape') {
     if (state === 'playing') {
+      setHudVisible(false);
       setGameState('paused');
       return;
     }
     if (state === 'paused') {
+      setHudVisible(true);
       setGameState('playing');
       return;
     }
@@ -192,6 +206,19 @@ let damageNumbers: { x: number; y: number; text: string; color: string; life: nu
 let lastTime = 0;
 let currentFlash: string | null = null;
 let selectedMode: GameMode = 'campaign';
+let phaseTransitionTimer = 0;
+let phaseTransitionPhase = '';
+let deathTimer = 0;
+let deathAnimating = false;
+let bossZoomTimer = 0;
+let tutorialStep = 0;
+let tutorialTimer = 0;
+const TUTORIAL_STEPS = [
+  { text: 'WASD para mover', duration: 3 },
+  { text: 'Mouse para mirar, Click para atirar', duration: 3 },
+  { text: 'Espaco: Dash | F: Escudo | E: Furia', duration: 3 },
+  { text: 'R: Recarregar', duration: 2 },
+];
 
 /**
  * Reseta todo o estado do jogo para o início.
@@ -209,6 +236,7 @@ function resetGame() {
   resetPermanentMagnet();
   resetCombos();
   resetBots();
+  resetNPCs();
   resetRegen();
   resetSkins();
   resetAds();
@@ -218,6 +246,11 @@ function resetGame() {
   clearCoins();
   clearParticles();
   clearExplosions();
+  phaseTransitionTimer = 0;
+  deathTimer = 0;
+  deathAnimating = false;
+  bossZoomTimer = 0;
+  currentFlash = null;
 }
 
 // ─── Update ────────────────────────────────────────────────────
@@ -240,6 +273,7 @@ function update(dt: number) {
         if (sceneFinished) {
           setGameMode(selectedMode);
           setGameState('playing');
+          setHudVisible(true);
           for (const k in keys) keys[k] = false;
           if (selectedMode === 'local') {
             initLocalMultiplayer(canvas.width, canvas.height);
@@ -262,14 +296,17 @@ function update(dt: number) {
     if (keys['enter']) {
       resetGame();
       setGameState('menu');
+      for (const k in keys) keys[k] = false;
     }
     return;
   }
 
   if (state === 'gameover') {
+    setHudVisible(false);
     if (keys['enter']) {
       resetGame();
       setGameState('menu');
+      for (const k in keys) keys[k] = false;
     }
     return;
   }
@@ -278,8 +315,12 @@ function update(dt: number) {
     setHudVisible(false);
     updateShopAds(dt);
     if (keys['enter']) {
-      setHudVisible(true);
       nextPhase();
+      if (getGameState() === 'playing') {
+        setHudVisible(true);
+        phaseTransitionTimer = 2.5;
+        phaseTransitionPhase = getCurrentPhase().name;
+      }
       player.initPlayer(canvas.width, canvas.height);
       enemies.length = 0;
       clearBullets();
@@ -290,7 +331,24 @@ function update(dt: number) {
     return;
   }
 
+  updateAchievementToast(dt);
+
   if (state !== 'playing') return;
+
+  if (bossZoomTimer > 0) bossZoomTimer -= dt;
+  const hasBoss = enemies.some(e => ENEMY_TYPES[e.type]?.isBoss);
+  if (hasBoss && bossZoomTimer <= 0) {
+    bossZoomTimer = 1.5;
+  }
+
+  // Tutorial
+  if (getCurrentPhase()?.name === 'Floresta' && getCurrentWave() === 0 && tutorialStep < TUTORIAL_STEPS.length) {
+    tutorialTimer += dt;
+    if (tutorialTimer >= TUTORIAL_STEPS[tutorialStep].duration) {
+      tutorialTimer = 0;
+      tutorialStep++;
+    }
+  }
 
   updateCombo(dt);
   updateCombos();
@@ -317,6 +375,18 @@ function update(dt: number) {
   }
 
   const envResult = updateEnvironmentEvents(dt, enemies, p.x, p.y);
+  updateNPCs(dt, p.x, p.y, enemies);
+
+  // Spawn NPC occasionally in campaign
+  if (getCurrentMode() === 'campaign' && Math.random() < dt * 0.1 && getNPCs().length < 2) {
+    const side = Math.floor(Math.random() * 4);
+    let nx = 0, ny = 0;
+    if (side === 0) { nx = -50; ny = Math.random() * canvas.height; }
+    else if (side === 1) { nx = canvas.width + 50; ny = Math.random() * canvas.height; }
+    else if (side === 2) { nx = Math.random() * canvas.width; ny = -50; }
+    else { nx = Math.random() * canvas.width; ny = canvas.height + 50; }
+    spawnNPC(nx, ny, Math.floor(Math.random() * 3));
+  }
   for (const d of envResult.enemyDamages) {
     damageNumbers.push({
       x: d.x + (Math.random() - 0.5) * 16,
@@ -365,6 +435,7 @@ function update(dt: number) {
   }
 
   if (p.invincible > 0) p.invincible -= dt;
+  if (p.hitFlash > 0) p.hitFlash -= dt;
 
   // Wave spawning
   const phase = getCurrentPhase();
@@ -373,6 +444,12 @@ function update(dt: number) {
     nextWave();
     player.healOnWaveComplete();
     sfxWaveStart();
+    const wave = getCurrentWave();
+    if (wave >= 5) unlock('wave_5');
+    if (wave >= 10) unlock('wave_10');
+    if (wave >= 20) unlock('wave_20');
+    if (getScore() >= 5000) unlock('score_5000');
+    if (getScore() >= 20000) unlock('score_20000');
     // Auto-save when entering shop
     if (getGameState() === 'shop') {
       saveGame(
@@ -404,20 +481,39 @@ function update(dt: number) {
     if (e.canShoot) {
       e.shootTimer -= dt;
       if (e.shootTimer <= 0) {
-        e.shootTimer = e.shootRate;
-        const angle = Math.atan2(p.y - e.y, p.x - e.x);
-        const bColor = ENEMY_TYPES[e.type]?.projectileColor || '#3498db';
-        if (ENEMY_TYPES[e.type]?.spreadShot) {
-          for (let s = -1; s <= 1; s++) {
-            spawnBullet(e.x, e.y, Math.cos(angle + s * 0.3) * 250, Math.sin(angle + s * 0.3) * 250, e.damage, true, bColor, false);
+        const bossPhase = ENEMY_TYPES[e.type]?.isBoss ? e.bossPhase : -1;
+        if (bossPhase === 0) {
+          e.shootTimer = e.shootRate;
+          const angle = Math.atan2(p.y - e.y, p.x - e.x);
+          spawnBullet(e.x, e.y, Math.cos(angle) * 300, Math.sin(angle) * 300, e.damage, true, '#8b4040', false);
+        } else if (bossPhase === 1) {
+          e.shootTimer = e.shootRate * 0.7;
+          const angle = Math.atan2(p.y - e.y, p.x - e.x);
+          for (let s = -2; s <= 2; s++) {
+            spawnBullet(e.x, e.y, Math.cos(angle + s * 0.2) * 280, Math.sin(angle + s * 0.2) * 280, e.damage, true, '#8b4040', false);
           }
-        } else if (ENEMY_TYPES[e.type]?.splitBullet) {
-          for (let s = 0; s < 4; s++) {
-            const a = angle + (s * Math.PI / 2);
-            spawnBullet(e.x, e.y, Math.cos(a) * 200, Math.sin(a) * 200, e.damage, true, bColor, false);
+        } else if (bossPhase === 2) {
+          e.shootTimer = e.shootRate * 0.5;
+          for (let s = 0; s < 8; s++) {
+            const a = (s * Math.PI * 2) / 8 + e.attackTimer;
+            spawnBullet(e.x, e.y, Math.cos(a) * 250, Math.sin(a) * 250, e.damage, true, '#8b4040', false);
           }
         } else {
-          spawnBullet(e.x, e.y, Math.cos(angle) * 300, Math.sin(angle) * 300, e.damage, true, bColor, false);
+          e.shootTimer = e.shootRate;
+          const angle = Math.atan2(p.y - e.y, p.x - e.x);
+          const bColor = ENEMY_TYPES[e.type]?.projectileColor || '#608090';
+          if (ENEMY_TYPES[e.type]?.spreadShot) {
+            for (let s = -1; s <= 1; s++) {
+              spawnBullet(e.x, e.y, Math.cos(angle + s * 0.3) * 250, Math.sin(angle + s * 0.3) * 250, e.damage, true, bColor, false);
+            }
+          } else if (ENEMY_TYPES[e.type]?.splitBullet) {
+            for (let s = 0; s < 4; s++) {
+              const a = angle + (s * Math.PI / 2);
+              spawnBullet(e.x, e.y, Math.cos(a) * 200, Math.sin(a) * 200, e.damage, true, bColor, false);
+            }
+          } else {
+            spawnBullet(e.x, e.y, Math.cos(angle) * 300, Math.sin(angle) * 300, e.damage, true, bColor, false);
+          }
         }
         sfxEnemyShoot();
       }
@@ -431,8 +527,20 @@ function update(dt: number) {
         const type = summonTypes[Math.floor(Math.random() * summonTypes.length)] as string;
         const summoned = spawnEnemy(type, canvas.width, canvas.height, getCurrentWave());
         if (summoned) enemies.push(summoned);
-        spawnParticles(e.x, e.y, '#9b59b6', 8, 150);
+        spawnParticles(e.x, e.y, '#8070a0', 8, 150);
       }
+    }
+
+    // Boss phase transitions based on health
+    if (ENEMY_TYPES[e.type]?.isBoss) {
+      const healthPct = e.health / e.maxHealth;
+      const newPhase = healthPct > 0.66 ? 0 : healthPct > 0.33 ? 1 : 2;
+      if (newPhase > e.bossPhase) {
+        e.bossPhase = newPhase;
+        spawnParticles(e.x, e.y, '#8b4040', 20, 200);
+        triggerScreenShake(6, 0.5);
+      }
+      e.attackTimer += dt;
     }
 
     if (ENEMY_TYPES[e.type]?.leavesFire) {
@@ -493,8 +601,10 @@ function update(dt: number) {
       sfxPlayerHit();
       triggerDamageFlash();
     }
-    e.health = 0;
-    spawnParticles(e.x, e.y, e.color, 12, 200);
+    if (!hasPowerUp('invincible')) {
+      e.health = 0;
+      spawnParticles(e.x, e.y, e.color, 12, 200);
+    }
   });
 
   const bullets = getBullets();
@@ -513,23 +623,28 @@ function update(dt: number) {
 
   checkBulletEnemyCollisions(bullets, enemies, (b, e) => {
     e.hitFlash = 0.15;
-    // Explosive bullets create area damage
+    const isCrit = !b.isEnemy && e.health > 0 && e.health <= b.damage * 1.5;
     if (b.explosive && b.explosionRadius) {
       createExplosion(b.x, b.y, b.explosionRadius, b.damage, enemies, b.color);
       sfxExplosion();
-      triggerScreenShake(8, 0.2);
+      triggerScreenShake(4, 0.15);
     } else {
       e.health -= b.damage;
+      const dmgText = isCrit ? `${Math.floor(b.damage)} CRIT!` : String(Math.floor(b.damage));
+      const dmgColor = isCrit ? '#a08050' : b.color === '#f1c40f' ? '#f1c40f' : '#ccc';
       damageNumbers.push({
         x: e.x + (Math.random() - 0.5) * 20, y: e.y - 20,
-        text: b.color === '#f1c40f' ? `${Math.floor(b.damage)}!` : String(Math.floor(b.damage)),
-        color: b.color === '#f1c40f' ? '#f1c40f' : '#fff',
-        life: 1, vy: -80,
+        text: dmgText, color: dmgColor,
+        life: isCrit ? 1.5 : 1, vy: isCrit ? -100 : -80,
       });
+      if (isCrit) {
+        triggerSlowMotion(0.4, 0.3);
+        triggerScreenShake(3, 0.1);
+      }
     }
     if (!b.pierce) b.life = 0;
-    spawnParticles(b.x, b.y, b.color, 3, 150);
-    triggerHitStop(0.015);
+    spawnParticles(b.x, b.y, isCrit ? '#a08050' : b.color, isCrit ? 8 : 3, isCrit ? 200 : 150);
+    triggerHitStop(isCrit ? 0.04 : 0.015);
   });
 
   // Bullet-Bot collision (competitive mode)
@@ -572,6 +687,12 @@ function update(dt: number) {
       if (Math.random() < 0.08) spawnPowerUp(enemies[i].x, enemies[i].y);
       enemies[i] = enemies[enemies.length - 1];
       enemies.pop();
+      const totalK = getKillStreak();
+      if (totalK === 1) unlock('first_kill');
+      if (totalK >= 50) unlock('kill_50');
+      if (totalK >= 100) unlock('kill_100');
+      if (getCombo() >= 10) unlock('combo_10');
+      if (getCombo() >= 25) unlock('combo_25');
     }
   }
 
@@ -604,9 +725,28 @@ function update(dt: number) {
     sfxPowerup();
   });
 
-  if (p.health <= 0) {
-    setGameState('gameover');
+  if (p.health <= 0 && !deathAnimating) {
+    deathAnimating = true;
+    deathTimer = 1.5;
     sfxGameOver();
+    spawnParticles(p.x, p.y, '#7a9a6a', 30, 200);
+    triggerScreenShake(15, 0.5);
+    markDeath();
+  }
+
+  if (deathAnimating) {
+    deathTimer -= dt;
+    if (deathTimer <= 0) {
+      deathAnimating = false;
+      setGameState('gameover');
+      const phaseName = getCurrentPhase()?.name || 'Desconhecido';
+      submitScore(getScore(), getKillStreak(), phaseName, getCurrentMode());
+      if (getScore() >= 20000) unlock('score_20000');
+    }
+  }
+
+  if (phaseTransitionTimer > 0) {
+    phaseTransitionTimer -= dt;
   }
 
   currentFlash = updateFlash(dt);
@@ -672,12 +812,50 @@ function draw() {
   }
 
   const bg = getCurrentPhase();
+
+  if (bossZoomTimer > 0) {
+    const zoomProgress = bossZoomTimer / 1.5;
+    const scale = 1 + zoomProgress * 0.05;
+    ctx.save();
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.scale(scale, scale);
+    ctx.translate(-canvas.width / 2, -canvas.height / 2);
+  }
+
   drawGameBackground(bg?.bg || '#1a1a2e', bg?.gridColor || 'rgba(255,255,255,0.03)', { x: 0, y: 0 });
   renderCoins(getCoins());
   renderPowerUps(powerups);
   renderParticles(getParticles());
   renderBullets(getBullets());
   renderEnemies(enemies, player.getPlayer().x, player.getPlayer().y);
+
+  // Render NPCs
+  for (const npc of getNPCs()) {
+    if (!npc.alive && npc.messageTimer <= 0) continue;
+    ctx.fillStyle = npc.alive ? npc.color : 'rgba(100,100,100,0.5)';
+    ctx.beginPath();
+    ctx.arc(npc.x, npc.y, npc.radius, 0, Math.PI * 2);
+    ctx.fill();
+    if (npc.alive) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      if (npc.health < npc.maxHealth) {
+        const barW = npc.radius * 2;
+        ctx.fillStyle = '#333';
+        ctx.fillRect(npc.x - barW / 2, npc.y - npc.radius - 10, barW, 3);
+        ctx.fillStyle = '#7a9a6a';
+        ctx.fillRect(npc.x - barW / 2, npc.y - npc.radius - 10, barW * (npc.health / npc.maxHealth), 3);
+      }
+      if (npc.messageTimer > 0) {
+        ctx.fillStyle = '#ccc';
+        ctx.font = '10px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(npc.message, npc.x, npc.y - npc.radius - 16);
+        ctx.textAlign = 'left';
+      }
+    }
+  }
 
   // Render bots (competitive mode)
   if (getCurrentMode() === 'competitive') {
@@ -714,6 +892,7 @@ function draw() {
   renderPlayer(player.getPlayer());
   drawDamageNumbers(damageNumbers);
   restoreCanvas();
+  if (bossZoomTimer > 0) restoreCanvas();
 
   // Flash overlay
   if (currentFlash) {
@@ -721,14 +900,33 @@ function draw() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
-  // Environment event indicators
+  // Environment warnings
+  const envWarnings = getEnvironmentWarnings();
+  if (envWarnings.length > 0) {
+    let warnY = 20;
+    for (const w of envWarnings) {
+      const flash = Math.sin(Date.now() / 200) > 0;
+      ctx.fillStyle = w.type === 'earthquake' ? '#b07050' : w.type === 'storm' ? '#608090' : '#8070a0';
+      ctx.globalAlpha = flash ? 0.9 : 0.4;
+      ctx.font = 'bold 11px monospace';
+      ctx.textAlign = 'right';
+      const label = w.type === 'earthquake' ? 'TERREMOTO' : w.type === 'storm' ? 'TEMPESTADE' : 'RELAMPAGO';
+      ctx.fillText(`⚠ ${label} em ${Math.ceil(w.timeLeft)}s`, canvas.width - 15, warnY);
+      warnY += 16;
+    }
+    ctx.globalAlpha = 1;
+    ctx.textAlign = 'left';
+  }
+
+  // Environment event indicators (below powerups to avoid overlap)
   if (isEarthquakeActive()) {
     ctx.fillStyle = 'rgba(176,112,80,0.08)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = '#b07050';
     ctx.font = 'bold 12px monospace';
     ctx.textAlign = 'right';
-    ctx.fillText('TERREMOTO', canvas.width - 15, 20);
+    const envY = Object.keys(activePowerups).length > 0 ? 75 : 20;
+    ctx.fillText('TERREMOTO', canvas.width - 15, envY);
     ctx.textAlign = 'left';
   }
   if (isStormActive()) {
@@ -737,21 +935,42 @@ function draw() {
     ctx.fillStyle = '#608090';
     ctx.font = 'bold 12px monospace';
     ctx.textAlign = 'right';
-    ctx.fillText('TEMPESTADE', canvas.width - 15, 20);
+    const envY = Object.keys(activePowerups).length > 0 ? 75 : 20;
+    ctx.fillText('TEMPESTADE', canvas.width - 15, envY);
     ctx.textAlign = 'left';
   }
 
   drawCombo(getCombo());
-  drawWeaponInfo(getCurrentWeapon().name);
   renderActivePowerUps(activePowerups);
 
-  // Skill cooldown indicators (bottom-left)
+  // Tutorial overlay
+  if (tutorialStep < TUTORIAL_STEPS.length && getCurrentPhase()?.name === 'Floresta' && getCurrentWave() === 0) {
+    const step = TUTORIAL_STEPS[tutorialStep];
+    const alpha = Math.min(1, tutorialTimer < 0.5 ? tutorialTimer * 2 : tutorialTimer > step.duration - 0.5 ? (step.duration - tutorialTimer) * 2 : 1);
+    ctx.globalAlpha = alpha * 0.85;
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.beginPath();
+    ctx.roundRect(canvas.width / 2 - 160, canvas.height / 2 + 60, 320, 36, 6);
+    ctx.fill();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = '#c8b890';
+    ctx.font = '14px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(step.text, canvas.width / 2, canvas.height / 2 + 83);
+    ctx.fillStyle = '#666';
+    ctx.font = '10px monospace';
+    ctx.fillText(`${tutorialStep + 1}/${TUTORIAL_STEPS.length}`, canvas.width / 2, canvas.height / 2 + 100);
+    ctx.textAlign = 'left';
+    ctx.globalAlpha = 1;
+  }
+
+  // Skill cooldown indicators (bottom-left, above HUD bar)
   const skillData: { key: string; name: string; color: string; type: 'dash' | 'shield' | 'fury' }[] = [
     { key: 'SPACE', name: 'Dash', color: '#608090', type: 'dash' },
     { key: 'F', name: 'Escudo', color: '#608090', type: 'shield' },
     { key: 'E', name: 'Furia', color: '#608090', type: 'fury' },
   ];
-  let skillY = canvas.height - 60;
+  let skillY = canvas.height - 90;
   for (const s of skillData) {
     const cd = getSkillCooldown(s.type);
     const maxCd = getSkillMaxCooldown(s.type);
@@ -785,6 +1004,10 @@ function draw() {
     skillY -= 26;
   }
 
+  // Minimap
+  const pp = player.getPlayer();
+  drawMinimap(pp.x, pp.y, enemies, canvas.width, canvas.height, canvas.width, canvas.height);
+
   // Combo build indicators
   const combos = getActiveCombos();
   if (combos.length > 0) {
@@ -801,6 +1024,56 @@ function draw() {
       ctx.globalAlpha = 1;
       comboY -= 32;
     }
+  }
+
+  if (phaseTransitionTimer > 0) {
+    const alpha = Math.min(1, phaseTransitionTimer / 1.5);
+    ctx.fillStyle = `rgba(0,0,0,${alpha * 0.6})`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = `rgba(200,184,144,${alpha})`;
+    ctx.font = 'bold 36px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(phaseTransitionPhase, canvas.width / 2, canvas.height / 2);
+    ctx.font = '16px monospace';
+    ctx.fillStyle = `rgba(102,102,102,${alpha})`;
+    ctx.fillText(`Fase ${getCurrentPhase()?.name || ''}`, canvas.width / 2, canvas.height / 2 + 35);
+    ctx.textAlign = 'left';
+  }
+
+  if (deathAnimating) {
+    const progress = 1 - deathTimer / 1.5;
+    ctx.fillStyle = `rgba(139,64,64,${progress * 0.5})`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (progress > 0.3) {
+      const textAlpha = Math.min(1, (progress - 0.3) / 0.3);
+      ctx.fillStyle = `rgba(200,184,144,${textAlpha})`;
+      ctx.font = 'bold 40px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2);
+      ctx.textAlign = 'left';
+    }
+  }
+
+  const toast = getCurrentToast();
+  if (toast) {
+    const alpha = Math.min(1, toast.timer / 0.5);
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.beginPath();
+    ctx.roundRect(canvas.width / 2 - 140, 60, 280, 50, 6);
+    ctx.fill();
+    ctx.strokeStyle = '#a08050';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.fillStyle = '#a08050';
+    ctx.font = 'bold 11px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(`ACHIEVEMENT: ${toast.achievement.icon} ${toast.achievement.name}`, canvas.width / 2, 82);
+    ctx.fillStyle = '#888';
+    ctx.font = '10px monospace';
+    ctx.fillText(toast.achievement.description, canvas.width / 2, 100);
+    ctx.textAlign = 'left';
+    ctx.globalAlpha = 1;
   }
 }
 

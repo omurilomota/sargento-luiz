@@ -4,7 +4,17 @@
  */
 
 /** Tipos de modo de jogo */
-export type GameMode = 'campaign' | 'survival' | 'missions' | 'bossrush' | 'competitive' | 'local';
+export type GameMode = 'campaign' | 'survival' | 'missions' | 'bossrush' | 'competitive' | 'local' | 'hardcore';
+
+let isHardcore = false;
+
+export function setHardcore(value: boolean): void {
+  isHardcore = value;
+}
+
+export function getHardcore(): boolean {
+  return isHardcore;
+}
 
 /** Dados de uma missão */
 export interface Mission {

@@ -9,22 +9,21 @@
     body { background: #111; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
     canvas { display: block; cursor: crosshair; }
 
-    /* Minimalist HUD - Bottom bar */
-    #hud {
-      position: fixed; bottom: 0; left: 0; right: 0;
-      height: 40px;
+    /* Top HUD - Stats */
+    #hud-top {
+      position: fixed; top: 0; left: 0; right: 0;
+      height: 32px;
       display: flex; align-items: center; justify-content: space-between;
-      padding: 0 16px;
+      padding: 0 12px;
       pointer-events: none;
       z-index: 100;
-      background: rgba(0, 0, 0, 0.6);
     }
 
-    .hud-left, .hud-right {
-      display: flex; align-items: center; gap: 14px;
+    .hud-top-left, .hud-top-right {
+      display: flex; align-items: center; gap: 12px;
     }
 
-    .hud-center {
+    .hud-top-center {
       display: flex; align-items: center; gap: 16px;
     }
 
@@ -34,89 +33,79 @@
     }
 
     .health-bar {
-      width: 100px; height: 6px;
-      background: rgba(255, 255, 255, 0.08);
-      border-radius: 3px;
+      width: 90px; height: 5px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 2px;
       overflow: hidden;
     }
 
     .health-bar-fill {
       height: 100%;
       background: #7a9a6a;
-      border-radius: 3px;
-      transition: width 0.3s ease;
+      border-radius: 2px;
+      transition: width 0.2s ease;
     }
 
     .health-text {
       font-family: monospace;
-      font-size: 11px;
+      font-size: 10px;
       color: #666;
-      min-width: 32px;
+      min-width: 28px;
     }
 
-    /* Simple stat display */
     .stat {
       font-family: monospace;
-      font-size: 12px;
-      color: #777;
-    }
-
-    .stat-value {
-      color: #ccc;
-      font-weight: bold;
+      font-size: 11px;
+      color: #666;
     }
 
     .stat-coins { color: #a08050; }
     .stat-wave { color: #608090; }
     .stat-enemies { color: #b07050; }
 
-    /* Weapon */
-    .weapon {
-      font-family: monospace;
-      font-size: 11px;
-      color: #555;
-      padding: 3px 6px;
-      background: rgba(255, 255, 255, 0.03);
-      border-radius: 3px;
+    /* Bottom HUD - Weapon */
+    #hud-bottom {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      height: 28px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 12px;
+      pointer-events: none;
+      z-index: 100;
+      background: rgba(0, 0, 0, 0.4);
     }
 
-    /* Combo */
+    .weapon {
+      font-family: monospace;
+      font-size: 10px;
+      color: #555;
+      padding: 2px 5px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 2px;
+    }
+
     #combo {
       opacity: 0;
       transition: opacity 0.2s ease;
       font-family: monospace;
-      font-size: 12px;
+      font-size: 11px;
       color: #a08050;
       font-weight: bold;
     }
 
     #combo.active { opacity: 1; }
 
-    /* Score - top center */
     #score-display {
-      position: fixed;
-      top: 12px;
-      left: 50%;
-      transform: translateX(-50%);
       font-family: monospace;
-      font-size: 14px;
+      font-size: 12px;
       font-weight: bold;
       color: #a08050;
-      pointer-events: none;
-      z-index: 100;
     }
   </style>
 </head>
 <body>
-  <!-- Score Display - Top Center -->
-  <div id="score-display">
-    <span id="score">0</span>
-  </div>
-
-  <!-- HUD Bar - Bottom -->
-  <div id="hud">
-    <div class="hud-left">
-      <!-- Health Bar -->
+  <!-- Top HUD -->
+  <div id="hud-top">
+    <div class="hud-top-left">
       <div class="health-bar-container">
         <div class="health-bar">
           <div class="health-bar-fill" id="health-bar" style="width: 100%"></div>
@@ -125,33 +114,26 @@
       </div>
     </div>
 
-    <div class="hud-center">
-      <!-- Phase + Wave -->
+    <div class="hud-top-center">
+      <span id="score-display"><span id="score">0</span></span>
       <span class="stat">
         <span class="stat-wave" id="phase">Floresta</span>
-        <span style="color: #444;"> · </span>
-        <span style="color: #666;">Onda</span>
+        <span style="color: #333;"> · </span>
         <span class="stat-wave" id="wave">1</span>
       </span>
-
-      <!-- Combo -->
       <span id="combo">x<span id="combo-text">2</span></span>
     </div>
 
-    <div class="hud-right">
-      <!-- Weapon -->
-      <span class="weapon" id="weapon">Pistola</span>
-
-      <!-- Coins -->
-      <span class="stat stat-coins">
-        <span id="coins">0</span>
-      </span>
-
-      <!-- Enemies -->
-      <span class="stat stat-enemies">
-        <span id="enemies">0</span>
-      </span>
+    <div class="hud-top-right">
+      <span class="stat stat-coins">$<span id="coins">0</span></span>
+      <span class="stat stat-enemies">!<span id="enemies">0</span></span>
     </div>
+  </div>
+
+  <!-- Bottom HUD -->
+  <div id="hud-bottom">
+    <span class="weapon" id="weapon">Pistola</span>
+    <span class="stat" style="color: #444;">WASD Mover · Mouse Mirar · Click Atirar</span>
   </div>
 
   <!-- Hidden inputs for game logic -->

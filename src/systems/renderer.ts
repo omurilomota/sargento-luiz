@@ -14,6 +14,7 @@ import { getSprite, getEnemySpriteKey, isSpritesEnabled } from './sprites';
 import { getCurrentCutscene, getCurrentLine, isLineComplete, getTextProgress, getPortraitInfo, Character } from './story';
 import { getEquippedSkin } from './skins';
 import { hasSave } from './saveSystem';
+import { getLeaderboard } from './leaderboard';
 
 /** Contexto 2D do canvas */
 let ctx: CanvasRenderingContext2D;
@@ -81,7 +82,7 @@ export function drawMenu(selectedMode: string = 'campaign'): void {
   // Mode label
   ctx.fillStyle = '#666';
   ctx.font = '11px monospace';
-  ctx.fillText('SELECIONE O MODO (tecle 1-6)', W / 2, modesStartY - 12);
+  ctx.fillText('SELECIONE O MODO (tecle 1-7)', W / 2, modesStartY - 12);
 
   const modes = [
     { key: '1', name: 'CAMPANHA', desc: 'Historia com cutscenes', color: '#7a9a6a' },
@@ -90,11 +91,12 @@ export function drawMenu(selectedMode: string = 'campaign'): void {
     { key: '4', name: 'BOSS RUSH', desc: 'Apenas bosses', color: '#8070a0' },
     { key: '5', name: 'COMPETITIVO', desc: 'Vs bots IA', color: '#608090' },
     { key: '6', name: 'LOCAL 2P', desc: 'Mesmo teclado', color: '#b07050' },
+    { key: '7', name: 'HARDCORE', desc: 'Sem cura, uma vida', color: '#8b4040' },
   ];
 
   const modeKeyMap: Record<string, string> = {
     '1': 'campaign', '2': 'survival', '3': 'missions',
-    '4': 'bossrush', '5': 'competitive', '6': 'local',
+    '4': 'bossrush', '5': 'competitive', '6': 'local', '7': 'campaign',
   };
 
   const boxW = Math.min(340, W * 0.7);
@@ -174,11 +176,20 @@ export function drawCutscene(): void {
   const progress = getTextProgress();
   const complete = isLineComplete();
 
-  // Fundo escuro
+  // Fundo escuro com partículas sutis
   ctx.fillStyle = '#111';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Linha superior sutil
+  for (let i = 0; i < 6; i++) {
+    const px = (i * 197 + Date.now() / 60) % canvas.width;
+    const py = (i * 131 + Date.now() / 80) % canvas.height;
+    ctx.fillStyle = `rgba(200,184,144,${0.03 + Math.sin(Date.now() / 3000 + i) * 0.02})`;
+    ctx.beginPath();
+    ctx.arc(px, py, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Linha superior
   ctx.strokeStyle = 'rgba(255,255,255,0.06)';
   ctx.lineWidth = 1;
   ctx.beginPath();
@@ -186,13 +197,16 @@ export function drawCutscene(): void {
   ctx.lineTo(canvas.width * 0.85, canvas.height * 0.18);
   ctx.stroke();
 
-  // Título da cena
+  // Título da cena com fade in
+  const titleAlpha = Math.min(1, progress / 10);
+  ctx.globalAlpha = titleAlpha;
   ctx.fillStyle = cutscene.color;
   ctx.font = 'bold 28px monospace';
   ctx.textAlign = 'center';
   ctx.fillText(cutscene.title, canvas.width / 2, canvas.height * 0.15);
+  ctx.globalAlpha = 1;
 
-  // Retrato do personagem (círculo simples)
+  // Retrato do personagem
   const portraitX = canvas.width * 0.2;
   const portraitY = canvas.height * 0.45;
   const portraitR = 35;
@@ -204,6 +218,8 @@ export function drawCutscene(): void {
 
   ctx.strokeStyle = portrait.color;
   ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(portraitX, portraitY, portraitR + Math.sin(Date.now() / 1000) * 2, 0, Math.PI * 2);
   ctx.stroke();
 
   // Inicial do personagem
@@ -287,26 +303,44 @@ export function drawGameOver(score: number, killStreak: number): void {
   for (let i = 0; i < 30; i++) {
     const x = (i * 100 + Date.now() / 40) % canvas.width;
     const y = (i * 80 + Date.now() / 50) % canvas.height;
-    ctx.fillStyle = `rgba(231,76,60,${0.15 + Math.sin(Date.now() / 800 + i) * 0.05})`;
+    ctx.fillStyle = `rgba(139,64,64,${0.15 + Math.sin(Date.now() / 800 + i) * 0.05})`;
     ctx.beginPath();
     ctx.arc(x, y, 3, 0, Math.PI * 2);
     ctx.fill();
   }
-  ctx.fillStyle = '#e74c3c';
-  ctx.font = 'bold 56px monospace';
+  ctx.fillStyle = '#8b4040';
+  ctx.font = 'bold 48px monospace';
   ctx.textAlign = 'center';
-  ctx.shadowColor = '#e74c3c';
-  ctx.shadowBlur = 30;
-  ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 70);
-  ctx.shadowBlur = 0;
-  ctx.fillStyle = '#fff';
-  ctx.font = '20px monospace';
-  ctx.fillText(`Pontos: ${score}`, canvas.width / 2, canvas.height / 2 - 10);
-  ctx.fillText(`Kills: ${killStreak}`, canvas.width / 2, canvas.height / 2 + 20);
-  const pulse = 0.7 + Math.sin(Date.now() / 400) * 0.3;
-  ctx.globalAlpha = pulse;
-  ctx.fillText('Pressione ENTER para reiniciar', canvas.width / 2, canvas.height / 2 + 70);
-  ctx.globalAlpha = 1;
+  ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 100);
+  ctx.fillStyle = '#ccc';
+  ctx.font = '18px monospace';
+  ctx.fillText(`Pontos: ${score}`, canvas.width / 2, canvas.height / 2 - 60);
+  ctx.fillText(`Kills: ${killStreak}`, canvas.width / 2, canvas.height / 2 - 35);
+
+  ctx.fillStyle = '#666';
+  ctx.font = '12px monospace';
+  ctx.fillText('ENTER para reiniciar', canvas.width / 2, canvas.height / 2 + 60);
+
+  const leaderboard = getLeaderboard();
+  if (leaderboard.length > 0) {
+    const lbX = canvas.width / 2;
+    const lbY = canvas.height / 2 + 90;
+    ctx.fillStyle = '#a08050';
+    ctx.font = 'bold 13px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('LEADERBOARD', lbX, lbY);
+    ctx.font = '11px monospace';
+    leaderboard.forEach((entry, i) => {
+      const y = lbY + 18 + i * 16;
+      ctx.fillStyle = i === 0 ? '#a08050' : '#666';
+      ctx.textAlign = 'left';
+      ctx.fillText(`${i + 1}. ${entry.score} pts`, lbX - 80, y);
+      ctx.fillStyle = '#555';
+      ctx.textAlign = 'right';
+      ctx.fillText(`${entry.kills} kills · ${entry.phase}`, lbX + 80, y);
+    });
+  }
+  ctx.textAlign = 'left';
 }
 
 /**
@@ -463,6 +497,11 @@ export function drawBullets(bullets: Bullet[]): void {
  */
 export function drawEnemies(enemies: Enemy[], playerX: number, playerY: number): void {
   for (const e of enemies) {
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.beginPath();
+    ctx.ellipse(e.x, e.y + e.radius + 3, e.radius * 0.7, e.radius * 0.25, 0, 0, Math.PI * 2);
+    ctx.fill();
+
     ctx.save();
     ctx.translate(e.x, e.y);
 
@@ -599,7 +638,13 @@ export function drawEnemies(enemies: Enemy[], playerX: number, playerY: number):
  * @param player - objeto do jogador com suas propriedades atuais
  */
 export function drawPlayer(player: Player): void {
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.beginPath();
+  ctx.ellipse(player.x, player.y + player.radius + 4, player.radius * 0.8, player.radius * 0.3, 0, 0, Math.PI * 2);
+  ctx.fill();
+
   const flash = player.invincible > 0 && Math.floor(player.invincible * 25) % 2;
+  const hitFlash = player.hitFlash > 0;
   if (!flash) {
     // Try to use sprite if available
     const sprite = getSprite('player');
@@ -721,6 +766,15 @@ export function drawPlayer(player: Player): void {
     ctx.moveTo(player.x, player.y);
     ctx.lineTo(player.x + Math.cos(player.angle) * 28, player.y + Math.sin(player.angle) * 28);
     ctx.stroke();
+
+    if (hitFlash) {
+      ctx.globalAlpha = 0.5;
+      ctx.fillStyle = '#8b4040';
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
   }
 }
 
@@ -757,17 +811,6 @@ export function drawCombo(combo: number): void {
 }
 
 /**
- * Desenha o nome da arma atual no canto inferior esquerdo.
- * @param weaponName - nome da arma equipada
- */
-export function drawWeaponInfo(weaponName: string): void {
-  ctx.fillStyle = '#aaa';
-  ctx.font = '14px monospace';
-  ctx.textAlign = 'left';
-  ctx.fillText(weaponName, 20, canvas.height - 20);
-}
-
-/**
  * Desenha os ícones dos power-ups ativos com tempo restante no canto superior direito.
  * @param activePowerups - mapa de power-ups ativos e seus tempos restantes
  */
@@ -792,6 +835,51 @@ export function drawActivePowerUps(activePowerups: Record<string, number>): void
     x -= 35;
   }
   ctx.globalAlpha = 1;
+}
+
+export function drawMinimap(
+  playerX: number, playerY: number,
+  enemies: { x: number; y: number; color: string; isBoss?: boolean }[],
+  _mapW: number, _mapH: number,
+  worldW: number, worldH: number
+): void {
+  const size = 100;
+  const padding = 12;
+  const mx = canvas.width - size - padding;
+  const my = canvas.height - 60 - size - padding;
+
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.beginPath();
+  ctx.roundRect(mx, my, size, size, 4);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
+  const scaleX = size / worldW;
+  const scaleY = size / worldH;
+
+  for (const e of enemies) {
+    const ex = clamp(mx + e.x * scaleX, mx + 2, mx + size - 2);
+    const ey = clamp(my + e.y * scaleY, my + 2, my + size - 2);
+    ctx.fillStyle = e.isBoss ? '#8b4040' : e.color;
+    ctx.beginPath();
+    ctx.arc(ex, ey, e.isBoss ? 3 : 1.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  const px = clamp(mx + playerX * scaleX, mx + 2, mx + size - 2);
+  const py = clamp(my + playerY * scaleY, my + 2, my + size - 2);
+  ctx.fillStyle = '#7a9a6a';
+  ctx.beginPath();
+  ctx.arc(px, py, 3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#7a9a6a';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(px, py, 5, 0, Math.PI * 2);
+  ctx.stroke();
 }
 
 /**

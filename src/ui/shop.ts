@@ -8,6 +8,7 @@ import { WEAPONS, UPGRADES } from '../config';
 import { setWeapon, addDamageMultiplier, addPierce, addCrit, addReloadSpeed } from '../weapons';
 import { addMaxHealth, addSpeed, addShield, enableRegen } from '../entities/player';
 import { enablePermanentMagnet } from '../entities/coin';
+import { isUnlocked } from '../systems/achievements';
 import { getAllSkins, buySkin, equipSkin, getEquippedSkin, Skin } from '../systems/skins';
 import { canWatchAd, startWatchingAd, getIsWatchingAd, getAdProgress, getAdCooldown, getLastAdReward, getNextAdReward, getAdsWatched, updateAd } from '../systems/ads';
 import { getGameState } from '../phases';
@@ -214,6 +215,7 @@ export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: n
   ctx.stroke();
 
   WEAPONS.forEach((w, i) => {
+    if (w.secret && !isUnlocked('all_phases')) return;
     const y = 145 + i * 42;
     const owned = purchasedWeapons.includes(i);
     const canBuy = !owned && shopCoins >= w.price;
@@ -493,6 +495,7 @@ export function handleShopClick(mouseX: number, mouseY: number) {
   const scrollY = mouseY + shopScrollOffset;
 
   WEAPONS.forEach((w, i) => {
+    if (w.secret && !isUnlocked('all_phases')) return;
     const y = 145 + i * 42;
     if (mouseX >= leftX && mouseX <= leftX + colW && scrollY >= y && scrollY <= y + 38) {
       buyWeapon(i);

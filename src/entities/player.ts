@@ -5,29 +5,21 @@
  */
 
 import { PLAYER_BASE_SPEED, PLAYER_BASE_HEALTH, PLAYER_RADIUS, INVINCIBLE_DURATION, BULLET_INVINCIBLE_DURATION, WAVE_HEAL_ON_COMPLETE } from '../core/constants';
+import { getHardcore } from '../systems/gameModes';
 
 /** Interface que define todas as propriedades do jogador */
 export interface Player {
-  /** Posição horizontal */
   x: number;
-  /** Posição vertical */
   y: number;
-  /** Raio de colisão */
   radius: number;
-  /** Velocidade base de movimento */
   speed: number;
-  /** Pontos de vida atuais */
   health: number;
-  /** Pontos de vida máximos */
   maxHealth: number;
-  /** Ângulo de mira atual (radianos) */
   angle: number;
-  /** Cooldown restante para o próximo disparo */
   shootCooldown: number;
-  /** Tempo restante de invincibilidade (0 = vulnerável) */
   invincible: number;
-  /** Número de cargas de escudo restantes */
   shield: number;
+  hitFlash: number;
 }
 
 /** Instância singleton do jogador */
@@ -43,7 +35,7 @@ export function initPlayer(canvasWidth: number, canvasHeight: number): void {
     x: canvasWidth / 2, y: canvasHeight / 2,
     radius: PLAYER_RADIUS, speed: PLAYER_BASE_SPEED,
     health: PLAYER_BASE_HEALTH, maxHealth: PLAYER_BASE_HEALTH,
-    angle: 0, shootCooldown: 0, invincible: 0, shield: 0,
+    angle: 0, shootCooldown: 0, invincible: 0, shield: 0, hitFlash: 0,
   };
 }
 
@@ -67,6 +59,7 @@ export function resetPlayer(canvasWidth: number, canvasHeight: number): void {
   player.health = player.maxHealth;
   player.invincible = 0;
   player.shield = 0;
+  player.hitFlash = 0;
 }
 
 /**
@@ -126,6 +119,7 @@ export function enemyCollisionDamage(enemyDamage: number): void {
   } else {
     player.health -= enemyDamage;
   }
+  player.hitFlash = 0.2;
   player.invincible = INVINCIBLE_DURATION;
 }
 
@@ -142,6 +136,7 @@ export function healPlayer(amount: number): void {
  * Usa o valor de WAVE_HEAL_ON_COMPLETE.
  */
 export function healOnWaveComplete(): void {
+  if (getHardcore()) return;
   player.health = Math.min(player.maxHealth, player.health + WAVE_HEAL_ON_COMPLETE);
 }
 
@@ -192,8 +187,11 @@ export function isRegenActive(): boolean {
  * @param dt - delta time em segundos
  */
 export function applyRegen(dt: number): void {
-  if (regenActive && player.health < player.maxHealth) {
-    player.health = Math.min(player.maxHealth, player.health + dt);
+  if (getHardcore()) return;
+  if (player.health < player.maxHealth) {
+    const baseRate = 0.2;
+    const bonusRate = regenActive ? 1 : 0;
+    player.health = Math.min(player.maxHealth, player.health + (baseRate + bonusRate) * dt);
   }
 }
 
