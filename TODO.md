@@ -68,16 +68,23 @@
 - [ ] Continuação do jogo estilo Zombotron (2D lateral)
 
 // --- VISUAL ---
-- [ ] Tiles de terreno por fase (atualmente só grid colorido)
+- [x] Tiles de terreno por fase (floresta, caverna, fábrica, pântano, castelo, vulcão, espaço)
 - [x] Animação de morte completa do jogador (gira e encolhe por 1.5s)
-- [ ] Assets para eventos ambientais e chão de cada level
+- [x] Assets para eventos ambientais e chão de cada level (tiles procedurais implementados)
 
 // --- LIMPEZA ---
 - [x] Remover `src/engine/` (código morto, prototype raycaster)
 - [x] Limpar package.json (remover ~11 deps internas do Vite listadas por engano)
 - [x] Remover console.log de debug em `main.ts:228`
 - [x] Integrar constantes de `localMultiplayer.ts` com `constants.ts`
-- [ ] Mover velocidades de tiro dos inimigos para config (hardcoded em main.ts)
+- [x] Mover velocidades de tiro dos inimigos para config (hardcoded em main.ts)
+
+// --- DIALOGO ---
+- [x] Tecla ç para avançar/skipar diálogo + indicador visual no HUD
+
+// --- VISUAL EXTRA ---
+- [x] HitFlash visual nos inimigos ao tomar dano
+- [x] Sombras no chão para jogador, inimigos e NPCs
 
 // ═══════════════════════════════════════════════════════════════
 // ASSETS NECESSÁRIOS ( sprites que faltam )
@@ -105,9 +112,9 @@
 - [ ] Modo survival com leaderboard online
 - [ ] Sistema de achievement/badges expandido
 - [ ] Testes unitários para sistemas de colisão e dano
-- [ ] Screen shake mais sutil e consistente (só RPG e granada)
-- [ ] Partículas de poeira no chão durante terremoto
-- [ ] Indicador visual de dano nos inimigos (hitFlash)
-- [ ] Sombras dos personagens no chão
-- [ ] Efeito de zoom lento no boss quando aparece
+- [x] Screen shake mais sutil e consistente (explosões, terremoto, relâmpago reduzidos)
+- [x] Partículas de poeira no chão durante terremoto
+- [x] Indicador visual de dano nos inimigos (hitFlash)
+- [x] Sombras dos personagens no chão
+- [x] Efeito de zoom lento no boss quando aparece
 - [ ] Performance: limitar partículas por frame (verificar cap existente)
