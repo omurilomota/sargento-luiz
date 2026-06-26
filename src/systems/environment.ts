@@ -172,6 +172,11 @@ export function updateEnvironmentEvents(
               spawnParticles(e.x, e.y, '#9b59b6', 1, 60);
             }
           }
+          // Chuva visual
+          if (Math.random() < dt * 15) {
+            const rx = Math.random() * 2000;
+            spawnParticles(rx, -10, '#608090', 1, 300);
+          }
           break;
       }
 

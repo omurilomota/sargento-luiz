@@ -36,6 +36,26 @@
 - [x] Existe um bug que na onda 2 tomo um dano aleatório ou aparece o efeito de dano, mesmo estando no centro do mapa.
 - [x] Dei uma bela jogada no game, resumo : Armas muito barataas e muito dano, a arma de raios, basicamente é hitkill, porque ela repete o dano dela muitas vezes em um único tiro só, aumentaria o preço geral de todos os itens. Poderia ter armadura e regeneração natural, mas teria de comprar para melhorar tudo. Os eventos ambientais, não achei ruim. Na parte da história, poderíamos travar um diálogo, por exemplo: Um fala, pause, backspace para continuar. Aí ele mostraria a evolução em cada parte do game, por exemplo, da floresta para o castelo, etc.
 - [ ] Precisamos de mais assets para os eventos ambientais, chão de cada level, etc.
+
+// ═══════════════════════════════════════════════════════════════
+// ASSETS NECESSÁRIOS ( sprites que faltam )
+// ═══════════════════════════════════════════════════════════════
+
+// --- INIMIGOS (sem sprite, usando formas geométricas) ---
+// fireElemental, magmaGolem, inferno, crystal, asteroid, alien, frog, ufo, mothership
+
+// --- ARMAS (sem sprite) ---
+// shotgun, sniper, laser, rpg, raios, gel, granada, mina
+
+// --- CHÃO / TERRENO POR FASE ---
+// floresta (grama, árvores), caverna (rocha, cristais), fábrica (metal, engrenagens)
+// pântano (lama, água), castelo (pedra, tochas), vulcão (lava, rocha), espaço (estação)
+
+// --- UI ---
+// ícones de habilidades (dash, shield, fury), ícones de arma, barra de munição
+
+// --- Cenas ---
+// retratos dos personagens (Rios, Vale, Ferreira) para cutscenes
 // ═══════════════════════════════════════════════════════════════
 // SUGESTÕES (avaliar quais implementar)
 // ═══════════════════════════════════════════════════════════════

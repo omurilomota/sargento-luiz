@@ -59,6 +59,32 @@ const ENEMY_SPRITE_MAP: Record<string, string> = {
   'spitter': 'enemy_green',
 };
 
+/** Mapeamento de fases para ranges de tiles */
+const PHASE_TILE_RANGES: Record<string, { start: number; end: number }> = {
+  'Floresta': { start: 1, end: 30 },
+  'Caverna': { start: 100, end: 130 },
+  'Fábrica': { start: 200, end: 230 },
+  'Pântano': { start: 50, end: 80 },
+  'Castelo': { start: 300, end: 330 },
+  'Vulcão': { start: 150, end: 180 },
+  'Espaço': { start: 400, end: 430 },
+};
+
+/**
+ * Retorna os caminhos dos tiles para uma fase.
+ * @param phaseName - nome da fase
+ * @returns array de caminhos de tiles
+ */
+export function getPhaseTilePaths(phaseName: string): string[] {
+  const range = PHASE_TILE_RANGES[phaseName];
+  if (!range) return [];
+  const paths: string[] = [];
+  for (let i = range.start; i <= range.end; i++) {
+    paths.push(`assets/sprites/topdown-shooter/PNG/Tiles/tile_${String(i).padStart(3, '0')}.png`);
+  }
+  return paths;
+}
+
 /**
  * Habilita o sistema de sprites.
  */
