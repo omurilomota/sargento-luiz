@@ -1,12 +1,18 @@
 /**
  * Sistema de partículas.
  * Gerencia a criação, atualização e renderização de partículas visuais
- * (explosões, rastros, impactos). Limitado a MAX_PARTICLES simultâneas.
+ * (explosões, rastros, impactos). Limitado a MAX_PARTICLES simultâneas
+ * e MAX_PARTICLES_PER_FRAME por frame.
  */
 
 import { Particle } from '../types';
 import { rand } from '../utils';
 import { MAX_PARTICLES } from '../core/constants';
+
+/** Limite de partículas criadas por frame */
+const MAX_PARTICLES_PER_FRAME = 80;
+/** Contador de partículas criadas no frame atual */
+let spawnedThisFrame = 0;
 
 /** Lista de partículas ativas */
 const particles: Particle[] = [];
@@ -30,7 +36,9 @@ export function getParticles(): Particle[] {
  */
 export function spawnParticles(x: number, y: number, color: string, count: number, speed: number): void {
   const available = MAX_PARTICLES - particles.length;
-  const toSpawn = Math.min(count, available);
+  const frameRemaining = MAX_PARTICLES_PER_FRAME - spawnedThisFrame;
+  const toSpawn = Math.min(count, available, frameRemaining);
+  spawnedThisFrame += toSpawn;
   for (let i = 0; i < toSpawn; i++) {
     const angle = rand(0, Math.PI * 2);
     const spd = rand(speed * 0.3, speed);
@@ -52,6 +60,7 @@ export function spawnParticles(x: number, y: number, color: string, count: numbe
  * @param dt - delta time em segundos
  */
 export function updateParticles(dt: number): void {
+  spawnedThisFrame = 0;
   for (const p of particles) {
     p.x += p.vx * dt;
     p.y += p.vy * dt;
