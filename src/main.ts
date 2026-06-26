@@ -75,6 +75,9 @@ import { loadDiary, unlockDiaryEntry, getUnlockedDiary } from './systems/diary';
 // Tutorial
 import { startTutorial, isTutorialActive, getCurrentHint, updateTutorial } from './systems/tutorial';
 
+// Dynamic Difficulty
+import { updateBehavior, registerShot, registerHit, getPlayerTendency, resetBehavior } from './systems/dynamicDifficulty';
+
 // Bots (Competitive Mode)
 import { getBots, createBot, updateBots, removeDeadBots, resetBots, addBot, BotDifficulty } from './systems/bots';
 
@@ -277,6 +280,7 @@ function update(dt: number) {
           loadAchievements();
           loadDiary();
           resetRunCounters();
+          resetBehavior();
           playerDied = false;
           if (selectedMode === 'campaign') startTutorial();
           for (const k in keys) keys[k] = false;
@@ -410,6 +414,7 @@ function update(dt: number) {
       'Mina': sfxMina,
     };
     (weaponSounds[weapon.name] || sfxPistol)();
+    registerShot();
     if (getCurrentAmmo() <= 0) startReload();
   }
 
@@ -457,7 +462,11 @@ function update(dt: number) {
     }
   }
 
+  // Update dynamic difficulty
+  updateBehavior(p.x, p.y, dt, enemies.length, 0);
+
   // Enemy AI
+  const tendency = getPlayerTendency();
   for (const e of enemies) {
     e.angle += dt * 2;
     if (e.hitFlash > 0) e.hitFlash -= dt;
@@ -465,7 +474,10 @@ function update(dt: number) {
       e.spawnDelay -= dt;
       continue;
     }
-    const dir = normalize({ x: p.x - e.x, y: p.y - e.y });
+    // Predict player position based on movement tendency
+    const predictX = p.x + tendency.h * 80;
+    const predictY = p.y + tendency.v * 80;
+    const dir = normalize({ x: predictX - e.x, y: predictY - e.y });
     const spd = e.type === 'mosquito' ? e.speed * 1.3 : e.speed;
     e.x += dir.x * spd * dt;
     e.y += dir.y * spd * dt;
@@ -612,6 +624,7 @@ function update(dt: number) {
 
   checkBulletEnemyCollisions(bullets, enemies, (b, e) => {
     e.hitFlash = 0.15;
+    registerHit();
     const isCrit = b.color === '#f1c40f';
     // Explosive bullets create area damage
     if (b.explosive && b.explosionRadius) {
