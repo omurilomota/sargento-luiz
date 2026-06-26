@@ -146,7 +146,9 @@ export interface Weapon {
   explosive?: boolean;
   /** Raio da explosão em pixels (apenas para armas explosivas) */
   explosionRadius?: number;
-  /** Tamanho do pente (máximo de balas antes de recarregar) */
+  /** Se a arma é secreta (desbloqueada ao completar o jogo) */
+  secret?: boolean;
+  /** Tamanho do pente */
   magazineSize: number;
   /** Tempo de recarga em segundos */
   reloadTime: number;

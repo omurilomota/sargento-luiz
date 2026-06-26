@@ -138,9 +138,20 @@ export function nextPhase() {
   currentWave = 0;
   if (currentPhase >= PHASES.length) {
     gameState = 'gameover';
+    gameCompleted = true;
   } else {
     gameState = 'playing';
   }
+}
+
+/** Se o jogo foi completado (todas as fases) */
+let gameCompleted = false;
+
+/**
+ * Verifica se o jogo foi completado com sucesso.
+ */
+export function wasGameCompleted(): boolean {
+  return gameCompleted;
 }
 
 /**

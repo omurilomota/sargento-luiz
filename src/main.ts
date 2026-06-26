@@ -38,7 +38,7 @@ import { drawShop, handleShopClick, setShopCoins, getShopCoins, addShopCoins, re
 
 // Existing modules (unchanged)
 import { shoot, getCurrentWeapon, resetWeapons, canShoot, useAmmo, startReload, updateReload, getCurrentAmmo, getIsReloading, getReloadTimer } from './weapons';
-import { getCurrentPhase, getCurrentWave, getGameState, setGameState, nextWave, nextPhase, resetPhases, addScore, addScoreFlat, getScore, getCombo, updateCombo, resetCombo, getKillStreak } from './phases';
+import { getCurrentPhase, getCurrentWave, getGameState, setGameState, nextWave, nextPhase, resetPhases, addScore, addScoreFlat, getScore, getCombo, updateCombo, resetCombo, getKillStreak, wasGameCompleted } from './phases';
 import { powerups, spawnPowerUp, updatePowerUps, hasPowerUp, activePowerups } from './powerups';
 
 // Audio & Visual Juice
@@ -61,7 +61,7 @@ import { resetSkins } from './systems/skins';
 import { resetAds } from './systems/ads';
 
 // Save/Load
-import { saveGame, loadGame, hasSave } from './systems/saveSystem';
+import { saveGame, loadGame, hasSave, markGameCompleted } from './systems/saveSystem';
 
 // Leaderboard
 import { addLeaderboardEntry } from './systems/leaderboard';
@@ -680,6 +680,11 @@ function update(dt: number) {
     triggerSlowMotion(0.5, 0.5);
     setGameState('gameover');
     sfxGameOver();
+  }
+
+  // Check if game was completed (all phases beaten)
+  if (wasGameCompleted()) {
+    markGameCompleted();
   }
 
   currentFlash = updateFlash(dt);

@@ -58,6 +58,7 @@ export const WEAPONS: Weapon[] = [
   { name: 'Gel', damage: 6, shootRate: 0.18, bulletSpeed: 550, bulletCount: 2, spread: 0.2, color: '#3498db', price: 180, pierce: false, magazineSize: 20, reloadTime: 1.5 },
   { name: 'Granada', damage: 25, shootRate: 1.4, bulletSpeed: 350, bulletCount: 1, spread: 0, color: '#e74c3c', price: 250, pierce: false, explosive: true, explosionRadius: 80, magazineSize: 3, reloadTime: 2.5 },
   { name: 'Mina', damage: 40, shootRate: 2.8, bulletSpeed: 0, bulletCount: 1, spread: 0, color: '#f39c12', price: 200, pierce: false, explosive: true, explosionRadius: 100, magazineSize: 2, reloadTime: 3.0 },
+  { name: 'BFG', damage: 80, shootRate: 2.0, bulletSpeed: 500, bulletCount: 5, spread: 0.4, color: '#f1c40f', price: 999, pierce: true, explosive: true, explosionRadius: 120, magazineSize: 1, reloadTime: 3.5, secret: true },
 ];
 
 /** Lista de upgrades permanentes disponíveis na loja */

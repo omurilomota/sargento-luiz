@@ -72,3 +72,21 @@ export function hasSave(): boolean {
 export function deleteSave(): void {
   localStorage.removeItem(SAVE_KEY);
 }
+
+const COMPLETION_KEY = 'bubbleShooter_completed';
+
+/**
+ * Marca o jogo como completado.
+ */
+export function markGameCompleted(): void {
+  try {
+    localStorage.setItem(COMPLETION_KEY, 'true');
+  } catch {}
+}
+
+/**
+ * Verifica se o jogo já foi completado.
+ */
+export function isGameCompleted(): boolean {
+  return localStorage.getItem(COMPLETION_KEY) === 'true';
+}

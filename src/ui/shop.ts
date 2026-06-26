@@ -5,6 +5,7 @@
  */
 
 import { WEAPONS, UPGRADES } from '../config';
+import { isGameCompleted } from '../systems/saveSystem';
 import { setWeapon, addDamageMultiplier, addPierce, addCrit, addReloadSpeed } from '../weapons';
 import { addMaxHealth, addSpeed, addShield, enableRegen, addArmor } from '../entities/player';
 import { enablePermanentMagnet } from '../entities/coin';
@@ -215,6 +216,7 @@ export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: n
   ctx.stroke();
 
   WEAPONS.forEach((w, i) => {
+    if (w.secret && !isGameCompleted()) return;
     const y = 145 + i * 42;
     const owned = purchasedWeapons.includes(i);
     const canBuy = !owned && shopCoins >= w.price;
