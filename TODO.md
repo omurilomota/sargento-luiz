@@ -111,10 +111,10 @@
 // ═══════════════════════════════════════════════════════════════
 - [ ] Modo survival com leaderboard online
 - [ ] Sistema de achievement/badges expandido
-- [ ] Testes unitários para sistemas de colisão e dano
+- [x] Testes unitários para sistemas de colisão e dano
 - [x] Screen shake mais sutil e consistente (explosões, terremoto, relâmpago reduzidos)
 - [x] Partículas de poeira no chão durante terremoto
 - [x] Indicador visual de dano nos inimigos (hitFlash)
 - [x] Sombras dos personagens no chão
 - [x] Efeito de zoom lento no boss quando aparece
-- [ ] Performance: limitar partículas por frame (verificar cap existente)
+- [x] Performance: limitar partículas por frame (80/frame + 500 global)
