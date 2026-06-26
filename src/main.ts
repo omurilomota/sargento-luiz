@@ -30,7 +30,7 @@ import { spawnParticles, updateParticles, clearParticles, getParticles } from '.
 import { spawnWaveEnemies, resetSpawner, spawnEnemy } from './systems/spawner';
 import { checkBulletEnemyCollisions, checkEnemyPlayerCollision, checkEnemyBulletPlayerCollision } from './systems/collision';
 import { createExplosion, updateExplosions, clearExplosions, getExplosions } from './systems/explosions';
-import { initRenderer, drawMenu, drawCutscene, drawGameOver, drawGameBackground, drawCoins as renderCoins, drawPowerUps as renderPowerUps, drawParticles as renderParticles, drawBullets as renderBullets, drawEnemies as renderEnemies, drawPlayer as renderPlayer, drawDamageNumbers, drawCombo, drawWeaponInfo, drawActivePowerUps as renderActivePowerUps, restoreCanvas } from './systems/renderer';
+import { initRenderer, drawMenu, drawCutscene, drawGameOver, drawGameBackground, drawCoins as renderCoins, drawPowerUps as renderPowerUps, drawParticles as renderParticles, drawBullets as renderBullets, drawEnemies as renderEnemies, drawPlayer as renderPlayer, drawDamageNumbers, drawCombo, drawWeaponInfo, drawActivePowerUps as renderActivePowerUps, drawPhaseTransition, restoreCanvas } from './systems/renderer';
 
 // UI
 import { initHud, updateHud, setHudVisible } from './ui/hud';
@@ -674,6 +674,10 @@ function update(dt: number) {
 
   if (p.health <= 0) {
     addLeaderboardEntry('Jogador', getScore(), getCurrentWave());
+    // Death animation particles
+    spawnParticles(p.x, p.y, '#7a9a6a', 30, 300);
+    spawnParticles(p.x, p.y, '#fff', 15, 200);
+    triggerSlowMotion(0.5, 0.5);
     setGameState('gameover');
     sfxGameOver();
   }
@@ -783,6 +787,11 @@ function draw() {
   renderPlayer(player.getPlayer());
   drawDamageNumbers(damageNumbers);
   restoreCanvas();
+
+  // Phase transition overlay
+  if (phaseTransitionTimer > 0) {
+    drawPhaseTransition(phaseTransitionTimer, getCurrentWave(), getCurrentPhase()?.name);
+  }
 
   // Flash overlay
   if (currentFlash) {
