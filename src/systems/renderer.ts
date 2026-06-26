@@ -85,17 +85,18 @@ export function drawMenu(selectedMode: string = 'campaign'): void {
   ctx.fillText('SELECIONE O MODO (tecle 1-6)', W / 2, modesStartY - 12);
 
   const modes = [
-    { key: '1', name: 'CAMPANHA', desc: 'Historia com cutscenes', color: '#7a9a6a' },
-    { key: '2', name: 'SOBREVIVENCIA', desc: 'Ondas infinitas', color: '#b07050' },
-    { key: '3', name: 'MISSOES', desc: 'Objetivos especificos', color: '#a08050' },
+    { key: '1', name: 'CAMPANHA', desc: 'História com cutscenes', color: '#7a9a6a' },
+    { key: '2', name: 'SOBREVIVÊNCIA', desc: 'Ondas infinitas', color: '#b07050' },
+    { key: '3', name: 'MISSÕES', desc: 'Objetivos específicos', color: '#a08050' },
     { key: '4', name: 'BOSS RUSH', desc: 'Apenas bosses', color: '#8070a0' },
     { key: '5', name: 'COMPETITIVO', desc: 'Vs bots IA', color: '#608090' },
     { key: '6', name: 'LOCAL 2P', desc: 'Mesmo teclado', color: '#b07050' },
+    { key: '7', name: 'HARDCORE', desc: '1 vida, sem loja', color: '#8b4040' },
   ];
 
   const modeKeyMap: Record<string, string> = {
     '1': 'campaign', '2': 'survival', '3': 'missions',
-    '4': 'bossrush', '5': 'competitive', '6': 'local',
+    '4': 'bossrush', '5': 'competitive', '6': 'local', '7': 'hardcore',
   };
 
   const boxW = Math.min(340, W * 0.7);

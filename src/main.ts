@@ -104,6 +104,7 @@ document.addEventListener('keydown', e => {
     if (key === '4') selectedMode = 'bossrush';
     if (key === '5') selectedMode = 'competitive';
     if (key === '6') selectedMode = 'local';
+    if (key === '7') selectedMode = 'hardcore';
     // Continue saved game
     if (key.toLowerCase() === 'c' && hasSave()) {
       const save = loadGame();
@@ -175,6 +176,7 @@ canvas.addEventListener('mousedown', e => {
       { key: '4', mode: 'bossrush' },
       { key: '5', mode: 'competitive' },
       { key: '6', mode: 'local' },
+      { key: '7', mode: 'hardcore' },
     ];
     modes.forEach(({ mode }, i) => {
       const y = canvas.height / 2 + i * 50;
@@ -199,6 +201,7 @@ let lastTime = 0;
 let debugLog: { time: number; source: string; damage: number }[] = [];
 let phaseTransitionTimer = 0;
 let achievementNotifications: { name: string; time: number }[] = [];
+let playerDied = false;
 
 function logDamage(source: string, damage: number) {
   const entry = { time: performance.now(), source, damage };
@@ -258,6 +261,7 @@ function update(dt: number) {
           setGameState('playing');
           loadAchievements();
           resetRunCounters();
+          playerDied = false;
           for (const k in keys) keys[k] = false;
           if (selectedMode === 'local') {
             initLocalMultiplayer(canvas.width, canvas.height);
@@ -397,13 +401,27 @@ function update(dt: number) {
   const phase = getCurrentPhase();
   const waveComplete = spawnWaveEnemies(dt, enemies, getCurrentWave(), phase.enemyTypes, canvas.width, canvas.height);
   if (waveComplete) {
+    const isHardcore = getCurrentMode() === 'hardcore';
     nextWave();
-    player.healOnWaveComplete();
+    if (!isHardcore) {
+      player.healOnWaveComplete();
+    }
     sfxWaveStart();
     const waveAch = checkAchievements('wave', getCurrentWave());
     if (waveAch) achievementNotifications.push({ name: waveAch.name, time: 3 });
-    // Auto-save when entering shop
-    if (getGameState() === 'shop') {
+    // Skip shop in hardcore mode
+    if (isHardcore && getGameState() === 'shop') {
+      setHudVisible(true);
+      nextPhase();
+      player.initPlayer(canvas.width, canvas.height);
+      enemies.length = 0;
+      clearBullets();
+      clearCoins();
+      clearParticles();
+      resetCombo();
+      phaseTransitionTimer = 2.0;
+    } else if (getGameState() === 'shop') {
+      // Auto-save when entering shop
       saveGame(
         getCurrentPhase()?.name ? PHASES.indexOf(getCurrentPhase()!) : 0,
         getCurrentWave(),
@@ -673,6 +691,7 @@ function update(dt: number) {
   });
 
   if (p.health <= 0) {
+    playerDied = true;
     addLeaderboardEntry('Jogador', getScore(), getCurrentWave());
     // Death animation particles
     spawnParticles(p.x, p.y, '#7a9a6a', 30, 300);
@@ -685,6 +704,10 @@ function update(dt: number) {
   // Check if game was completed (all phases beaten)
   if (wasGameCompleted()) {
     markGameCompleted();
+    if (!playerDied) {
+      // Secret ending - player completed game without dying
+      achievementNotifications.push({ name: 'FINAL SECRETO: PERFEIÇÃO', time: 5 });
+    }
   }
 
   currentFlash = updateFlash(dt);
