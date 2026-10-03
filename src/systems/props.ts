@@ -30,6 +30,15 @@ const BARREL_FUSE = 0.9;
 /** Barris com o pavio aceso: distingue "ainde não queimou" de "nunca acendeu". */
 const acesos = new Set<Prop>();
 
+/** Escurece uma cor hex (local, para não puxar o módulo de terreno inteiro). */
+function shadeCor(hex: string, amount: number): string {
+  const n = parseInt(hex.slice(1), 16);
+  const k = 1 + amount;
+  const limita = (v: number) => Math.max(0, Math.min(255, Math.round(v)));
+  return `#${((1 << 24) | (limita(((n >> 16) & 255) * k) << 16)
+    | (limita(((n >> 8) & 255) * k) << 8) | limita((n & 255) * k)).toString(16).slice(1)}`;
+}
+
 const CRATE_HEALTH = 20;
 const BARREL_HEALTH = 14;
 const NEST_HEALTH = 90;
@@ -183,10 +192,21 @@ export function updateProps(dt: number): Prop[] {
 
 /**
  * Desenha os props com sombra, volume e estado de dano.
+ *
+ * As cores vêm do bioma (`propCrate`/`propBarrel`): com cor fixa, o caixote
+ * bege e o barril bege apareciam iguais nos 9 biomas, e a Caverna e o Vulcão —
+ * que são justamente os biomas onde o objeto deveria ser rocha ou ferro — tinham o
+ * mesmo engradado de madeira do pântano.
+ *
  * @param ctx - contexto 2D
  * @param visible - callback que diz se um retângulo em mundo está visível
+ * @param paleta - corpo do caixote e tampa do barril do bioma atual
  */
-export function drawProps(ctx: CanvasRenderingContext2D, isVisible: (x: number, y: number, r: number) => boolean): void {
+export function drawProps(
+  ctx: CanvasRenderingContext2D,
+  isVisible: (x: number, y: number, r: number) => boolean,
+  paleta: { crate: string; barrel: string } = { crate: '#7a6244', barrel: '#6a5a44' },
+): void {
   for (const p of props) {
     if (p.health <= 0) continue;
     if (!isVisible(p.x, p.y, p.radius + 24)) continue;
@@ -219,15 +239,15 @@ export function drawProps(ctx: CanvasRenderingContext2D, isVisible: (x: number, 
       ctx.arc(p.x, p.y, 7 + Math.sin(Date.now() / 400 + p.col) * 1.5, 0, Math.PI * 2);
       ctx.fill();
     } else if (p.kind === 'barrel') {
-      ctx.fillStyle = p.hitFlash > 0 ? '#c8b890' : '#6a5a44';
+      ctx.fillStyle = p.hitFlash > 0 ? PALETTE.crit : paleta.barrel;
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.radius * 0.7, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = '#3a2f22';
+      ctx.strokeStyle = shadeCor(paleta.barrel, -0.3);
       ctx.lineWidth = 3;
       ctx.stroke();
       // cintas do barril
-      ctx.strokeStyle = '#4a3d2c';
+      ctx.strokeStyle = shadeCor(paleta.barrel, -0.18);
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(p.x - p.radius * 0.7, p.y - 6);
@@ -243,9 +263,9 @@ export function drawProps(ctx: CanvasRenderingContext2D, isVisible: (x: number, 
       }
     } else {
       const s = p.radius * 0.9;
-      ctx.fillStyle = p.hitFlash > 0 ? '#c8b890' : '#7a6244';
+      ctx.fillStyle = p.hitFlash > 0 ? PALETTE.crit : paleta.crate;
       ctx.fillRect(p.x - s, p.y - s, s * 2, s * 2);
-      ctx.strokeStyle = '#4a3a28';
+      ctx.strokeStyle = shadeCor(paleta.crate, -0.28);
       ctx.lineWidth = 2;
       ctx.strokeRect(p.x - s, p.y - s, s * 2, s * 2);
       ctx.beginPath();

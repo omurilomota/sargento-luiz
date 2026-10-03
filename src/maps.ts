@@ -37,6 +37,10 @@ export interface MapDef {
   tint: string;
   /** Tiles de chão do Kenney curtados visualmente (números existentes) */
   floorTiles: number[];
+  /** Corpo do caixote. Sem isto todo bioma repete o mesmo caixote bege. */
+  propCrate: string;
+  /** Tampa e cinta do barril */
+  propBarrel: string;
   /** Cor da granulação de desgaste sobreposta no prerender */
   grain: string;
   /** Densidade da granulação (0 = sem granulação) */
@@ -58,6 +62,7 @@ export const BIOMES: Record<string, Biome> = {
     key: 'cidade', name: 'Cidade em Ruínas', hazard: 'debris', hazardColor: '#8a7a60',
     floor: '#2a2521', wall: '#5d5340', accent: '#a08050', tint: '#e8e0d4',
     floorTiles: [13, 15, 349, 350, 376, 377],
+    propCrate: '#6a5a48', propBarrel: '#5a4a3a',
     grain: '#1a1714', grainAlpha: 0.18, void: '#08080a',
     rows: [
       '##############################',
@@ -87,6 +92,7 @@ export const BIOMES: Record<string, Biome> = {
     key: 'floresta', name: 'Floresta', hazard: 'fog', hazardColor: '#8a9a8a',
     floor: '#1e2718', wall: '#42502e', accent: '#7a9a6a', tint: '#e0e8d4',
     floorTiles: [1, 2, 3, 4, 17, 18],
+    propCrate: '#5a4c34', propBarrel: '#4a3f2a',
     grain: '#141c10', grainAlpha: 0.22, void: '#060806',
     rows: [
       '##############################',
@@ -116,6 +122,7 @@ export const BIOMES: Record<string, Biome> = {
     key: 'caverna', name: 'Caverna', hazard: 'darkness', hazardColor: '#608090',
     floor: '#1b1d26', wall: '#3d4350', accent: '#608090', tint: '#dde4f0',
     floorTiles: [31, 32, 58, 59, 169, 178],
+    propCrate: '#4a4a52', propBarrel: '#3e3e46',
     grain: '#0e1016', grainAlpha: 0.3, void: '#05050a',
     rows: [
       '##############################',
@@ -145,6 +152,7 @@ export const BIOMES: Record<string, Biome> = {
     key: 'fabrica', name: 'Fábrica', hazard: 'electric', hazardColor: '#b07050',
     floor: '#241f1d', wall: '#524840', accent: '#a08050', tint: '#ece2d8',
     floorTiles: [35, 36, 37, 62, 63, 64],
+    propCrate: '#5a5450', propBarrel: '#48433f',
     grain: '#181210', grainAlpha: 0.2, void: '#070707',
     rows: [
       '##############################',
@@ -174,6 +182,7 @@ export const BIOMES: Record<string, Biome> = {
     key: 'pantano', name: 'Pântano', hazard: 'mud', hazardColor: '#5a7a5a',
     floor: '#18231e', wall: '#37483c', accent: '#5a7a5a', tint: '#dcece2',
     floorTiles: [19, 20, 76, 77],
+    propCrate: '#4a4436', propBarrel: '#3c382c',
     grain: '#0e1512', grainAlpha: 0.26, void: '#050807',
     rows: [
       '##############################',
@@ -203,6 +212,7 @@ export const BIOMES: Record<string, Biome> = {
     key: 'castelo', name: 'Castelo', hazard: 'spikes', hazardColor: '#8a8a7a',
     floor: '#24231a', wall: '#524f33', accent: '#a08050', tint: '#f0e8c8',
     floorTiles: [89, 90, 91, 92, 95, 334],
+    propCrate: '#6a625a', propBarrel: '#565048',
     grain: '#16150f', grainAlpha: 0.22, void: '#070706',
     rows: [
       '##############################',
@@ -232,6 +242,7 @@ export const BIOMES: Record<string, Biome> = {
     key: 'vulcao', name: 'Vulcão', hazard: 'lava', hazardColor: '#c46a3a',
     floor: '#271915', wall: '#57362b', accent: '#c46a3a', tint: '#f0d8c0',
     floorTiles: [77, 79, 80, 398],
+    propCrate: '#4e3630', propBarrel: '#402c26',
     grain: '#180a06', grainAlpha: 0.24, void: '#0a0403',
     rows: [
       '##############################',
@@ -261,6 +272,7 @@ export const BIOMES: Record<string, Biome> = {
     key: 'espaco', name: 'Espaço', hazard: 'lowGravity', hazardColor: '#7a6a8a',
     floor: '#15181f', wall: '#31374a', accent: '#7a6a8a', tint: '#d8e0f4',
     floorTiles: [86, 93, 340, 361, 362, 363],
+    propCrate: '#3e4a52', propBarrel: '#333d45',
     grain: '#080a10', grainAlpha: 0.28, void: '#040408',
     rows: [
       '##############################',
@@ -290,6 +302,7 @@ export const BIOMES: Record<string, Biome> = {
     key: 'bunker', name: 'Bunker Central', hazard: 'none', hazardColor: '#a08050',
     floor: '#1d1f24', wall: '#4a4d57', accent: '#a08050', tint: '#e8eaf0',
     floorTiles: [40, 41, 67, 68, 86, 93],
+    propCrate: '#52565a', propBarrel: '#43474b',
     grain: '#101216', grainAlpha: 0.16, void: '#060607',
     rows: [
       '##############################',

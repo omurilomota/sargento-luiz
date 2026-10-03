@@ -1192,7 +1192,11 @@ function drawWorld(): void {
 
   drawVoid(ctx);
   drawTerrain(ctx);
-  drawProps(ctx, (x, y, r) => isVisible(x, y, r, r));
+  drawProps(
+    ctx,
+    (x, y, r) => isVisible(x, y, r, r),
+    { crate: BIOMES[phase.map].propCrate, barrel: BIOMES[phase.map].propBarrel },
+  );
   renderCoins(getCoins());
   renderPowerUps(powerups);
   renderParticles(getParticles());
