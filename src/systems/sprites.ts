@@ -1,7 +1,12 @@
 /**
- * Sistema de sprites do jogo.
- * Gerencia carregamento e cache de imagens.
- * Carrega automaticamente todos os sprites da pasta assets/sprites/.
+ * src/systems/sprites.ts
+ *
+ * Cache de sprites do pack Kenney Top-down Shooter (CC0).
+ *
+ * Os personagens têm 6 poses (`stand`/`hold`/`gun`/`machine`/`reload`/
+ * `silencer`) e as armas têm 3 classes visuais de cano. Os tiles do pack têm
+ * numeração com buracos (não existem tile_054, tile_081, tile_162…), então só
+ * os números realmente existentes e curados visualmente são carregados.
  */
 
 /** Cache de sprites carregadas */
@@ -10,91 +15,108 @@ const spriteCache: Map<string, HTMLImageElement> = new Map();
 /** Se o sistema de sprites está habilitado */
 let spritesEnabled = false;
 
-/** Mapeamento de chaves de sprites para caminhos */
-const SPRITE_PATHS: Record<string, string> = {
-  // Player
-  'player': 'assets/sprites/player/player.png',
-  
-  // Enemies
-  'enemy_zombie': 'assets/sprites/enemies/zombie.png',
-  'enemy_robot': 'assets/sprites/enemies/robot.png',
-  'enemy_hitman': 'assets/sprites/enemies/hitman.png',
-  'enemy_blue': 'assets/sprites/enemies/enemy_blue.png',
-  'enemy_brown': 'assets/sprites/enemies/enemy_brown.png',
-  'enemy_green': 'assets/sprites/enemies/enemy_green.png',
-  'enemy_guard': 'assets/sprites/enemies/guard.png',
-  'enemy_soldier': 'assets/sprites/enemies/soldier.png',
-  'enemy_woman': 'assets/sprites/enemies/woman.png',
-  
-  // Weapons
-  'weapon_pistol': 'assets/sprites/weapons/pistol.png',
-  'weapon_machinegun': 'assets/sprites/weapons/machinegun.png',
-};
+/** Tipos de pose disponíveis */
+export type Pose = 'stand' | 'hold' | 'gun' | 'machine' | 'reload' | 'silencer';
 
-/** Mapeamento de tipos de inimigo para chaves de sprite */
-const ENEMY_SPRITE_MAP: Record<string, string> = {
-  'grunt': 'enemy_zombie',
-  'runner': 'enemy_brown',
-  'tank': 'enemy_blue',
-  'shooter': 'enemy_hitman',
-  'bat': 'enemy_green',
-  'robot': 'enemy_robot',
-  'drone': 'enemy_robot',
-  'slime': 'enemy_green',
-  'lavaSlime': 'enemy_green',
-  'mosquito': 'enemy_green',
-  'knight': 'enemy_guard',
-  'archer': 'enemy_hitman',
-  'mage': 'enemy_woman',
-  'boss': 'enemy_robot',
-  'mothership': 'enemy_robot',
-  'fireElemental': 'enemy_brown',
-  'magmaGolem': 'enemy_blue',
-  'inferno': 'enemy_brown',
-  'ufo': 'enemy_robot',
-  'asteroid': 'enemy_blue',
-  'alien': 'enemy_green',
-  'frog': 'enemy_green',
-  'crystal': 'enemy_blue',
-  'spitter': 'enemy_green',
-};
-
-/** Mapeamento de fases para ranges de tiles */
-const PHASE_TILE_RANGES: Record<string, { start: number; end: number }> = {
-  'Floresta': { start: 1, end: 30 },
-  'Caverna': { start: 100, end: 130 },
-  'Fábrica': { start: 200, end: 230 },
-  'Pântano': { start: 50, end: 80 },
-  'Castelo': { start: 300, end: 330 },
-  'Vulcão': { start: 150, end: 180 },
-  'Espaço': { start: 400, end: 430 },
+/** Prefixo de arquivo de cada personagem */
+const CHARACTERS: Record<string, string> = {
+  survivor: 'Survivor 1/survivor1',
+  manBlue: 'Man Blue/manBlue',
+  manBrown: 'Man Brown/manBrown',
+  manOld: 'Man Old/manOld',
+  hitman: 'Hitman 1/hitman1',
+  soldier: 'Soldier 1/soldier1',
+  robot: 'Robot 1/robot1',
+  woman: 'Woman Green/womanGreen',
+  zombie: 'Zombie 1/zoimbie1',
 };
 
 /**
- * Retorna os caminhos dos tiles para uma fase.
- * @param phaseName - nome da fase
- * @returns array de caminhos de tiles
+ * Centro do corpo dentro da sprite, em pixels do arquivo.
+ * Medido nos arquivos: o corpo ocupa x≈1..32 e o cano vai até x≈49, então
+ * pivotar pela imagem inteira faria o personagem girar em volta do cano.
  */
-export function getPhaseTilePaths(phaseName: string): string[] {
-  const range = PHASE_TILE_RANGES[phaseName];
-  if (!range) return [];
-  const paths: string[] = [];
-  for (let i = range.start; i <= range.end; i++) {
-    paths.push(`assets/sprites/topdown-shooter/PNG/Tiles/tile_${String(i).padStart(3, '0')}.png`);
-  }
-  return paths;
+const BODY_PIVOT_X = 17;
+const BODY_PIVOT_Y = 21;
+
+/** Tiles do Kenney que realmente existem e servem de chão (curadoria visual) */
+export const TILE_NUMBERS = [
+  1, 2, 3, 4, 13, 15, 17, 18, 19, 20, 31, 32, 35, 36, 37, 40, 41, 58, 59, 62, 63, 64, 67, 68, 76, 77, 79, 80, 86, 89, 90, 91, 92, 93, 95, 169, 178, 334, 340, 349, 350, 361, 362, 363, 376, 377, 398,
+];
+
+const BASE = 'assets/sprites/topdown-shooter/PNG';
+
+/** As 6 poses que o pack tem por personagem */
+export const POSES: Pose[] = ['stand', 'hold', 'gun', 'machine', 'reload', 'silencer'];
+
+/** As 3 classes visuais de cano */
+export const WEAPON_CLASSES = ['gun', 'machine', 'silencer'] as const;
+
+/**
+ * Nome do arquivo de tile no pack Kenney.
+ * O pad é de 2 dígitos, não 3: `tile_01.png` até `tile_99.png` e `tile_100.png`
+ * em diante. Com pad 3 todo tile de 1 a 99 dá 404 e o chão cai no fallback —
+ * exatamente o que aconteceu antes deste teste existir.
+ */
+export function tileFileName(n: number): string {
+  return `tile_${String(n).padStart(2, '0')}.png`;
 }
 
+/** Mapeamento de tipos de inimigo para o personagem do pack */
+const ENEMY_CHARACTER: Record<string, string> = {
+  grunt: 'zombie',
+  runner: 'manBrown',
+  tank: 'manOld',
+  shooter: 'hitman',
+  bat: 'zombie',
+  robot: 'robot',
+  drone: 'robot',
+  slime: 'zombie',
+  lavaSlime: 'zombie',
+  mosquito: 'zombie',
+  knight: 'soldier',
+  archer: 'hitman',
+  mage: 'woman',
+  fireElemental: 'manBrown',
+  magmaGolem: 'manOld',
+  inferno: 'hitman',
+  ufo: 'robot',
+  asteroid: 'manOld',
+  alien: 'zombie',
+  frog: 'zombie',
+  crystal: 'woman',
+  spitter: 'zombie',
+};
+
+/** NPCs e bots compartilham o mesmo pool de personagens */
+export const NPC_CHARACTERS = ['survivor', 'manBlue', 'manOld', 'manBrown'];
+
 /**
- * Habilita o sistema de sprites.
+ * Monta a lista de caminhos a carregar.
+ * @returns array de [chave, caminho]
  */
+function buildSpriteList(): [string, string][] {
+  const out: [string, string][] = [];
+  for (const [charKey, prefix] of Object.entries(CHARACTERS)) {
+    for (const pose of POSES) {
+      out.push([`${charKey}_${pose}`, `${BASE}/${prefix}_${pose}.png`]);
+    }
+  }
+  for (const w of WEAPON_CLASSES) {
+    out.push([`weapon_${w}`, `${BASE}/weapon_${w}.png`]);
+  }
+  for (const n of TILE_NUMBERS) {
+    out.push([`tile_${n}`, `${BASE}/Tiles/${tileFileName(n)}`]);
+  }
+  return out;
+}
+
+/** Habilita o sistema de sprites. */
 export function enableSprites(): void {
   spritesEnabled = true;
 }
 
-/**
- * Verifica se sprites estão habilitados.
- */
+/** Verifica se sprites estão habilitados. */
 export function isSpritesEnabled(): boolean {
   return spritesEnabled;
 }
@@ -122,61 +144,79 @@ export async function loadSprite(key: string, url: string): Promise<boolean> {
  * @returns Promise que resolve quando todos carregados
  */
 export async function loadAllSprites(): Promise<void> {
-  const promises = Object.entries(SPRITE_PATHS).map(([key, path]) => loadSprite(key, path));
-  await Promise.all(promises);
+  const list = buildSpriteList();
+  await Promise.all(list.map(([key, path]) => loadSprite(key, path)));
   spritesEnabled = spriteCache.size > 0;
-  console.log(`Sprites carregados: ${spriteCache.size}/${Object.keys(SPRITE_PATHS).length}`);
 }
 
-/**
- * Obtém uma sprite do cache.
- * @param key - chave do sprite
- * @returns imagem ou null se não encontrada
- */
+/** Obtém uma sprite do cache. */
 export function getSprite(key: string): HTMLImageElement | null {
   return spriteCache.get(key) || null;
 }
 
-/**
- * Obtém a chave de sprite para um tipo de inimigo.
- * @param enemyType - tipo do inimigo
- * @returns chave do sprite ou string vazia
- */
-export function getEnemySpriteKey(enemyType: string): string {
-  return ENEMY_SPRITE_MAP[enemyType] || '';
+/** Lista os caminhos de personagem referenciados pelo jogo (para teste de asset). */
+export function characterFileExists(): string[] {
+  const out: string[] = [];
+  for (const prefix of Object.values(CHARACTERS)) {
+    for (const pose of POSES) out.push(`${prefix}_${pose}.png`);
+  }
+  return out;
+}
+
+/** Lista os caminhos de arma referenciados pelo jogo (para teste de asset). */
+export function weaponFileExists(): string[] {
+  return WEAPON_CLASSES.map(w => `weapon_${w}.png`);
+}
+
+/** Personagem usado por um tipo de inimigo. */
+export function getEnemyCharacter(enemyType: string): string {
+  return ENEMY_CHARACTER[enemyType] || 'zombie';
+}
+
+/** Chave completa da sprite de um personagem numa pose. */
+export function poseKey(character: string, pose: Pose): string {
+  return `${character}_${pose}`;
 }
 
 /**
- * Desenha uma sprite no canvas.
+ * Desenha uma sprite mantendo o aspect ratio real, pivotada pelo centro do
+ * corpo e girada para a direção de mira.
+ *
+ * Forçar um quadrado (`radius*2` × `radius*2`) em uma imagem de 51×43 achata o
+ * personagem — foi o que deixou inimigos e player "esmagados" até aqui.
+ *
  * @param ctx - contexto 2D
- * @param key - chave do sprite
- * @param x - posição X central
- * @param y - posição Y central
- * @param width - largura
- * @param height - altura
- * @param rotation - rotação em radianos (opcional)
+ * @param img - imagem da sprite
+ * @param cx - centro X no mundo
+ * @param cy - centro Y no mundo
+ * @param bodySize - altura desejada do corpo em pixels
+ * @param angle - ângulo de mira em radianos
  */
-export function drawSprite(
+export function drawSpriteFit(
   ctx: CanvasRenderingContext2D,
-  key: string,
-  x: number, y: number,
-  width: number, height: number,
-  rotation = 0
-): boolean {
-  const img = spriteCache.get(key);
-  if (!img) return false;
-  
+  img: CanvasImageSource,
+  cx: number,
+  cy: number,
+  bodySize: number,
+  angle: number
+): void {
+  const iw = (img as HTMLImageElement).naturalWidth || (img as HTMLImageElement).width;
+  const ih = (img as HTMLImageElement).naturalHeight || (img as HTMLImageElement).height;
+  if (!iw || !ih) return;
+  const scale = bodySize / ih;
+  const w = iw * scale;
+  const h = ih * scale;
+  const px = (BODY_PIVOT_X / iw) * w;
+  const py = (BODY_PIVOT_Y / ih) * h;
+
   ctx.save();
-  ctx.translate(x, y);
-  if (rotation) ctx.rotate(rotation);
-  ctx.drawImage(img, -width / 2, -height / 2, width, height);
+  ctx.translate(cx, cy);
+  ctx.rotate(angle);
+  ctx.drawImage(img, -px, -py, w, h);
   ctx.restore();
-  return true;
 }
 
-/**
- * Limpa o cache de sprites.
- */
+/** Limpa o cache de sprites. */
 export function clearSprites(): void {
   spriteCache.clear();
 }
