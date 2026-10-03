@@ -243,7 +243,13 @@ export function getTerrainKey(): string {
   return prerenderedKey;
 }
 
-/** Escurece ou clareia uma cor hex em `amount` (-1..1). */
+/**
+ * Escurece ou clareia uma cor hex em `amount` (-1..1).
+ *
+ * O resultado é limitado a 0..255 por canal: sem isso, um `amount` fora da faixa
+ * (ninguém chama hoje, mas é uma função compartilhada) estoura o canal e o
+ * `| << 16` devolve uma cor completamente diferente em vez de uma cor extrema.
+ */
 export function shade(hex: string, amount: number): string {
   const m = /^#?([0-9a-f]{6})$/i.exec(hex);
   if (!m) return hex;
@@ -252,14 +258,18 @@ export function shade(hex: string, amount: number): string {
   let g = (num >> 8) & 255;
   let b = num & 255;
   if (amount >= 0) {
-    r = Math.round(r + (255 - r) * amount);
-    g = Math.round(g + (255 - g) * amount);
-    b = Math.round(b + (255 - b) * amount);
+    r = r + (255 - r) * amount;
+    g = g + (255 - g) * amount;
+    b = b + (255 - b) * amount;
   } else {
     const k = 1 + amount;
-    r = Math.round(r * k);
-    g = Math.round(g * k);
-    b = Math.round(b * k);
+    r = r * k;
+    g = g * k;
+    b = b * k;
   }
+  const limita = (v: number) => Math.max(0, Math.min(255, Math.round(v)));
+  r = limita(r);
+  g = limita(g);
+  b = limita(b);
   return `#${((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1)}`;
 }
