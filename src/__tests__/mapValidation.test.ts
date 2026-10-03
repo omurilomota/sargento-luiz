@@ -143,7 +143,6 @@ describe('mapas: conectividade', () => {
   });
 
   it.each(KEYS)('%s: pelo menos 4 pontos de spawn de inimigo', (key) => {
-    expect(findAll.call(null, 'E')).toBeDefined();
     const rows = BIOMES[key].rows.join('');
     expect((rows.match(/E/g) ?? []).length).toBeGreaterThanOrEqual(4);
   });

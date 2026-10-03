@@ -219,17 +219,17 @@ function getFloorTile(n: number, biomeColor: string): HTMLCanvasElement | null {
  * Desenha o terreno já tintado.
  * Chamado de dentro do espaço transladado pela câmera: o destino é a própria
  * coordenada de mundo e o canvas recorta o que cai fora da viewport.
+ *
+ * Não centraliza nada aqui. A câmera já centraliza quando o mundo é menor que
+ * a viewport (`clampToWorld` devolve um valor negativo), então centralizar
+ * também aqui aplicava o offset duas vezes: numa janela de 2560px o mapa de
+ * 1920px aparecia deslocado 320px para a direita, com a borda esquerda vazia e
+ * a direita cortada.
  * @param ctx - contexto 2D principal
- * @param viewW - largura da viewport
- * @param viewH - altura da viewport
  */
-export function drawTerrain(ctx: CanvasRenderingContext2D, viewW: number, viewH: number): void {
+export function drawTerrain(ctx: CanvasRenderingContext2D): void {
   if (!prerendered) return;
-  // dentro do espaço transladado pela câmera (0,0) já é o canto do mundo;
-  // biomas menores que a viewport ficam centralizados
-  const dx = prerendered.width <= viewW ? (viewW - prerendered.width) / 2 : 0;
-  const dy = prerendered.height <= viewH ? (viewH - prerendered.height) / 2 : 0;
-  ctx.drawImage(prerendered, dx, dy);
+  ctx.drawImage(prerendered, 0, 0);
 }
 
 /** Invalida o terreno prerenderizado (troca de fase). */

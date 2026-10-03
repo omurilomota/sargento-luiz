@@ -803,16 +803,43 @@ function explodeProp(prop: Prop): void {
   }
 }
 
-/** Projéteis do jogador quebram props; projéteis inimigos são ignorados. */
+/**
+ * Projéteis do jogador quebram props. Os inimigos só colidem quando a fase é de
+ * entulho: nas outras os props são madeira e o tiro atravessa.
+ *
+ * Essa é a identidade mecânica da Cidade em Ruínas — a única fase onde
+ * cobertura é cobertura de verdade — e ela é a fase que ensina o jogador a
+ * usar cobertura, então faz sentido que seja a primeira a entregar isso. Também
+ * dá uma tensão real: barril explodido pelo tiro do inimino explode em cadeia,
+ * então a cobertura do jogador pode virar o problema dele.
+ */
 function updateBulletProps(bullets: ReturnType<typeof getBullets>): void {
+  const hazard = getCurrentPhase().hazard;
+  const enemyShotStops = hazard === 'debris';
+  // Entulho é instável: um tiro derruba o prop inteiro em vez de só arranhá-lo.
+  // Sem isso o hazard da Cidade não aparece em campo nenhum — a fase 1 só tem
+  // grunt, que não atira, então a regra de linha de tiro abaixo nunca é
+  // exercida. Aqui o que o jogador vê é a cobertura desmoronando, que é a
+  // metade visível de "entulho" e a que importa na luta de arena.
+  const collapsesOnHit = hazard === 'debris';
   for (const b of bullets) {
-    if (b.isEnemy || b.life <= 0) continue;
+    if (b.life <= 0) continue;
+    if (b.isEnemy && !enemyShotStops) continue;
+    const fromPlayer = !b.isEnemy;
     for (const prop of getProps()) {
       if (prop.health <= 0) continue;
       if (!bulletHitsCircle(b, prop.x, prop.y, prop.radius)) continue;
-      const destroyed = damageProp(prop, b.damage);
+      let destroyed: boolean;
+      if (collapsesOnHit) {
+        detonateProp(prop);
+        destroyed = true;
+      } else {
+        destroyed = damageProp(prop, b.damage);
+      }
       spawnParticles(b.x, b.y, PALETTE.mustard, 3, 120);
-      if (destroyed && prop.kind === 'nest') {
+      // só o jogador credita ninho e moeda: tiro de inimigo não pode concluir a
+      // fase nem encher o bolso do jogador
+      if (fromPlayer && destroyed && prop.kind === 'nest') {
         registerObjectiveDestroyed();
         spawnParticles(prop.x, prop.y, PALETTE.terracotta, 26, 320);
         sfxExplosion();
@@ -821,7 +848,7 @@ function updateBulletProps(bullets: ReturnType<typeof getBullets>): void {
       if (destroyed) {
         if (prop.kind === 'barrel') {
           explodeProp(prop);
-        } else {
+        } else if (fromPlayer) {
           spawnParticles(prop.x, prop.y, PALETTE.mustard, 8, 160);
           if (Math.random() < 0.5) spawnCoins(prop.x, prop.y, 1);
           triggerScreenShake(2, 0.08);
@@ -1089,7 +1116,7 @@ function drawWorld(): void {
   ctx.translate(-camX + shake.x, -camY + shake.y);
 
   drawVoid(ctx);
-  drawTerrain(ctx, canvas.width, canvas.height);
+  drawTerrain(ctx);
   drawProps(ctx, (x, y, r) => isVisible(x, y, r, r));
   renderCoins(getCoins());
   renderPowerUps(powerups);
@@ -1101,26 +1128,57 @@ function drawWorld(): void {
   renderPlayer(p, getCurrentWeapon().weaponClass || 'pistol');
   drawDamageNumbers(damageNumbers);
   if (phase.hazard === 'darkness') drawFlashlightOverlay(p);
+  else if (phase.hazard === 'fog') drawFogOverlay(p);
 
   restoreCanvas();
 }
 
-/** Overlay de escuridão da Caverna com o cone da lanterna. */
+/**
+ * Overlay de escuridão da Caverna com o cone da lanterna.
+ *
+ * Chamado de dentro do espaço que `drawWorld` já transladou pela câmera, então
+ * as coordenadas são de mundo e não podem ser transladadas de novo: o bloco
+ * fazia `translate(-camX, -camY)` sobre uma matriz que já tinha `-camX`, e o
+ * furo do cone saía deslocado de (camX, camY) em relação à viewport. Como
+ * `camX` é 0 só no canto do mapa, a Caverna ficava com a lanterna fora de
+ * lugar no resto do mapa.
+ */
 function drawFlashlightOverlay(p: ReturnType<typeof player.getPlayer>): void {
   const camX = getCamX();
   const camY = getCamY();
+  const shake = currentShake;
   ctx.save();
-  ctx.translate(-camX, -camY);
   ctx.beginPath();
-  ctx.rect(camX, camY, canvas.width, canvas.height);
+  ctx.rect(camX - shake.x, camY - shake.y, canvas.width, canvas.height);
   ctx.arc(p.x, p.y, 240, 0, Math.PI * 2);
   ctx.fillStyle = 'rgba(0,0,0,0.001)';
   ctx.fill();
   ctx.restore();
 
-  const grad = ctx.createRadialGradient(p.x - camX, p.y - camY, 30, p.x - camX, p.y - camY, 240);
+  const grad = ctx.createRadialGradient(p.x, p.y, 30, p.x, p.y, 240);
   grad.addColorStop(0, 'rgba(0,0,0,0)');
   grad.addColorStop(1, 'rgba(0,0,0,0.82)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+/**
+ * Névoa da Floresta: vinheta macia centrada no jogador.
+ *
+ * Não é a lanterna da Caverna outro dia mais fraca. A escuridão tem cone e
+ * corta o resto da tela de uma vez; a névoa é larga e gradual — você continua
+ * lendo a forma das coisas, só não vê o que está longe. Verde morto do
+ * bioma, sem o preto fechado da caverna.
+ */
+function drawFogOverlay(p: ReturnType<typeof player.getPlayer>): void {
+  const camX = getCamX();
+  const camY = getCamY();
+  const cx = p.x - camX;
+  const cy = p.y - camY;
+  const grad = ctx.createRadialGradient(cx, cy, 130, cx, cy, 470);
+  grad.addColorStop(0, 'rgba(30, 40, 30, 0)');
+  grad.addColorStop(0.5, 'rgba(28, 38, 28, 0.44)');
+  grad.addColorStop(1, 'rgba(22, 32, 22, 0.82)');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 }

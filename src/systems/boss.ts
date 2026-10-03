@@ -15,6 +15,7 @@ import { spawnParticles } from './particles';
 import { PALETTE } from '../core/palette';
 import { spawnEnemy } from './spawner';
 import { detonateProp, getProps, igniteBarrel } from './props';
+import { moveCircleBy } from './tilemap';
 
 /** Intervalo base entre ações do boss (segundos) */
 const ACTION_INTERVAL = 2.6;
@@ -118,8 +119,18 @@ export function updateBoss(
 
   if (rt.charge > 0) {
     rt.charge -= elapsed;
-    e.x += Math.cos(rt.chargeAngle) * CHARGE_SPEED * elapsed;
-    e.y += Math.sin(rt.chargeAngle) * CHARGE_SPEED * elapsed;
+    // resolve contra o grid como o jogador: sem isso o chefe atravessa parede
+    // e a arena deixa de existir. Na Cidade a praça é cercada e o VIGIA
+    // atravessava a parede no primeiro ataque — exatamente o momento em que o
+    // jogador está sendo ensinado a usar cobertura.
+    const next = moveCircleBy(
+      e.x, e.y,
+      Math.cos(rt.chargeAngle) * CHARGE_SPEED * elapsed,
+      Math.sin(rt.chargeAngle) * CHARGE_SPEED * elapsed,
+      e.radius,
+    );
+    e.x = next.x;
+    e.y = next.y;
     if (rt.charge <= 0) rt.charge = 0;
     return spawned;
   }
