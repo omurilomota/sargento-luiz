@@ -666,8 +666,11 @@ function update(dt: number) {
   updateTutorial(dt);
   setMagnetActive(hasPowerUp('magnet'));
 
-    const p2 = getPlayer2();
-  if (isLocalEnabled() && p2) {
+  // `getPlayer2` não tem guard de `enabled` por dentro, então o modo é conferido
+  // antes de puxar o objeto — senão o código lia estado de uma sessão local
+  // anterior mesmo estando em campanha.
+  const p2 = isLocalEnabled() ? getPlayer2() : null;
+  if (p2) {
     for (const e of enemies) {
       if (e.health > 0 && checkPlayer2EnemyCollision(e.x, e.y, e.radius)) {
         e.health = 0;
@@ -1038,7 +1041,12 @@ function startRun(): void {
   resetBehavior();
   playerDied = false;
   if (selectedMode === 'campaign') startTutorial();
+  // O 2P local precisa ser desligado explicitamente: `enabled` só voltava a
+  // false em resetLocalMultiplayer(), que não era chamada em lugar nenhum. Então
+  // jogar uma partida local e depois iniciar uma campanha deixava o P2 fantasma
+  // ativo — e ele mata qualquer inimigo que encoste nele.
   if (selectedMode === 'local') initLocalMultiplayer(worldW, worldH);
+  else resetLocalMultiplayer();
   resetInput();
   setGameState('playing');
   void playMusic('combat');
