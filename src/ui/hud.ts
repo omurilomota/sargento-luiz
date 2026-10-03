@@ -29,6 +29,8 @@ export interface HudBoss {
   health: number;
   maxHealth: number;
   telegraphing: boolean;
+  /** Texto da ação que vem a seguir (vem de EnemyType.pattern[].telegraph) */
+  telegraphLabel: string;
 }
 
 export interface HudMinimap {
@@ -319,7 +321,12 @@ function drawBossBar(d: HudData, W: number): void {
   ctx!.textAlign = 'center';
   ctx!.fillStyle = b.telegraphing ? PALETTE.crit : PALETTE.text;
   ctx!.font = b.telegraphing ? 'bold 11px monospace' : '10px monospace';
-  ctx!.fillText(b.telegraphing ? `${b.name} — PREPARANDO...` : b.name, W / 2, y + 21);
+  // During a telegraph the label says WHICH action is coming. It was hardcoded
+  // "PREPARANDO..." before: the 9 bosses each declare a telegraph text in
+  // EnemyType.pattern and none of it reached the screen — the VIGIA's whole
+  // job is to teach the fight, and it was saying the same thing as the Mothership.
+  const texto = b.telegraphing && b.telegraphLabel ? `${b.name} — ${b.telegraphLabel}` : b.name;
+  ctx!.fillText(texto, W / 2, y + 21);
   ctx!.textAlign = 'left';
 }
 

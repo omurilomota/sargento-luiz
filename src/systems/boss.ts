@@ -77,7 +77,11 @@ export function updateBoss(
   let rt = runtimes.get(e);
   if (!rt) {
     rt = {
-      step: 0,
+      // step começa fora de qualquer faixa: se valer 0, `step.index !== rt.step`
+      // é falso no primeiro frame e o chefe nunca telegrafa a PRIMEIRA ação —
+      // ele fica 2.6s em silêncio e ataca sem aviso. -1 força a entrada na
+      // faixa 0 com janela de leitura, que é o que o padrão promete.
+      step: -1,
       telegraph: 0,
       telegraphLabel: '',
       charge: 0,
@@ -215,4 +219,10 @@ export function clearBossState(e: Enemy): void {
  */
 export function isBossTelegraphing(e: Enemy): boolean {
   return runtimes.get(e)?.flashing ?? false;
+}
+
+/** Texto da ação que vem a seguir, para a barra de boss. */
+export function getBossTelegraphLabel(e: Enemy): string {
+  const rt = runtimes.get(e);
+  return rt?.flashing ? rt.telegraphLabel : '';
 }

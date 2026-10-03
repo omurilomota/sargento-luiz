@@ -31,7 +31,7 @@ import { initCamera, setViewportSize, setWorldSize, updateCamera, snapCamera, ge
 import { initProps, getProps, updateProps, damageProp, detonateProp, getBlast, drawProps, clearProps, Prop } from './systems/props';
 import { buildTerrain, drawTerrain, clearTerrain } from './systems/terrain';
 import { initObjective, updateObjective, registerObjectiveDestroyed, cellCenter } from './systems/objectives';
-import { updateBoss, isBossTelegraphing, clearBossState } from './systems/boss';
+import { updateBoss, isBossTelegraphing, getBossTelegraphLabel, clearBossState } from './systems/boss';
 
 import {
   initRenderer, drawMenu, drawCutscene, drawGameOver, drawCoins as renderCoins,
@@ -1177,6 +1177,7 @@ function buildHudData(): HudData {
         health: boss.health,
         maxHealth: boss.maxHealth,
         telegraphing: isBossTelegraphing(boss),
+        telegraphLabel: getBossTelegraphLabel(boss),
       }
       : null,
     objective: updateObjective(0, p.x, p.y, enemies.length, reachZones),
