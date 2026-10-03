@@ -140,6 +140,14 @@ export function nextWave() {
 }
 
 /**
+ * Volta para a primeira onda da fase, sem sair dela.
+ * Usado quando a fase reinicia porque o sobrevivente do `protect` caiu.
+ */
+export function resetWave(): void {
+  currentWave = 0;
+}
+
+/**
  * Avança para a próxima fase.
  * Se todas as fases foram completadas, vai para game over.
  */

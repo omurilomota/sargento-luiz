@@ -12,7 +12,7 @@ export interface NPC {
   messageTimer: number;
 }
 
-import { registerVipDown } from './objectives';
+import { markVipDown } from './objectives';
 
 /** Dano por segundo do NPC enquanto um inimigo encosta nele. */
 const NPC_CONTACT_DPS = 30;
@@ -85,7 +85,7 @@ export function updateNPCs(dt: number, playerX: number, playerY: number, enemies
           // avisa o objetivo: sem isso `deadNpc` ficava false para sempre e o
           // objetivo protect dependia só de vip.alive, que deixa de funcionar
           // quando o NPC sai da lista depois do messageTimer
-          registerVipDown();
+          markVipDown();
         }
         break;
       }

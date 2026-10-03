@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   initObjective, updateObjective, peekObjective, registerObjectiveDestroyed,
-  registerVipDown, cellCenter, endsPhaseOnDone, ReachZone,
+  markVipDown, cellCenter, endsPhaseOnDone, ReachZone,
 } from '../systems/objectives';
 import { resetNPCs, spawnNPC, getNPCs, updateNPCs } from '../systems/npcs';
 import { PHASES } from '../config';
@@ -84,7 +84,7 @@ describe('objectives: cada tipo sabe quando termina', () => {
   it('protect NÃO conclui com o NPC morto, mesmo com a área limpa', () => {
     initObjective('protect', 0);
     spawnNPC(400, 400, 0);
-    registerVipDown();
+    markVipDown();
     const r = updateObjective(0, 0, 0, 0, ZONA);
     expect(r.done).toBe(false);
     expect(r.detail).toBe('PERDIDO');

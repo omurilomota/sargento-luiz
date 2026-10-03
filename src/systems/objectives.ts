@@ -171,9 +171,20 @@ export function endsPhaseOnDone(kind: ObjectiveKind): boolean {
   return kind === 'reach';
 }
 
-/** Registra que o NPC protegido morreu. */
-export function registerVipDown(): void {
+/** Marca o sobrevivente como morto (usado pelo npcs.ts e pelo teste no browser). */
+export function markVipDown(): void {
   deadNpc = true;
+}
+
+/**
+ * true se o sobrevivente do objetivo `protect` morreu nesta fase.
+ *
+ * Diferente de `vipAlive()`: isto é o latch, então é falso numa fase onde o
+ * NPC nunca existiu. Reiniciar a fase quando o NPC cai não pode virar laço
+ * infinito por causa de um NPC que não nasceu.
+ */
+export function vipDown(): boolean {
+  return deadNpc;
 }
 
 /** Converte a coordenada de uma célula `N` em pixels com o centro da célula. */

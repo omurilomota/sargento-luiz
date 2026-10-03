@@ -30,7 +30,7 @@ import { loadMap, colAt, rowAt, charAt, isWall, hasPath, moveCircleBy, rebuildFl
 import { initCamera, setViewportSize, setWorldSize, updateCamera, snapCamera, getCamX, getCamY, screenToWorld, drawVoid, isVisible, setShake } from './systems/camera';
 import { initProps, getProps, updateProps, damageProp, detonateProp, getBlast, drawProps, clearProps, collapsesOnHit, Prop } from './systems/props';
 import { buildTerrain, drawTerrain, clearTerrain } from './systems/terrain';
-import { initObjective, updateObjective, peekObjective, endsPhaseOnDone, registerObjectiveDestroyed, cellCenter, ReachZone } from './systems/objectives';
+import { initObjective, updateObjective, peekObjective, endsPhaseOnDone, vipDown, markVipDown, registerObjectiveDestroyed, cellCenter, ReachZone } from './systems/objectives';
 import { updateBoss, isBossTelegraphing, getBossTelegraphLabel, clearBossState } from './systems/boss';
 
 import {
@@ -46,13 +46,13 @@ import { drawShop, handleShopClick, setShopCoins, getShopCoins, addShopCoins, re
 
 // Modules
 import { shoot, getCurrentWeapon, resetWeapons, canShoot, startReload, updateReload, getCurrentAmmo, getIsReloading, getReloadTimer } from './weapons';
-import { getCurrentPhase, getCurrentWave, getGameState, setGameState, nextWave, nextPhase, resetPhases, addScore, addScoreFlat, getScore, getCombo, getComboDecay, updateCombo, resetCombo, getKillStreak, wasGameCompleted } from './phases';
+import { getCurrentPhase, getCurrentWave, getGameState, setGameState, nextWave, nextPhase, resetPhases, resetWave, addScore, addScoreFlat, getScore, getCombo, getComboDecay, updateCombo, resetCombo, getKillStreak, wasGameCompleted } from './phases';
 import { powerups, spawnPowerUp, updatePowerUps, hasPowerUp, activePowerups } from './powerups';
 
 import {
   initAudio, sfxPistol, sfxShotgun, sfxMachinegun, sfxSniper, sfxLaser, sfxRPG, sfxRaios, sfxGel,
   sfxGranade, sfxMina, sfxExplosion, sfxBossDeath, sfxPlayerHit, sfxCoin, sfxPowerup, sfxWaveStart,
-  sfxGameOver, sfxEnemyShoot, sfxDash, sfxShield, sfxFury, sfxMenuMove, sfxMenuSelect,
+  sfxGameOver, sfxEnemyShoot, sfxDash, sfxShield, sfxFury, sfxMenuMove, sfxMenuSelect, sfxError,
   startMusic, playMusic, setMusicEnabled, setSfxEnabled, isMusicEnabled, isSfxEnabled,
 } from './systems/audio';
 import { triggerScreenShake, triggerDamageFlash, triggerBossKillFlash, updateFlash, updateSlowMotion, triggerSlowMotion, triggerHitStop, updateHitStop, resetEffects, updateScreenShake, triggerBossZoom, updateBossZoom } from './systems/effects';
@@ -725,6 +725,24 @@ function update(dt: number) {
   // ── objetivo da fase ──
   // Em fases com objetivo ≠ clear, cumprir o objetivo encerra a fase: é o que
   // tira o "só matar tudo" e dá uso real ao mapa.
+  // ── o sobrevivente do protect caiu: a fase reinicia ──
+  // Um objetivo de escolta sem consequência não é escolta: o `protect` devolvia
+  // `done: false` para sempre, o chefe nunca aparecia e a fase acabava normal
+  // como se nada tivesse acontecido. Reiniciar a fase é mais duro que o fim de
+  // fase negativo e não exige sistema de retry — reusa o que já existe para
+  // carregar o mapa.
+  if (vipDown()) {
+    triggerScreenShake(12, 0.6);
+    triggerDamageFlash();
+    sfxError();
+    pushToast('SOBREVIVENTE PERDIDO — RECOMEÇANDO A FASE', 4);
+    resetWave();
+    loadPhaseEnvironment();
+    enemies.length = 0;
+    clearBullets();
+    return;
+  }
+
   const objective = updateObjective(dt, p.x, p.y, enemies.length, reachZones);
 
   // ── chefe da fase: campo vazio da última onda, e só depois do objetivo ──
