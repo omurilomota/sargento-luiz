@@ -13,7 +13,7 @@ export const PHASES: Phase[] = [
   {
     name: 'Cidade em Ruínas', bg: '#1c1a18', bgColor2: '#0e0d0c', gridColor: 'rgba(160,128,80,0.06)',
     enemyTypes: ['grunt'], waves: 3, map: 'cidade', hazard: 'debris',
-    objective: 'clear', objectiveTarget: 0,
+    objective: 'clear', objectiveTarget: 0, boss: 'vigia',
   },
   {
     name: 'Floresta', bg: '#1a2e1a', bgColor2: '#0d1a0d', gridColor: 'rgba(34,139,34,0.1)',
@@ -53,7 +53,7 @@ export const PHASES: Phase[] = [
   {
     name: 'Bunker Central', bg: '#15161a', bgColor2: '#0a0b0d', gridColor: 'rgba(160,128,80,0.05)',
     enemyTypes: ['grunt', 'runner', 'tank', 'robot'], waves: 6, map: 'bunker', hazard: 'none',
-    objective: 'clear', objectiveTarget: 0,
+    objective: 'clear', objectiveTarget: 0, boss: 'nucleo',
   },
 ];
 
@@ -83,6 +83,19 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
   alien: { radius: 14, speed: 110, health: 20, damage: 8, color: '#5a7a5a', scoreValue: 25, coinDrop: 4, canShoot: true, shootRate: 1.0, bulletSpeed: 400, projectileColor: PALETTE.moss },
 
   // ─── Bosses ────────────────────────────────────────────────
+  vigia: {
+    radius: 40, speed: 78, health: 520, damage: 18, color: '#8a7a6a', scoreValue: 250, coinDrop: 30,
+    canShoot: false, isBoss: true, bossName: 'VIGIA', telegraph: 1.1,
+    // Primeira luta do jogo, então o padrão é uma aula: telegrafia longa,
+    // uma ação por faixa, e o texto da telegrafia diz o que vai acontecer.
+    // A investida é a primeira coisa que o jogador aprende a desviar, e os
+    // barris ensinam que o campo é combustível antes da segunda fase.
+    pattern: [
+      { atHp: 1.0, action: 'charge', telegraph: 'OLHE PARA CÁ' },
+      { atHp: 0.55, action: 'mines', telegraph: 'OS BARRIS EXPLODEM' },
+      { atHp: 0.25, action: 'summon', telegraph: 'CHAMANDO REFORÇOS' },
+    ],
+  },
   alphaWolf: {
     radius: 42, speed: 95, health: 900, damage: 26, color: '#7a6a5a', scoreValue: 400, coinDrop: 45,
     canShoot: false, isBoss: true, bossName: 'ALPHA WOLF', telegraph: 0.9,
@@ -151,6 +164,23 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
       { atHp: 0.7, action: 'summon', telegraph: 'INTERCEPTADORES' },
       { atHp: 0.4, action: 'sweep', telegraph: 'CANHO PRINCIPAL' },
       { atHp: 0.15, action: 'split', telegraph: 'NÚCLEO EXPOSTO' },
+    ],
+  },
+  nucleo: {
+    radius: 46, speed: 34, health: 4200, damage: 46, color: '#7a7a8a', scoreValue: 1500, coinDrop: 180,
+    canShoot: true, shootRate: 1.0, bulletSpeed: 340, isBoss: true, bossName: 'NÚCLEO', telegraph: 0.7,
+    projectileColor: PALETTE.stone, armor: true,
+    // O último chefe tira uma opção por faixa, em vez de somar HP: tiro
+    // mirado → o salão vira combustível → nenhuma diagonal é segura → nenhuma
+    // posição é segura. Sem investida porque a galeria do Bunker é estreita
+    // demais para carregar, e sem invocação porque o NÚCLEO não chama reforço:
+    // ele executa. É o único chefe com armadura, e o de telegrafia mais curta
+    // do jogo — o oposto do VIGIA, que é a primeira coisa que o jogador vê.
+    pattern: [
+      { atHp: 1.0, action: 'spread', telegraph: 'ALVO REGISTRADO' },
+      { atHp: 0.7, action: 'mines', telegraph: 'PURGA' },
+      { atHp: 0.45, action: 'sweep', telegraph: 'VARREDURA' },
+      { atHp: 0.2, action: 'ring', telegraph: 'SOBRECARGA' },
     ],
   },
 };

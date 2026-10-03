@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { BIOMES, CELL_SIZE, tileKindAt } from '../maps';
+import { ENEMY_TYPES, PHASES } from '../config';
 import { TILE_NUMBERS, tileFileName, POSES, WEAPON_CLASSES } from '../systems/sprites';
 import { loadMap, hasPath, findAll, isWall, moveCircleBy, rebuildFlowField, sampleFlowDir } from '../systems/tilemap';
 
@@ -145,6 +146,48 @@ describe('mapas: conectividade', () => {
     expect(findAll.call(null, 'E')).toBeDefined();
     const rows = BIOMES[key].rows.join('');
     expect((rows.match(/E/g) ?? []).length).toBeGreaterThanOrEqual(4);
+  });
+});
+
+describe('bosses: fase, tipo e arena concordam', () => {
+  it('as 9 fases têm boss (a 1 e a 9 estavam sem, e teach sem ameaça não ensina)', () => {
+    const semBoss = PHASES.filter(p => !p.boss).map(p => p.name);
+    expect(semBoss).toEqual([]);
+  });
+
+  it.each(PHASES.map(p => [p.name, p] as const))('%s: o boss declarado existe e tem padrão', (_name, phase) => {
+    const def = ENEMY_TYPES[phase.boss!];
+    expect(def, `tipo ${phase.boss} não existe em ENEMY_TYPES`).toBeDefined();
+    expect(def.isBoss).toBe(true);
+    expect(def.bossName).toBeTruthy();
+    expect(def.pattern?.length ?? 0).toBeGreaterThan(0);
+  });
+
+  it.each(PHASES.map(p => [p.name, p] as const))('%s: o mapa tem uma arena marcada', (_name, phase) => {
+    loadMap(BIOMES[phase.map].rows);
+    expect(findAll('B')).toHaveLength(1);
+  });
+
+  it.each(PHASES.map(p => [p.name, p.map] as const))('%s: a arena tem espaço para o chefe manobrar', (_name, mapKey) => {
+    loadMap(BIOMES[mapKey].rows);
+    const boss = findAll('B')[0];
+    let livres = 0;
+    for (let dr = -3; dr <= 3; dr++) {
+      for (let dc = -3; dc <= 3; dc++) {
+        if (!isWall(boss.col + dc, boss.row + dr)) livres++;
+      }
+    }
+    // o piso é 19, a arena mais apertada que já foi entregue (Castelo e Pântano):
+    // o teste trava aRegression e não exige redesenho. Abaixo disso o chefe
+    // nasce num bolso e a luta vira ele batendo na parede.
+    expect(livres, `arena de ${mapKey} apertada demais: ${livres}/49 células livres`).toBeGreaterThanOrEqual(19);
+  });
+
+  it('todo boss dá tempo de ler a telegrafia antes da ação', () => {
+    for (const phase of PHASES) {
+      const def = ENEMY_TYPES[phase.boss!];
+      expect(def.telegraph ?? 0.8, `${def.bossName} sem telegrafia`).toBeGreaterThanOrEqual(0.5);
+    }
   });
 });
 

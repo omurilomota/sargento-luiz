@@ -53,6 +53,21 @@ def wall_col(g, c, r0, r1, doors=()):
             g[r][c] = WALL
 
 
+def arena(g, r0, c0, r1, c1, cover=()):
+    """Abre um retângulo como arena de boss e recoloca cobertura dentro dele.
+
+    Sem isto os dois mapas de boss não tinham onde lutar: o maior retângulo livre
+    da Cidade era 13x3 e o do Bunker 1x28, e um chefe de raio 42+px preso num
+    corredor fica batendo na parede em vez de atacar.
+    """
+    for r in range(r0, r1 + 1):
+        for c in range(c0, c1 + 1):
+            if 0 < r < H - 1 and 0 < c < W - 1:
+                g[r][c] = FLOOR
+    for box in cover:
+        rect(g, *box)
+
+
 def scatter(g, ch, count, seed):
     import random
     rng = random.Random(seed)
@@ -190,7 +205,15 @@ def cidade():
     scatter(g, CRATE, 9, 11)
     scatter(g, BARREL, 5, 12)
     scatter(g, DECOR, 8, 13)
-    return finish(g, 'cidade', (15, 15), [(1, 7), (2, 20), (6, 27), (12, 15), (18, 8), (9, 24)])
+    # Praça do VIGIA no canto inferior direito. A primeira luta do jogo existe
+    # para ensinar que parede é cobertura: quatro blocos no meio da praça
+    # dão onde se esconder da investida, e os barris nas bordas dão o que
+    # explodes quando o chefe os acende.
+    arena(g, 12, 17, 18, 28, cover=((19, 13, 20, 13), (25, 13, 26, 13),
+                                     (19, 16, 20, 16), (25, 16, 26, 16)))
+    scatter(g, BARREL, 4, 14)
+    return finish(g, 'cidade', (15, 15), [(1, 7), (2, 20), (6, 27), (12, 15), (18, 8), (9, 24)],
+                  boss=(15, 22))
 
 
 def floresta():
@@ -326,7 +349,14 @@ def bunker():
     scatter(g, CRATE, 6, 91)
     scatter(g, BARREL, 4, 92)
     scatter(g, DECOR, 8, 93)
-    return finish(g, 'bunker', (18, 14), [(3, 4), (16, 4), (4, 15), (11, 15), (18, 3), (18, 15)])
+    # Salão do NÚCLEO: as duas divisórias do meio viram uma galeria de 6x21, e a
+    # fileira de salas ortogonais que sobra é a que o jogador não usa. O chefe
+    # final não tem investida — numa arena espremida ela seria só ele batendo
+    # na parede —, então a galeria estreita é parte do desenho, não limitação.
+    arena(g, 8, 1, 13, 21, cover=((3, 10, 4, 11), (17, 10, 18, 11),
+                                  (7, 12, 8, 13), (14, 9, 15, 10)))
+    return finish(g, 'bunker', (18, 14), [(3, 4), (16, 4), (4, 15), (11, 15), (18, 3), (18, 15)],
+                  boss=(11, 11))
 
 
 MAPS = [
