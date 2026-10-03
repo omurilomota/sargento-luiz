@@ -14,6 +14,7 @@ import { rand } from '../utils';
 import { MAX_ENEMIES, WAVE_BASE_ENEMIES, WAVE_ENEMIES_PER_LEVEL, WAVE_BASE_SPAWN_RATE, WAVE_SPAWN_RATE_DECAY, WAVE_MIN_SPAWN_RATE, WAVE_SCALE_PER_LEVEL, WAVE_SPEED_SCALE_PER_LEVEL } from '../core/constants';
 import { CELL_SIZE } from '../maps';
 import { getMap, isWall } from './tilemap';
+import { getSkillPressure } from './dynamicDifficulty';
 
 /** Temporizador acumulado desde o último spawn */
 let waveTimer = 0;
@@ -142,7 +143,14 @@ export function spawnWaveEnemies(
   const totalEnemies = WAVE_BASE_ENEMIES + currentWave * WAVE_ENEMIES_PER_LEVEL;
   const spawnRate = Math.max(WAVE_MIN_SPAWN_RATE, WAVE_BASE_SPAWN_RATE - currentWave * WAVE_SPAWN_RATE_DECAY);
 
-  if (waveTimer >= spawnRate && enemiesSpawnedThisWave < totalEnemies && enemies.length < MAX_ENEMIES) {
+  // Dinâmica de dificuldade pela acurácia: quem acerta muito sofre ondas mais
+  // densas. A banda é estreita de propósito (12% no intervalo de spawn) — o
+  // suficiente para o jogo sentir o jogador, sem virar um modo fácil/duro
+  // escondido. Antes de 20 tiros não mexe em nada, porque a amostra é ruído.
+  const pressure = getSkillPressure();
+  const pressureMult = pressure === null ? 1 : 1 - pressure * 0.12;
+
+  if (waveTimer >= spawnRate * pressureMult && enemiesSpawnedThisWave < totalEnemies && enemies.length < MAX_ENEMIES) {
     waveTimer = 0;
     const type = currentPhaseEnemyTypes[Math.floor(rand(0, currentPhaseEnemyTypes.length))];
     const enemy = spawnEnemy(type, worldWidth, worldHeight, currentWave, undefined, undefined, rect);

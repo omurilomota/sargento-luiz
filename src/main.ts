@@ -479,7 +479,7 @@ function update(dt: number) {
     }
   }
 
-  updateBehavior(p.x, p.y, dt, enemies.length, 0);
+  updateBehavior(p.x, p.y, enemies.length);
 
   if (!bossZoomTriggered) {
     for (const e of enemies) {
@@ -666,7 +666,7 @@ function update(dt: number) {
   updateTutorial(dt);
   setMagnetActive(hasPowerUp('magnet'));
 
-  const p2 = getPlayer2();
+    const p2 = getPlayer2();
   if (isLocalEnabled() && p2) {
     for (const e of enemies) {
       if (e.health > 0 && checkPlayer2EnemyCollision(e.x, e.y, e.radius)) {
