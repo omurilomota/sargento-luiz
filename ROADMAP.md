@@ -29,15 +29,20 @@ fizesse o jogador decidir onde ficar.
 - [x] Assets em `public/` (build de produção copia)
 - [x] 4 faixas OGG com crossfade + som por habilidade
 - [x] Screen shake aplicado, ENTER sem cascata, dash com direção
-- [x] 117 testes (swept, layout de loja/menu, validação de mapas)
+- [x] 159 testes (swept, layout de loja/menu, validação de mapas, executor de boss)
 
 ## v1.4 — conteúdo que falta ⏳
 
 Cada item destrava algo maior que ele mesmo.
 
-- [ ] **Fases 1 e 9 com boss.** São as duas fases sem boss. Cidade em Ruínas
-      precisa de boss — é a fase que ensina o mapa, e teach sem ameaça não
-      ensina nada.
+- [x] **Fases 1 e 9 com boss.** VIGIA na Cidade (a primeira luta é uma aula:
+      telegrafia que diz o que vem, investida como primeira coisa a desviar,
+      praça com cobertura) e NÚCLEO no Bunker (tira uma opção por faixa, sem
+      investida porque a galeria não comporta).
+- [ ] **Boss que não morre em cima do jogador.** `killEnemy` no contato vale
+      para todos, então um chefe que investe se suicida: dar de frente é uma
+      estratégia válida, e vale para o ALPHA WOLF também. Não é regressão
+      desta entrega — é a regra de contato do jogo, que ninguém revisou ainda.
 - [ ] **`protect` com inimigo que caça o NPC.** O objetivo existe no código e
       no HUD, mas nenhum mapa o usa. Precisa de um inimigo com IA de alvo.
 - [ ] **Cobertura que muda a decisão de rota.** Barril destrutível já existe;
@@ -171,10 +176,10 @@ O que já foi entregue antes da v1.3, e o que foi entregue nela.
 |---------|-------|
 | Arquivos TypeScript | 49 |
 | Linhas de código | ~10.500 |
-| Testes unitários | 117 |
+| Testes unitários | 159 |
 | Mapas / fases | 9 |
 | Tipos de inimigos | 22 |
-| Bosses | 7 |
+| Bosses | 9 |
 | Armas | 11 |
 | Upgrades | 19 |
 | Combos | 8 |

@@ -1,6 +1,6 @@
 # BubbleGame — Status Geral do Projeto
 
-> Atualizado: 2026-10-03 · branch `feature/v1.3-hud-bugfixes`
+> Atualizado: 2026-10-03 · branch `feature/v1.3-hud-bugfixes` · v1.4
 
 Direção do jogo: [`docs/DESIGN.md`](docs/DESIGN.md) ·
 pendências: [`TODO.md`](TODO.md) ·
@@ -32,7 +32,7 @@ ataca isso primeiro.
   (objetivo de fase)
 - **9 mapas autorais**, cada um com hazard e objetivo próprios
 - **Objetivos de fase**: `clear` · `survive` · `destroy` · `protect` · `reach`
-- **Boss data-driven**: 7 bosses com padrão declarativo e telegrafia
+- **Boss data-driven**: **9 bosses** com padrão declarativo e telegrafia
 
 ### Bugs corrigidos
 
@@ -51,6 +51,11 @@ ataca isso primeiro.
 - **Tiles nunca carregavam**: o nome usa pad de 2 dígitos (`tile_01.png`), não 3
 - **Dash ia para onde a arma aponta**; agora segue a direção do movimento
 - Log `[DANO]` pintado em tela durante o combate, removido
+- **Telegrafia de boss nunca era exibida**: os 9 chefes declaravam um texto em
+  `pattern[].telegraph` e a barra mostrava um "PREPARANDO..." fixo
+- **Chefe não telegrafava a primeira ação**: `step` do runtime começava em `0`, o
+  que fazia `step.index !== rt.step` ser falso no primeiro frame — o chefe
+  ficava 2.6s em silêncio e atacava sem aviso
 - Relâmpago tirava 40 de dano sem nenhum feedback visual
 - Tiro do Laser na cor errada (o `isCrit` agora é flag, não comparação de string)
 - Chave presa ao voltar para a janela (`keyup` só era tratado em `playing`)
@@ -69,7 +74,7 @@ ataca isso primeiro.
 - Música procedural de 12 notas trocada por **4 faixas OGG** com crossfade
 - Som distinto por habilidade (antes as três usavam `sfxPowerup`)
 - Toggle de música/SFX no pause, com persistência
-- 7 bosses com padrão data-driven
+- 9 bosses com padrão data-driven, incluindo VIGIA (fase 1) e NÚCLEO (fase 9)
 - Modos cortados de 7 para 4 (`survival`, `missions` e `bossrush` não tinham
   uma única função ligada)
 - Créditos reais em `public/assets/CREDITS.md`
@@ -82,25 +87,24 @@ ataca isso primeiro.
 
 ## Testes
 
-117 testes em 4 arquivos, cobrindo exatamente as regressões que já voltaram:
+159 testes em 5 arquivos, cobrindo exatamente as regressões que já voltaram:
 
 | Arquivo | Cobre |
 |---|---|
 | `collision.test.ts` | Colisão swept (tunneling), ponto-segmento, circle-circle |
+| `boss.test.ts` | `updateBoss`: avanço por faixa de HP, telegrafia, `mines` acende barril, summon, e as 9 fases ligadas a um boss |
 | `shopLayout.test.ts` | `getShopLayout`: sobreposição, colunas, hit-test bate com o draw |
 | `menuLayout.test.ts` | `getMenuLayout`: índice do clique, cabimento em 4 resoluções |
 | `mapValidation.test.ts` | 9 mapas: largura, borda, conectividade, contraste piso/parede, caminho de tile no disco |
 
 ```
-npm test            # 117 passando
+npm test            # 159 passando
 npx tsc --noEmit    # 0 erros
 npm run build       # ok
 ```
 
 ## ⏳ NÃO ENTREGUE (está no `TODO.md`)
 
-- **Cidade em Ruínas e Bunker Central** como fases de boss — as duas fases sem
-  boss seguem sem boss (1 e 9)
 - Modo competitivo online
 - Achievements expandidos
 - `protect` não tem inimigo que proteja ainda: o objetivo existe no código e no HUD,

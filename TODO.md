@@ -61,6 +61,15 @@
 
 // --- OBJETIVO DE FASE ---
 // [x] 5 tipos de objetivo: clear, survive, destroy, protect, reach
+// [x] protect e reach sem nenhum mapa usando: falta inimigo que caça o NPC
+
+// --- BOSS ---
+// [x] VIGIA na Cidade em Ruínas (fase 1) — primeira luta ensina o mapa
+// [x] NÚCLEO no Bunker Central (fase 9) — chefe final, sem investida
+// [x] Arena de boss nos 2 mapas que não tinham (corredor de 13x3 e 1x28)
+// [x] Texto da telegrafia aparece na barra de boss (era dado morto)
+// [x] Primeira ação de cada chefe telegrafada (step do runtime = -1)
+// [ ] Chefe não morre em cima do jogador: killEnemy no contato vale para todos
 
 // --- GEOMETRIA (a maior pendência do projeto até v1.3) ---
 // [x] Tilemap 30×20 com colisão círculo-vs-grid e deslize por eixo

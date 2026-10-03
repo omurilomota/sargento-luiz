@@ -60,7 +60,7 @@ campo primeiro, depois enfeitar**.
 
 | # | Bioma | Hazard | Objetivo | Boss |
 |---|---|---|---|---|
-| 1 | Cidade em Ruínas | detritos | clear | — |
+| 1 | Cidade em Ruínas | detritos | clear | VIGIA |
 | 2 | Floresta | névoa | clear | ALPHA WOLF |
 | 3 | Caverna | escuridão | destroy (3 ninhos) | CRYSTAL QUEEN |
 | 4 | Fábrica | eletricidade | survive (45s) | SENTINEL |
@@ -68,11 +68,14 @@ campo primeiro, depois enfeitar**.
 | 6 | Castelo | espinhos | clear | REI MUTANTE |
 | 7 | Vulcão | lava | clear | INFERNO PRIME |
 | 8 | Espaço | baixa gravidade | clear | MOTHERSHIP |
-| 9 | Bunker Central | nenhum | clear | — |
+| 9 | Bunker Central | nenhum | clear | NÚCLEO |
 
-A fase 1 é a única sem hazard e com um tipo de inimigo só: ela existe para
-ensinar a leitura do campo. A 9 fecha o jogo com bioma limpo, porque o
-desafio final é o jogador, não o mapa.
+A fase 1 tem um tipo de inimigo só e existe para ensinar a leitura do campo —
+por isso o primeiro chefe é uma aula: a telegrafia diz o que vem ("OLHE PARA
+CÁ", "OS BARRIS EXPLODEM"), a investida é a primeira coisa a desviar, e a arena
+é uma praça com quatro blocos de cobertura. A 9 fecha o jogo com bioma limpo,
+porque o desafio final é o jogador, não o mapa — e o NÚCLEO não tem investida:
+numa galeria estreita ela seria só o chefe batendo na parede.
 
 ## 5. Boss data-driven
 
