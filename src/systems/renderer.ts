@@ -16,6 +16,7 @@ import { ENEMY_TYPES, POWERUP_TYPES } from '../config';
 import { hasPowerUp } from '../powerups';
 import { isSkillActive } from './skills';
 import { getSprite, getEnemyCharacter, poseKey, drawSpriteFit, Pose, isSpritesEnabled } from './sprites';
+import { getIsReloading } from '../weapons';
 import { getCurrentCutscene, getCurrentLine, isLineComplete, getTextProgress, getPortraitInfo, isWaitingForChoice } from './story';
 import { getEquippedSkin } from './skins';
 import { hasSave } from './saveSystem';
@@ -472,14 +473,24 @@ export function drawBullets(bullets: Bullet[]): void {
 }
 
 /**
- * Escolhe a pose do sprite: tiro > dano > andar/parado > idle.
+ * Escolhe a pose do sprite: dano > tiro > armado parado > andar/parado.
+ *
+ * Quem atira fica armado o tempo todo, não só nos 0.2s antes do disparo: `gun`
+ * e `machine` são as poses com arma na mão, então usá-las só no momento do
+ * tiro fazia o atirador aparecer desarmado o resto do tempo. Quem não atira
+ * fica em `stand`, a pose sem arma — coerente com um melee.
+ *
+ * O antigo parâmetro `moving` foi removido: `drawEnemies` passava `true`
+ * fixo, então o ramo `moving ? 'stand' : 'hold'` nunca chose o outro lado.
+ * `Enemy` não guarda `vx`/`vy` (a direção vem do flow field, recalculada por
+ * frame), então não há como derivar "andando" aqui sem guardar estado extra
+ * só para isso — e as duas poses são a mesma coisa sem arma.
  * @param e - inimigo
- * @param moving - se o inimigo se moveu neste frame
  */
-function enemyPose(e: Enemy, moving: boolean): Pose {
+function enemyPose(e: Enemy): Pose {
   if (e.hitFlash > 0) return 'reload';
-  if (e.canShoot && e.shootTimer > e.shootRate - 0.2) return 'machine';
-  return moving ? 'stand' : 'hold';
+  if (e.canShoot) return e.shootTimer > e.shootRate - 0.2 ? 'machine' : 'gun';
+  return 'stand';
 }
 
 /**
@@ -504,7 +515,7 @@ export function drawEnemies(
 
     const def = ENEMY_TYPES[e.type];
     const char = getEnemyCharacter(e.type);
-    const pose = enemyPose(e, true);
+    const pose = enemyPose(e);
     const img = spritesOn ? getSprite(poseKey(char, pose)) : null;
 
     if (img) {
@@ -610,8 +621,35 @@ export function drawBots(bots: BotLike[]): void {
 }
 
 /**
- * Desenha o jogador com pose do pacote Kenney, arma na ponta do cano e auras
- * de escudo/fúria. A mira e o cano antes só apareciam no fallback sem sprite.
+ * Pose do jogador por classe de arma.
+ *
+ * As poses `gun`/`machine`/`silencer` do pack já desenham o personagem **segurando**
+ * a arma — são 16px mais largas que `stand` por causa do cano. `stand` e `hold`
+ * são as duas poses sem arma nenhuma. O jogador ficava em `stand` quando não
+ * estava atirando, então a arma só aparecia no disparo: parado, o `weapon_*`
+ * desenhado na ponta ficava solto ao lado do corpo, e atirando ficavam duas
+ * armas (a da pose e a da ponta).
+ *
+ * Como a arma agora vem da pose, a sprite `weapon_*` da ponta sai: ela duplica
+ * o cano, é desenhada dentro de um espaço já rotacionado e depois des-rotacionado
+ * (`rotate(-player.angle)` dentro de `rotate(player.angle)`), então ficava
+ * sempre na horizontal independente da mira.
+ */
+const ARMED_POSE: Record<'pistol' | 'machine' | 'silencer', Pose> = {
+  pistol: 'gun',
+  machine: 'machine',
+  silencer: 'silencer',
+};
+
+function playerPose(weaponClass: 'pistol' | 'machine' | 'silencer'): Pose {
+  // recarregando não é pose armada: o pack tem `reload` com as duas mãos na arma
+  if (getIsReloading()) return 'reload';
+  return ARMED_POSE[weaponClass];
+}
+
+/**
+ * Desenha o jogador com pose do pacote Kenney, arma na mão e auras
+ * de escudo/fúria.
  */
 export function drawPlayer(player: Player, weaponClass: 'pistol' | 'machine' | 'silencer'): void {
   if (player.deathTimer > 0) {
@@ -643,7 +681,7 @@ export function drawPlayer(player: Player, weaponClass: 'pistol' | 'machine' | '
   ctx.rotate(player.angle);
 
   if (hasSprite) {
-    const img = getSprite(poseKey('survivor', player.shootCooldown > 0.06 ? 'gun' : 'stand'))!;
+    const img = getSprite(poseKey('survivor', playerPose(weaponClass)))!;
     drawSpriteFit(ctx, img, 0, 0, player.radius * 2.5, 0);
   } else {
     let bodyColor = skin.bodyColor;
@@ -659,25 +697,17 @@ export function drawPlayer(player: Player, weaponClass: 'pistol' | 'machine' | '
     ctx.shadowBlur = 0;
   }
 
-  // mira: existe com sprite E sem sprite
-  ctx.strokeStyle = skin.aimColor;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(player.radius * 0.6, 0);
-  ctx.lineTo(player.radius * 1.45, 0);
-  ctx.stroke();
+  // cano e mira: só no fallback. Com sprite, o cano já vem desenhado na mão e
+  // a linha branca de mira ficava por cima dele parecendo laser atravessando a
+  // arma; a direção já é legível porque o corpo inteiro gira para a mira.
+  if (!hasSprite) {
+    ctx.strokeStyle = skin.aimColor;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(player.radius * 0.6, 0);
+    ctx.lineTo(player.radius * 1.45, 0);
+    ctx.stroke();
 
-  // cano: sprite da classe da arma na ponta
-  const gun = getSprite(`weapon_${weaponClass}`) ?? getSprite('weapon_gun');
-  if (gun) {
-    const iw = gun.naturalWidth;
-    const ih = gun.naturalHeight;
-    const scale = 0.9;
-    ctx.save();
-    ctx.rotate(-player.angle);
-    ctx.drawImage(gun, player.radius * 1.0 - ih * scale / 2, -iw * scale / 2, ih * scale, iw * scale);
-    ctx.restore();
-  } else {
     ctx.strokeStyle = PALETTE.text;
     ctx.lineWidth = 4;
     ctx.beginPath();
