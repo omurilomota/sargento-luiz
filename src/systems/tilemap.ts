@@ -310,12 +310,17 @@ export function isReachable(col: number, row: number): boolean {
 /**
  * Verifica se existe caminho andável entre duas células (BFS).
  * Usado pelos testes de validação de mapa.
+ *
+ * Aplica a mesma regra de `rebuildFlowField`: diagonal não corta quina. Sem
+ * isso o teste dizia que um mapa era válido por um caminho que o flow field
+ * recusa, e o ponto de spawn ficava `flowDist === -1` — inimigo que não
+ * consegue pathar até o jogador, sem nenhum aviso.
  */
 export function hasPath(fromCol: number, fromRow: number, toCol: number, toRow: number): boolean {
   if (!map) return false;
   if (isWall(toCol, toRow)) return false;
-  const start = fromRow * map.cols + fromCol;
   if (isWall(fromCol, fromRow)) return false;
+  const start = fromRow * map.cols + fromCol;
   const seen = new Set<number>([start]);
   const queue: number[] = [start];
   while (queue.length) {
@@ -327,6 +332,7 @@ export function hasPath(fromCol: number, fromRow: number, toCol: number, toRow: 
       const nx = cx + dx;
       const ny = cy + dy;
       if (isWall(nx, ny)) continue;
+      if (dx !== 0 && dy !== 0 && (isWall(cx + dx, cy) || isWall(cx, cy + dy))) continue;
       const ni = ny * map.cols + nx;
       if (seen.has(ni)) continue;
       seen.add(ni);

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { BIOMES, CELL_SIZE, tileKindAt } from '../maps';
 import { ENEMY_TYPES, PHASES } from '../config';
 import { TILE_NUMBERS, tileFileName, POSES, WEAPON_CLASSES } from '../systems/sprites';
-import { loadMap, hasPath, findAll, isWall, moveCircleBy, rebuildFlowField, sampleFlowDir } from '../systems/tilemap';
+import { loadMap, hasPath, findAll, isWall, moveCircleBy, rebuildFlowField, sampleFlowDir, isReachable } from '../systems/tilemap';
 
 const KEYS = Object.keys(BIOMES);
 
@@ -186,6 +186,56 @@ describe('bosses: fase, tipo e arena concordam', () => {
     for (const phase of PHASES) {
       const def = ENEMY_TYPES[phase.boss!];
       expect(def.telegraph ?? 0.8, `${def.bossName} sem telegrafia`).toBeGreaterThanOrEqual(0.5);
+    }
+  });
+});
+
+describe('tilemap: a validação e a IA percorrem o mesmo grafo', () => {
+  // A célula (3,3) só é alcançável por diagonal entre duas paredes: (3,2) e
+  // (2,3) são parede, então cortar a quina é a única forma de chegar lá. O flow
+  // field recusa; antes disso a validação aceitava, e o teste approves um mapa
+  // cujo ponto de spawn a IA nunca alcança.
+  const QUINA = [
+    '#######',
+    '#.....#',
+    '#..#..#',
+    '#.#.#.#',
+    '#..#..#',
+    '#.....#',
+    '#######',
+  ];
+
+  it('hasPath recusa cortar quina, igual ao flow field', () => {
+    loadMap(QUINA);
+    expect(hasPath(1, 1, 3, 3)).toBe(false);
+    rebuildFlowField(1, 1);
+    expect(isReachable(3, 3)).toBe(false);
+    // o anel externo continua conectado: o teste não está recusando tudo
+    expect(hasPath(1, 1, 5, 5)).toBe(true);
+  });
+
+  it('o flow field e hasPath concordam sobre o alcance de cada célula', () => {
+    loadMap(QUINA);
+    for (const [col, row] of [[1, 1], [3, 3], [5, 1], [1, 4], [4, 2]] as const) {
+      rebuildFlowField(col, row);
+      expect(
+        isReachable(1, 1),
+        `célula (1,1) a partir de (${col},${row})`,
+      ).toBe(hasPath(col, row, 1, 1));
+    }
+  });
+
+  it.each(KEYS)('%s: todo spawn que a validação aprova é alcançável pelo flow field', (key) => {
+    loadMap(BIOMES[key].rows);
+    const p = findAll('P')[0];
+    rebuildFlowField(p.col, p.row);
+    for (const ch of ['E', 'B', 'N']) {
+      for (const cell of findAll(ch)) {
+        expect(
+          isReachable(cell.col, cell.row),
+          `${key}: '${ch}' em (${cell.col},${cell.row}) passa na validação mas a IA não alcança`,
+        ).toBe(true);
+      }
     }
   });
 });
