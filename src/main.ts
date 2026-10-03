@@ -577,7 +577,11 @@ function update(dt: number) {
       sfxPlayerHit();
       triggerDamageFlash();
     }
-    killEnemy(e, false);
+    // Encostar mata melee — investir num zumbi funciona e é uma decisão do
+    // jogador. Chefe não: VIGIA, ALPHA WOLF e REI MUTANTE abrem o padrão com
+    // investida, e se matariam sozinhos no contato, o que entregava a luta de
+    // graça para quem ficasse parado. O chefe leva o dano e continua.
+    if (!ENEMY_TYPES[e.type]?.isBoss) killEnemy(e, false);
   });
 
   const bullets = getBullets();
