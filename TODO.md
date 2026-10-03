@@ -74,6 +74,12 @@
 // [x] Lanterna da Caverna centralizada no jogador (overlay transladava 2x)
 // [x] Terreno não desloca mais em viewport maior que o mapa
 
+// --- SPRITES ---
+// [x] Protagonista segura a arma quando parado (pose pela classe da arma)
+// [x] Pose `reload` usada enquanto recarrega (estava carregada e sem uso)
+// [x] Pose armada no inimigo atirador fora do disparo
+// [x] Sem arma duplicada: a sprite weapon_* da ponta saiu
+
 // --- HAZARDS ---
 // [x] fog (Floresta) deixa de ser número: vinheta larga em torno do jogador
 // [x] debris (Cidade) deixa de ser número: props seguram tiro e desmoronam

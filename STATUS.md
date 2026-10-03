@@ -64,6 +64,13 @@ ataca isso primeiro.
 - **A lanterna da Caverna ficava fora de lugar**: o overlay transladava a câmera
   duas vezes, então o furo do cone saía deslocado de (camX, camY). Só coincidia
   no canto do mapa, onde `camX` é 0
+- **O protagonista só segurava a arma quando atirava**: a pose de parado era
+  `stand`, que é uma das duas poses do pack sem arma. Além disso a sprite
+  `weapon_*` desenhada na ponta duplicava o cano da pose e ficava sempre na
+  horizontal (o `rotate(-angle)` anulava o `rotate(angle)` do corpo), e a linha
+  branca de mira passava por cima da arma
+- **Inimigo atirador aparecia desarmado fora do disparo**: `enemyPose` só usava
+  pose armada nos 0.2s antes do tiro
 - **Investida de chefe atravessava parede**: `updateBoss` escrevia em `e.x`/`e.y`
   direto, sem passar por `moveCircleBy`. Os quatro blocos de cobertura da praça
   do VIGIA eram inúteis porque o chefe saía da arena pela parede

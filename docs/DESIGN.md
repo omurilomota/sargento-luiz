@@ -119,6 +119,17 @@ O jogo é pós-apocalíptico. Nada de neon. A regra curta:
 - **Piso só com tile chapado.** Tile com fiada de tijolo no chão faz o piso
   parecer parede.
 - **1 sombra no máximo**, e só em 1–2 elementos-chave.
+- **A arma vem da pose, não de uma sprite separada.** As 6 poses do pack não são
+  6 quadros de animação: `gun`, `machine` e `silencer` desenham o corpo
+  **segurando** a arma (16px mais largas que `stand` por causa do cano),
+  `reload` mostra as duas mãos na arma, e `stand`/`hold` são as duas poses sem
+  arma nenhuma. Então a pose do jogador é escolhida pela classe da arma
+  (pistola → `gun`, metralhadora → `machine`, sniper → `silencer`), com `reload`
+  enquanto recarrega — ele fica armado o tempo todo. Inimigo atirador também
+  fica armado fora do disparo; melee fica sem arma porque não tem arma na mão.
+  Desenhar uma sprite de arma separada por cima da pose dá duas armas, e ela
+  ainda ficaria sempre na horizontal, porque o `rotate(-angle)` de correção
+  anula o `rotate(angle)` do corpo.
 - **Paleta** em `src/core/palette.ts`. As cores "IA" listadas no AGENTS.md
   (`#2ecc71`, `#3498db`, `#f39c12`…) estão proibidas.
 
