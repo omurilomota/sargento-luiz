@@ -24,6 +24,11 @@ export interface Prop {
   fuse: number;
 }
 
+/** Tempo de pavio de um barril, em segundos. */
+const BARREL_FUSE = 0.9;
+/** Barris com o pavio aceso: distingue "ainde não queimou" de "nunca acendeu". */
+const acesos = new Set<Prop>();
+
 const CRATE_HEALTH = 20;
 const BARREL_HEALTH = 14;
 const NEST_HEALTH = 90;
@@ -39,6 +44,7 @@ let props: Prop[] = [];
  */
 export function initProps(cells: string[][]): void {
   props = [];
+  acesos.clear();
   for (let row = 0; row < cells.length; row++) {
     for (let col = 0; col < cells[row].length; col++) {
       const ch = cells[row][col];
@@ -79,6 +85,7 @@ export function getBlockingProps(): Prop[] {
 /** Remove todos os props. */
 export function clearProps(): void {
   props.length = 0;
+  acesos.clear();
 }
 
 /** Faz o prop receber dano. Retorna true se foi destruído. */
@@ -92,27 +99,46 @@ export function damageProp(p: Prop, amount: number): boolean {
   return false;
 }
 
-/** Acende a pavio de um barril. */
+/** Acende o pavio de um barril. */
 export function igniteBarrel(p: Prop): void {
-  if (p.kind === 'barrel' && p.fuse <= 0 && p.health > 0) p.fuse = 0.9;
+  if (p.kind === 'barrel' && p.fuse <= 0 && p.health > 0) {
+    p.fuse = BARREL_FUSE;
+    acesos.add(p);
+  }
 }
 
 /**
- * Detona um prop: destrói o alvo e todos os props no raio de explosão.
+ * Detona um prop e propaga: cada barril alcançado também explode, e o que ele
+ * alcança também. Só barril propaga — caixote e ninho morrem sem explodir.
+ *
+ * A propagação é o que o jogo promete em todo lugar ("barris explodem em
+ * cadeia") e o que não acontecia: `detonateProp` aplicava um raio único, os
+ * barris alcançados morriam sem detonar, e a fileira inteira de barris alinhados
+ * não ia junto. Atirar num basta para a linha inteira subir.
  * @param p - prop detonado
  * @returns lista de props destruídos (incluindo o próprio)
  */
 export function detonateProp(p: Prop): Prop[] {
-  const destroyed: Prop[] = [p];
-  const blastRadius = p.kind === 'barrel' ? BARREL_BLAST_RADIUS : 0;
-  for (const other of props) {
-    if (other === p || other.health <= 0) continue;
-    if (blastRadius > 0 && Math.hypot(other.x - p.x, other.y - p.y) <= blastRadius) {
-      other.health = 0;
-      destroyed.push(other);
+  const destroyed: Prop[] = [];
+  const fila: Prop[] = [p];
+  const visitados = new Set<Prop>([p]);
+
+  while (fila.length > 0) {
+    const atual = fila.shift()!;
+    destroyed.push(atual);
+    atual.health = 0;
+
+    const blastRadius = atual.kind === 'barrel' ? BARREL_BLAST_RADIUS : 0;
+    if (blastRadius <= 0) continue;
+
+    for (const other of props) {
+      if (visitados.has(other) || other.health <= 0) continue;
+      if (Math.hypot(other.x - atual.x, other.y - atual.y) <= blastRadius) {
+        visitados.add(other);
+        fila.push(other);
+      }
     }
   }
-  p.health = 0;
   return destroyed;
 }
 
@@ -123,12 +149,22 @@ export function getBlast(p: Prop): { radius: number; damage: number } {
     : { radius: 0, damage: 0 };
 }
 
-/** Reduz o flash de dano de todos os props. */
-export function updateProps(dt: number): void {
+/**
+ * Reduz o flash de dano e consome o pavio dos barris acesos.
+ * @returns os barris cujo pavio acabou de zerar, prontos para detonar
+ */
+export function updateProps(dt: number): Prop[] {
+  const expirados: Prop[] = [];
   for (const p of props) {
-    if (p.hitFlash > 0) p.hitFlash -= dt;
-    if (p.fuse > 0) p.fuse -= dt;
+    if (p.hitFlash > 0) p.hitFlash = Math.max(0, p.hitFlash - dt);
+    if (p.fuse > 0) {
+      p.fuse = Math.max(0, p.fuse - dt);
+      // só sai da lista se foi realmente ignitado: fuse === 0 também é o
+      // estado de um barril que nunca foi acendido
+      if (p.fuse === 0 && acesos.has(p)) expirados.push(p);
+    }
   }
+  return expirados;
 }
 
 /**

@@ -701,9 +701,8 @@ function update(dt: number) {
   updateBullets(dt, worldW, worldH);
   updateParticles(dt);
   updateExplosions(dt);
-  updateProps(dt);
+  updateBarrels(dt);
   updateDamageNumbers(dt);
-  updateBarrels();
 
   updateCombo(dt);
   updateCombos();
@@ -816,16 +815,15 @@ function updateBiomeHazard(dt: number, p: ReturnType<typeof player.getPlayer>): 
 }
 
 /**
- * Barrils com pavio aceso: explodem e derrubam a cadeia.
- * O pavio em si é contado em `updateProps`; aqui só detonamos os que zeraram.
+ * Detona os barris cujo pavio acabou de queimar.
+ *
+ * O pavio é contado em `updateProps`, que devolve quem expirou. Antes esta
+ * função fazia `if (fuse <= 0) continue; fuse = Math.min(fuse, 0)` — que zera o
+ * pavio no ato e detona no frame seguinte à ignitação, então os 0.9s de pavio
+ * nunca passavam e a faísca do barril era só decoração.
  */
-function updateBarrels(): void {
-  for (const prop of getProps()) {
-    if (prop.kind !== 'barrel' || prop.health <= 0) continue;
-    if (prop.fuse <= 0) continue;
-    prop.fuse = Math.min(prop.fuse, 0);
-    if (prop.fuse <= 0) explodeProp(prop);
-  }
+function updateBarrels(dt: number): void {
+  for (const prop of updateProps(dt)) explodeProp(prop);
 }
 
 function explodeProp(prop: Prop): void {
