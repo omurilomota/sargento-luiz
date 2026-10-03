@@ -27,7 +27,7 @@ import { spawnWaveEnemies, resetSpawner, spawnEnemy } from './systems/spawner';
 import { checkBulletEnemyCollisions, checkEnemyPlayerCollision, checkEnemyBulletPlayerCollision, bulletHitsCircle } from './systems/collision';
 import { createExplosion, updateExplosions, clearExplosions } from './systems/explosions';
 import { loadMap, colAt, rowAt, charAt, moveCircleBy, rebuildFlowField, sampleFlowDir, pushOutOfWalls, findAll } from './systems/tilemap';
-import { initCamera, setViewportSize, setWorldSize, updateCamera, snapCamera, getCamX, getCamY, screenToWorld, drawVoid, isVisible } from './systems/camera';
+import { initCamera, setViewportSize, setWorldSize, updateCamera, snapCamera, getCamX, getCamY, screenToWorld, drawVoid, isVisible, setShake } from './systems/camera';
 import { initProps, getProps, updateProps, damageProp, detonateProp, getBlast, drawProps, clearProps, Prop } from './systems/props';
 import { buildTerrain, drawTerrain, clearTerrain } from './systems/terrain';
 import { initObjective, updateObjective, registerObjectiveDestroyed, cellCenter } from './systems/objectives';
@@ -731,6 +731,7 @@ function update(dt: number) {
   currentFlash = updateFlash(dt);
   currentBossZoom = updateBossZoom(dt);
   currentShake = updateScreenShake(dt);
+  setShake(currentShake.x, currentShake.y);
   updateCamera(dt, p.x, p.y);
 
   // toasts decaem com dt, não com frame rate

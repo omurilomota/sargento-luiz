@@ -14,6 +14,9 @@ let viewW = 0;
 let viewH = 0;
 let worldW = 0;
 let worldH = 0;
+/** Deslocamento de screen shake já aplicado no draw; a mira precisa do mesmo. */
+let shakeX = 0;
+let shakeY = 0;
 
 /** Fator de suavização por frame (independente de framerate via dt) */
 const FOLLOW_RATE = 9;
@@ -32,8 +35,8 @@ export function initCamera(w: number, h: number, viewWidth: number, viewHeight: 
   worldH = h;
   viewW = viewWidth;
   viewH = viewHeight;
-  camX = clampToWorld(focusX - viewW / 2);
-  camY = clampToWorld(focusY - viewH / 2);
+  camX = clampAxis(focusX - viewW / 2, worldW, viewW);
+  camY = clampAxis(focusY - viewH / 2, worldH, viewH);
 }
 
 /** Atualiza as dimensões do mundo (troca de fase/mapa). */
@@ -48,9 +51,29 @@ export function setViewportSize(w: number, h: number): void {
   viewH = h;
 }
 
-function clampToWorld(v: number): number {
-  if (worldW <= viewW) return (worldW - viewW) / 2;
-  return Math.max(0, Math.min(worldW - viewW, v));
+/**
+ * Limita um eixo da câmera aos limites do mundo.
+ *
+ * Precisa ser por eixo: um clamp único que só conhece `worldW`/`viewW` erra o
+ * vertical sempre que a janela é mais alta que o mapa. Numa viewport de
+ * 2560x1300 o camY saía -320 em vez de -10 e o mapa aparecia 310px deslocado
+ * com vazio em cima e embaixo — em qualquer monitor 1440p ou 4K em fullscreen.
+ * E `worldH` ficava declarado e nunca lido, que era o sinal.
+ */
+function clampAxis(v: number, world: number, view: number): number {
+  if (world <= view) return (world - view) / 2;
+  return Math.max(0, Math.min(world - view, v));
+}
+
+/**
+ * Registra o shake que o draw vai aplicar, para a conversão tela→mundo
+ * Dessas usar a mesma matriz. Sem isso a mira erra o offset do tremor.
+ * @param x - deslocamento X do shake
+ * @param y - deslocamento Y do shake
+ */
+export function setShake(x: number, y: number): void {
+  shakeX = x;
+  shakeY = y;
 }
 
 /**
@@ -61,14 +84,14 @@ function clampToWorld(v: number): number {
  */
 export function updateCamera(dt: number, targetX: number, targetY: number): void {
   const t = 1 - Math.exp(-FOLLOW_RATE * dt);
-  camX += (clampToWorld(targetX - viewW / 2) - camX) * t;
-  camY += (clampToWorld(targetY - viewH / 2) - camY) * t;
+  camX += (clampAxis(targetX - viewW / 2, worldW, viewW) - camX) * t;
+  camY += (clampAxis(targetY - viewH / 2, worldH, viewH) - camY) * t;
 }
 
 /** Teleporta a câmera para o alvo sem interpolação (troca de fase). */
 export function snapCamera(targetX: number, targetY: number): void {
-  camX = clampToWorld(targetX - viewW / 2);
-  camY = clampToWorld(targetY - viewH / 2);
+  camX = clampAxis(targetX - viewW / 2, worldW, viewW);
+  camY = clampAxis(targetY - viewH / 2, worldH, viewH);
 }
 
 /** Deslocamento X atual da câmera. */
@@ -80,11 +103,14 @@ export function getCamY(): number { return camY; }
 /**
  * Converte coordenadas de tela para coordenadas de mundo.
  * Sem isso a arma atira na direção errada quando o mapa é maior que a tela.
+ * Desconta o shake: o draw aplica `-camX + shake.x`, então o ponto sob o cursor
+ * é `tela + camX - shake.x`. Sem o desconto a mira erra o tremor, que chega a
+ * 14px em explosão.
  * @param screenX - X do mouse na tela
  * @param screenY - Y do mouse na tela
  */
 export function screenToWorld(screenX: number, screenY: number): { x: number; y: number } {
-  return { x: screenX + camX, y: screenY + camY };
+  return { x: screenX + camX - shakeX, y: screenY + camY - shakeY };
 }
 
 /**
