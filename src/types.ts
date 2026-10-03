@@ -14,6 +14,10 @@ export interface Bullet {
   x: number;
   /** Posição vertical */
   y: number;
+  /** Posição horizontal no frame anterior (colisão swept) */
+  px: number;
+  /** Posição vertical no frame anterior (colisão swept) */
+  py: number;
   /** Velocidade horizontal */
   vx: number;
   /** Velocidade vertical */
@@ -26,6 +30,8 @@ export interface Bullet {
   isEnemy: boolean;
   /** Cor de renderização do projétil */
   color: string;
+  /** Indica se este projétil acertou crítico */
+  isCrit: boolean;
   /** Indica se o projétil atravessa múltiplos alvos */
   pierce: boolean;
   /** Indica se o projétil é explosivo */
@@ -150,6 +156,8 @@ export interface Weapon {
   explosionRadius?: number;
   /** Se a arma é secreta (desbloqueada ao completar o jogo) */
   secret?: boolean;
+  /** Classe visual da arma — define qual sprite de cano é desenhado */
+  weaponClass?: 'pistol' | 'machine' | 'silencer';
   /** Tamanho do pente */
   magazineSize: number;
   /** Tempo de recarga em segundos */
@@ -168,6 +176,47 @@ export interface Upgrade {
   price: number;
 }
 
+/** Ações possíveis de um boss data-driven */
+export type BossAction = 'spread' | 'ring' | 'charge' | 'summon' | 'mines' | 'split' | 'sweep';
+
+/** Uma etapa do padrão de ataque de um boss, ativada quando o HP cruza o limiar */
+export interface BossPatternStep {
+  /** Limiar de HP (0-1) abaixo do qual esta etapa assume */
+  atHp: number;
+  /** Ação executada nesta etapa */
+  action: BossAction;
+  /** Texto curto exibido na telegrafia (opcional) */
+  telegraph?: string;
+}
+
+/** Tipos de hazard por bioma */
+export type HazardKind =
+  | 'none'
+  | 'debris'
+  | 'fog'
+  | 'darkness'
+  | 'electric'
+  | 'mud'
+  | 'spikes'
+  | 'lava'
+  | 'lowGravity';
+
+/** Tipos de objetivo por fase */
+export type ObjectiveKind = 'clear' | 'survive' | 'destroy' | 'protect' | 'reach';
+
+/** Uma zona de objetivo posicionada no mapa (ninho, ponto de extração, NPC) */
+export interface ObjectiveZone {
+  /** Posição no mapa em pixels */
+  x: number;
+  y: number;
+  /** HP do objetivo (ninhos e barreiras) */
+  health?: number;
+  /** Índice do NPC VIP quando objective = protect */
+  npcIndex?: number;
+  /** Raio de alcance quando objective = reach */
+  radius?: number;
+}
+
 /** Define uma fase do jogo com suas configurações visuais e de inimigos */
 export interface Phase {
   /** Nome da fase exibido na interface */
@@ -182,6 +231,16 @@ export interface Phase {
   enemyTypes: string[];
   /** Número total de ondas na fase */
   waves: number;
+  /** Chave do mapa em `maps.ts` */
+  map: string;
+  /** Hazard do bioma */
+  hazard: HazardKind;
+  /** Objetivo da fase */
+  objective: ObjectiveKind;
+  /** Alvo numérico do objetivo (segundos, quantidade de ninhos, etc.) */
+  objectiveTarget: number;
+  /** Chave do tipo de inimigo boss desta fase, se houver */
+  boss?: string;
 }
 
 /** Define as estatísticas e comportamento de um tipo de inimigo */
@@ -220,6 +279,12 @@ export interface EnemyType {
   leavesFire?: boolean;
   /** Cor dos projéteis disparados */
   projectileColor?: string;
+  /** Padrão de ataque data-driven (apenas bosses) */
+  pattern?: BossPatternStep[];
+  /** Nome exibido na barra de boss */
+  bossName?: string;
+  /** Duração da telegrafia antes de uma ação (segundos) */
+  telegraph?: number;
 }
 
 /** Estados possíveis do ciclo de vida do jogo */
