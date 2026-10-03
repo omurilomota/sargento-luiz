@@ -63,14 +63,22 @@ export function loadGame(): SaveData | null {
  * Verifica se existe um save.
  */
 export function hasSave(): boolean {
-  return localStorage.getItem(SAVE_KEY) !== null;
+  try {
+    return localStorage.getItem(SAVE_KEY) !== null;
+  } catch {
+    return false;
+  }
 }
 
 /**
  * Remove o save.
  */
 export function deleteSave(): void {
-  localStorage.removeItem(SAVE_KEY);
+  try {
+    localStorage.removeItem(SAVE_KEY);
+  } catch {
+    // localStorage indisponível (modo privado)
+  }
 }
 
 const COMPLETION_KEY = 'bubbleShooter_completed';
@@ -88,5 +96,9 @@ export function markGameCompleted(): void {
  * Verifica se o jogo já foi completado.
  */
 export function isGameCompleted(): boolean {
-  return localStorage.getItem(COMPLETION_KEY) === 'true';
+  try {
+    return localStorage.getItem(COMPLETION_KEY) === 'true';
+  } catch {
+    return false;
+  }
 }

@@ -5,6 +5,7 @@
  */
 
 import { PHASES } from './config';
+import { COMBO_TIMEOUT } from './core/constants';
 import { GameStateType } from './types';
 
 /** Índice da fase atual (0-indexado) */
@@ -106,6 +107,15 @@ export function updateCombo(dt: number) {
       combo = 0;
     }
   }
+}
+
+/**
+ * Retorna o decaimento atual do combo (1 = cheio, 0 = prestes a zerar).
+ * O HUD usa isso para a barrinha de combo não parecer estática.
+ */
+export function getComboDecay(): number {
+  if (comboTimer <= 0) return 0;
+  return comboTimer / COMBO_TIMEOUT;
 }
 
 /**

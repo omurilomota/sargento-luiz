@@ -2,245 +2,284 @@
  * src/main.ts — Orquestrador principal do jogo
  *
  * Arquitetura:
- * - Canvas 2D para renderização com loop de jogo via requestAnimationFrame
- * - Input via teclado (WASD/setas) e mouse (mover + click)
- * - Estado global gerenciado por módulos separados (gameState, phases, weapons)
- * - Entidades (player, bullets, coins) mantêm arrays internos
- * - Sistemas (collision, spawner, particles) processam lógica por turno
- * - Renderer desenha tudo usando o Canvas 2D API
- * - UI composta por HTML (HUD) e Canvas (shop)
+ * - Canvas 2D com loop via requestAnimationFrame
+ * - Input por teclado (WASD/setas) e mouse (mirar + atirar)
+ * - Estado global distribuído entre módulos (phases, weapons, player)
+ * - Mundo maior que a tela: a câmera aplica UMA translação por frame e todo o
+ *   código de entidade trabalha em coordenadas de mundo
  *
- * Fluxo do jogo:
- * 1. Menu → ENTER → Jogo
- * 2. Jogando: ondas de inimigos → loja entre fases → próxima fase
- * 3. Game Over → ENTER → Menu
+ * Fluxo: menu → cutscene → playing → (waves → shop) → ... → gameover
  */
 
 import { normalize } from './utils';
 import { PHASES, ENEMY_TYPES, POWERUP_TYPES } from './config';
+import { PALETTE } from './core/palette';
 
 // Entities
 import * as player from './entities/player';
-import { applyRegen, resetRegen, getArmorLevel, setComboHealthMultiplier } from './entities/player';
+import { applyRegen, resetRegen } from './entities/player';
 import { getBullets, spawnBullet, updateBullets, clearBullets } from './entities/bullet';
 import { getCoins, spawnCoins, updateCoins, clearCoins, setMagnetActive, resetPermanentMagnet } from './entities/coin';
 
 // Systems
 import { spawnParticles, updateParticles, clearParticles, getParticles } from './systems/particles';
 import { spawnWaveEnemies, resetSpawner, spawnEnemy } from './systems/spawner';
-import { checkBulletEnemyCollisions, checkEnemyPlayerCollision, checkEnemyBulletPlayerCollision } from './systems/collision';
-import { createExplosion, updateExplosions, clearExplosions, getExplosions } from './systems/explosions';
-import { initRenderer, drawMenu, drawCutscene, drawGameOver, drawGameBackground, drawCoins as renderCoins, drawPowerUps as renderPowerUps, drawParticles as renderParticles, drawBullets as renderBullets, drawEnemies as renderEnemies, drawPlayer as renderPlayer, drawDamageNumbers, drawCombo, drawWeaponInfo, drawActivePowerUps as renderActivePowerUps, drawPhaseTransition, restoreCanvas, drawNPCs } from './systems/renderer';
+import { checkBulletEnemyCollisions, checkEnemyPlayerCollision, checkEnemyBulletPlayerCollision, bulletHitsCircle } from './systems/collision';
+import { createExplosion, updateExplosions, clearExplosions } from './systems/explosions';
+import { loadMap, colAt, rowAt, charAt, moveCircleBy, rebuildFlowField, sampleFlowDir, pushOutOfWalls, findAll } from './systems/tilemap';
+import { initCamera, setViewportSize, setWorldSize, updateCamera, snapCamera, getCamX, getCamY, screenToWorld, drawVoid, isVisible } from './systems/camera';
+import { initProps, getProps, updateProps, damageProp, detonateProp, getBlast, drawProps, clearProps, Prop } from './systems/props';
+import { buildTerrain, drawTerrain, clearTerrain } from './systems/terrain';
+import { initObjective, updateObjective, registerObjectiveDestroyed, cellCenter } from './systems/objectives';
+import { updateBoss, isBossTelegraphing, clearBossState } from './systems/boss';
+
+import {
+  initRenderer, drawMenu, drawCutscene, drawGameOver, drawCoins as renderCoins,
+  drawPowerUps as renderPowerUps, drawParticles as renderParticles, drawBullets as renderBullets,
+  drawEnemies as renderEnemies, drawPlayer as renderPlayer, drawDamageNumbers, drawPhaseTransition,
+  restoreCanvas, drawNPCs, drawBots, drawPause, menuIndexAt, getPauseIndex, movePause, PAUSE_OPTIONS,
+} from './systems/renderer';
 
 // UI
-import { initHud, updateHud, setHudVisible } from './ui/hud';
-import { drawShop, handleShopClick, setShopCoins, getShopCoins, addShopCoins, resetShop, updateShopAds, getPurchasedUpgrades, getPurchasedWeapons } from './ui/shop';
+import { initHud, drawHud, HudData } from './ui/hud';
+import { drawShop, handleShopClick, setShopCoins, getShopCoins, addShopCoins, resetShop, updateShopAds, getPurchasedUpgrades, getPurchasedWeapons, attachShopWheelListener } from './ui/shop';
 
-// Existing modules (unchanged)
-import { shoot, getCurrentWeapon, resetWeapons, canShoot, startReload, updateReload, getCurrentAmmo, getIsReloading } from './weapons';
-import { getCurrentPhase, getCurrentWave, getGameState, setGameState, nextWave, nextPhase, resetPhases, addScore, addScoreFlat, getScore, getCombo, updateCombo, resetCombo, getKillStreak, wasGameCompleted } from './phases';
+// Modules
+import { shoot, getCurrentWeapon, resetWeapons, canShoot, startReload, updateReload, getCurrentAmmo, getIsReloading, getReloadTimer } from './weapons';
+import { getCurrentPhase, getCurrentWave, getGameState, setGameState, nextWave, nextPhase, resetPhases, addScore, addScoreFlat, getScore, getCombo, getComboDecay, updateCombo, resetCombo, getKillStreak, wasGameCompleted } from './phases';
 import { powerups, spawnPowerUp, updatePowerUps, hasPowerUp, activePowerups } from './powerups';
 
-// Audio & Visual Juice
-import { initAudio, sfxPistol, sfxShotgun, sfxMachinegun, sfxSniper, sfxLaser, sfxRPG, sfxRaios, sfxGel, sfxGranade, sfxMina, sfxExplosion, sfxBossDeath, sfxPlayerHit, sfxCoin, sfxPowerup, sfxLevelUp, sfxWaveStart, sfxGameOver, sfxEnemyShoot, startMusic } from './systems/audio';
-import { triggerScreenShake, triggerDamageFlash, triggerBossKillFlash, updateFlash, updateSlowMotion, triggerSlowMotion, triggerHitStop, updateHitStop, resetEffects, triggerBossZoom, updateBossZoom } from './systems/effects';
+import {
+  initAudio, sfxPistol, sfxShotgun, sfxMachinegun, sfxSniper, sfxLaser, sfxRPG, sfxRaios, sfxGel,
+  sfxGranade, sfxMina, sfxExplosion, sfxBossDeath, sfxPlayerHit, sfxCoin, sfxPowerup, sfxWaveStart,
+  sfxGameOver, sfxEnemyShoot, sfxDash, sfxShield, sfxFury, sfxMenuMove, sfxMenuSelect,
+  startMusic, playMusic, setMusicEnabled, setSfxEnabled, isMusicEnabled, isSfxEnabled,
+} from './systems/audio';
+import { triggerScreenShake, triggerDamageFlash, triggerBossKillFlash, updateFlash, updateSlowMotion, triggerSlowMotion, triggerHitStop, updateHitStop, resetEffects, updateScreenShake, triggerBossZoom, updateBossZoom } from './systems/effects';
 
-// Player Skills
-import { useSkill, isSkillActive, updateSkills, resetSkills, getDamageMultiplier, getDamageTakenMultiplier, getSkillCooldown, getSkillMaxCooldown, isSkillOnCooldown } from './systems/skills';
-
-// Environment Events
-import { updateEnvironmentEvents, resetEnvironmentEvents, isEarthquakeActive, isStormActive } from './systems/environment';
-
-// Combo Builds
+import { useSkill, isSkillActive, updateSkills, resetSkills, getDamageMultiplier, getDamageTakenMultiplier, getSkillCooldown, getSkillMaxCooldown, setMoveDirection } from './systems/skills';
+import { updateEnvironmentEvents, resetEnvironmentEvents, getEnvironmentWarnings } from './systems/environment';
 import { updateCombos, getActiveCombos, getComboDamageBonus, getComboFireRateBonus, getComboHealthBonus, resetCombos } from './systems/combos';
-
-// Skins
+import { setComboHealthMultiplier } from './entities/player';
 import { resetSkins } from './systems/skins';
-
-// Ads
 import { resetAds } from './systems/ads';
-
-// Save/Load
 import { saveGame, loadGame, hasSave, markGameCompleted } from './systems/saveSystem';
-
-// Leaderboard
 import { addLeaderboardEntry } from './systems/leaderboard';
-
-// Achievements
-import { loadAchievements, checkAchievements, resetRunCounters, getAllAchievements } from './systems/achievements';
-
-// Diary
-import { loadDiary, unlockDiaryEntry, getUnlockedDiary } from './systems/diary';
-
-// Tutorial
+import { loadAchievements, checkAchievements, resetRunCounters } from './systems/achievements';
+import { loadDiary, unlockDiaryEntry } from './systems/diary';
 import { startTutorial, isTutorialActive, getCurrentHint, updateTutorial } from './systems/tutorial';
-
-// Dynamic Difficulty
 import { updateBehavior, registerShot, registerHit, getPlayerTendency, resetBehavior } from './systems/dynamicDifficulty';
-
-// NPCs
 import { spawnNPC, updateNPCs, getNPCs, resetNPCs } from './systems/npcs';
-
-// Bots (Competitive Mode)
 import { getBots, createBot, updateBots, removeDeadBots, resetBots, addBot, BotDifficulty } from './systems/bots';
-
-// Local Multiplayer
 import { isEnabled as isLocalEnabled, initLocalMultiplayer, movePlayer2, shootPlayer2, getPlayer2, resetLocalMultiplayer, checkPlayer2EnemyCollision } from './systems/localMultiplayer';
-
-// Story & Game Modes
-import { showCutscene, advanceCutscene, skipCutsceneText, isShowingCutscene, updateCutscene, getCurrentCutscene, nextCutscene, resetStory, isLineComplete, isWaitingForChoice, selectChoice } from './systems/story';
-import { getCurrentMode, setGameMode, GameMode } from './systems/gameModes';
+import { showCutscene, advanceCutscene, skipCutsceneText, isShowingCutscene, updateCutscene, resetStory } from './systems/story';
+import { getCurrentMode, setGameMode, GameMode, GAME_MODES } from './systems/gameModes';
+import { BIOMES, CELL_SIZE } from './maps';
+import { loadAllSprites } from './systems/sprites';
 
 // ─── Canvas Setup ──────────────────────────────────────────────
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d')!;
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  setViewportSize(canvas.width, canvas.height);
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
 
 initRenderer(canvas, ctx);
-initHud();
+initHud(ctx);
+attachShopWheelListener();
 
 // ─── Input ─────────────────────────────────────────────────────
+
+/** Teclas mantidas pressionadas (movimento contínuo). */
 const keys: Record<string, boolean> = {};
+/**
+ * Teclas apertadas NESTE frame (edge). Antes o ENTER ficava `true` para
+ * sempre no estado anterior: Game Over → ENTER → menu → o próprio `keys['enter']`
+ * ainda verdadeiro entrava na cutscene sozinho.
+ */
+let keysPressed = new Set<string>();
 const mouse = { x: 0, y: 0, down: false };
+
+/** Consome um ENTER pressionado neste frame (edge, com clear do buffer). */
+function consumeEnter(): boolean {
+  if (!keysPressed.has('enter')) return false;
+  keysPressed.delete('enter');
+  return true;
+}
+
+/** Consome uma tecla de seta/WASD para a navegação de menus. */
+function consumeNav(): number {
+  let delta = 0;
+  if (keysPressed.has('w') || keysPressed.has('arrowup')) delta -= 1;
+  if (keysPressed.has('s') || keysPressed.has('arrowdown')) delta += 1;
+  if (delta !== 0) keysPressed.clear();
+  return delta;
+}
+
+/** Limpa todo o estado de input (toda troca de estado chama isto). */
+function resetInput(): void {
+  for (const k in keys) keys[k] = false;
+  keysPressed.clear();
+  mouse.down = false;
+}
+
 document.addEventListener('keydown', e => {
   const key = e.key;
+  const k = key.toLowerCase();
   const state = getGameState();
+  if (!keysPressed.has(k)) keysPressed.add(k);
 
-  // Cutscene choice selection
-  if (isShowingCutscene() && isWaitingForChoice()) {
-    if (key === '1') selectChoice(0);
-    if (key === '2') selectChoice(1);
-    if (key === '3') selectChoice(2);
-    keys[key.toLowerCase()] = true;
-    return;
-  }
-
-  // Mode selection in menu (number keys)
-  if (state === 'menu' && !isShowingCutscene()) {
-    if (key === '1') selectedMode = 'campaign';
-    if (key === '2') selectedMode = 'survival';
-    if (key === '3') selectedMode = 'missions';
-    if (key === '4') selectedMode = 'bossrush';
-    if (key === '5') selectedMode = 'competitive';
-    if (key === '6') selectedMode = 'local';
-    if (key === '7') selectedMode = 'hardcore';
-    // Continue saved game
-    if (key.toLowerCase() === 'c' && hasSave()) {
-      const save = loadGame();
-      if (save) {
-        initAudio();
-        startMusic();
-        resetGame();
-        setGameMode('campaign');
-        setGameState('playing');
-        for (const k in keys) keys[k] = false;
-        // Restore state from save
-        for (let i = 0; i < save.phase; i++) nextPhase();
-        setShopCoins(save.coins);
-        addScoreFlat(save.score);
-      }
-    }
-    keys[key.toLowerCase()] = true;
-    return;
-  }
-
-  // Don't register game keys in menu/shop/gameover
-  if (state !== 'playing' && state !== 'paused') {
-    keys[key.toLowerCase()] = true;
-    return;
-  }
-
-  // Pause toggle
-  if (key === 'Escape') {
-    if (state === 'playing') {
-      setGameState('paused');
+  // cutscene: escolhas e avanço
+  if (isShowingCutscene()) {
+    if (isWaitingForChoiceSafe()) {
+      if (key === '1') selectChoiceSafe(0);
+      if (key === '2') selectChoiceSafe(1);
+      if (key === '3') selectChoiceSafe(2);
       return;
     }
-    if (state === 'paused') {
+    if (k === 'backspace' || key === 'ç') skipCutsceneText();
+    keys[k] = true;
+    return;
+  }
+
+  if (state === 'menu') {
+    const idx = GAME_MODES.findIndex(m => m.key === key);
+    if (idx >= 0) {
+      if (selectedMode !== GAME_MODES[idx].mode) sfxMenuMove();
+      selectedMode = GAME_MODES[idx].mode;
+    }
+    if (k === 'c' && hasSave()) startFromSave();
+    return;
+  }
+
+  if (state === 'paused') {
+    if (key === 'Escape') {
       setGameState('playing');
       return;
     }
+    const nav = consumeNav();
+    if (nav !== 0) {
+      movePause(nav);
+      sfxMenuMove();
+    }
+    return;
   }
 
-  // Don't register game keys while paused
-  if (state === 'paused') return;
+  if (state !== 'playing') {
+    keys[k] = true;
+    return;
+  }
 
-  keys[key.toLowerCase()] = true;
+  keys[k] = true;
 
-  // Skill keys (only during gameplay)
-  if (key === ' ' && useSkill('dash')) sfxPowerup();
-  if (key.toLowerCase() === 'f' && useSkill('shield')) sfxPowerup();
-  if (key.toLowerCase() === 'e' && useSkill('fury')) sfxLevelUp();
-  if (key.toLowerCase() === 'r') startReload();
+  if (key === ' ') { if (useSkill('dash')) sfxDash(); }
+  if (k === 'f') { if (useSkill('shield')) sfxShield(); }
+  if (k === 'e') { if (useSkill('fury')) sfxFury(); }
+  if (k === 'r') startReload();
+  if (key === 'Escape') setGameState('paused');
 });
+
 document.addEventListener('keyup', e => {
-  if (getGameState() === 'playing') {
-    keys[e.key.toLowerCase()] = false;
-  }
+  // sempre limpa: antes só limpava em `playing`, e a tecla ficava presa
+  keys[e.key.toLowerCase()] = false;
 });
+
 canvas.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
 canvas.addEventListener('mousedown', e => {
-  mouse.down = true;
+  const state = getGameState();
+  if (state === 'playing') mouse.down = true;
 
-  // Mode selection via click in menu
-  if (getGameState() === 'menu' && !isShowingCutscene()) {
+  if (state === 'menu') {
     const rect = canvas.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const clickY = e.clientY - rect.top;
-
-    const modes: { key: string; mode: GameMode }[] = [
-      { key: '1', mode: 'campaign' },
-      { key: '2', mode: 'survival' },
-      { key: '3', mode: 'missions' },
-      { key: '4', mode: 'bossrush' },
-      { key: '5', mode: 'competitive' },
-      { key: '6', mode: 'local' },
-      { key: '7', mode: 'hardcore' },
-    ];
-    modes.forEach(({ mode }, i) => {
-      const y = canvas.height / 2 + i * 50;
-      if (clickX >= canvas.width / 2 - 200 && clickX <= canvas.width / 2 + 200 &&
-          clickY >= y - 15 && clickY <= y + 25) {
-        selectedMode = mode;
-      }
-    });
+    const idx = menuIndexAt(e.clientX - rect.left, e.clientY - rect.top, canvas.width, canvas.height);
+    if (idx >= 0 && GAME_MODES[idx].mode !== selectedMode) {
+      selectedMode = GAME_MODES[idx].mode;
+      sfxMenuMove();
+    }
   }
 
-  if (getGameState() === 'shop') handleShopClick(e.clientX, e.clientY);
+  if (state === 'shop') handleShopClick(e.clientX, e.clientY);
+  if (state === 'paused') { /* só ENTER confirma */ }
   e.preventDefault();
 });
 document.addEventListener('mouseup', () => { mouse.down = false; });
-canvas.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('contextmenu', e => e.preventDefault());
+// segurar o clique na loja e voltar ao jogo não pode dar tiro automático
+window.addEventListener('blur', () => { resetInput(); });
 
-// ─── Game State ────────────────────────────────────────────────
+// ─── Estado ────────────────────────────────────────────────────
 import { Enemy } from './types';
 let enemies: Enemy[] = [];
 let damageNumbers: { x: number; y: number; text: string; color: string; life: number; vy: number }[] = [];
 let lastTime = 0;
-let debugLog: { time: number; source: string; damage: number }[] = [];
 let phaseTransitionTimer = 0;
 let achievementNotifications: { name: string; time: number }[] = [];
 let playerDied = false;
 let bossZoomTriggered = false;
 let currentBossZoom = 1;
-
-function logDamage(source: string, damage: number) {
-  const entry = { time: performance.now(), source, damage };
-  debugLog.push(entry);
-  if (debugLog.length > 20) debugLog.shift();
-}
 let currentFlash: string | null = null;
+let currentShake: { x: number; y: number } = { x: 0, y: 0 };
 let selectedMode: GameMode = 'campaign';
+let bossSpawned = false;
+let worldW = 1280;
+let worldH = 720;
+/**paredes do mapa em coordenadas de mundo, para o minimapa */
+let wallRects: { x: number; y: number; w: number; h: number }[] = [];
+let mapDensity = 0;
+let reachZones: { x: number; y: number; radius: number }[] = [];
 
-/**
- * Reseta todo o estado do jogo para o início.
- * Chamado ao iniciar nova partida ou voltar ao menu.
- */
+/** Importações tardias para evitar ciclo com o estado local acima. */
+import { isWaitingForChoice, selectChoice } from './systems/story';
+
+function isWaitingForChoiceSafe(): boolean { return isWaitingForChoice(); }
+function selectChoiceSafe(i: number): void { selectChoice(i); }
+
+/** Carrega mapa, terreno, props, câmera e objetivo da fase atual. */
+function loadPhaseEnvironment(): void {
+  const phase = getCurrentPhase();
+  const biome = BIOMES[phase.map];
+  const map = loadMap(biome.rows);
+
+  worldW = map.width;
+  worldH = map.height;
+  setWorldSize(worldW, worldH);
+
+  wallRects = [];
+  let wallCount = 0;
+  for (let row = 0; row < map.rows; row++) {
+    for (let col = 0; col < map.cols; col++) {
+      if (charAt(col, row) !== '#') continue;
+      wallCount++;
+      wallRects.push({ x: col * CELL_SIZE, y: row * CELL_SIZE, w: CELL_SIZE, h: CELL_SIZE });
+    }
+  }
+  mapDensity = wallCount / (map.cols * map.rows);
+
+  clearProps();
+  initProps(map.cells);
+  clearTerrain();
+  buildTerrain(biome, map.cells);
+
+  reachZones = findAll('R').map(p => ({ ...cellCenter(p.col, p.row), radius: CELL_SIZE }));
+  initObjective(phase.objective, phase.objectiveTarget);
+
+  const spawn = findAll('P')[0] ?? { col: 1, row: 1 };
+  const pos = cellCenter(spawn.col, spawn.row);
+  player.initPlayer(worldW, worldH);
+  player.getPlayer().x = pos.x;
+  player.getPlayer().y = pos.y;
+  initCamera(worldW, worldH, canvas.width, canvas.height, pos.x, pos.y);
+  bossSpawned = false;
+}
+
 function resetGame() {
   resetPhases();
-  player.initPlayer(canvas.width, canvas.height);
+  loadPhaseEnvironment();
   resetWeapons();
   resetShop();
   resetSpawner();
@@ -254,141 +293,134 @@ function resetGame() {
   resetSkins();
   resetAds();
   resetNPCs();
+  resetStory();
   bossZoomTriggered = false;
   enemies.length = 0;
   damageNumbers.length = 0;
+  achievementNotifications.length = 0;
   clearBullets();
   clearCoins();
   clearParticles();
   clearExplosions();
+  resetInput();
+}
+
+/** Entra no jogo a partir do save (tecla C no menu). */
+function startFromSave() {
+  const save = loadGame();
+  if (!save) return;
+  initAudio();
+  startMusic();
+  resetGame();
+  setGameMode('campaign');
+  for (let i = 0; i < save.phase; i++) nextPhase();
+  loadPhaseEnvironment();
+  setShopCoins(save.coins);
+  addScoreFlat(save.score);
+  setGameState('playing');
+  loadAchievements();
+  loadDiary();
+  resetRunCounters();
+  resetBehavior();
+  resetInput();
 }
 
 // ─── Update ────────────────────────────────────────────────────
-/**
- * Atualiza toda a lógica do jogo por frame.
- * Processa input, movimentação, disparo, IA, colisões e coleta.
- * @param dt - delta time em segundos (limitado a 0.05)
- */
+
 function update(dt: number) {
   const state = getGameState();
 
   if (state === 'menu') {
     if (isShowingCutscene()) {
       updateCutscene(dt);
-      if (keys['backspace'] || keys['ç']) {
-        skipCutsceneText();
+      if (consumeEnter() || keys[' ']) {
+        const finished = advanceCutscene();
+        if (finished) startRun();
       }
-      if (keys['enter'] || keys[' '] || keys['ç']) {
-        const sceneFinished = advanceCutscene();
-        if (sceneFinished) {
-          setGameMode(selectedMode);
-          setGameState('playing');
-          loadAchievements();
-          loadDiary();
-          resetRunCounters();
-          resetBehavior();
-          playerDied = false;
-          if (selectedMode === 'campaign') startTutorial();
-          for (const k in keys) keys[k] = false;
-          if (selectedMode === 'local') {
-            initLocalMultiplayer(canvas.width, canvas.height);
-          }
-        }
-      }
-    } else {
-      if (keys['enter']) {
-        initAudio();
-        startMusic();
-        resetGame();
-        showCutscene();
-      }
+    } else if (consumeEnter()) {
+      initAudio();
+      startMusic();
+      resetGame();
+      showCutscene();
+      sfxMenuSelect();
     }
     return;
   }
 
   if (state === 'paused') {
-    setHudVisible(false);
-    if (keys['enter']) {
-      resetGame();
-      setGameState('menu');
-    }
+    if (consumeEnter()) applyPauseOption();
     return;
   }
 
   if (state === 'gameover') {
-    if (keys['enter']) {
+    if (consumeEnter()) {
       resetGame();
       setGameState('menu');
+      resetInput();
     }
     return;
   }
 
   if (state === 'shop') {
-    setHudVisible(false);
     updateShopAds(dt);
-    if (keys['enter']) {
-      setHudVisible(true);
-      nextPhase();
-      player.initPlayer(canvas.width, canvas.height);
-      enemies.length = 0;
-      clearBullets();
-      clearCoins();
-      clearParticles();
-      resetCombo();
-      phaseTransitionTimer = 2.0;
-    }
+    if (consumeEnter()) leaveShop();
     return;
   }
 
   if (state !== 'playing') return;
 
-  if (phaseTransitionTimer > 0) {
-    phaseTransitionTimer -= dt;
-  }
-
-  updateCombo(dt);
-  updateCombos();
-  setComboHealthMultiplier(getComboHealthBonus());
-  updateTutorial(dt);
-  const comboAch = checkAchievements('combo', getCombo());
-  if (comboAch) achievementNotifications.push({ name: comboAch.name, time: 3 });
-  setMagnetActive(hasPowerUp('magnet'));
-
   const p = player.getPlayer();
-  const speedMult = hasPowerUp('speed') ? 1.5 : 1;
-  player.movePlayer(keys, dt, canvas.width, canvas.height, speedMult);
-  p.angle = Math.atan2(mouse.y - p.y, mouse.x - p.x);
-  
-  updateSkills(dt, p);
-  applyRegen(dt);
+  const phase = getCurrentPhase();
+  const hard = getCurrentMode() === 'hardcore';
 
-  // Local multiplayer - player 2
+  if (phaseTransitionTimer > 0) phaseTransitionTimer -= dt;
+
+  // ── movimento ──
+  let mx = 0;
+  let my = 0;
+  if (keys['w'] || keys['arrowup']) my -= 1;
+  if (keys['s'] || keys['arrowdown']) my += 1;
+  if (keys['a'] || keys['arrowleft']) mx -= 1;
+  if (keys['d'] || keys['arrowright']) mx += 1;
+  setMoveDirection(mx, my);
+
+  const speedMult = hasPowerUp('speed') ? 1.5 : 1;
+  // lama deixa o jogador lento — é o efeito mecânico do bioma Pântano
+  const onMud = phase.hazard === 'mud' && charAt(colAt(p.x), rowAt(p.y)) === '^';
+  player.movePlayer(keys, dt, { w: worldW, h: worldH }, speedMult * (onMud ? 0.55 : 1));
+
+  updateSkills(dt, p, { w: worldW, h: worldH });
+  p.x = pushOutOfWalls(p.x, p.y, p.radius).x;
+  p.y = pushOutOfWalls(p.x, p.y, p.radius).y;
+
+  // ── mira: mouse é de tela, mundo é maior ──
+  const aim = screenToWorld(mouse.x, mouse.y);
+  p.angle = Math.atan2(aim.y - p.y, aim.x - p.x);
+
+  applyRegen(dt);
+  if (hasPowerUp('invincible')) p.invincible = Math.max(p.invincible, 0.1);
+
+  // ── flow field (IA dos inimigos) ──
+  rebuildFlowField(colAt(p.x), rowAt(p.y));
+
+  // ── local 2P ──
   if (isLocalEnabled()) {
-    movePlayer2(keys, dt, canvas.width, canvas.height);
+    movePlayer2(keys, dt, worldW, worldH);
     const p2 = getPlayer2();
     if (p2 && p2.alive && keys['l']) {
       const bullet = shootPlayer2();
-      if (bullet) {
-        spawnBullet(bullet.x, bullet.y, bullet.vx, bullet.vy, bullet.damage, bullet.isEnemy, bullet.color, false);
-      }
+      if (bullet) spawnBullet(bullet.x, bullet.y, bullet.vx, bullet.vy, bullet.damage, false, bullet.color, false, false, 0, false);
     }
   }
 
-  const envResult = updateEnvironmentEvents(dt, enemies, p.x, p.y, canvas.width, canvas.height);
+  // ── eventos ambientais (agora com dimensões do mundo) ──
+  const envResult = updateEnvironmentEvents(dt, enemies, p.x, p.y, worldW, worldH);
   for (const d of envResult.enemyDamages) {
-    damageNumbers.push({
-      x: d.x + (Math.random() - 0.5) * 16,
-      y: d.y,
-      text: String(Math.floor(d.damage)),
-      color: d.color,
-      life: 0.8,
-      vy: -60,
-    });
+    damageNumbers.push({ x: d.x + (Math.random() - 0.5) * 16, y: d.y, text: String(Math.floor(d.damage)), color: d.color, life: 0.8, vy: -60 });
   }
   if (envResult.playerDamage > 0 && p.invincible <= 0) {
     const dmg = Math.floor(envResult.playerDamage * getDamageTakenMultiplier());
     if (dmg > 0) {
-      logDamage(`EVENTO_AMBIENTAL`, dmg);
       checkAchievements('damage_taken');
       player.enemyCollisionDamage(dmg);
       sfxPlayerHit();
@@ -396,255 +428,163 @@ function update(dt: number) {
     }
   }
 
-  // Shooting
+  // ── hazard do bioma ──
+  updateBiomeHazard(dt, p);
+
+  // ── disparo ──
   p.shootCooldown -= dt;
   updateReload(dt);
   if (mouse.down && p.shootCooldown <= 0 && canShoot()) {
     const weapon = getCurrentWeapon();
     p.shootCooldown = weapon.shootRate * getComboFireRateBonus();
     const multiShot = hasPowerUp('multiShot');
-    const newBullets = shoot(p.x, p.y, p.angle, multiShot, getDamageMultiplier() * getComboDamageBonus());
-    newBullets.forEach(b => spawnBullet(b.x, b.y, b.vx, b.vy, b.damage, false, b.color, b.pierce, b.explosive, b.explosionRadius));
+    const fired = shoot(p.x, p.y, p.angle, multiShot, getDamageMultiplier() * getComboDamageBonus());
+    for (const b of fired) {
+      spawnBullet(b.x, b.y, b.vx, b.vy, b.damage, false, b.color, b.pierce, b.explosive, b.explosionRadius, b.isCrit);
+    }
     const muzzleX = p.x + Math.cos(p.angle) * 24;
     const muzzleY = p.y + Math.sin(p.angle) * 24;
     spawnParticles(muzzleX, muzzleY, weapon.color, 4, 120);
-    const weaponSounds: Record<string, () => void> = {
-      'Pistola': sfxPistol,
-      'Shotgun': sfxShotgun,
-      'Metralhadora': sfxMachinegun,
-      'Sniper': sfxSniper,
-      'Laser': sfxLaser,
-      'RPG': sfxRPG,
-      'Raios': sfxRaios,
-      'Gel': sfxGel,
-      'Granada': sfxGranade,
-      'Mina': sfxMina,
-    };
-    (weaponSounds[weapon.name] || sfxPistol)();
+    playWeaponSound(weapon.name);
     registerShot();
     if (getCurrentAmmo() <= 0) startReload();
   }
 
   if (p.invincible > 0) p.invincible -= dt;
 
-  // Wave spawning
-  const phase = getCurrentPhase();
-  const waveComplete = spawnWaveEnemies(dt, enemies, getCurrentWave(), phase.enemyTypes, canvas.width, canvas.height);
+  // ── ondas ──
+  const rect = { w: worldW, h: worldH, px: getCamX(), py: getCamY(), viewW: canvas.width, viewH: canvas.height };
+  const waveComplete = spawnWaveEnemies(dt, enemies, getCurrentWave(), phase.enemyTypes, worldW, worldH, rect);
   if (waveComplete) {
-    const isHardcore = getCurrentMode() === 'hardcore';
     nextWave();
-    if (!isHardcore) {
-      player.healOnWaveComplete();
-    }
+    if (!hard) player.healOnWaveComplete();
     sfxWaveStart();
     const waveAch = checkAchievements('wave', getCurrentWave());
-    if (waveAch) achievementNotifications.push({ name: waveAch.name, time: 3 });
-    // Skip shop in hardcore mode
-    if (isHardcore && getGameState() === 'shop') {
-      setHudVisible(true);
-      nextPhase();
-      player.initPlayer(canvas.width, canvas.height);
-      enemies.length = 0;
-      clearBullets();
-      clearCoins();
-      clearParticles();
-      resetCombo();
-      phaseTransitionTimer = 2.0;
-    } else if (getGameState() === 'shop') {
-      // Unlock diary entry for completed phase
-      const phaseIdx = getCurrentPhase()?.name ? PHASES.indexOf(getCurrentPhase()!) : 0;
-      unlockDiaryEntry(phaseIdx);
+    if (waveAch) pushToast(waveAch.name, 3);
+    if (getGameState() === 'shop') enterShop();
+  }
 
-      // Spawn NPC at random edge position (40% chance per wave)
-      if (Math.random() < 0.4) {
-        const side = Math.floor(Math.random() * 4);
-        let nx: number, ny: number;
-        if (side === 0) { nx = Math.random() * canvas.width; ny = -20; }
-        else if (side === 1) { nx = canvas.width + 20; ny = Math.random() * canvas.height; }
-        else if (side === 2) { nx = Math.random() * canvas.width; ny = canvas.height + 20; }
-        else { nx = -20; ny = Math.random() * canvas.height; }
-        spawnNPC(nx, ny, Math.floor(Math.random() * 3));
-      }
-
-      // Auto-save when entering shop
-      saveGame(
-        getCurrentPhase()?.name ? PHASES.indexOf(getCurrentPhase()!) : 0,
-        getCurrentWave(),
-        0,
-        getShopCoins(),
-        getScore(),
-        getPurchasedUpgrades(),
-        getPurchasedWeapons(),
-        getCurrentPhase()?.name || ''
-      );
+  // ── boss da fase no primeiro spawn da última onda ──
+  if (!bossSpawned && phase.boss && getCurrentWave() === phase.waves - 1 && enemies.length === 0) {
+    const cells = findAll('B');
+    const pos = cells.length > 0 ? cellCenter(cells[0].col, cells[0].row) : { x: worldW / 2, y: worldH / 2 };
+    const boss = spawnEnemy(phase.boss, worldW, worldH, 0, pos.x, pos.y);
+    if (boss) {
+      boss.spawnDelay = 0;
+      boss.health = boss.maxHealth;
+      enemies.push(boss);
+      bossSpawned = true;
+      triggerBossZoom();
+      void playMusic('boss');
     }
   }
 
-  // Update dynamic difficulty
   updateBehavior(p.x, p.y, dt, enemies.length, 0);
 
-  // Enemy AI
-  const tendency = getPlayerTendency();
-
-  // Boss zoom on first spawn
   if (!bossZoomTriggered) {
     for (const e of enemies) {
       if (ENEMY_TYPES[e.type]?.isBoss) {
-        triggerBossZoom();
         bossZoomTriggered = true;
         break;
       }
     }
   }
 
+  // ── IA dos inimigos: flow field + separação ──
+  const tendency = getPlayerTendency();
   for (const e of enemies) {
-    e.angle += dt * 2;
-    if (e.hitFlash > 0) e.hitFlash -= dt;
     if (e.spawnDelay > 0) {
       e.spawnDelay -= dt;
       continue;
     }
-    // Predict player position based on movement tendency
-    const predictX = p.x + tendency.h * 80;
-    const predictY = p.y + tendency.v * 80;
-    const dir = normalize({ x: predictX - e.x, y: predictY - e.y });
-    const spd = e.type === 'mosquito' ? e.speed * 1.3 : e.speed;
-    e.x += dir.x * spd * dt;
-    e.y += dir.y * spd * dt;
+    if (e.hitFlash > 0) e.hitFlash -= dt;
 
-    if (e.canShoot) {
-      e.shootTimer -= dt;
-      if (e.shootTimer <= 0) {
-        const angle = Math.atan2(p.y - e.y, p.x - e.x);
-        const bColor = ENEMY_TYPES[e.type]?.projectileColor || '#3498db';
-        const isBoss = ENEMY_TYPES[e.type]?.isBoss;
-        const hpPct = e.health / e.maxHealth;
-
-        const baseSpeed = ENEMY_TYPES[e.type]?.bulletSpeed || 300;
-
-        if (isBoss) {
-          // Boss attack phases based on HP
-          if (hpPct > 0.6) {
-            // Phase 1: normal shots
-            e.shootTimer = e.shootRate;
-            spawnBullet(e.x, e.y, Math.cos(angle) * baseSpeed, Math.sin(angle) * baseSpeed, e.damage, true, bColor, false);
-          } else if (hpPct > 0.3) {
-            // Phase 2: spread shots
-            e.shootTimer = e.shootRate * 0.8;
-            for (let s = -2; s <= 2; s++) {
-              spawnBullet(e.x, e.y, Math.cos(angle + s * 0.2) * baseSpeed * 1.17, Math.sin(angle + s * 0.2) * baseSpeed * 1.17, e.damage, true, bColor, false);
-            }
-          } else {
-            // Phase 3: frenzy - all directions + faster
-            e.shootTimer = e.shootRate * 0.5;
-            for (let s = 0; s < 8; s++) {
-              const a = angle + (s * Math.PI / 4);
-              spawnBullet(e.x, e.y, Math.cos(a) * baseSpeed * 1.33, Math.sin(a) * baseSpeed * 1.33, e.damage, true, bColor, false);
-            }
-          }
-        } else if (ENEMY_TYPES[e.type]?.spreadShot) {
-          e.shootTimer = e.shootRate;
-          for (let s = -1; s <= 1; s++) {
-            spawnBullet(e.x, e.y, Math.cos(angle + s * 0.3) * baseSpeed * 0.83, Math.sin(angle + s * 0.3) * baseSpeed * 0.83, e.damage, true, bColor, false);
-          }
-        } else if (ENEMY_TYPES[e.type]?.splitBullet) {
-          e.shootTimer = e.shootRate;
-          for (let s = 0; s < 4; s++) {
-            const a = angle + (s * Math.PI / 2);
-            spawnBullet(e.x, e.y, Math.cos(a) * baseSpeed * 0.67, Math.sin(a) * baseSpeed * 0.67, e.damage, true, bColor, false);
-          }
-        } else {
-          e.shootTimer = e.shootRate;
-          spawnBullet(e.x, e.y, Math.cos(angle) * baseSpeed, Math.sin(angle) * baseSpeed, e.damage, true, bColor, false);
-        }
-        sfxEnemyShoot();
+    const def = ENEMY_TYPES[e.type];
+    if (def?.isBoss) {
+      for (const minion of updateBoss(e, p.x, p.y, worldW, worldH, dt)) enemies.push(minion);
+      // boss não entra no empilhamento
+      if (e.hitFlash > 0) continue;
+    } else {
+      const flow = sampleFlowDir(e.x, e.y);
+      // perto do jogador o flow field é ruidoso: aí vai o seek direto
+      const distToPlayer = Math.hypot(p.x - e.x, p.y - e.y);
+      let seekX: number;
+      let seekY: number;
+      if (distToPlayer < 140) {
+        const direct = normalize({ x: p.x + tendency.h * 60 - e.x, y: p.y + tendency.v * 60 - e.y });
+        seekX = direct.x;
+        seekY = direct.y;
+      } else if (flow.x !== 0 || flow.y !== 0) {
+        seekX = flow.x;
+        seekY = flow.y;
+      } else {
+        const direct = normalize({ x: p.x - e.x, y: p.y - e.y });
+        seekX = direct.x;
+        seekY = direct.y;
       }
+
+      // separação: resolve o empilhamento sem custo de pathfinding
+      let sepX = 0;
+      let sepY = 0;
+      for (const other of enemies) {
+        if (other === e) continue;
+        const d = Math.hypot(other.x - e.x, other.y - e.y);
+        const minDist = e.radius + other.radius;
+        if (d > 0.001 && d < minDist) {
+          const push = (minDist - d) / minDist;
+          sepX -= ((other.x - e.x) / d) * push;
+          sepY -= ((other.y - e.y) / d) * push;
+        }
+      }
+
+      const spd = e.type === 'mosquito' ? e.speed * 1.3 : e.speed;
+      const gravityPush = phase.hazard === 'lowGravity' ? 1.35 : 1;
+      const next = moveCircleBy(
+        e.x, e.y,
+        (seekX + sepX * 1.6) * spd * dt * gravityPush,
+        (seekY + sepY * 1.6) * spd * dt * gravityPush,
+        e.radius
+      );
+      e.x = next.x;
+      e.y = next.y;
     }
 
-    if (ENEMY_TYPES[e.type]?.summons) {
-      e.summonTimer += dt;
-      if (e.summonTimer >= 5 && enemies.length < 20) {
-        e.summonTimer = 0;
-        const summonTypes = ['grunt', 'runner', 'drone'];
-        const type = summonTypes[Math.floor(Math.random() * summonTypes.length)] as string;
-        const summoned = spawnEnemy(type, canvas.width, canvas.height, getCurrentWave());
-        if (summoned) enemies.push(summoned);
-        spawnParticles(e.x, e.y, '#9b59b6', 8, 150);
-      }
+    if (e.canShoot && !ENEMY_TYPES[e.type]?.isBoss) {
+      e.shootTimer -= dt;
+      if (e.shootTimer <= 0) shootEnemyAt(e, p.x, p.y);
     }
 
     if (ENEMY_TYPES[e.type]?.leavesFire) {
       e.attackTimer += dt;
       if (e.attackTimer >= 0.5) {
         e.attackTimer = 0;
-        spawnParticles(e.x, e.y + e.radius, '#e74c3c', 3, 50);
+        spawnParticles(e.x, e.y + e.radius, '#c46a3a', 3, 50);
       }
     }
   }
 
-  // Competitive mode - Bot logic
-  if (getCurrentMode() === 'competitive') {
-    const botList = getBots();
-    // Spawn bots periodically
-    if (botList.length < 3 && Math.random() < dt * 0.5) {
-      const difficulties: BotDifficulty[] = ['easy', 'medium', 'hard'];
-      const diff = difficulties[Math.floor(Math.random() * 3)];
-      addBot(createBot(diff, canvas.width, canvas.height));
-    }
-    // Update bot AI
-    const bullets = getBullets();
-    const botBullets = updateBots(dt, p.x, p.y, bullets, canvas.width, canvas.height);
-    for (const b of botBullets) {
-      spawnBullet(b.x, b.y, b.vx, b.vy, b.damage, true, b.color, false);
-    }
-    // Bot-player collision
-    for (const bot of botList) {
-      const dist = Math.hypot(p.x - bot.x, p.y - bot.y);
-      if (dist < p.radius + bot.radius && p.invincible <= 0) {
-        const dmg = Math.floor(bot.damage * getDamageTakenMultiplier());
-        if (dmg > 0) {
-          logDamage(`BOT_COMPETITIVO`, dmg);
-          player.enemyCollisionDamage(dmg);
-          sfxPlayerHit();
-          triggerDamageFlash();
-        }
-        bot.health = 0;
-        spawnParticles(bot.x, bot.y, bot.color, 12, 200);
-      }
-    }
-    // Remove dead bots
-    const deadBots = removeDeadBots();
-    for (const bot of deadBots) {
-      addScore(bot.scoreValue);
-      spawnCoins(bot.x, bot.y, bot.coinDrop);
-      spawnParticles(bot.x, bot.y, bot.color, 20, 300);
-      sfxExplosion();
-    }
-  }
+  // ── bots (competitivo) ──
+  if (getCurrentMode() === 'competitive') updateBotsAndCompetitors(p);
 
-  // Collision (skip enemies still in spawn delay)
+  // ── colisões ──
   const activeEnemies = enemies.filter(e => e.spawnDelay <= 0);
   checkEnemyPlayerCollision(activeEnemies, p.x, p.y, p.radius, p.invincible, (e) => {
     const baseDmg = hasPowerUp('invincible') ? 0 : e.damage;
     const dmg = Math.floor(baseDmg * getDamageTakenMultiplier());
     if (dmg > 0) {
-      logDamage(`CORPO_INIMIGO (tipo:${e.type})`, dmg);
       checkAchievements('damage_taken');
       player.enemyCollisionDamage(dmg);
       sfxPlayerHit();
       triggerDamageFlash();
     }
-    e.health = 0;
-    spawnParticles(e.x, e.y, e.color, 12, 200);
+    killEnemy(e, false);
   });
 
   const bullets = getBullets();
 
-  // Enemy bullets vs player
   checkEnemyBulletPlayerCollision(bullets, p.x, p.y, p.radius, p.invincible, (b) => {
     const dmg = Math.floor(b.damage * getDamageTakenMultiplier());
     if (dmg > 0) {
-      logDamage(`PROJETIL_INIMIGO (cor:${b.color})`, dmg);
       checkAchievements('damage_taken');
       player.enemyCollisionDamage(dmg);
       sfxPlayerHit();
@@ -654,101 +594,85 @@ function update(dt: number) {
     spawnParticles(b.x, b.y, b.color, 3, 100);
   });
 
+  // projétil vs prop (a bala quebra o que estiver no caminho)
+  updateBulletProps(bullets);
+
   checkBulletEnemyCollisions(bullets, enemies, (b, e) => {
     e.hitFlash = 0.15;
     registerHit();
-    const isCrit = b.color === '#f1c40f';
-    // Explosive bullets create area damage
+    // crítico vem do flag, não de comparar string de cor
+    const isCrit = b.isCrit;
     if (b.explosive && b.explosionRadius) {
       createExplosion(b.x, b.y, b.explosionRadius, b.damage, enemies, b.color);
       sfxExplosion();
       triggerScreenShake(5, 0.15);
     } else {
       e.health -= b.damage;
-      e.hitFlash = 0.15;
       damageNumbers.push({
-        x: e.x + (Math.random() - 0.5) * 20, y: e.y - 20,
+        x: e.x + (Math.random() - 0.5) * 20,
+        y: e.y - 20,
         text: isCrit ? `${Math.floor(b.damage)}!` : String(Math.floor(b.damage)),
-        color: isCrit ? '#f1c40f' : '#fff',
-        life: 1, vy: -80,
+        color: isCrit ? PALETTE.crit : PALETTE.text,
+        life: 1,
+        vy: -80,
       });
     }
-    // Crit visual: slow motion + extra particles
     if (isCrit) {
       triggerSlowMotion(0.15, 0.3);
-      spawnParticles(b.x, b.y, '#f1c40f', 8, 200);
+      spawnParticles(b.x, b.y, PALETTE.crit, 8, 200);
     }
     if (!b.pierce) b.life = 0;
     spawnParticles(b.x, b.y, b.color, 3, 150);
     triggerHitStop(0.015);
   });
 
-  // Bullet-Bot collision (competitive mode)
   if (getCurrentMode() === 'competitive') {
     for (const b of bullets) {
-      if (b.isEnemy) continue;
+      if (b.isEnemy || b.life <= 0) continue;
       for (const bot of getBots()) {
         if (b.life <= 0) break;
-        const dist = Math.hypot(b.x - bot.x, b.y - bot.y);
-        if (dist < bot.radius + 5) {
+        if (bulletHitsCircle(b, bot.x, bot.y, bot.radius + 5)) {
           bot.health -= b.damage;
           damageNumbers.push({
-            x: bot.x + (Math.random() - 0.5) * 20, y: bot.y - 20,
-            text: b.color === '#f1c40f' ? `${Math.floor(b.damage)}!` : String(Math.floor(b.damage)),
-            color: b.color === '#f1c40f' ? '#f1c40f' : '#fff',
-            life: 1, vy: -80,
+            x: bot.x + (Math.random() - 0.5) * 20,
+            y: bot.y - 20,
+            text: b.isCrit ? `${Math.floor(b.damage)}!` : String(Math.floor(b.damage)),
+            color: b.isCrit ? PALETTE.crit : PALETTE.text,
+            life: 1,
+            vy: -80,
           });
           if (!b.pierce) b.life = 0;
           spawnParticles(b.x, b.y, b.color, 3, 150);
-          triggerHitStop(0.015);
         }
       }
     }
   }
 
-  // Remove dead enemies
+  // ── limpeza dos mortos ──
   for (let i = enemies.length - 1; i >= 0; i--) {
-    if (enemies[i].health <= 0) {
-      addScore(enemies[i].scoreValue);
-      const def = ENEMY_TYPES[enemies[i].type];
-      if (def?.coinDrop) spawnCoins(enemies[i].x, enemies[i].y, def.coinDrop);
-      spawnParticles(enemies[i].x, enemies[i].y, enemies[i].color, 20, 300);
-      sfxExplosion();
-      const killAch = checkAchievements('kill');
-      if (killAch) achievementNotifications.push({ name: killAch.name, time: 3 });
-      const scoreAch = checkAchievements('score', getScore());
-      if (scoreAch) achievementNotifications.push({ name: scoreAch.name, time: 3 });
-      if (def?.isBoss) {
-        const bossAch = checkAchievements('boss_kill');
-        if (bossAch) achievementNotifications.push({ name: bossAch.name, time: 3 });
-        spawnParticles(enemies[i].x, enemies[i].y, '#f1c40f', 50, 400);
-        triggerSlowMotion(0.3, 0.8);
-        triggerBossKillFlash();
-        sfxBossDeath();
-        spawnPowerUp(enemies[i].x, enemies[i].y);
-        spawnPowerUp(enemies[i].x - 20, enemies[i].y + 20);
-      } else if (Math.random() < 0.15) {
-        spawnPowerUp(enemies[i].x, enemies[i].y);
-      }
-      enemies[i] = enemies[enemies.length - 1];
-      enemies.pop();
-    }
+    if (enemies[i].health <= 0) killEnemy(enemies[i], true);
   }
 
-  // Update systems
-  updateBullets(dt, canvas.width, canvas.height);
+  updateBullets(dt, worldW, worldH);
   updateParticles(dt);
   updateExplosions(dt);
+  updateProps(dt);
+  updateDamageNumbers(dt);
+  updateBarrels();
 
-  for (const d of damageNumbers) {
-    d.y += d.vy * dt;
-    d.vy += 100 * dt;
-    d.life -= dt;
-  }
-  for (let i = damageNumbers.length - 1; i >= 0; i--) {
-    if (damageNumbers[i].life <= 0) {
-      damageNumbers[i] = damageNumbers[damageNumbers.length - 1];
-      damageNumbers.pop();
+  updateCombo(dt);
+  updateCombos();
+  setComboHealthMultiplier(getComboHealthBonus());
+  updateTutorial(dt);
+  setMagnetActive(hasPowerUp('magnet'));
+
+  const p2 = getPlayer2();
+  if (isLocalEnabled() && p2) {
+    for (const e of enemies) {
+      if (e.health > 0 && checkPlayer2EnemyCollision(e.x, e.y, e.radius)) {
+        e.health = 0;
+        spawnParticles(e.x, e.y, e.color, 12, 200);
+      }
     }
   }
 
@@ -766,363 +690,533 @@ function update(dt: number) {
 
   updateNPCs(dt, p.x, p.y, enemies);
 
+  // ── objetivo da fase ──
+  // Em fases com objetivo ≠ clear, cumprir o objetivo encerra a fase: é o que
+  // tira o "só matar tudo" e dá uso real ao mapa.
+  const objective = updateObjective(dt, p.x, p.y, enemies.length, reachZones);
+  if (phase.objective !== 'clear' && objective.done && getGameState() === 'playing') {
+    enemies.length = 0;
+    clearBullets();
+    triggerScreenShake(14, 0.5);
+    leaveShop();
+    return;
+  }
+
+  // ── morte / game over ──
   if (p.health <= 0 && p.deathTimer === 0) {
     playerDied = true;
     p.deathTimer = 1.5;
     addLeaderboardEntry('Jogador', getScore(), getCurrentWave());
-    spawnParticles(p.x, p.y, '#7a9a6a', 30, 300);
-    spawnParticles(p.x, p.y, '#fff', 15, 200);
+    spawnParticles(p.x, p.y, PALETTE.moss, 30, 300);
+    spawnParticles(p.x, p.y, PALETTE.title, 15, 200);
     triggerSlowMotion(0.3, 1.0);
+    triggerScreenShake(12, 0.6);
     sfxGameOver();
   }
-
   if (p.deathTimer > 0) {
     p.deathTimer -= dt;
     p.deathAngle += 8 * dt;
     if (p.deathTimer <= 0) {
       setGameState('gameover');
+      resetInput();
     }
   }
 
-  // Check if game was completed (all phases beaten)
-  if (wasGameCompleted()) {
+  if (wasGameCompleted() && !playerDied) {
     markGameCompleted();
-    if (!playerDied) {
-      // Secret ending - player completed game without dying
-      achievementNotifications.push({ name: 'FINAL SECRETO: PERFEIÇÃO', time: 5 });
-    }
+    pushToast('FINAL SECRETO: PERFEIÇÃO', 5);
+    playerDied = true;
   }
 
   currentFlash = updateFlash(dt);
   currentBossZoom = updateBossZoom(dt);
+  currentShake = updateScreenShake(dt);
+  updateCamera(dt, p.x, p.y);
 
-  updateHud({
-    phase: getCurrentPhase()?.name || '1',
-    health: p.health,
-    maxHealth: p.maxHealth,
-    score: getScore(),
-    coins: getShopCoins(),
-    wave: getCurrentWave(),
-    maxWave: getCurrentPhase()?.waves || 1,
-    enemies: enemies.length,
-    weapon: getCurrentWeapon().name,
-    combo: getCombo(),
-    ammo: getCurrentAmmo(),
-    maxAmmo: getCurrentWeapon().magazineSize,
-    reloading: getIsReloading(),
-  });
+  // toasts decaem com dt, não com frame rate
+  for (let i = achievementNotifications.length - 1; i >= 0; i--) {
+    achievementNotifications[i].time -= dt;
+    if (achievementNotifications[i].time <= 0) achievementNotifications.splice(i, 1);
+  }
+}
+
+/** Hazard do bioma, aplicado sobre o tile onde o jogador está. */
+function updateBiomeHazard(dt: number, p: ReturnType<typeof player.getPlayer>): void {
+  const phase = getCurrentPhase();
+  const ch = charAt(colAt(p.x), rowAt(p.y));
+  const onHazard = ch === '^';
+  if (!onHazard || phase.hazard === 'none') return;
+
+  const dmg = phase.hazard === 'lava' ? 12 : phase.hazard === 'spikes' ? 8 : phase.hazard === 'electric' ? 14 : 0;
+  if (dmg > 0 && p.invincible <= 0) {
+    const total = Math.floor(dmg * getDamageTakenMultiplier());
+    if (total > 0) {
+      player.enemyCollisionDamage(total);
+      sfxPlayerHit();
+      triggerDamageFlash();
+    }
+  }
+  if (phase.hazard === 'mud') {
+    // dano por segundo parado na lama
+    p.health = Math.max(0, p.health - 4 * dt);
+  }
+  if (phase.hazard === 'electric') {
+    p.invincible = Math.max(p.invincible, 0.35);
+    if (Math.random() < dt * 6) spawnParticles(p.x, p.y, '#c8b890', 2, 90);
+  }
+}
+
+/**
+ * Barrils com pavio aceso: explodem e derrubam a cadeia.
+ * O pavio em si é contado em `updateProps`; aqui só detonamos os que zeraram.
+ */
+function updateBarrels(): void {
+  for (const prop of getProps()) {
+    if (prop.kind !== 'barrel' || prop.health <= 0) continue;
+    if (prop.fuse <= 0) continue;
+    prop.fuse = Math.min(prop.fuse, 0);
+    if (prop.fuse <= 0) explodeProp(prop);
+  }
+}
+
+function explodeProp(prop: Prop): void {
+  const { radius, damage } = getBlast(prop);
+  if (radius > 0) {
+    createExplosion(prop.x, prop.y, radius, damage, enemies, PALETTE.terracotta);
+    spawnParticles(prop.x, prop.y, PALETTE.terracotta, 14, 220);
+    sfxExplosion();
+    triggerScreenShake(6, 0.25);
+  }
+  const p = player.getPlayer();
+  if (Math.hypot(p.x - prop.x, p.y - prop.y) < radius && p.invincible <= 0) {
+    player.enemyCollisionDamage(Math.floor(damage * getDamageTakenMultiplier()));
+    sfxPlayerHit();
+    triggerDamageFlash();
+  }
+  for (const destroyed of detonateProp(prop)) {
+    if (destroyed !== prop) {
+      spawnParticles(destroyed.x, destroyed.y, PALETTE.mustard, 6, 140);
+      if (destroyed.kind === 'crate' && Math.random() < 0.5) {
+        spawnCoins(destroyed.x, destroyed.y, 1);
+      }
+    }
+  }
+}
+
+/** Projéteis do jogador quebram props; projéteis inimigos são ignorados. */
+function updateBulletProps(bullets: ReturnType<typeof getBullets>): void {
+  for (const b of bullets) {
+    if (b.isEnemy || b.life <= 0) continue;
+    for (const prop of getProps()) {
+      if (prop.health <= 0) continue;
+      if (!bulletHitsCircle(b, prop.x, prop.y, prop.radius)) continue;
+      const destroyed = damageProp(prop, b.damage);
+      spawnParticles(b.x, b.y, PALETTE.mustard, 3, 120);
+      if (destroyed && prop.kind === 'nest') {
+        registerObjectiveDestroyed();
+        spawnParticles(prop.x, prop.y, PALETTE.terracotta, 26, 320);
+        sfxExplosion();
+        triggerScreenShake(8, 0.3);
+      }
+      if (destroyed) {
+        if (prop.kind === 'barrel') {
+          explodeProp(prop);
+        } else {
+          spawnParticles(prop.x, prop.y, PALETTE.mustard, 8, 160);
+          if (Math.random() < 0.5) spawnCoins(prop.x, prop.y, 1);
+          triggerScreenShake(2, 0.08);
+        }
+      }
+      if (!b.pierce) b.life = 0;
+      break;
+    }
+  }
+}
+
+function updateDamageNumbers(dt: number): void {
+  for (const d of damageNumbers) {
+    d.y += d.vy * dt;
+    d.vy += 100 * dt;
+    d.life -= dt;
+  }
+  for (let i = damageNumbers.length - 1; i >= 0; i--) {
+    if (damageNumbers[i].life <= 0) damageNumbers.splice(i, 1);
+  }
+}
+
+function shootEnemyAt(e: Enemy, tx: number, ty: number): void {
+  const def = ENEMY_TYPES[e.type];
+  const angle = Math.atan2(ty - e.y, tx - e.x);
+  const speed = def?.bulletSpeed || 300;
+  const color = def?.projectileColor || PALETTE.terracotta;
+  e.shootTimer = e.shootRate || 2;
+  if (def?.spreadShot) {
+    for (let s = -1; s <= 1; s++) {
+      const a = angle + s * 0.3;
+      spawnBullet(e.x, e.y, Math.cos(a) * speed * 0.83, Math.sin(a) * speed * 0.83, e.damage, true, color, false);
+    }
+  } else if (def?.splitBullet) {
+    for (let s = 0; s < 4; s++) {
+      const a = angle + (s * Math.PI) / 2;
+      spawnBullet(e.x, e.y, Math.cos(a) * speed * 0.67, Math.sin(a) * speed * 0.67, e.damage, true, color, false);
+    }
+  } else {
+    spawnBullet(e.x, e.y, Math.cos(angle) * speed, Math.sin(angle) * speed, e.damage, true, color, false);
+  }
+  sfxEnemyShoot();
+}
+
+/** Aplica dano/morte a um inimigo e credita score, moedas e conquistas. */
+function killEnemy(e: Enemy, award: boolean): void {
+  const def = ENEMY_TYPES[e.type];
+  const idx = enemies.indexOf(e);
+  if (idx >= 0) enemies.splice(idx, 1);
+
+  if (award) {
+    addScore(e.scoreValue);
+    if (def?.coinDrop) spawnCoins(e.x, e.y, def.coinDrop);
+    spawnParticles(e.x, e.y, e.color, 20, 300);
+    sfxExplosion();
+    const killAch = checkAchievements('kill');
+    if (killAch) pushToast(killAch.name, 3);
+    const scoreAch = checkAchievements('score', getScore());
+    if (scoreAch) pushToast(scoreAch.name, 3);
+  }
+
+  if (def?.isBoss) {
+    clearBossState(e);
+    const bossAch = checkAchievements('boss_kill');
+    if (bossAch) pushToast(bossAch.name, 3);
+    spawnParticles(e.x, e.y, PALETTE.crit, 50, 400);
+    triggerSlowMotion(0.3, 0.8);
+    triggerBossKillFlash();
+    triggerScreenShake(18, 0.8);
+    sfxBossDeath();
+    spawnPowerUp(e.x, e.y);
+    spawnPowerUp(e.x - 20, e.y + 20);
+    void playMusic('combat');
+  } else if (award && Math.random() < 0.15) {
+    spawnPowerUp(e.x, e.y);
+  }
+}
+
+function updateBotsAndCompetitors(p: ReturnType<typeof player.getPlayer>): void {
+  const botList = getBots();
+  if (botList.length < 3 && Math.random() < 0.5 * (1 / 60)) {
+    const difficulties: BotDifficulty[] = ['easy', 'medium', 'hard'];
+    addBot(createBot(difficulties[Math.floor(Math.random() * 3)], worldW, worldH));
+  }
+  const botBullets = updateBots(1 / 60, p.x, p.y, getBullets(), worldW, worldH);
+  for (const b of botBullets) {
+    spawnBullet(b.x, b.y, b.vx, b.vy, b.damage, true, b.color, false);
+  }
+  for (const bot of botList) {
+    if (Math.hypot(p.x - bot.x, p.y - bot.y) < p.radius + bot.radius && p.invincible <= 0) {
+      const dmg = Math.floor(bot.damage * getDamageTakenMultiplier());
+      if (dmg > 0) {
+        player.enemyCollisionDamage(dmg);
+        sfxPlayerHit();
+        triggerDamageFlash();
+      }
+      bot.health = 0;
+      spawnParticles(bot.x, bot.y, bot.color, 12, 200);
+    }
+  }
+  for (const bot of removeDeadBots()) {
+    addScore(bot.scoreValue);
+    spawnCoins(bot.x, bot.y, bot.coinDrop);
+    spawnParticles(bot.x, bot.y, bot.color, 20, 300);
+    sfxExplosion();
+  }
+}
+
+const WEAPON_SOUNDS: Record<string, () => void> = {
+  'Pistola': sfxPistol,
+  'Shotgun': sfxShotgun,
+  'Metralhadora': sfxMachinegun,
+  'Sniper': sfxSniper,
+  'Laser': sfxLaser,
+  'RPG': sfxRPG,
+  'Raios': sfxRaios,
+  'Gel': sfxGel,
+  'Granada': sfxGranade,
+  'Mina': sfxMina,
+};
+
+function playWeaponSound(name: string): void {
+  (WEAPON_SOUNDS[name] || sfxPistol)();
+}
+
+function pushToast(name: string, time: number): void {
+  // empilha no máximo 3: mais que isso vira parede de texto no canto
+  achievementNotifications.push({ name, time });
+  while (achievementNotifications.length > 3) achievementNotifications.shift();
+}
+
+/** Entra na loja: salva, inventa NPC e troca a música. */
+function enterShop(): void {
+  if (getCurrentMode() === 'hardcore') {
+    leaveShop();
+    return;
+  }
+  const phaseIdx = PHASES.indexOf(getCurrentPhase());
+  unlockDiaryEntry(Math.max(0, phaseIdx));
+  if (Math.random() < 0.4) spawnNpcAtEdge();
+  saveGame(
+    phaseIdx,
+    0,
+    0,
+    getShopCoins(),
+    getScore(),
+    getPurchasedUpgrades(),
+    getPurchasedWeapons(),
+    getCurrentPhase()?.name || ''
+  );
+  void playMusic('shop');
+}
+
+function spawnNpcAtEdge(): void {
+  const side = Math.floor(Math.random() * 4);
+  let nx = 0;
+  let ny = 0;
+  if (side === 0) { nx = Math.random() * worldW; ny = CELL_SIZE * 1.5; }
+  else if (side === 1) { nx = worldW - CELL_SIZE * 1.5; ny = Math.random() * worldH; }
+  else if (side === 2) { nx = Math.random() * worldW; ny = worldH - CELL_SIZE * 1.5; }
+  else { nx = CELL_SIZE * 1.5; ny = Math.random() * worldH; }
+  spawnNPC(nx, ny, Math.floor(Math.random() * 3));
+}
+
+function leaveShop(): void {
+  nextPhase();
+  loadPhaseEnvironment();
+  enemies.length = 0;
+  clearBullets();
+  clearCoins();
+  clearParticles();
+  damageNumbers.length = 0;
+  resetCombo();
+  resetNPCs();
+  bossZoomTriggered = false;
+  phaseTransitionTimer = 2.0;
+  resetInput();
+  if (getGameState() === 'playing') void playMusic('combat');
+}
+
+function startRun(): void {
+  setGameMode(selectedMode);
+  loadAchievements();
+  loadDiary();
+  resetRunCounters();
+  resetBehavior();
+  playerDied = false;
+  if (selectedMode === 'campaign') startTutorial();
+  if (selectedMode === 'local') initLocalMultiplayer(worldW, worldH);
+  resetInput();
+  setGameState('playing');
+  void playMusic('combat');
+}
+
+function applyPauseOption(): void {
+  switch (PAUSE_OPTIONS[getPauseIndex()].id) {
+    case 'resume':
+      setGameState('playing');
+      break;
+    case 'music':
+      setMusicEnabled(!isMusicEnabled());
+      break;
+    case 'sfx':
+      setSfxEnabled(!isSfxEnabled());
+      break;
+    case 'menu':
+      resetGame();
+      setGameState('menu');
+      break;
+  }
+  sfxMenuSelect();
+  resetInput();
 }
 
 // ─── Draw ──────────────────────────────────────────────────────
-/**
- * Desenha todos os elementos visuais do jogo.
- * Chamado após update() a cada frame.
- */
+
 function draw() {
   const state = getGameState();
 
   if (state === 'menu') {
-    if (isShowingCutscene()) {
-      drawCutscene();
-    } else {
-      drawMenu(selectedMode);
-    }
+    if (isShowingCutscene()) drawCutscene();
+    else drawMenu(selectedMode);
     return;
   }
   if (state === 'shop') {
     drawShop(ctx, canvas.width, canvas.height, mouse.x, mouse.y);
     return;
   }
-  if (state === 'gameover') { drawGameOver(getScore(), getKillStreak()); return; }
-
+  if (state === 'gameover') {
+    drawGameOver(getScore(), getKillStreak());
+    return;
+  }
   if (state === 'paused') {
-    // Draw game scene frozen
-    const bg = getCurrentPhase();
-    drawGameBackground(bg?.bg || '#1a1a2e', bg?.gridColor || 'rgba(255,255,255,0.03)', { x: 0, y: 0 }, bg?.name);
-    renderEnemies(enemies, player.getPlayer().x, player.getPlayer().y);
-    renderPlayer(player.getPlayer());
-    restoreCanvas();
-    // Pause overlay
-    ctx.fillStyle = 'rgba(0,0,0,0.6)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#ccc';
-    ctx.font = 'bold 28px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('PAUSADO', canvas.width / 2, canvas.height / 2 - 30);
-    ctx.fillStyle = '#666';
-    ctx.font = '13px monospace';
-    ctx.fillText('ESC para continuar', canvas.width / 2, canvas.height / 2 + 10);
-    ctx.fillText('ENTER para voltar ao menu', canvas.width / 2, canvas.height / 2 + 30);
+    drawFrozenWorld();
+    drawPause(isMusicEnabled(), isSfxEnabled());
     return;
   }
 
-  const bg = getCurrentPhase();
+  drawWorld();
 
-  // Boss zoom effect
-  if (currentBossZoom !== 1) {
-    ctx.save();
-    const cx = canvas.width / 2;
-    const cy = canvas.height / 2;
-    ctx.translate(cx, cy);
-    ctx.scale(currentBossZoom, currentBossZoom);
-    ctx.translate(-cx, -cy);
-  }
-
-  drawGameBackground(bg?.bg || '#1a1a2e', bg?.gridColor || 'rgba(255,255,255,0.03)', { x: 0, y: 0 }, bg?.name);
-  renderCoins(getCoins());
-  renderPowerUps(powerups);
-  renderParticles(getParticles());
-  renderBullets(getBullets());
-  renderEnemies(enemies, player.getPlayer().x, player.getPlayer().y);
-  drawNPCs(getNPCs());
-
-  // Render bots (competitive mode)
-  if (getCurrentMode() === 'competitive') {
-    for (const bot of getBots()) {
-      // Bot body
-      ctx.fillStyle = bot.color;
-      ctx.beginPath();
-      ctx.arc(bot.x, bot.y, bot.radius, 0, Math.PI * 2);
-      ctx.fill();
-      // Bot direction indicator
-      ctx.strokeStyle = '#fff';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(bot.x, bot.y);
-      ctx.lineTo(bot.x + Math.cos(bot.angle) * bot.radius, bot.y + Math.sin(bot.angle) * bot.radius);
-      ctx.stroke();
-      // Health bar
-      const barW = 32;
-      const barH = 4;
-      const barX = bot.x - barW / 2;
-      const barY = bot.y - bot.radius - 10;
-      ctx.fillStyle = '#333';
-      ctx.fillRect(barX, barY, barW, barH);
-      ctx.fillStyle = bot.color;
-      ctx.fillRect(barX, barY, barW * (bot.health / bot.maxHealth), barH);
-      // Name
-      ctx.fillStyle = '#fff';
-      ctx.font = '10px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText(bot.name, bot.x, barY - 4);
-    }
-  }
-
-  renderPlayer(player.getPlayer());
-  drawDamageNumbers(damageNumbers);
-
-  // Restore boss zoom if active
-  if (currentBossZoom !== 1) {
-    ctx.restore();
-  }
-
-  restoreCanvas();
-
-  // Phase transition overlay
   if (phaseTransitionTimer > 0) {
     drawPhaseTransition(phaseTransitionTimer, getCurrentWave(), getCurrentPhase()?.name);
   }
-
-  // Flash overlay
   if (currentFlash) {
     ctx.fillStyle = currentFlash;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
+  drawHud(buildHudData());
+}
 
-  // Environment event indicators (top-center, below score)
-  if (isEarthquakeActive()) {
-    ctx.fillStyle = 'rgba(176,112,80,0.08)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#b07050';
-    ctx.font = 'bold 12px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('TERREMOTO', canvas.width / 2, 40);
-    ctx.textAlign = 'left';
+/** Desenha o mundo dentro da translação da câmera (uma vez por frame). */
+function drawWorld(): void {
+  const shake = currentShake;
+  const camX = getCamX();
+  const camY = getCamY();
+  const phase = getCurrentPhase();
+  const p = player.getPlayer();
+
+  ctx.save();
+  if (currentBossZoom !== 1) {
+    ctx.translate(camX + canvas.width / 2, camY + canvas.height / 2);
+    ctx.scale(currentBossZoom, currentBossZoom);
+    ctx.translate(-(camX + canvas.width / 2), -(camY + canvas.height / 2));
   }
-  if (isStormActive()) {
-    ctx.fillStyle = 'rgba(96,128,144,0.06)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#608090';
-    ctx.font = 'bold 12px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('TEMPESTADE', canvas.width / 2, 40);
-    ctx.textAlign = 'left';
-  }
+  ctx.translate(-camX + shake.x, -camY + shake.y);
 
-  drawCombo(getCombo());
-  drawWeaponInfo(getCurrentWeapon().name);
-  renderActivePowerUps(activePowerups);
+  drawVoid(ctx);
+  drawTerrain(ctx, canvas.width, canvas.height);
+  drawProps(ctx, (x, y, r) => isVisible(x, y, r, r));
+  renderCoins(getCoins());
+  renderPowerUps(powerups);
+  renderParticles(getParticles());
+  renderEnemies(enemies, p.x, p.y, (e) => Math.atan2(p.y - e.y, p.x - e.x));
+  drawNPCs(getNPCs());
+  if (getCurrentMode() === 'competitive') drawBots(getBots());
+  renderBullets(getBullets());
+  renderPlayer(p, getCurrentWeapon().weaponClass || 'pistol');
+  drawDamageNumbers(damageNumbers);
+  if (phase.hazard === 'darkness') drawFlashlightOverlay(p);
 
-  // Skill cooldown indicators (top-left, below phase name)
-  const skillData: { key: string; name: string; color: string; type: 'dash' | 'shield' | 'fury' }[] = [
-    { key: 'SPACE', name: 'Dash', color: '#608090', type: 'dash' },
-    { key: 'F', name: 'Escudo', color: '#608090', type: 'shield' },
-    { key: 'E', name: 'Furia', color: '#608090', type: 'fury' },
-  ];
-  let skillY = 50;
-  for (const s of skillData) {
-    const cd = getSkillCooldown(s.type);
-    const maxCd = getSkillMaxCooldown(s.type);
-    const ready = cd <= 0 && !isSkillActive(s.type);
-    const active = isSkillActive(s.type);
+  restoreCanvas();
+}
 
-    // Background
-    ctx.fillStyle = active ? 'rgba(122,154,106,0.3)' : 'rgba(255,255,255,0.04)';
-    ctx.beginPath();
-    ctx.roundRect(10, skillY, 100, 22, 3);
-    ctx.fill();
-
-    // Cooldown fill
-    if (cd > 0) {
-      const pct = 1 - cd / maxCd;
-      ctx.fillStyle = 'rgba(255,255,255,0.08)';
-      ctx.fillRect(10, skillY, 100 * pct, 22);
-    }
-
-    // Border
-    ctx.strokeStyle = active ? '#7a9a6a' : ready ? 'rgba(122,154,106,0.4)' : 'rgba(255,255,255,0.06)';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-
-    // Text
-    ctx.fillStyle = active ? '#7a9a6a' : ready ? '#999' : '#555';
-    ctx.font = '10px monospace';
-    ctx.textAlign = 'left';
-    const label = active ? `${s.name} ATIVO` : cd > 0 ? `${s.name} ${Math.ceil(cd)}s` : `${s.key}: ${s.name}`;
-    ctx.fillText(label, 16, skillY + 15);
-    skillY -= 26;
-  }
-
-  // Debug damage log (bottom-right)
-  const now = performance.now();
-  const recentLogs = debugLog.filter(l => now - l.time < 3000);
-  if (recentLogs.length > 0) {
-    let logY = canvas.height - 50;
-    ctx.textAlign = 'right';
-    for (let i = recentLogs.length - 1; i >= 0 && i >= recentLogs.length - 5; i--) {
-      const l = recentLogs[i];
-      const age = (now - l.time) / 3000;
-      ctx.globalAlpha = 1 - age;
-      ctx.fillStyle = '#e74c3c';
-      ctx.font = '10px monospace';
-      ctx.fillText(`[DANO] ${l.source}: ${l.damage}`, canvas.width - 15, logY);
-      logY -= 14;
-    }
-    ctx.globalAlpha = 1;
-    ctx.textAlign = 'left';
-  }
-
-  // Tutorial hints (bottom-center)
-  if (isTutorialActive()) {
-    const hint = getCurrentHint();
-    if (hint) {
-      ctx.fillStyle = 'rgba(0,0,0,0.6)';
-      ctx.beginPath();
-      ctx.roundRect(canvas.width / 2 - 150, canvas.height - 80, 300, 30, 5);
-      ctx.fill();
-      ctx.fillStyle = '#a08050';
-      ctx.font = '12px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText(`${hint.key}: ${hint.text}`, canvas.width / 2, canvas.height - 62);
-      ctx.textAlign = 'left';
-    }
-  }
-
-  // Combo build indicators
-  const combos = getActiveCombos();
-  if (combos.length > 0) {
-    let comboY = canvas.height - 100;
-    for (const c of combos) {
-      ctx.fillStyle = c.color;
-      ctx.font = 'bold 13px monospace';
-      ctx.textAlign = 'right';
-      ctx.globalAlpha = 0.8;
-      ctx.fillText(`⚡ ${c.name}`, canvas.width - 15, comboY);
-      ctx.font = '10px monospace';
-      ctx.fillStyle = '#ccc';
-      ctx.fillText(c.description, canvas.width - 15, comboY + 14);
-      ctx.globalAlpha = 1;
-      comboY -= 32;
-    }
-  }
-
-  // Minimap (top-right corner)
-  const mmW = 120;
-  const mmH = 80;
-  const mmX = canvas.width - mmW - 12;
-  const mmY = 12;
-  const scaleX = mmW / canvas.width;
-  const scaleY = mmH / canvas.height;
-  const pp = player.getPlayer();
-
-  ctx.fillStyle = 'rgba(0,0,0,0.5)';
-  ctx.fillRect(mmX, mmY, mmW, mmH);
-  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(mmX, mmY, mmW, mmH);
-
-  // Player dot
-  ctx.fillStyle = '#7a9a6a';
+/** Overlay de escuridão da Caverna com o cone da lanterna. */
+function drawFlashlightOverlay(p: ReturnType<typeof player.getPlayer>): void {
+  const camX = getCamX();
+  const camY = getCamY();
+  ctx.save();
+  ctx.translate(-camX, -camY);
   ctx.beginPath();
-  ctx.arc(mmX + pp.x * scaleX, mmY + pp.y * scaleY, 2, 0, Math.PI * 2);
+  ctx.rect(camX, camY, canvas.width, canvas.height);
+  ctx.arc(p.x, p.y, 240, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(0,0,0,0.001)';
   ctx.fill();
+  ctx.restore();
 
-  // Enemy dots
-  ctx.fillStyle = '#b07050';
-  for (const e of enemies) {
-    ctx.beginPath();
-    ctx.arc(mmX + e.x * scaleX, mmY + e.y * scaleY, 1.5, 0, Math.PI * 2);
-    ctx.fill();
-  }
+  const grad = ctx.createRadialGradient(p.x - camX, p.y - camY, 30, p.x - camX, p.y - camY, 240);
+  grad.addColorStop(0, 'rgba(0,0,0,0)');
+  grad.addColorStop(1, 'rgba(0,0,0,0.82)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
 
-  // Achievement notifications (top-center)
-  let achY = 60;
-  for (let i = achievementNotifications.length - 1; i >= 0; i--) {
-    const n = achievementNotifications[i];
-    n.time -= 1 / 60;
-    if (n.time <= 0) {
-      achievementNotifications.splice(i, 1);
-      continue;
-    }
-    const alpha = Math.min(1, n.time);
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = '#a08050';
-    ctx.font = 'bold 12px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText(`ACHIEVEMENT: ${n.name}`, canvas.width / 2, achY);
-    achY += 18;
-  }
-  ctx.globalAlpha = 1;
-  ctx.textAlign = 'left';
+/** Cena congelada durante a pausa. */
+function drawFrozenWorld(): void {
+  drawWorld();
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+function buildHudData(): HudData {
+  const p = player.getPlayer();
+  const phase = getCurrentPhase();
+  const weapon = getCurrentWeapon();
+  const reloadTime = weapon.reloadTime;
+  const camX = getCamX();
+  const camY = getCamY();
+
+  const boss = enemies.find(e => ENEMY_TYPES[e.type]?.isBoss);
+
+  return {
+    phase: phase.name,
+    health: p.health,
+    maxHealth: p.maxHealth,
+    shield: p.shield,
+    score: getScore(),
+    coins: getShopCoins(),
+    wave: getCurrentWave(),
+    maxWave: phase.waves,
+    enemies: enemies.length,
+    weapon: weapon.name,
+    ammo: getCurrentAmmo(),
+    maxAmmo: weapon.magazineSize,
+    reloading: getIsReloading(),
+    reloadProgress: reloadTime > 0 ? 1 - Math.max(0, getReloadTimer()) / reloadTime : 1,
+    combo: getCombo(),
+    comboDecay: getComboDecay(),
+    skills: [
+      { key: 'SPC', name: 'Dash', cooldown: getSkillCooldown('dash'), maxCooldown: getSkillMaxCooldown('dash'), active: isSkillActive('dash') },
+      { key: 'F', name: 'Escudo', cooldown: getSkillCooldown('shield'), maxCooldown: getSkillMaxCooldown('shield'), active: isSkillActive('shield') },
+      { key: 'E', name: 'Furia', cooldown: getSkillCooldown('fury'), maxCooldown: getSkillMaxCooldown('fury'), active: isSkillActive('fury') },
+    ],
+    activePowerups,
+    powerupMeta: Object.fromEntries(Object.entries(POWERUP_TYPES).map(([k, v]) => [k, { color: v.color, symbol: v.symbol }])),
+    worldSize: { w: worldW, h: worldH },
+    minimap: { walls: wallRects, density: mapDensity },
+    player: { x: p.x, y: p.y },
+    enemyDots: enemies.map(e => ({ x: e.x, y: e.y, boss: !!ENEMY_TYPES[e.type]?.isBoss })),
+    propDots: getProps().filter(pr => pr.health > 0).map(pr => ({ x: pr.x, y: pr.y, barrel: pr.kind === 'barrel' })),
+    boss: boss && ENEMY_TYPES[boss.type]?.bossName
+      ? {
+        name: ENEMY_TYPES[boss.type]!.bossName!,
+        health: boss.health,
+        maxHealth: boss.maxHealth,
+        telegraphing: isBossTelegraphing(boss),
+      }
+      : null,
+    objective: updateObjective(0, p.x, p.y, enemies.length, reachZones),
+    warnings: getEnvironmentWarnings(),
+    combos: getActiveCombos().map(c => ({ name: c.name, description: c.description, color: c.color })),
+    hint: isTutorialActive() ? getCurrentHint() : null,
+    toasts: achievementNotifications,
+  };
 }
 
 // ─── Game Loop ─────────────────────────────────────────────────
-/**
- * Loop principal do jogo.
- * Calcula delta time, atualiza lógica e renderiza.
- * @param time - timestamp do frame em milissegundos
- */
+
 function loop(time: number) {
   const rawDt = Math.min((time - lastTime) / 1000, 0.05);
   lastTime = time;
 
-  // Hit stop freezes the game
   if (!updateHitStop(rawDt)) {
-    // Slow motion scales dt
     const dt = updateSlowMotion(rawDt);
     update(dt);
   }
 
+  // o screen shake é consumido dentro do draw (uma vez por frame)
   draw();
+  keysPressed.clear();
   requestAnimationFrame(loop);
 }
 
-// Load sprites and start game
-import { loadAllSprites } from './systems/sprites';
+// ─── Boot ──────────────────────────────────────────────────────
 
 async function init() {
   await loadAllSprites();
-  requestAnimationFrame(time => { lastTime = time; loop(time); });
+  const phase = PHASES[0];
+  loadPhaseEnvironment();
+  initCamera(worldW, worldH, canvas.width, canvas.height, player.getPlayer().x, player.getPlayer().y);
+  snapCamera(player.getPlayer().x, player.getPlayer().y);
+  initObjective(phase.objective, phase.objectiveTarget);
+  requestAnimationFrame((time) => {
+    lastTime = time;
+    loop(time);
+  });
 }
 
 init();

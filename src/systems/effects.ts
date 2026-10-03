@@ -6,6 +6,7 @@
 // ─── Screen Shake ────────────────────────────────────────────
 let screenShakeIntensity = 0;
 let screenShakeDuration = 0;
+let screenShakeMaxDuration = 0;
 
 /**
  * Ativa screen shake.
@@ -15,25 +16,35 @@ let screenShakeDuration = 0;
 export function triggerScreenShake(intensity: number, duration: number): void {
   screenShakeIntensity = Math.max(screenShakeIntensity, intensity);
   screenShakeDuration = Math.max(screenShakeDuration, duration);
+  screenShakeMaxDuration = Math.max(screenShakeMaxDuration, duration);
 }
 
 /**
- * Atualiza o screen shake. Chamar a cada frame.
+ * Atualiza o screen shake. Chamar a cada frame e passar o resultado ao draw.
+ * O envelope é linear no tempo restante: sem isso o tremor é um degrau que
+ * some do nada (e, antes, nem era aplicado — `{x:0, y:0}` fixo no main).
  * @param dt - delta time em segundos
- * @returns deslocamento {x, y} para aplicar no canvas
+ * @returns deslocamento {x, y} para aplicar na transformação do mundo
  */
 export function updateScreenShake(dt: number): { x: number; y: number } {
-  if (screenShakeDuration > 0) {
-    screenShakeDuration -= dt;
-    const decay = screenShakeDuration > 0 ? 1 : 0;
-    const x = (Math.random() - 0.5) * screenShakeIntensity * 2 * decay;
-    const y = (Math.random() - 0.5) * screenShakeIntensity * 2 * decay;
-    if (screenShakeDuration <= 0) {
-      screenShakeIntensity = 0;
-    }
-    return { x, y };
+  if (screenShakeDuration <= 0) {
+    screenShakeIntensity = 0;
+    screenShakeMaxDuration = 0;
+    return { x: 0, y: 0 };
   }
-  return { x: 0, y: 0 };
+  screenShakeDuration -= dt;
+  if (screenShakeDuration <= 0) {
+    screenShakeDuration = 0;
+    screenShakeIntensity = 0;
+    screenShakeMaxDuration = 0;
+    return { x: 0, y: 0 };
+  }
+  const envelope = screenShakeMaxDuration > 0 ? screenShakeDuration / screenShakeMaxDuration : 1;
+  const mag = screenShakeIntensity * envelope;
+  return {
+    x: (Math.random() - 0.5) * 2 * mag,
+    y: (Math.random() - 0.5) * 2 * mag,
+  };
 }
 
 // ─── Flash Overlay ───────────────────────────────────────────
@@ -173,6 +184,7 @@ export function updateBossZoom(dt: number): number {
 export function resetEffects(): void {
   screenShakeIntensity = 0;
   screenShakeDuration = 0;
+  screenShakeMaxDuration = 0;
   flashDuration = 0;
   slowMotionScale = 1;
   slowMotionDuration = 0;

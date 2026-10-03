@@ -8,7 +8,8 @@ import { Enemy } from '../types';
 import { rand } from '../utils';
 import { spawnParticles } from './particles';
 import { createExplosion } from './explosions';
-import { triggerScreenShake, triggerDamageFlash } from './effects';
+import { triggerScreenShake } from './effects';
+import { PALETTE } from '../core/palette';
 
 /** Tipos de evento ambiente */
 export type EnvironmentEvent = 'earthquake' | 'lightning' | 'storm';
@@ -111,8 +112,8 @@ export function updateEnvironmentEvents(
   enemies: Enemy[],
   playerX: number,
   playerY: number,
-  canvasWidth: number = 1000,
-  canvasHeight: number = 700
+  worldWidth: number = 1000,
+  worldHeight: number = 700
 ): EnvironmentResult {
   const enemyDamages: EnvironmentDamage[] = [];
   let playerDamage = 0;
@@ -154,15 +155,15 @@ export function updateEnvironmentEvents(
             for (const e of enemies) {
               e.health -= EARTHQUAKE_DAMAGE;
               e.hitFlash = 0.15;
-              enemyDamages.push({ x: e.x, y: e.y - 15, damage: EARTHQUAKE_DAMAGE, color: '#e67e22' });
-              spawnParticles(e.x, e.y, '#e67e22', 2, 80);
+              enemyDamages.push({ x: e.x, y: e.y - 15, damage: EARTHQUAKE_DAMAGE, color: PALETTE.mustard });
+              spawnParticles(e.x, e.y, PALETTE.mustard, 2, 80);
             }
             playerDamage += EARTHQUAKE_DAMAGE;
           }
           // Poeira no chão durante terremoto
           if (Math.random() < dt * 8) {
-            const px = Math.random() * canvasWidth;
-            const py = Math.random() * canvasHeight;
+            const px = Math.random() * worldWidth;
+            const py = Math.random() * worldHeight;
             spawnParticles(px, py, '#8a7a60', 5, 60);
             spawnParticles(px, py, '#6a5a40', 2, 30);
           }
@@ -172,9 +173,9 @@ export function updateEnvironmentEvents(
           if (event.duration > 0.3) {
             if (enemies.length > 0) {
               const target = enemies[Math.floor(rand(0, enemies.length))];
-              createExplosion(target.x, target.y, LIGHTNING_RADIUS, LIGHTNING_DAMAGE, enemies, '#608090');
-              spawnParticles(target.x, target.y - 100, '#fff', 5, 100);
-              enemyDamages.push({ x: target.x, y: target.y - 20, damage: LIGHTNING_DAMAGE, color: '#608090' });
+              createExplosion(target.x, target.y, LIGHTNING_RADIUS, LIGHTNING_DAMAGE, enemies, PALETTE.stone);
+              spawnParticles(target.x, target.y - 100, '#ddd', 5, 100);
+              enemyDamages.push({ x: target.x, y: target.y - 20, damage: LIGHTNING_DAMAGE, color: PALETTE.stone });
               const distToPlayer = Math.hypot(target.x - playerX, target.y - playerY);
               if (distToPlayer < LIGHTNING_RADIUS * 2) {
                 playerDamage += LIGHTNING_DAMAGE;
@@ -189,14 +190,14 @@ export function updateEnvironmentEvents(
             for (const e of enemies) {
               e.health -= STORM_DAMAGE;
               e.hitFlash = 0.15;
-              enemyDamages.push({ x: e.x, y: e.y - 15, damage: STORM_DAMAGE, color: '#9b59b6' });
-              spawnParticles(e.x, e.y, '#9b59b6', 1, 60);
+              enemyDamages.push({ x: e.x, y: e.y - 15, damage: STORM_DAMAGE, color: PALETTE.stone });
+              spawnParticles(e.x, e.y, PALETTE.stone, 1, 60);
             }
           }
           // Chuva visual
           if (Math.random() < dt * 15) {
-            const rx = Math.random() * 2000;
-            spawnParticles(rx, -10, '#608090', 1, 300);
+            const rx = Math.random() * worldWidth;
+            spawnParticles(rx, -10, PALETTE.stone, 1, 300);
           }
           break;
       }

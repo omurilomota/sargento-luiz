@@ -6,6 +6,7 @@
 
 import { Weapon } from './types';
 import { WEAPONS } from './config';
+import { PALETTE } from './core/palette';
 
 /** Índice da arma atualmente equipada */
 let currentWeaponIndex = 0;
@@ -194,10 +195,10 @@ export function setWeapon(index: number) {
  * @param skillDamageMult - multiplicador de dano de habilidades (padrão: 1)
  * @returns array de objetos de projétil a serem adicionados ao sistema
  */
-export function shoot(x: number, y: number, angle: number, multiShot: boolean, skillDamageMult = 1): { x: number; y: number; vx: number; vy: number; damage: number; color: string; pierce: boolean; explosive: boolean; explosionRadius: number }[] {
+export function shoot(x: number, y: number, angle: number, multiShot: boolean, skillDamageMult = 1): { x: number; y: number; vx: number; vy: number; damage: number; color: string; isCrit: boolean; pierce: boolean; explosive: boolean; explosionRadius: number }[] {
   const weapon = WEAPONS[currentWeaponIndex];
   const count = multiShot ? weapon.bulletCount * 2 : weapon.bulletCount;
-  const newBullets = [];
+  const newBullets: ReturnType<typeof shoot> = [];
   for (let i = 0; i < count; i++) {
     const spread = count > 1 ? (i - (count - 1) / 2) * weapon.spread : 0;
     const a = angle + spread;
@@ -208,7 +209,8 @@ export function shoot(x: number, y: number, angle: number, multiShot: boolean, s
       vx: Math.cos(a) * weapon.bulletSpeed,
       vy: Math.sin(a) * weapon.bulletSpeed,
       damage: dmg,
-      color: isCrit ? '#f1c40f' : weapon.color,
+      color: isCrit ? PALETTE.crit : weapon.color,
+      isCrit,
       pierce: weapon.pierce || pierceCount > 0,
       explosive: weapon.explosive || false,
       explosionRadius: weapon.explosionRadius || 0,

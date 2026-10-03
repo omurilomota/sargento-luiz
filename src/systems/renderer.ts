@@ -1,174 +1,181 @@
 /**
  * Sistema de renderização Canvas 2D.
- * Responsável por desenhar todos os elementos visuais do jogo:
- * menu, fundo, inimigos, jogador, projéteis, partículas, moedas,
- * power-ups, HUD e efeitos visuais.
+ *
+ * Menu, cutscene, game over, entidades do mundo e a caixa de pausa.
+ * O HUD inteiro vive em `ui/hud.ts` — aqui não há mais barra de score, nem
+ * log de dano, nem minimapa, nem skills, nem indicador de combo: eram quatro
+ * layers diferentes brigando pelo mesmo canto da tela.
+ *
+ * Tudo o que é do MUNDO é desenhado em coordenadas de mundo (o `main.ts`
+ * aplica a translação da câmera uma vez por frame).
  */
 
 import { Enemy, Bullet, Particle, Coin, PowerUp } from '../types';
-import { ENEMY_TYPES, POWERUP_TYPES } from '../config';
 import { Player } from '../entities/player';
+import { ENEMY_TYPES, POWERUP_TYPES } from '../config';
 import { hasPowerUp } from '../powerups';
 import { isSkillActive } from './skills';
-import { getSprite, getEnemySpriteKey, isSpritesEnabled } from './sprites';
-import { getCurrentCutscene, getCurrentLine, isLineComplete, getTextProgress, getPortraitInfo, isWaitingForChoice, Character } from './story';
+import { getSprite, getEnemyCharacter, poseKey, drawSpriteFit, Pose, isSpritesEnabled } from './sprites';
+import { getCurrentCutscene, getCurrentLine, isLineComplete, getTextProgress, getPortraitInfo, isWaitingForChoice } from './story';
 import { getEquippedSkin } from './skins';
 import { hasSave } from './saveSystem';
-import { getLeaderboard, addLeaderboardEntry } from './leaderboard';
+import { getLeaderboard } from './leaderboard';
+import { PALETTE } from '../core/palette';
+import { GAME_MODES } from './gameModes';
 
 /** Contexto 2D do canvas */
 let ctx: CanvasRenderingContext2D;
 /** Elemento canvas principal */
 let canvas: HTMLCanvasElement;
 
-/**
- * Inicializa o renderer com o canvas e contexto fornecidos.
- * @param canvasEl - elemento canvas HTML
- * @param ctxEl - contexto 2D do canvas
- */
+/** Inicializa o renderer com o canvas e contexto fornecidos. */
 export function initRenderer(canvasEl: HTMLCanvasElement, ctxEl: CanvasRenderingContext2D): void {
   canvas = canvasEl;
   ctx = ctxEl;
 }
 
+// ─── Menu ───────────────────────────────────────────────────────
+
+export interface MenuItemLayout {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
 /**
- * Desenha o menu principal com partículas e opções de jogo.
- * @param selectedMode - modo atualmente selecionado
+ * Calcula o layout do menu. Draw e hit-test consomem a MESMA função — antes o
+ * clique usava `height/2 + i*50` e o draw usava `H*0.28 + i*modeSpacing`, então
+ * clicar num modo selecionava outro.
+ * @param w - largura do canvas
+ * @param h - altura do canvas
  */
+export function getMenuLayout(w: number, h: number): { titleY: number; items: MenuItemLayout[] } {
+  const startY = h * 0.3;
+  const spacing = Math.min(46, (h * 0.5) / GAME_MODES.length);
+  const boxW = Math.min(340, w * 0.7);
+  const boxH = Math.min(32, spacing - 6);
+  return {
+    titleY: h * 0.12,
+    items: GAME_MODES.map((_, i) => ({
+      x: w / 2 - boxW / 2,
+      y: startY + i * spacing,
+      w: boxW,
+      h: boxH,
+    })),
+  };
+}
+
+/**
+ * Retorna o índice do modo sob o clique, ou -1.
+ */
+export function menuIndexAt(x: number, y: number, w: number, h: number): number {
+  const L = getMenuLayout(w, h);
+  for (let i = 0; i < L.items.length; i++) {
+    const r = L.items[i];
+    if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) return i;
+  }
+  return -1;
+}
+
 export function drawMenu(selectedMode: string = 'campaign'): void {
   const W = canvas.width;
   const H = canvas.height;
+  const L = getMenuLayout(W, H);
 
-  ctx.fillStyle = '#111';
+  ctx.fillStyle = PALETTE.bg;
   ctx.fillRect(0, 0, W, H);
 
-  // Particles
+  // poeira de fundo — poucas partículas, cor do tema
   for (let i = 0; i < 8; i++) {
     const x = (i * 137 + Date.now() / 40) % W;
     const y = (i * 89 + Date.now() / 50) % H;
-    ctx.fillStyle = `rgba(180,160,130,${0.1 + Math.sin(Date.now() / 2000 + i) * 0.05})`;
+    ctx.fillStyle = `rgba(180,160,130,${0.08 + Math.sin(Date.now() / 2000 + i) * 0.04})`;
     ctx.beginPath();
     ctx.arc(x, y, 1, 0, Math.PI * 2);
     ctx.fill();
   }
 
-  // Layout: title at top, modes in middle, controls at bottom
-  const titleY = H * 0.12;
-  const subtitleY = titleY + 24;
-  const modesStartY = H * 0.28;
-  const modeSpacing = Math.min(40, (H * 0.55) / 6);
-  const controlsY = H * 0.88;
-  const startPromptY = H * 0.94;
-
-  // Title
-  ctx.fillStyle = '#c8b890';
-  ctx.font = 'bold 36px monospace';
   ctx.textAlign = 'center';
-  ctx.fillText('BUBBLE SHOOTER', W / 2, titleY);
+  ctx.fillStyle = PALETTE.title;
+  ctx.font = 'bold 34px monospace';
+  ctx.fillText('BUBBLE SHOOTER', W / 2, L.titleY);
 
-  // Subtitle
-  ctx.fillStyle = '#555';
+  ctx.fillStyle = PALETTE.textOff;
   ctx.font = '12px monospace';
-  ctx.fillText('POS-APOCALIPTICO', W / 2, subtitleY);
+  ctx.fillText('POS-APOCALIPTICO', W / 2, L.titleY + 22);
 
-  // Divider
   ctx.strokeStyle = 'rgba(255,255,255,0.06)';
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(W * 0.3, subtitleY + 12);
-  ctx.lineTo(W * 0.7, subtitleY + 12);
+  ctx.moveTo(W * 0.3, L.titleY + 34);
+  ctx.lineTo(W * 0.7, L.titleY + 34);
   ctx.stroke();
 
-  // Mode label
-  ctx.fillStyle = '#666';
+  ctx.fillStyle = PALETTE.textDim;
   ctx.font = '11px monospace';
-  ctx.fillText('SELECIONE O MODO (tecle 1-6)', W / 2, modesStartY - 12);
+  ctx.fillText('SELECIONE O MODO (1-4)', W / 2, L.items[0].y - 14);
 
-  const modes = [
-    { key: '1', name: 'CAMPANHA', desc: 'História com cutscenes', color: '#7a9a6a' },
-    { key: '2', name: 'SOBREVIVÊNCIA', desc: 'Ondas infinitas', color: '#b07050' },
-    { key: '3', name: 'MISSÕES', desc: 'Objetivos específicos', color: '#a08050' },
-    { key: '4', name: 'BOSS RUSH', desc: 'Apenas bosses', color: '#8070a0' },
-    { key: '5', name: 'COMPETITIVO', desc: 'Vs bots IA', color: '#608090' },
-    { key: '6', name: 'LOCAL 2P', desc: 'Mesmo teclado', color: '#b07050' },
-    { key: '7', name: 'HARDCORE', desc: '1 vida, sem loja', color: '#8b4040' },
-  ];
+  GAME_MODES.forEach((mode, i) => {
+    const r = L.items[i];
+    const isSelected = mode.mode === selectedMode;
 
-  const modeKeyMap: Record<string, string> = {
-    '1': 'campaign', '2': 'survival', '3': 'missions',
-    '4': 'bossrush', '5': 'competitive', '6': 'local', '7': 'hardcore',
-  };
-
-  const boxW = Math.min(340, W * 0.7);
-  const boxH = Math.min(32, modeSpacing - 4);
-
-  modes.forEach((mode, i) => {
-    const y = modesStartY + i * modeSpacing;
-    const isSelected = modeKeyMap[mode.key] === selectedMode;
-
-    // Background
     ctx.fillStyle = isSelected ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.02)';
     ctx.beginPath();
-    ctx.roundRect(W / 2 - boxW / 2, y, boxW, boxH, 3);
+    ctx.roundRect(r.x, r.y, r.w, r.h, 3);
     ctx.fill();
 
-    // Border
     ctx.strokeStyle = isSelected ? mode.color : 'rgba(255,255,255,0.06)';
     ctx.lineWidth = isSelected ? 1.5 : 0.5;
     ctx.stroke();
 
-    // Arrow
+    const midY = r.y + r.h / 2 + 4;
+    ctx.textAlign = 'left';
     if (isSelected) {
       ctx.fillStyle = mode.color;
       ctx.font = '11px monospace';
-      ctx.textAlign = 'left';
-      ctx.fillText('>', W / 2 - boxW / 2 + 8, y + boxH / 2 + 4);
+      ctx.fillText('>', r.x + 8, midY);
     }
-
-    // Key
-    ctx.fillStyle = isSelected ? '#fff' : mode.color;
+    ctx.fillStyle = isSelected ? PALETTE.text : mode.color;
     ctx.font = 'bold 13px monospace';
-    ctx.textAlign = 'left';
-    ctx.fillText(mode.key, W / 2 - boxW / 2 + 22, y + boxH / 2 + 4);
-
-    // Name
-    ctx.fillStyle = isSelected ? '#fff' : '#aaa';
+    ctx.fillText(mode.key, r.x + 22, midY);
+    ctx.fillStyle = isSelected ? PALETTE.text : '#aaa';
     ctx.font = '12px monospace';
-    ctx.fillText(mode.name, W / 2 - boxW / 2 + 42, y + boxH / 2 + 4);
-
-    // Desc
-    ctx.fillStyle = isSelected ? '#777' : '#444';
+    ctx.fillText(mode.name, r.x + 42, midY);
+    ctx.fillStyle = isSelected ? PALETTE.textDim : PALETTE.textOff;
     ctx.font = '10px monospace';
     ctx.textAlign = 'right';
-    ctx.fillText(mode.desc, W / 2 + boxW / 2 - 10, y + boxH / 2 + 4);
+    ctx.fillText(mode.desc, r.x + r.w - 10, midY);
     ctx.textAlign = 'center';
   });
 
-  // Controls
-  ctx.fillStyle = '#444';
+  ctx.fillStyle = PALETTE.textOff;
   ctx.font = '10px monospace';
-  ctx.fillText('WASD: Mover | Mouse: Mirar | Click: Atirar', W / 2, controlsY);
-  ctx.fillText('Espaco: Dash | F: Escudo | E: Furia | R: Recarregar', W / 2, controlsY + 14);
+  ctx.fillText('WASD: Mover | Mouse: Mirar | Click: Atirar', W / 2, H * 0.88);
+  ctx.fillText('Espaco: Dash | F: Escudo | E: Furia | R: Recarregar', W / 2, H * 0.88 + 14);
+  ctx.fillText('M: Musica | S: Efeitos', W / 2, H * 0.88 + 28);
 
-  // Continue option if save exists
   if (hasSave()) {
-    ctx.fillStyle = '#a08050';
+    ctx.fillStyle = PALETTE.mustard;
     ctx.font = '12px monospace';
-    ctx.fillText('C: Continuar jogo salvo', W / 2, startPromptY - 18);
+    ctx.fillText('C: Continuar jogo salvo', W / 2, H * 0.94 - 18);
   }
 
-  // Start prompt
-  ctx.fillStyle = '#777';
+  ctx.fillStyle = PALETTE.textDim;
   ctx.font = '13px monospace';
   const pulse = 0.3 + Math.sin(Date.now() / 600) * 0.3;
   ctx.globalAlpha = pulse;
-  ctx.fillText('ENTER para jogar', W / 2, startPromptY);
+  ctx.fillText('ENTER para jogar', W / 2, H * 0.94);
   ctx.globalAlpha = 1;
+
+  // crédito das faixas — obrigatório por licença
+  ctx.fillStyle = '#333';
+  ctx.font = '9px monospace';
+  ctx.fillText('Música: faixas originais do projeto (CC0) — assets/music/CREDITS.md', W / 2, H - 12);
 }
 
-/**
- * Desenha uma cutscene da história.
- */
+// ─── Cutscene ───────────────────────────────────────────────────
+
 export function drawCutscene(): void {
   const cutscene = getCurrentCutscene();
   const line = getCurrentLine();
@@ -176,16 +183,88 @@ export function drawCutscene(): void {
   const progress = getTextProgress();
   const complete = isLineComplete();
 
-  // Fundo escuro
-  ctx.fillStyle = '#111';
+  ctx.fillStyle = PALETTE.bg;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Scene background elements based on cutscene title
+  drawCutsceneScene(cutscene.title);
+  ctx.globalAlpha = 1;
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(canvas.width * 0.15, canvas.height * 0.18);
+  ctx.lineTo(canvas.width * 0.85, canvas.height * 0.18);
+  ctx.stroke();
+
+  ctx.fillStyle = cutscene.color;
+  ctx.font = 'bold 28px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText(cutscene.title, canvas.width / 2, canvas.height * 0.15);
+
+  const portraitX = canvas.width * 0.2;
+  const portraitY = canvas.height * 0.45 + Math.sin(Date.now() / 800) * 4;
+  const portraitR = 35;
+
+  ctx.fillStyle = 'rgba(255,255,255,0.04)';
+  ctx.beginPath();
+  ctx.arc(portraitX, portraitY, portraitR, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = portrait.color;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.fillStyle = line.speaker !== 'narrador' ? portrait.color : PALETTE.textOff;
+  ctx.font = line.speaker !== 'narrador' ? 'bold 24px monospace' : '20px monospace';
+  ctx.textAlign = 'center';
+  const initial = line.speaker === 'rios' ? 'R' : line.speaker === 'comandante' ? 'V' : 'F';
+  ctx.fillText(line.speaker !== 'narrador' ? initial : '*', portraitX, portraitY + 8);
+
+  ctx.fillStyle = portrait.color;
+  ctx.font = 'bold 12px monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText(portrait.name, portraitX + portraitR + 16, portraitY - 10);
+
+  const displayedText = line.text.substring(0, Math.floor(progress));
+  ctx.fillStyle = '#bbb';
+  ctx.font = '16px monospace';
+  wrapText(ctx, displayedText, portraitX + portraitR + 16, portraitY + 10, canvas.width * 0.6, 22);
+
+  if (isWaitingForChoice() && line.choices) {
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.beginPath();
+    ctx.roundRect(canvas.width / 2 - 200, canvas.height / 2 + 30, 400, line.choices.length * 40 + 20, 5);
+    ctx.fill();
+    line.choices.forEach((choice, i) => {
+      ctx.fillStyle = PALETTE.mustard;
+      ctx.font = '14px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(`${i + 1}. ${choice.text}`, canvas.width / 2, canvas.height / 2 + 50 + i * 40);
+    });
+    ctx.fillStyle = PALETTE.textDim;
+    ctx.font = '11px monospace';
+    ctx.fillText('Pressione 1, 2 ou 3', canvas.width / 2, canvas.height / 2 + 50 + line.choices.length * 40 + 10);
+  }
+
+  if (complete && !isWaitingForChoice()) {
+    ctx.fillStyle = PALETTE.textOff;
+    ctx.font = '12px monospace';
+    ctx.textAlign = 'right';
+    ctx.globalAlpha = 0.3 + Math.sin(Date.now() / 500) * 0.3;
+    ctx.fillText('BACKSPACE ou Ç >>', canvas.width - 30, canvas.height - 30);
+    ctx.globalAlpha = 1;
+  }
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.beginPath();
+  ctx.moveTo(canvas.width * 0.15, canvas.height * 0.82);
+  ctx.lineTo(canvas.width * 0.85, canvas.height * 0.82);
+  ctx.stroke();
+}
+
+function drawCutsceneScene(title: string): void {
   const t = Date.now() / 1000;
   ctx.globalAlpha = 0.15;
-
-  if (cutscene.title === 'FLORESTA') {
-    // Trees
+  if (title === 'FLORESTA') {
     for (let i = 0; i < 8; i++) {
       const tx = (i * 130 + 40) % canvas.width;
       const ty = canvas.height * 0.85 + Math.sin(t + i) * 3;
@@ -195,8 +274,7 @@ export function drawCutscene(): void {
       ctx.arc(tx, ty - 70, 25, 0, Math.PI * 2);
       ctx.fill();
     }
-  } else if (cutscene.title === 'CAVERNA') {
-    // Stalactites
+  } else if (title === 'CAVERNA') {
     for (let i = 0; i < 10; i++) {
       const sx = (i * 100 + 20) % canvas.width;
       ctx.fillStyle = '#3a3a5a';
@@ -206,192 +284,69 @@ export function drawCutscene(): void {
       ctx.lineTo(sx + 8, 0);
       ctx.fill();
     }
-  } else if (cutscene.title === 'FÁBRICA') {
-    // Gears
-    for (let i = 0; i < 3; i++) {
-      const gx = canvas.width * (0.2 + i * 0.3);
-      const gy = canvas.height * 0.8;
-      ctx.strokeStyle = '#5a4a3a';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.arc(gx, gy, 30, t + i, t + i + Math.PI * 1.5);
-      ctx.stroke();
-    }
-  } else if (cutscene.title === 'VULCÃO') {
-    // Lava glow
-    const gradient = ctx.createRadialGradient(canvas.width / 2, canvas.height, 0, canvas.width / 2, canvas.height, canvas.height * 0.6);
-    gradient.addColorStop(0, '#8b2500');
-    gradient.addColorStop(1, 'transparent');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-  } else if (cutscene.title === 'ESPAÇO') {
-    // Stars
+  } else if (title === 'ESPAÇO' || title === 'ESPAÇO'.toUpperCase()) {
     for (let i = 0; i < 20; i++) {
       const sx = (i * 97 + 13) % canvas.width;
       const sy = (i * 73 + 7) % canvas.height;
-      ctx.fillStyle = '#fff';
+      ctx.fillStyle = '#ccc';
       ctx.beginPath();
       ctx.arc(sx, sy, 1 + Math.sin(t * 2 + i) * 0.5, 0, Math.PI * 2);
       ctx.fill();
     }
+  } else if (title === 'VULCÃO') {
+    const g = ctx.createRadialGradient(canvas.width / 2, canvas.height, 0, canvas.width / 2, canvas.height, canvas.height * 0.6);
+    g.addColorStop(0, '#6b2010');
+    g.addColorStop(1, 'transparent');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
-  ctx.globalAlpha = 1;
-
-  // Linha superior sutil
-  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(canvas.width * 0.15, canvas.height * 0.18);
-  ctx.lineTo(canvas.width * 0.85, canvas.height * 0.18);
-  ctx.stroke();
-
-  // Título da cena
-  ctx.fillStyle = cutscene.color;
-  ctx.font = 'bold 28px monospace';
-  ctx.textAlign = 'center';
-  ctx.fillText(cutscene.title, canvas.width / 2, canvas.height * 0.15);
-
-  // Retrato do personagem (círculo com flutuação sutil)
-  const portraitX = canvas.width * 0.2;
-  const portraitFloat = Math.sin(Date.now() / 800) * 4;
-  const portraitY = canvas.height * 0.45 + portraitFloat;
-  const portraitR = 35;
-
-  ctx.fillStyle = 'rgba(255,255,255,0.04)';
-  ctx.beginPath();
-  ctx.arc(portraitX, portraitY, portraitR, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.strokeStyle = portrait.color;
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  // Inicial do personagem
-  if (line.speaker !== 'narrador') {
-    ctx.fillStyle = portrait.color;
-    ctx.font = 'bold 24px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText(line.speaker === 'rios' ? 'R' : line.speaker === 'comandante' ? 'V' : 'F', portraitX, portraitY + 8);
-  } else {
-    ctx.fillStyle = '#555';
-    ctx.font = '20px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('*', portraitX, portraitY + 7);
-  }
-
-  // Nome do personagem
-  ctx.fillStyle = portrait.color;
-  ctx.font = 'bold 12px monospace';
-  ctx.textAlign = 'left';
-  ctx.fillText(portrait.name, portraitX + portraitR + 16, portraitY - 10);
-
-  // Texto com efeito de máquina de escrever
-  const displayedText = line.text.substring(0, Math.floor(progress));
-  ctx.fillStyle = '#bbb';
-  ctx.font = '16px monospace';
-  ctx.textAlign = 'left';
-
-  const textX = portraitX + portraitR + 16;
-  const textY = portraitY + 10;
-  const maxWidth = canvas.width * 0.6;
-
-  wrapText(ctx, displayedText, textX, textY, maxWidth, 22);
-
-  // Choice display
-  if (isWaitingForChoice() && line.choices) {
-    ctx.fillStyle = 'rgba(0,0,0,0.7)';
-    ctx.beginPath();
-    ctx.roundRect(canvas.width / 2 - 200, canvas.height / 2 + 30, 400, line.choices.length * 40 + 20, 5);
-    ctx.fill();
-
-    line.choices.forEach((choice, i) => {
-      const cy = canvas.height / 2 + 50 + i * 40;
-      ctx.fillStyle = '#a08050';
-      ctx.font = '14px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText(`${i + 1}. ${choice.text}`, canvas.width / 2, cy);
-    });
-
-    ctx.fillStyle = '#666';
-    ctx.font = '11px monospace';
-    ctx.fillText('Pressione 1, 2 ou 3', canvas.width / 2, canvas.height / 2 + 50 + line.choices.length * 40 + 10);
-  }
-
-  // Indicador de continuação
-  if (complete && !isWaitingForChoice()) {
-    ctx.fillStyle = '#555';
-    ctx.font = '12px monospace';
-    ctx.textAlign = 'right';
-    const pulse = 0.3 + Math.sin(Date.now() / 500) * 0.3;
-    ctx.globalAlpha = pulse;
-    ctx.fillText('BACKSPACE ou Ç >>', canvas.width - 30, canvas.height - 30);
-    ctx.globalAlpha = 1;
-  }
-
-  // Linha inferior
-  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(canvas.width * 0.15, canvas.height * 0.82);
-  ctx.lineTo(canvas.width * 0.85, canvas.height * 0.82);
-  ctx.stroke();
 }
 
-function wrapText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, lineHeight: number): void {
-  const words = text.split(' ');
+function wrapText(context: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, lineHeight: number): void {
   let line = '';
   let currentY = y;
-
-  for (const word of words) {
-    const testLine = line + word + ' ';
-    const metrics = ctx.measureText(testLine);
-    if (metrics.width > maxWidth && line !== '') {
-      ctx.fillText(line.trim(), x, currentY);
-      line = word + ' ';
+  for (const word of text.split(' ')) {
+    const testLine = `${line}${word} `;
+    if (context.measureText(testLine).width > maxWidth && line !== '') {
+      context.fillText(line.trim(), x, currentY);
+      line = `${word} `;
       currentY += lineHeight;
     } else {
       line = testLine;
     }
   }
-  ctx.fillText(line.trim(), x, currentY);
+  context.fillText(line.trim(), x, currentY);
 }
 
-/**
- * Desenha a tela de game over com pontuação final e opção de reiniciar.
- * @param score - pontuação final do jogador
- * @param killStreak - total de inimigos derrotados
- */
+// ─── Game Over ──────────────────────────────────────────────────
+
 export function drawGameOver(score: number, killStreak: number): void {
   const W = canvas.width;
   const H = canvas.height;
 
-  ctx.fillStyle = '#111';
+  ctx.fillStyle = PALETTE.bg;
   ctx.fillRect(0, 0, W, H);
 
-  // Title
-  ctx.fillStyle = '#b07050';
+  ctx.fillStyle = PALETTE.terracotta;
   ctx.font = 'bold 36px monospace';
   ctx.textAlign = 'center';
   ctx.fillText('GAME OVER', W / 2, H * 0.12);
 
-  // Stats
-  ctx.fillStyle = '#ccc';
+  ctx.fillStyle = PALETTE.text;
   ctx.font = '18px monospace';
   ctx.fillText(`Pontos: ${score}`, W / 2, H * 0.22);
-  ctx.fillText(`Kills: ${killStreak}`, W / 2, H * 0.28);
+  ctx.fillText(`Abates: ${killStreak}`, W / 2, H * 0.28);
 
-  // Leaderboard
   const lb = getLeaderboard();
   if (lb.length > 0) {
-    ctx.fillStyle = '#a08050';
+    ctx.fillStyle = PALETTE.mustard;
     ctx.font = 'bold 14px monospace';
     ctx.fillText('RECORDES', W / 2, H * 0.38);
-
     ctx.font = '12px monospace';
     lb.slice(0, 5).forEach((entry, i) => {
       const y = H * 0.44 + i * 22;
       const isNew = entry.score === score;
-      ctx.fillStyle = isNew ? '#a08050' : '#666';
+      ctx.fillStyle = isNew ? PALETTE.mustard : PALETTE.textDim;
       ctx.textAlign = 'left';
       ctx.fillText(`${i + 1}. ${entry.name}`, W / 2 - 120, y);
       ctx.textAlign = 'right';
@@ -400,204 +355,89 @@ export function drawGameOver(score: number, killStreak: number): void {
     ctx.textAlign = 'center';
   }
 
-  // Controls
-  const pulse = 0.3 + Math.sin(Date.now() / 600) * 0.3;
-  ctx.globalAlpha = pulse;
-  ctx.fillStyle = '#777';
+  ctx.globalAlpha = 0.3 + Math.sin(Date.now() / 600) * 0.3;
+  ctx.fillStyle = PALETTE.textDim;
   ctx.font = '13px monospace';
-  ctx.fillText('ENTER para reiniciar', W / 2, H * 0.85);
+  ctx.fillText('ENTER para voltar ao menu', W / 2, H * 0.85);
   ctx.globalAlpha = 1;
 }
 
+// ─── Mundo ──────────────────────────────────────────────────────
+
 /**
- * Desenha o fundo do campo de batalha com grade e efeito de screen shake.
- * @param bg - cor de fundo principal
- * @param gridColor - cor da grade
- * @param screenShake - intensidade do tremor (0 = sem shake)
+ * Desenha o terreno tintado do bioma atual.
+ * O deslocamento da câmera é feito pela translação do `main.ts`.
  */
-export function drawGameBackground(bg: string, gridColor: string, shake: { x: number; y: number }, phaseName?: string): void {
-  ctx.save();
-  ctx.translate(shake.x, shake.y);
-  ctx.fillStyle = bg;
-  ctx.fillRect(-10, -10, canvas.width + 20, canvas.height + 20);
-
-  // Procedural terrain tiles based on phase
-  const t = Date.now() / 1000;
-  ctx.globalAlpha = 0.12;
-
-  if (phaseName === 'Floresta') {
-    // Grass tufts
-    for (let i = 0; i < 30; i++) {
-      const gx = (i * 137 + 42) % canvas.width;
-      const gy = (i * 91 + 17) % canvas.height;
-      ctx.fillStyle = '#2a5a2a';
-      ctx.beginPath();
-      ctx.arc(gx, gy + Math.sin(t + i) * 2, 4, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  } else if (phaseName === 'Caverna') {
-    // Crystal formations
-    for (let i = 0; i < 20; i++) {
-      const cx = (i * 173 + 31) % canvas.width;
-      const cy = (i * 113 + 59) % canvas.height;
-      ctx.fillStyle = '#4a6a9a';
-      ctx.beginPath();
-      ctx.moveTo(cx, cy - 8);
-      ctx.lineTo(cx + 5, cy + 4);
-      ctx.lineTo(cx - 5, cy + 4);
-      ctx.fill();
-    }
-  } else if (phaseName === 'Fábrica') {
-    // Gear patterns
-    for (let i = 0; i < 12; i++) {
-      const gx = (i * 199 + 67) % canvas.width;
-      const gy = (i * 149 + 33) % canvas.height;
-      ctx.strokeStyle = '#5a4a3a';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.arc(gx, gy, 12, t * 0.5 + i, t * 0.5 + i + 4);
-      ctx.stroke();
-    }
-  } else if (phaseName === 'Pântano') {
-    // Water ripples
-    for (let i = 0; i < 15; i++) {
-      const wx = (i * 167 + 43) % canvas.width;
-      const wy = (i * 127 + 71) % canvas.height;
-      ctx.strokeStyle = '#3a6a6a';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.ellipse(wx, wy, 10 + Math.sin(t + i) * 3, 5, 0, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-  } else if (phaseName === 'Castelo') {
-    // Stone brick pattern
-    for (let i = 0; i < 25; i++) {
-      const sx = (i * 131 + 23) % canvas.width;
-      const sy = (i * 107 + 47) % canvas.height;
-      ctx.fillStyle = '#5a5a3a';
-      ctx.fillRect(sx, sy, 14, 8);
-    }
-  } else if (phaseName === 'Vulcão') {
-    // Lava cracks
-    for (let i = 0; i < 18; i++) {
-      const lx = (i * 157 + 53) % canvas.width;
-      const ly = (i * 139 + 29) % canvas.height;
-      ctx.strokeStyle = '#8b2500';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(lx, ly);
-      ctx.lineTo(lx + 15, ly + 8);
-      ctx.lineTo(lx + 10, ly + 20);
-      ctx.stroke();
-    }
-  } else if (phaseName === 'Espaço') {
-    // Stars
-    for (let i = 0; i < 40; i++) {
-      const sx = (i * 191 + 11) % canvas.width;
-      const sy = (i * 157 + 7) % canvas.height;
-      ctx.fillStyle = '#fff';
-      ctx.globalAlpha = 0.08 + Math.sin(t * 2 + i) * 0.04;
-      ctx.beginPath();
-      ctx.arc(sx, sy, 1, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
-
-  ctx.globalAlpha = 1;
-
-  const gridSize = 50;
-  ctx.strokeStyle = gridColor;
-  ctx.lineWidth = 1;
-  for (let x = 0; x < canvas.width; x += gridSize) {
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
-  }
-  for (let y = 0; y < canvas.height; y += gridSize) {
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
-  }
-  ctx.restore();
+export function drawGameBackground(_bg: string, _grid: string, _shake: { x: number; y: number }, _phaseName?: string): void {
+  // o terreno é desenhado por `drawTerrain` a partir do canvas offscreen
 }
 
 /**
- * Desenha a transição visual entre ondas com sobreposição semi-transparente.
- * @param phaseTransition - tempo restante da transição (0 = sem transição)
- * @param currentWave - número da onda atual para exibir
- * @param phaseName - nome da fase atual (opcional)
+ * Desenha a transição visual entre ondas.
  */
 export function drawPhaseTransition(phaseTransition: number, currentWave: number, phaseName: string | undefined): void {
-  if (phaseTransition > 0) {
-    const alpha = Math.min(1, phaseTransition / 1.5);
-    ctx.fillStyle = `rgba(0,0,0,${alpha * 0.5})`;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = `rgba(255,255,255,${alpha})`;
-    ctx.font = 'bold 40px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText(`Onda ${currentWave + 1}`, canvas.width / 2, canvas.height / 2);
-    if (phaseName) {
-      ctx.font = '24px monospace';
-      ctx.fillText(phaseName, canvas.width / 2, canvas.height / 2 + 40);
-    }
+  if (phaseTransition <= 0) return;
+  const alpha = Math.min(1, phaseTransition / 1.5);
+  ctx.fillStyle = `rgba(0,0,0,${alpha * 0.5})`;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+  ctx.font = 'bold 40px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText(`Onda ${currentWave + 1}`, canvas.width / 2, canvas.height / 2);
+  if (phaseName) {
+    ctx.font = '24px monospace';
+    ctx.fillText(phaseName, canvas.width / 2, canvas.height / 2 + 40);
   }
 }
 
-/**
- * Desenha todas as moedas no campo de batalha com efeito de pulso.
- * @param coins - array de moedas ativas
- */
+/** Moedas: sem `shadowBlur` por moeda (eram 10 por moeda por frame). */
 export function drawCoins(coins: Coin[]): void {
   for (const c of coins) {
-    const pulse = 1 + Math.sin(Date.now() / 300 + c.x) * 0.15;
+    const pulse = 1 + Math.sin(Date.now() / 300 + c.x) * 0.12;
     const alpha = Math.max(0, Math.min(1, c.life / 3));
     ctx.globalAlpha = alpha;
-    ctx.fillStyle = '#f1c40f';
-    ctx.shadowColor = '#f1c40f';
-    ctx.shadowBlur = 10;
+    ctx.fillStyle = PALETTE.mustard;
     ctx.beginPath();
     ctx.arc(c.x, c.y, 7 * pulse, 0, Math.PI * 2);
     ctx.fill();
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = '#d4ac0d';
+    ctx.fillStyle = '#7a6244';
     ctx.beginPath();
-    ctx.arc(c.x - 1, c.y - 1, 4 * pulse, 0, Math.PI * 2);
+    ctx.arc(c.x, c.y, 4.5 * pulse, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = '#d8c8a0';
     ctx.font = 'bold 8px monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('$', c.x, c.y + 1);
+    ctx.textBaseline = 'alphabetic';
   }
   ctx.globalAlpha = 1;
+  ctx.textAlign = 'left';
 }
 
-/**
- * Desenha todos os power-ups no campo de batalha com efeito de flutuação.
- * @param powerups - array de power-ups ativos
- */
 export function drawPowerUps(powerups: PowerUp[]): void {
   for (const p of powerups) {
     const def = POWERUP_TYPES[p.type];
     const bob = Math.sin(Date.now() / 200 + p.x) * 3;
-    const alpha = Math.min(1, p.life / 2);
-    ctx.globalAlpha = alpha;
+    ctx.globalAlpha = Math.min(1, p.life / 2);
     ctx.fillStyle = def.color;
-    ctx.shadowColor = def.color;
-    ctx.shadowBlur = 12;
     ctx.beginPath();
     ctx.arc(p.x, p.y + bob, 12, 0, Math.PI * 2);
     ctx.fill();
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 12px monospace';
+    ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = '#111';
+    ctx.font = 'bold 11px monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(def.symbol, p.x, p.y + bob);
+    ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = 'left';
   }
   ctx.globalAlpha = 1;
 }
 
-/**
- * Desenha todas as partículas com transparência baseada no tempo de vida.
- * @param particles - array de partículas ativas
- */
 export function drawParticles(particles: Particle[]): void {
   for (const p of particles) {
     const alpha = Math.max(0, p.life / p.maxLife);
@@ -610,492 +450,433 @@ export function drawParticles(particles: Particle[]): void {
   ctx.globalAlpha = 1;
 }
 
-/**
- * Desenha todos os projéteis com efeito de rastro gradiente.
- * @param bullets - array de projéteis ativos
- */
 export function drawBullets(bullets: Bullet[]): void {
   for (const b of bullets) {
-    ctx.fillStyle = b.color;
-    ctx.shadowColor = b.color;
-    ctx.shadowBlur = b.isEnemy ? 14 : 10;
-    const trailLen = b.isEnemy ? 12 : 12;
     const speed = Math.hypot(b.vx, b.vy) || 1;
-    const tx = b.x - (b.vx / speed) * trailLen;
-    const ty = b.y - (b.vy / speed) * trailLen;
+    const tx = b.x - (b.vx / speed) * 14;
+    const ty = b.y - (b.vy / speed) * 14;
     const grad = ctx.createLinearGradient(tx, ty, b.x, b.y);
     grad.addColorStop(0, 'transparent');
     grad.addColorStop(1, b.color);
     ctx.strokeStyle = grad;
-    ctx.lineWidth = b.isEnemy ? 5 : 4;
+    ctx.lineWidth = b.isEnemy ? 4 : 3;
     ctx.beginPath();
     ctx.moveTo(tx, ty);
     ctx.lineTo(b.x, b.y);
     ctx.stroke();
+    ctx.fillStyle = b.color;
     ctx.beginPath();
-    ctx.arc(b.x, b.y, b.isEnemy ? 5 : 4, 0, Math.PI * 2);
+    ctx.arc(b.x, b.y, b.isEnemy ? 4.5 : 3.5, 0, Math.PI * 2);
     ctx.fill();
-    ctx.shadowBlur = 0;
   }
 }
 
 /**
- * Desenha todos os inimigos com visuais diferenciados por tipo:
- * formas hexagonais para armadura, estrelas para chefes, círculos para normais.
- * Inclui barra de vida e olhos que seguem o jogador.
- * @param enemies - array de inimigos ativos
- * @param playerX - posição horizontal do jogador (para direcionar olhos)
- * @param playerY - posição vertical do jogador (para direcionar olhos)
+ * Escolhe a pose do sprite: tiro > dano > andar/parado > idle.
+ * @param e - inimigo
+ * @param moving - se o inimigo se moveu neste frame
  */
-export function drawEnemies(enemies: Enemy[], playerX: number, playerY: number): void {
+function enemyPose(e: Enemy, moving: boolean): Pose {
+  if (e.hitFlash > 0) return 'reload';
+  if (e.canShoot && e.shootTimer > e.shootRate - 0.2) return 'machine';
+  return moving ? 'stand' : 'hold';
+}
+
+/**
+ * Desenha os inimigos. A pose vem do pacote Kenney e o pivot é o corpo, então
+ * o personagem gira de verdade na direção da mira.
+ */
+export function drawEnemies(
+  enemies: Enemy[],
+  playerX: number,
+  playerY: number,
+  facing: (e: Enemy) => number
+): void {
+  const spritesOn = isSpritesEnabled();
+
   for (const e of enemies) {
-    // Enemy shadow
-    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    if (e.radius <= 0) continue;
+
+    ctx.fillStyle = 'rgba(0,0,0,0.22)';
     ctx.beginPath();
-    ctx.ellipse(e.x, e.y + e.radius + 2, e.radius * 0.7, e.radius * 0.25, 0, 0, Math.PI * 2);
+    ctx.ellipse(e.x, e.y + e.radius * 0.6, e.radius * 0.72, e.radius * 0.26, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.save();
-    ctx.translate(e.x, e.y);
+    const def = ENEMY_TYPES[e.type];
+    const char = getEnemyCharacter(e.type);
+    const pose = enemyPose(e, true);
+    const img = spritesOn ? getSprite(poseKey(char, pose)) : null;
 
-    // Hit flash effect
-    if (e.hitFlash > 0) {
-      ctx.shadowColor = '#fff';
-      ctx.shadowBlur = 20;
-    }
-
-    // Try to use sprite if available
-    const spriteKey = getEnemySpriteKey(e.type);
-    const sprite = spriteKey ? getSprite(spriteKey) : null;
-
-    if (sprite && isSpritesEnabled()) {
+    if (img) {
+      drawSpriteFit(ctx, img, e.x, e.y, e.radius * 2.4, facing(e));
       if (e.hitFlash > 0) {
-        ctx.globalAlpha = 0.5 + e.hitFlash * 3;
-        ctx.drawImage(sprite, -e.radius, -e.radius, e.radius * 2, e.radius * 2);
-        ctx.globalCompositeOperation = 'source-atop';
-        ctx.fillStyle = 'rgba(255,255,255,0.6)';
-        ctx.fillRect(-e.radius, -e.radius, e.radius * 2, e.radius * 2);
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.globalAlpha = 1;
-      } else {
-        ctx.drawImage(sprite, -e.radius, -e.radius, e.radius * 2, e.radius * 2);
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = Math.min(0.55, e.hitFlash * 3);
+        ctx.fillStyle = '#ddd';
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, e.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
       }
     } else {
-      // Fallback to canvas drawing
-      const def = ENEMY_TYPES[e.type];
-      ctx.fillStyle = e.hitFlash > 0 ? '#fff' : e.color;
-      ctx.shadowColor = e.hitFlash > 0 ? '#fff' : e.color;
-      
-      // Different shapes based on enemy type
-      if (def?.armor) {
-        ctx.shadowBlur = 8;
-        ctx.beginPath();
-        for (let i = 0; i < 6; i++) {
-          const a = e.angle + (i * Math.PI * 2) / 6;
-          const r = e.radius * (i % 2 === 0 ? 1 : 0.8);
-          if (i === 0) ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
-          else ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
-        }
-        ctx.closePath();
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        ctx.shadowBlur = 0;
-      } else if (def?.isBoss) {
-        ctx.shadowBlur = 25;
-        ctx.beginPath();
-        for (let i = 0; i < 8; i++) {
-          const a = e.angle + (i * Math.PI * 2) / 8;
-          const r = e.radius * (i % 2 === 0 ? 1 : 0.6);
-          if (i === 0) ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
-          else ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
-        }
-        ctx.closePath();
-        ctx.fill();
-        const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, e.radius);
-        gradient.addColorStop(0, 'rgba(255,255,255,0.3)');
-        gradient.addColorStop(1, 'transparent');
-        ctx.fillStyle = gradient;
-        ctx.fill();
-        ctx.shadowBlur = 0;
-      } else if (e.type === 'slime' || e.type === 'lavaSlime') {
-        ctx.shadowBlur = 10;
-        ctx.beginPath();
-        ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = 'rgba(255,255,255,0.2)';
-        ctx.beginPath();
-        ctx.arc(-e.radius * 0.3, -e.radius * 0.3, e.radius * 0.3, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.shadowBlur = 0;
-      } else if (e.type === 'ufo' || e.type === 'drone') {
-        ctx.shadowBlur = 12;
-        ctx.beginPath();
-        ctx.moveTo(0, -e.radius);
-        ctx.lineTo(e.radius * 0.7, 0);
-        ctx.lineTo(0, e.radius);
-        ctx.lineTo(-e.radius * 0.7, 0);
-        ctx.closePath();
-        ctx.fill();
-        ctx.strokeStyle = e.color;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(0, 0, e.radius + 3, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.shadowBlur = 0;
-      } else if (e.type === 'mosquito') {
-        ctx.shadowBlur = 6;
-        ctx.beginPath();
-        ctx.moveTo(e.radius, 0);
-        ctx.lineTo(-e.radius * 0.6, -e.radius * 0.5);
-        ctx.lineTo(-e.radius * 0.6, e.radius * 0.5);
-        ctx.closePath();
-        ctx.fill();
-        ctx.shadowBlur = 0;
-      } else if (e.type === 'knight' || e.type === 'magmaGolem') {
-        ctx.shadowBlur = 10;
-        const r = e.radius * 0.85;
-        ctx.beginPath();
-        ctx.rect(-r, -r, r * 2, r * 2);
-        ctx.fill();
-        ctx.fillStyle = 'rgba(0,0,0,0.3)';
-        ctx.fillRect(-r, -r, r * 0.4, r * 0.4);
-        ctx.fillRect(r * 0.6, -r, r * 0.4, r * 0.4);
-        ctx.fillRect(-r, r * 0.6, r * 0.4, r * 0.4);
-        ctx.fillRect(r * 0.6, r * 0.6, r * 0.4, r * 0.4);
-        ctx.shadowBlur = 0;
-      } else {
-        ctx.shadowBlur = 10;
-        ctx.beginPath();
-        ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-        ctx.shadowBlur = 0;
-      }
+      drawEnemyShape(e, def?.isBoss, def?.armor, playerX, playerY);
     }
-    
-    // Health bar
+
     if (e.health < e.maxHealth) {
-      const barW = e.radius * 2;
-      ctx.fillStyle = '#333';
-      ctx.fillRect(-barW / 2, -e.radius - 12, barW, 5);
-      ctx.fillStyle = '#8b4040';
-      ctx.fillRect(-barW / 2, -e.radius - 12, barW * (e.health / e.maxHealth), 5);
+      const barW = Math.max(20, e.radius * 1.9);
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.fillRect(e.x - barW / 2, e.y - e.radius - 12, barW, 4);
+      ctx.fillStyle = PALETTE.danger;
+      ctx.fillRect(e.x - barW / 2, e.y - e.radius - 12, barW * (e.health / e.maxHealth), 4);
     }
+  }
+}
 
-    // Hit flash overlay
-    if (e.hitFlash > 0) {
-      ctx.globalAlpha = e.hitFlash / 0.15 * 0.6;
-      ctx.fillStyle = '#fff';
-      ctx.beginPath();
-      ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.globalAlpha = 1;
+function drawEnemyShape(e: Enemy, isBoss: boolean | undefined, armor: boolean | undefined, playerX: number, playerY: number): void {
+  ctx.save();
+  ctx.translate(e.x, e.y);
+  ctx.fillStyle = e.hitFlash > 0 ? '#ddd' : e.color;
+  if (isBoss) ctx.shadowColor = e.color;
+  ctx.beginPath();
+  if (armor) {
+    for (let i = 0; i < 6; i++) {
+      const a = e.angle + (i * Math.PI * 2) / 6;
+      const r = e.radius * (i % 2 === 0 ? 1 : 0.82);
+      if (i === 0) ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+      else ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
     }
+    ctx.closePath();
+  } else if (isBoss) {
+    for (let i = 0; i < 8; i++) {
+      const a = e.angle + (i * Math.PI * 2) / 8;
+      const r = e.radius * (i % 2 === 0 ? 1 : 0.62);
+      if (i === 0) ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+      else ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+    }
+    ctx.closePath();
+  } else {
+    ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
+  }
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
 
-    ctx.restore();
+  // olhos olham para o jogador (legibilidade de ameaça)
+  const look = Math.atan2(playerY - e.y, playerX - e.x);
+  ctx.fillStyle = 'rgba(0,0,0,0.65)';
+  for (const off of [-0.45, 0.45]) {
+    const a = look + off;
+    ctx.beginPath();
+    ctx.arc(Math.cos(a) * e.radius * 0.42, Math.sin(a) * e.radius * 0.42, Math.max(1.2, e.radius * 0.12), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+interface BotLike {
+  x: number; y: number; radius: number; color: string; health: number;
+  maxHealth: number; name: string; angle: number;
+}
+
+/** Bots do modo competitivo (morava inline no main.ts). */
+export function drawBots(bots: BotLike[]): void {
+  for (const bot of bots) {
+    ctx.fillStyle = bot.color;
+    ctx.beginPath();
+    ctx.arc(bot.x, bot.y, bot.radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = PALETTE.moss;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(bot.x, bot.y);
+    ctx.lineTo(bot.x + Math.cos(bot.angle) * bot.radius, bot.y + Math.sin(bot.angle) * bot.radius);
+    ctx.stroke();
+
+    const barW = 32;
+    const barX = bot.x - barW / 2;
+    const barY = bot.y - bot.radius - 10;
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.fillRect(barX, barY, barW, 4);
+    ctx.fillStyle = bot.color;
+    ctx.fillRect(barX, barY, barW * (bot.health / bot.maxHealth), 4);
+    ctx.fillStyle = PALETTE.textDim;
+    ctx.font = '10px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(bot.name, bot.x, barY - 4);
+    ctx.textAlign = 'left';
   }
 }
 
 /**
- * Desenha o jogador com efeitos visuais baseados no estado:
- * flash durante invincibilidade, aura de escudo, anel de invencibilidade,
- * mira direcional e olhos.
- * @param player - objeto do jogador com suas propriedades atuais
+ * Desenha o jogador com pose do pacote Kenney, arma na ponta do cano e auras
+ * de escudo/fúria. A mira e o cano antes só apareciam no fallback sem sprite.
  */
-export function drawPlayer(player: Player): void {
-  // Death animation: spin and shrink
+export function drawPlayer(player: Player, weaponClass: 'pistol' | 'machine' | 'silencer'): void {
   if (player.deathTimer > 0) {
-    const progress = 1 - (player.deathTimer / 1.5);
-    const scale = 1 - progress * 0.8;
-    const alpha = 1 - progress;
+    const progress = 1 - player.deathTimer / 1.5;
     ctx.save();
     ctx.translate(player.x, player.y);
     ctx.rotate(player.deathAngle);
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = '#7a9a6a';
+    ctx.globalAlpha = 1 - progress;
+    ctx.fillStyle = PALETTE.moss;
     ctx.beginPath();
-    ctx.arc(0, 0, player.radius * scale, 0, Math.PI * 2);
+    ctx.arc(0, 0, player.radius * (1 - progress * 0.8), 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = '#5a7a4a';
-    ctx.lineWidth = 2;
-    ctx.stroke();
     ctx.restore();
     return;
   }
 
-  const flash = player.invincible > 0 && Math.floor(player.invincible * 25) % 2;
+  if (player.invincible > 0 && Math.floor(player.invincible * 25) % 2) return;
 
-  // Shadow on ground
   ctx.fillStyle = 'rgba(0,0,0,0.25)';
   ctx.beginPath();
-  ctx.ellipse(player.x, player.y + player.radius + 3, player.radius * 0.8, player.radius * 0.3, 0, 0, Math.PI * 2);
+  ctx.ellipse(player.x, player.y + player.radius * 0.7, player.radius * 0.8, player.radius * 0.3, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  if (!flash) {
-    // Try to use sprite if available
-    const sprite = getSprite('player');
-    if (sprite && isSpritesEnabled()) {
-      // Draw sprite with effects overlay
-      ctx.save();
-      ctx.translate(player.x, player.y);
-      
-      // Apply color tint based on active effects
-      if (isSkillActive('fury')) {
-        ctx.globalAlpha = 0.8;
-        ctx.drawImage(sprite, -player.radius, -player.radius, player.radius * 2, player.radius * 2);
-        ctx.globalCompositeOperation = 'source-atop';
-        ctx.fillStyle = 'rgba(231, 76, 60, 0.4)';
-        ctx.fillRect(-player.radius, -player.radius, player.radius * 2, player.radius * 2);
-        ctx.globalCompositeOperation = 'source-over';
-      } else if (isSkillActive('shield')) {
-        ctx.drawImage(sprite, -player.radius, -player.radius, player.radius * 2, player.radius * 2);
-        ctx.strokeStyle = 'rgba(52, 152, 219, 0.8)';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.arc(0, 0, player.radius + 8, 0, Math.PI * 2);
-        ctx.stroke();
-      } else {
-        ctx.drawImage(sprite, -player.radius, -player.radius, player.radius * 2, player.radius * 2);
-      }
-      
-      ctx.restore();
-    } else {
-      // Fallback to canvas drawing with skin
-      const skin = getEquippedSkin();
-      let playerColor = skin.bodyColor;
-      if (hasPowerUp('invincible')) {
-        playerColor = '#f1c40f';
-      } else if (isSkillActive('shield')) {
-        playerColor = '#3498db';
-      } else if (isSkillActive('fury')) {
-        playerColor = '#e74c3c';
-      } else if (player.shield > 0) {
-        playerColor = '#3498db';
-      }
+  const skin = getEquippedSkin();
+  const hasSprite = isSpritesEnabled() && !!getSprite('survivor_stand');
 
-      ctx.fillStyle = playerColor;
-      ctx.shadowColor = skin.borderColor;
-      ctx.shadowBlur = 15;
-      ctx.beginPath();
-      ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.shadowBlur = 0;
+  ctx.save();
+  ctx.translate(player.x, player.y);
+  ctx.rotate(player.angle);
 
-      // Aim direction indicator with skin color
-      ctx.strokeStyle = skin.aimColor;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(player.x, player.y);
-      ctx.lineTo(player.x + Math.cos(player.angle) * player.radius * 1.5, player.y + Math.sin(player.angle) * player.radius * 1.5);
-      ctx.stroke();
-    }
-    
-    // Shield skill aura (blue pulsing ring)
-    if (isSkillActive('shield')) {
-      ctx.strokeStyle = 'rgba(52, 152, 219, 0.8)';
-      ctx.lineWidth = 4;
-      ctx.beginPath();
-      ctx.arc(player.x, player.y, player.radius + 10 + Math.sin(Date.now() / 100) * 3, 0, Math.PI * 2);
-      ctx.stroke();
-      
-      // Second ring
-      ctx.strokeStyle = 'rgba(52, 152, 219, 0.4)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(player.x, player.y, player.radius + 18 + Math.sin(Date.now() / 150) * 5, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-    
-    // Fury skill aura (red pulsing flames)
-    if (isSkillActive('fury')) {
-      ctx.strokeStyle = 'rgba(231, 76, 60, 0.8)';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.arc(player.x, player.y, player.radius + 8 + Math.sin(Date.now() / 80) * 4, 0, Math.PI * 2);
-      ctx.stroke();
-      
-      // Flame particles around player
-      for (let i = 0; i < 6; i++) {
-        const angle = (Date.now() / 200 + i * Math.PI / 3);
-        const dist = player.radius + 15 + Math.sin(Date.now() / 100 + i) * 5;
-        const fx = player.x + Math.cos(angle) * dist;
-        const fy = player.y + Math.sin(angle) * dist;
-        ctx.fillStyle = `rgba(231, 76, 60, ${0.5 + Math.sin(Date.now() / 50 + i) * 0.3})`;
-        ctx.beginPath();
-        ctx.arc(fx, fy, 3, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-    
-    // Invincibility powerup effect
-    if (hasPowerUp('invincible')) {
-      ctx.strokeStyle = '#f1c40f';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(player.x, player.y, player.radius + 5 + Math.sin(Date.now() / 100) * 3, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-    
-    // Shield item effect
-    if (player.shield > 0 && !isSkillActive('shield')) {
-      ctx.strokeStyle = 'rgba(52,152,219,0.5)';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.arc(player.x, player.y, player.radius + 8, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-    
-    // Gun barrel
-    ctx.strokeStyle = '#fff';
+  if (hasSprite) {
+    const img = getSprite(poseKey('survivor', player.shootCooldown > 0.06 ? 'gun' : 'stand'))!;
+    drawSpriteFit(ctx, img, 0, 0, player.radius * 2.5, 0);
+  } else {
+    let bodyColor = skin.bodyColor;
+    if (hasPowerUp('invincible')) bodyColor = PALETTE.crit;
+    else if (isSkillActive('shield') || player.shield > 0) bodyColor = PALETTE.stone;
+    else if (isSkillActive('fury')) bodyColor = PALETTE.terracotta;
+    ctx.fillStyle = bodyColor;
+    ctx.shadowColor = skin.borderColor;
+    ctx.shadowBlur = 15;
+    ctx.beginPath();
+    ctx.arc(0, 0, player.radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+
+  // mira: existe com sprite E sem sprite
+  ctx.strokeStyle = skin.aimColor;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(player.radius * 0.6, 0);
+  ctx.lineTo(player.radius * 1.45, 0);
+  ctx.stroke();
+
+  // cano: sprite da classe da arma na ponta
+  const gun = getSprite(`weapon_${weaponClass}`) ?? getSprite('weapon_gun');
+  if (gun) {
+    const iw = gun.naturalWidth;
+    const ih = gun.naturalHeight;
+    const scale = 0.9;
+    ctx.save();
+    ctx.rotate(-player.angle);
+    ctx.drawImage(gun, player.radius * 1.0 - ih * scale / 2, -iw * scale / 2, ih * scale, iw * scale);
+    ctx.restore();
+  } else {
+    ctx.strokeStyle = PALETTE.text;
     ctx.lineWidth = 4;
     ctx.beginPath();
-    ctx.moveTo(player.x, player.y);
-    ctx.lineTo(player.x + Math.cos(player.angle) * 28, player.y + Math.sin(player.angle) * 28);
+    ctx.moveTo(player.radius * 0.5, 0);
+    ctx.lineTo(player.radius * 1.5, 0);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+
+  // auras (mantêm shadowBlur — são o feedback de status)
+  if (isSkillActive('shield')) {
+    ctx.strokeStyle = 'rgba(96,128,144,0.8)';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, player.radius + 10 + Math.sin(Date.now() / 100) * 3, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  if (isSkillActive('fury')) {
+    ctx.strokeStyle = 'rgba(176,112,80,0.85)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, player.radius + 8 + Math.sin(Date.now() / 80) * 4, 0, Math.PI * 2);
+    ctx.stroke();
+    for (let i = 0; i < 6; i++) {
+      const a = Date.now() / 200 + (i * Math.PI) / 3;
+      const d = player.radius + 15 + Math.sin(Date.now() / 100 + i) * 5;
+      ctx.fillStyle = `rgba(176,112,80,${0.5 + Math.sin(Date.now() / 50 + i) * 0.3})`;
+      ctx.beginPath();
+      ctx.arc(player.x + Math.cos(a) * d, player.y + Math.sin(a) * d, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  if (hasPowerUp('invincible')) {
+    ctx.strokeStyle = PALETTE.crit;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, player.radius + 5 + Math.sin(Date.now() / 100) * 3, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  if (player.shield > 0 && !isSkillActive('shield')) {
+    ctx.strokeStyle = 'rgba(96,128,144,0.5)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, player.radius + 8, 0, Math.PI * 2);
     ctx.stroke();
   }
 }
 
-/**
- * Desenha os números de dano flutuantes sobre inimigos atingidos.
- * @param damageNumbers - array de números de dano ativos
- */
 export function drawDamageNumbers(damageNumbers: { x: number; y: number; text: string; color: string; life: number; vy: number }[]): void {
   for (const d of damageNumbers) {
-    const alpha = Math.min(1, d.life / 0.5);
-    ctx.globalAlpha = alpha;
+    ctx.globalAlpha = Math.min(1, d.life / 0.5);
     ctx.fillStyle = d.color;
     ctx.font = 'bold 16px monospace';
     ctx.textAlign = 'center';
     ctx.fillText(d.text, d.x, d.y);
   }
   ctx.globalAlpha = 1;
-}
-
-/**
- * Desenha o indicador de combo no topo da tela.
- * @param combo - multiplicador atual do combo (exibido apenas se > 1)
- */
-export function drawCombo(combo: number): void {
-  if (combo > 1) {
-    ctx.fillStyle = '#f1c40f';
-    ctx.font = 'bold 24px monospace';
-    ctx.textAlign = 'center';
-    ctx.shadowColor = '#f1c40f';
-    ctx.shadowBlur = 10;
-    ctx.fillText(`COMBO x${combo}`, canvas.width / 2, 40);
-    ctx.shadowBlur = 0;
-  }
-}
-
-/**
- * Desenha o nome da arma atual no canto inferior esquerdo.
- * @param weaponName - nome da arma equipada
- */
-export function drawWeaponInfo(weaponName: string): void {
-  ctx.fillStyle = '#aaa';
-  ctx.font = '14px monospace';
   ctx.textAlign = 'left';
-  ctx.fillText(weaponName, 20, canvas.height - 20);
+}
+
+// ─── Pausa ──────────────────────────────────────────────────────
+
+/** Opções de pausa. `index` é a selecionada. */
+export const PAUSE_OPTIONS = [
+  { id: 'resume', label: 'CONTINUAR' },
+  { id: 'music', label: 'MÚSICA' },
+  { id: 'sfx', label: 'EFEITOS' },
+  { id: 'menu', label: 'VOLTAR AO MENU' },
+] as const;
+
+let pauseIndex = 0;
+export function getPauseIndex(): number { return pauseIndex; }
+export function movePause(delta: number): void {
+  pauseIndex = (pauseIndex + delta + PAUSE_OPTIONS.length) % PAUSE_OPTIONS.length;
+  return;
 }
 
 /**
- * Desenha os ícones dos power-ups ativos com tempo restante no canto superior direito.
- * @param activePowerups - mapa de power-ups ativos e seus tempos restantes
+ * Desenha o overlay de pausa com as opções navegáveis.
+ * @param musicOn - estado da música
+ * @param sfxOn - estado dos efeitos
  */
-export function drawActivePowerUps(activePowerups: Record<string, number>): void {
-  let x = canvas.width - 20;
-  for (const key in activePowerups) {
-    const def = POWERUP_TYPES[key];
-    const remaining = activePowerups[key];
-    ctx.fillStyle = def.color;
-    ctx.globalAlpha = 0.8;
-    ctx.beginPath();
-    ctx.arc(x, 30, 15, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 10px monospace';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(def.symbol, x, 30);
-    ctx.fillStyle = '#fff';
-    ctx.font = '10px monospace';
-    ctx.fillText(remaining.toFixed(1), x, 52);
-    x -= 35;
-  }
-  ctx.globalAlpha = 1;
+export function drawPause(musicOn: boolean, sfxOn: boolean): void {
+  const W = canvas.width;
+  const H = canvas.height;
+
+  ctx.fillStyle = 'rgba(0,0,0,0.65)';
+  ctx.fillRect(0, 0, W, H);
+
+  const boxW = 280;
+  const rowH = 34;
+  const boxH = 90 + PAUSE_OPTIONS.length * rowH;
+  const x = W / 2 - boxW / 2;
+  const y = H / 2 - boxH / 2;
+
+  ctx.fillStyle = PALETTE.panel;
+  ctx.fillRect(x, y, boxW, boxH);
+  ctx.strokeStyle = PALETTE.panelEdge;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, boxW - 1, boxH - 1);
+
+  ctx.fillStyle = PALETTE.title;
+  ctx.font = 'bold 22px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('PAUSADO', W / 2, y + 40);
+
+  PAUSE_OPTIONS.forEach((opt, i) => {
+    const oy = y + 70 + i * rowH;
+    const selected = i === pauseIndex;
+    let label: string = opt.label;
+    if (opt.id === 'music') label = `MÚSICA: ${musicOn ? 'LIGADA' : 'DESLIGADA'}`;
+    if (opt.id === 'sfx') label = `EFEITOS: ${sfxOn ? 'LIGADOS' : 'DESLIGADOS'}`;
+    ctx.fillStyle = selected ? PALETTE.moss : PALETTE.textDim;
+    ctx.font = selected ? 'bold 14px monospace' : '13px monospace';
+    ctx.textAlign = 'left';
+    if (selected) ctx.fillText('>', x + 24, oy);
+    ctx.fillText(label, x + 44, oy);
+  });
+
+  ctx.fillStyle = PALETTE.textOff;
+  ctx.font = '10px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('W/S escolher · ENTER confirmar · ESC continuar', W / 2, y + boxH - 14);
+  ctx.textAlign = 'left';
 }
 
-/**
- * Restaura o estado do canvas após uso de save/translate (screen shake).
- */
+/** Restaura o estado do canvas após a translação do mundo. */
 export function restoreCanvas(): void {
   ctx.restore();
 }
 
+// ─── NPCs ───────────────────────────────────────────────────────
+
 interface NPCData {
-  x: number;
-  y: number;
-  name: string;
-  color: string;
-  health: number;
-  maxHealth: number;
-  radius: number;
-  alive: boolean;
-  message: string;
-  messageTimer: number;
+  x: number; y: number; name: string; color: string;
+  health: number; maxHealth: number; radius: number;
+  alive: boolean; message: string; messageTimer: number;
 }
 
 export function drawNPCs(npcs: NPCData[]): void {
   for (const npc of npcs) {
     if (!npc.alive && npc.messageTimer <= 0) continue;
-
     ctx.globalAlpha = npc.alive ? 1 : 0.4;
 
-    // NPC shadow
     ctx.fillStyle = 'rgba(0,0,0,0.2)';
     ctx.beginPath();
-    ctx.ellipse(npc.x, npc.y + npc.radius + 2, npc.radius * 0.7, npc.radius * 0.25, 0, 0, Math.PI * 2);
+    ctx.ellipse(npc.x, npc.y + npc.radius * 0.6, npc.radius * 0.7, npc.radius * 0.25, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.globalAlpha = npc.alive ? 1 : 0.4;
-
-    ctx.beginPath();
-    ctx.arc(npc.x, npc.y, npc.radius, 0, Math.PI * 2);
-    ctx.fillStyle = npc.color;
-    ctx.fill();
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 2;
-    ctx.stroke();
+    const img = isSpritesEnabled() ? getSprite(poseKey('survivor', 'hold')) : null;
+    if (img) {
+      drawSpriteFit(ctx, img, npc.x, npc.y, npc.radius * 2.4, 0);
+    } else {
+      ctx.fillStyle = npc.color;
+      ctx.beginPath();
+      ctx.arc(npc.x, npc.y, npc.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
 
     if (npc.health < npc.maxHealth && npc.alive) {
       const barW = npc.radius * 2;
-      const barH = 4;
-      const barX = npc.x - barW / 2;
-      const barY = npc.y - npc.radius - 10;
-      ctx.fillStyle = '#333';
-      ctx.fillRect(barX, barY, barW, barH);
-      ctx.fillStyle = '#8b4040';
-      ctx.fillRect(barX, barY, barW * (npc.health / npc.maxHealth), barH);
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.fillRect(npc.x - barW / 2, npc.y - npc.radius - 10, barW, 4);
+      ctx.fillStyle = PALETTE.danger;
+      ctx.fillRect(npc.x - barW / 2, npc.y - npc.radius - 10, barW * (npc.health / npc.maxHealth), 4);
     }
 
-    ctx.fillStyle = '#ccc';
+    ctx.fillStyle = PALETTE.textDim;
     ctx.font = '9px monospace';
     ctx.textAlign = 'center';
     ctx.fillText(npc.name, npc.x, npc.y - npc.radius - 14);
 
     if (npc.messageTimer > 0 && npc.alive) {
-      ctx.fillStyle = 'rgba(0,0,0,0.7)';
-      const tw = ctx.measureText(npc.message).width;
-      ctx.fillRect(npc.x - tw / 2 - 6, npc.y - npc.radius - 34, tw + 12, 18);
-      ctx.fillStyle = '#ccc';
       ctx.font = '11px monospace';
+      const tw = ctx.measureText(npc.message).width;
+      ctx.fillStyle = 'rgba(0,0,0,0.7)';
+      ctx.fillRect(npc.x - tw / 2 - 6, npc.y - npc.radius - 34, tw + 12, 18);
+      ctx.fillStyle = PALETTE.text;
       ctx.fillText(npc.message, npc.x, npc.y - npc.radius - 20);
     }
 
     ctx.globalAlpha = 1;
+    ctx.textAlign = 'left';
   }
+}
+
+/** Cono de lanterna (hazard de escuridão da Caverna). */
+export function drawFlashlight(x: number, y: number, angle: number, radius: number): void {
+  const grad = ctx.createRadialGradient(x, y, 0, x, y, radius);
+  grad.addColorStop(0, 'rgba(200,184,144,0.22)');
+  grad.addColorStop(1, 'rgba(200,184,144,0)');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.arc(x, y, radius, angle - 0.5, angle + 0.5);
+  ctx.closePath();
+  ctx.fill();
 }

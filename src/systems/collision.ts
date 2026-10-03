@@ -1,11 +1,59 @@
 /**
  * Sistema de detecção de colisões.
- * Verifica colisões entre projéteis e inimigos, projéteis inimigos e jogador,
- * e inimigos e jogador usando detecção por distância (circulo-circulo).
+ *
+ * Todas as colisões de projétil usam distância ponto-segmento (swept), não
+ * distância ponto-ponto: um Laser a 1200px/s anda 20px por frame contra um
+ * raio de hit de ~21px e atravessaria o inimigo sem dano.
  */
 
 import { Bullet, Enemy } from '../types';
 import { dist } from '../utils';
+
+/**
+ * Calcula o quadrado da distância entre um ponto e um segmento.
+ * É o que faz a colisão swept funcionar: o segmento é o caminho do
+ * projétil neste frame, o ponto é o centro do alvo.
+ * @param pxp - X do ponto
+ * @param pyp - Y do ponto
+ * @param ax - X inicial do segmento
+ * @param ay - Y inicial do segmento
+ * @param bx - X final do segmento
+ * @param by - Y final do segmento
+ * @returns distância² entre ponto e segmento
+ */
+export function pointSegmentDistSq(pxp: number, pyp: number, ax: number, ay: number, bx: number, by: number): number {
+  const dx = bx - ax;
+  const dy = by - ay;
+  const lenSq = dx * dx + dy * dy;
+  if (lenSq === 0) {
+    const ox = pxp - ax;
+    const oy = pyp - ay;
+    return ox * ox + oy * oy;
+  }
+  let t = ((pxp - ax) * dx + (pyp - ay) * dy) / lenSq;
+  if (t < 0) t = 0;
+  else if (t > 1) t = 1;
+  const cx = ax + dx * t;
+  const cy = ay + dy * t;
+  const ox = pxp - cx;
+  const oy = pyp - cy;
+  return ox * ox + oy * oy;
+}
+
+/** Posição anterior de um projétil (fallback para projéteis sem histórico). */
+function prevX(b: Bullet): number { return b.px ?? b.x; }
+function prevY(b: Bullet): number { return b.py ?? b.y; }
+
+/**
+ * Verifica se o trajeto do projétil neste frame encosta num alvo circular.
+ * @param b - projétil
+ * @param targetX - X do centro do alvo
+ * @param targetY - Y do centro do alvo
+ * @param radius - soma dos raios de hit
+ */
+export function bulletHitsCircle(b: Bullet, targetX: number, targetY: number, radius: number): boolean {
+  return pointSegmentDistSq(targetX, targetY, prevX(b), prevY(b), b.x, b.y) < radius * radius;
+}
 
 /**
  * Verifica colisões entre projéteis do jogador e inimigos.
@@ -26,7 +74,7 @@ export function checkBulletEnemyCollisions(
     for (let ei = enemies.length - 1; ei >= 0; ei--) {
       const e = enemies[ei];
       if (e.health <= 0) continue;
-      if (dist(b, e) < e.radius + 5) {
+      if (bulletHitsCircle(b, e.x, e.y, e.radius + 5)) {
         onHit(b, e);
         break;
       }
@@ -52,9 +100,10 @@ export function checkEnemyBulletPlayerCollision(
   invincible: number,
   onHit: (bullet: Bullet) => void
 ): void {
+  if (invincible > 0) return;
   for (const b of bullets) {
     if (!b.isEnemy) continue;
-    if (invincible <= 0 && dist(b, { x: playerX, y: playerY }) < playerRadius + 5) {
+    if (bulletHitsCircle(b, playerX, playerY, playerRadius + 5)) {
       onHit(b);
     }
   }
@@ -67,7 +116,7 @@ export function checkEnemyBulletPlayerCollision(
  * @param playerX - posição horizontal do jogador
  * @param playerY - posição vertical do jogador
  * @param playerRadius - raio de colisão do jogador
- * @param invincible - tempo restante de invincibilidade (0 = vulnerável)
+ * @param invincible - tempo restante de invencibilidade (0 = vulnerável)
  * @param onHit - callback chamado quando um inimigo colide com o jogador
  */
 export function checkEnemyPlayerCollision(

@@ -1,66 +1,115 @@
 /**
- * Sistema de spawn de inimigos.
- * Controla o fluxo de ondas: timer de spawn, escalonamento de dificuldade
- * e criação de inimigos a partir dos tipos definidos na configuração.
+ * src/systems/spawner.ts
+ *
+ * Controle de ondas e criação de inimigos.
+ *
+ * Com mapa maior que a tela, o spawn não pode ser "fora do canvas": tem que
+ * ser numa célula de chão aberta, fora do viewport e longe do jogador — senão
+ * o inimigo nasce em cima dele.
  */
 
 import { Enemy } from '../types';
-import { ENEMY_TYPES, PHASES } from '../config';
+import { ENEMY_TYPES } from '../config';
 import { rand } from '../utils';
-import { WAVE_BASE_ENEMIES, WAVE_ENEMIES_PER_LEVEL, WAVE_BASE_SPAWN_RATE, WAVE_SPAWN_RATE_DECAY, WAVE_MIN_SPAWN_RATE, WAVE_SCALE_PER_LEVEL, WAVE_SPEED_SCALE_PER_LEVEL } from '../core/constants';
+import { MAX_ENEMIES, WAVE_BASE_ENEMIES, WAVE_ENEMIES_PER_LEVEL, WAVE_BASE_SPAWN_RATE, WAVE_SPAWN_RATE_DECAY, WAVE_MIN_SPAWN_RATE, WAVE_SCALE_PER_LEVEL, WAVE_SPEED_SCALE_PER_LEVEL } from '../core/constants';
+import { CELL_SIZE } from '../maps';
+import { getMap, isWall } from './tilemap';
 
 /** Temporizador acumulado desde o último spawn */
 let waveTimer = 0;
 /** Quantidade de inimigos já criados na onda atual */
 let enemiesSpawnedThisWave = 0;
 
-/**
- * Retorna o temporizador atual de spawn da onda.
- * @returns tempo acumulado em segundos
- */
+/** Retorna o temporizador atual de spawn da onda. */
 export function getWaveTimer(): number { return waveTimer; }
 
-/**
- * Retorna quantos inimigos foram gerados na onda atual.
- * @returns quantidade de inimigos criados
- */
+/** Retorna quantos inimigos foram gerados na onda atual. */
 export function getEnemiesSpawned(): number { return enemiesSpawnedThisWave; }
 
-/**
- * Reseta o temporizador e contador de inimigos da onda.
- */
+/** Reseta o temporizador e contador de inimigos da onda. */
 export function resetSpawner(): void {
   waveTimer = 0;
   enemiesSpawnedThisWave = 0;
 }
 
+/** Distância mínima do jogador para spawnar (px) */
+const MIN_SPAWN_DISTANCE = 260;
+
+interface SpawnRect {
+  w: number;
+  h: number;
+  px: number;
+  py: number;
+  viewW: number;
+  viewH: number;
+}
+
 /**
- * Cria um inimigo de um tipo específico em uma posição aleatória nas bordas da tela.
- * As stats são escaladas pela onda atual.
- * @param type - chave do tipo de inimigo no ENEMY_TYPES
- * @param canvasWidth - largura do canvas
- * @param canvasHeight - altura do canvas
- * @param currentWave - número da onda atual (para escala de dificuldade)
- * @returns inimigo criado ou null se o tipo for inválido
+ * Sorteia uma posição válida de spawn.
+ * Sem mapa, cai no retângulo da tela (fallback). Com mapa, exige célula de
+ * chão fora do viewport e a uma distância mínima do jogador.
  */
-export function spawnEnemy(type: string, canvasWidth: number, canvasHeight: number, currentWave: number): Enemy | null {
+function pickSpawnPosition(rect: SpawnRect): { x: number; y: number } {
+  const map = getMap();
+  if (!map) {
+    const side = Math.floor(rand(0, 4));
+    const d = 120;
+    if (side === 0) return { x: -d, y: rand(0, rect.h) };
+    if (side === 1) return { x: rect.w + d, y: rand(0, rect.h) };
+    if (side === 2) return { x: rand(0, rect.w), y: -d };
+    return { x: rand(0, rect.w), y: rect.h + d };
+  }
+
+  const cols = map.cols;
+  const rows = map.rows;
+  for (let attempt = 0; attempt < 40; attempt++) {
+    const col = Math.floor(rand(0, cols));
+    const row = Math.floor(rand(0, rows));
+    if (isWall(col, row)) continue;
+    const x = col * CELL_SIZE + CELL_SIZE / 2;
+    const y = row * CELL_SIZE + CELL_SIZE / 2;
+    const onScreen = x > rect.px - 48 && x < rect.px + rect.viewW + 48
+      && y > rect.py - 48 && y < rect.py + rect.viewH + 48;
+    if (onScreen) continue;
+    if (Math.hypot(x - rect.px, y - rect.py) < MIN_SPAWN_DISTANCE) continue;
+    return { x, y };
+  }
+  // fallback: qualquer célula de chão
+  return { x: map.width / 2, y: map.height / 2 };
+}
+
+/**
+ * Cria um inimigo de um tipo específico.
+ * @param type - chave do tipo de inimigo no ENEMY_TYPES
+ * @param worldWidth - largura do mundo
+ * @param worldHeight - altura do mundo
+ * @param currentWave - número da onda (escala de dificuldade)
+ * @param forceX - X forçado (boss, invocação)
+ * @param forceY - Y forçado
+ * @param rect - viewport do jogador (usado para escolher posição de spawn)
+ */
+export function spawnEnemy(
+  type: string,
+  worldWidth: number,
+  worldHeight: number,
+  currentWave: number,
+  forceX?: number,
+  forceY?: number,
+  rect?: SpawnRect
+): Enemy | null {
   const def = ENEMY_TYPES[type];
   if (!def) return null;
 
-  let x = 0, y = 0;
-  const side = Math.floor(rand(0, 4));
-  const spawnDist = 120;
-  if (side === 0) { x = -spawnDist; y = rand(0, canvasHeight); }
-  else if (side === 1) { x = canvasWidth + spawnDist; y = rand(0, canvasHeight); }
-  else if (side === 2) { x = rand(0, canvasWidth); y = -spawnDist; }
-  else { x = rand(0, canvasWidth); y = canvasHeight + spawnDist; }
+  const pos = forceX !== undefined && forceY !== undefined
+    ? { x: forceX, y: forceY }
+    : pickSpawnPosition(rect ?? { w: worldWidth, h: worldHeight, px: 0, py: 0, viewW: worldWidth, viewH: worldHeight });
 
   const waveScale = 1 + currentWave * WAVE_SCALE_PER_LEVEL;
   const speedScale = 1 + currentWave * WAVE_SPEED_SCALE_PER_LEVEL;
   const variance = 0.9 + Math.random() * 0.2;
 
   return {
-    x, y, radius: def.radius, speed: Math.floor(def.speed * speedScale * variance),
+    x: pos.x, y: pos.y, radius: def.radius, speed: Math.floor(def.speed * speedScale * variance),
     health: Math.floor(def.health * waveScale * variance), maxHealth: Math.floor(def.health * waveScale * variance),
     damage: Math.floor(def.damage * waveScale), color: def.color, scoreValue: def.scoreValue,
     shootTimer: rand(0, def.shootRate || 0), shootRate: def.shootRate || 0,
@@ -70,14 +119,14 @@ export function spawnEnemy(type: string, canvasWidth: number, canvasHeight: numb
 }
 
 /**
- * Atualiza o sistema de ondas: incrementa o timer, spawna inimigos
- * periodicamente e detecta quando a onda está completa.
+ * Atualiza o sistema de ondas.
  * @param dt - delta time em segundos
  * @param enemies - array de inimigos ativos (modificado diretamente)
  * @param currentWave - número da onda atual
  * @param currentPhaseEnemyTypes - tipos de inimigos disponíveis na fase atual
- * @param canvasWidth - largura do canvas
- * @param canvasHeight - altura do canvas
+ * @param worldWidth - largura do mundo
+ * @param worldHeight - altura do mundo
+ * @param rect - viewport do jogador
  * @returns true quando a onda está completa (todos spawnados e derrotados)
  */
 export function spawnWaveEnemies(
@@ -85,17 +134,18 @@ export function spawnWaveEnemies(
   enemies: Enemy[],
   currentWave: number,
   currentPhaseEnemyTypes: string[],
-  canvasWidth: number,
-  canvasHeight: number
+  worldWidth: number,
+  worldHeight: number,
+  rect?: SpawnRect
 ): boolean {
   waveTimer += dt;
   const totalEnemies = WAVE_BASE_ENEMIES + currentWave * WAVE_ENEMIES_PER_LEVEL;
   const spawnRate = Math.max(WAVE_MIN_SPAWN_RATE, WAVE_BASE_SPAWN_RATE - currentWave * WAVE_SPAWN_RATE_DECAY);
 
-  if (waveTimer >= spawnRate && enemiesSpawnedThisWave < totalEnemies) {
+  if (waveTimer >= spawnRate && enemiesSpawnedThisWave < totalEnemies && enemies.length < MAX_ENEMIES) {
     waveTimer = 0;
     const type = currentPhaseEnemyTypes[Math.floor(rand(0, currentPhaseEnemyTypes.length))];
-    const enemy = spawnEnemy(type, canvasWidth, canvasHeight, currentWave);
+    const enemy = spawnEnemy(type, worldWidth, worldHeight, currentWave, undefined, undefined, rect);
     if (enemy) enemies.push(enemy);
     enemiesSpawnedThisWave++;
   }

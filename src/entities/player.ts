@@ -6,6 +6,7 @@
 
 import { PLAYER_BASE_SPEED, PLAYER_BASE_HEALTH, PLAYER_RADIUS, INVINCIBLE_DURATION, BULLET_INVINCIBLE_DURATION, WAVE_HEAL_ON_COMPLETE } from '../core/constants';
 import { getHardcore } from '../systems/gameModes';
+import { moveCircleBy } from '../systems/tilemap';
 
 /** Interface que define todas as propriedades do jogador */
 export interface Player {
@@ -67,18 +68,17 @@ export function resetPlayer(canvasWidth: number, canvasHeight: number): void {
 
 /**
  * Move o jogador com base nas teclas pressionadas.
- * Normaliza diagonal e aplica limite das bordas do canvas.
+ * Normaliza a diagonal e resolve a colisão contra o grid (deslize por eixo),
+ * em coordenadas de mundo — não mais contra as bordas do canvas.
  * @param keys - mapa de teclas pressionadas
  * @param dt - delta time em segundos
- * @param canvasWidth - largura do canvas
- * @param canvasHeight - altura do canvas
+ * @param bounds - limites do mundo em pixels
  * @param speedMultiplier - multiplicador de velocidade (ex: power-up de velocidade)
  */
 export function movePlayer(
   keys: Record<string, boolean>,
   dt: number,
-  canvasWidth: number,
-  canvasHeight: number,
+  bounds: { w: number; h: number },
   speedMultiplier: number
 ): void {
   let dx = 0, dy = 0;
@@ -90,11 +90,12 @@ export function movePlayer(
     const len = Math.hypot(dx, dy) || 1;
     dx /= len; dy /= len;
     const spd = player.speed * speedMultiplier;
-    player.x += dx * spd * dt;
-    player.y += dy * spd * dt;
+    const moved = moveCircleBy(player.x, player.y, dx * spd * dt, dy * spd * dt, player.radius);
+    player.x = moved.x;
+    player.y = moved.y;
   }
-  player.x = Math.max(player.radius, Math.min(canvasWidth - player.radius, player.x));
-  player.y = Math.max(player.radius, Math.min(canvasHeight - player.radius, player.y));
+  player.x = Math.max(player.radius, Math.min(bounds.w - player.radius, player.x));
+  player.y = Math.max(player.radius, Math.min(bounds.h - player.radius, player.y));
 }
 
 /**
