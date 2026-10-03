@@ -30,7 +30,7 @@ import { loadMap, colAt, rowAt, charAt, isWall, hasPath, moveCircleBy, rebuildFl
 import { initCamera, setViewportSize, setWorldSize, updateCamera, snapCamera, getCamX, getCamY, screenToWorld, drawVoid, isVisible, setShake } from './systems/camera';
 import { initProps, getProps, updateProps, damageProp, detonateProp, getBlast, drawProps, clearProps, collapsesOnHit, Prop } from './systems/props';
 import { buildTerrain, drawTerrain, clearTerrain } from './systems/terrain';
-import { initObjective, updateObjective, peekObjective, registerObjectiveDestroyed, cellCenter, ReachZone } from './systems/objectives';
+import { initObjective, updateObjective, peekObjective, endsPhaseOnDone, registerObjectiveDestroyed, cellCenter, ReachZone } from './systems/objectives';
 import { updateBoss, isBossTelegraphing, getBossTelegraphLabel, clearBossState } from './systems/boss';
 
 import {
@@ -494,21 +494,6 @@ function update(dt: number) {
     if (getGameState() === 'shop') enterShop();
   }
 
-  // ── boss da fase no primeiro spawn da última onda ──
-  if (!bossSpawned && phase.boss && getCurrentWave() === phase.waves - 1 && enemies.length === 0) {
-    const cells = findAll('B');
-    const pos = cells.length > 0 ? cellCenter(cells[0].col, cells[0].row) : { x: worldW / 2, y: worldH / 2 };
-    const boss = spawnEnemy(phase.boss, worldW, worldH, 0, pos.x, pos.y);
-    if (boss) {
-      boss.spawnDelay = 0;
-      boss.health = boss.maxHealth;
-      enemies.push(boss);
-      bossSpawned = true;
-      triggerBossZoom();
-      void playMusic('boss');
-    }
-  }
-
   updateBehavior(p.x, p.y, enemies.length);
 
   if (!bossZoomTriggered) {
@@ -741,7 +726,30 @@ function update(dt: number) {
   // Em fases com objetivo ≠ clear, cumprir o objetivo encerra a fase: é o que
   // tira o "só matar tudo" e dá uso real ao mapa.
   const objective = updateObjective(dt, p.x, p.y, enemies.length, reachZones);
-  if (phase.objective !== 'clear' && objective.done && getGameState() === 'playing') {
+
+  // ── chefe da fase: campo vazio da última onda, e só depois do objetivo ──
+  // O objetivo não encerra a fase: ele LIBERA o chefe. Cumprir o objetivo no
+  // primeiro instante encerrava a fase (a `protect` morria na onda 0 de 7, sem
+  // chefe), então o objetivo virou o pivot e o chefe o clímax: a fase só acaba
+  // quando o chefe cai. `reach` é a exceção e sai pelo return abaixo.
+  const objetivoLiberouChefe = phase.objective === 'clear' || objective.done;
+  if (!bossSpawned && phase.boss && objetivoLiberouChefe
+      && getCurrentWave() === phase.waves - 1 && enemies.length === 0) {
+    const cells = findAll('B');
+    const pos = cells.length > 0 ? cellCenter(cells[0].col, cells[0].row) : { x: worldW / 2, y: worldH / 2 };
+    const boss = spawnEnemy(phase.boss, worldW, worldH, 0, pos.x, pos.y);
+    if (boss) {
+      boss.spawnDelay = 0;
+      boss.health = boss.maxHealth;
+      enemies.push(boss);
+      bossSpawned = true;
+      triggerBossZoom();
+      void playMusic('boss');
+    }
+  }
+
+  if (phase.objective !== 'clear' && objective.done && getGameState() === 'playing'
+      && endsPhaseOnDone(phase.objective)) {
     enemies.length = 0;
     clearBullets();
     triggerScreenShake(14, 0.5);

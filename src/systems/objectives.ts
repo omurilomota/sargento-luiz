@@ -154,6 +154,23 @@ export function updateObjective(
   return peekObjective(playerX, playerY, enemiesAlive, reachZones);
 }
 
+/**
+ * Se cumprir o objetivo encerra a fase na hora, ou só libera o chefe.
+ *
+ * Cumprir o objetivo encerrava a fase assim que a condição batia, e o resto da
+ * fase nunca existia: a fase `protect` do Castelo terminava na onda 0 de 7 (e o
+ * chefe nunca aparecia) e a `survive` da Fábrica na onda 1 de 6.
+ *
+ * A forma certa é o objetivo ser o pivot e o chefe ser o clímax: `survive`,
+ * `destroy` e `protect` seguram até a última onda, e é o chefe que fecha a fase
+ * quando morre. `reach` é a exceção — chegar na zona É fugir, e fugir não tem
+ * boss: a fase acaba na hora.
+ * @param kind - tipo do objetivo
+ */
+export function endsPhaseOnDone(kind: ObjectiveKind): boolean {
+  return kind === 'reach';
+}
+
 /** Registra que o NPC protegido morreu. */
 export function registerVipDown(): void {
   deadNpc = true;

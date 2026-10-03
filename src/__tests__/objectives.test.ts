@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   initObjective, updateObjective, peekObjective, registerObjectiveDestroyed,
-  registerVipDown, cellCenter, ReachZone,
+  registerVipDown, cellCenter, endsPhaseOnDone, ReachZone,
 } from '../systems/objectives';
 import { resetNPCs, spawnNPC, getNPCs, updateNPCs } from '../systems/npcs';
+import { PHASES } from '../config';
 
 const ZONA: ReachZone[] = [{ x: 500, y: 500, radius: 60 }];
 
@@ -166,5 +167,27 @@ describe('npcs: o dano por contato é por segundo, não por frame', () => {
     expect(dano1).toBeCloseTo(0.5, 1);
     expect(dano2).toBeCloseTo(1.0, 1);
     expect(dano1).toBeLessThan(10);
+  });
+});
+
+describe('objectives: o objetivo não encerra mais a fase, ele libera o chefe', () => {
+  it('só o reach encerra a fase na hora — os outros seguram até a última onda', () => {
+    // Medido no browser: a fase protect do Castelo terminava na onda 0 de 7 e a
+    // survive da Fábrica na onda 1 de 6, porque cumprir o objetivo cortava a fase
+    // no primeiro instante. reach é a exceção: chegar na zona É fugir.
+    const encerra = PHASES.filter(f => endsPhaseOnDone(f.objective)).map(f => f.objective);
+    expect(encerra).toEqual(['reach']);
+  });
+
+  it('toda fase com objetivo != clear tem chefe para fechar a fase', () => {
+    for (const fase of PHASES) {
+      expect(fase.boss, `${fase.name}: objetivo ${fase.objective} sem chefe`).toBeTruthy();
+    }
+  });
+
+  it('as fases com objetivo de segurar a fase são as 3 que não chegam na zona', () => {
+    const seguram = PHASES.filter(f => f.objective !== 'clear' && f.objective !== 'reach')
+      .map(f => f.objective).sort();
+    expect(seguram).toEqual(['destroy', 'protect', 'survive']);
   });
 });
