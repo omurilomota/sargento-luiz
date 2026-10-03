@@ -30,7 +30,7 @@ import { loadMap, colAt, rowAt, charAt, moveCircleBy, rebuildFlowField, sampleFl
 import { initCamera, setViewportSize, setWorldSize, updateCamera, snapCamera, getCamX, getCamY, screenToWorld, drawVoid, isVisible, setShake } from './systems/camera';
 import { initProps, getProps, updateProps, damageProp, detonateProp, getBlast, drawProps, clearProps, Prop } from './systems/props';
 import { buildTerrain, drawTerrain, clearTerrain } from './systems/terrain';
-import { initObjective, updateObjective, registerObjectiveDestroyed, cellCenter } from './systems/objectives';
+import { initObjective, updateObjective, peekObjective, registerObjectiveDestroyed, cellCenter, ReachZone } from './systems/objectives';
 import { updateBoss, isBossTelegraphing, getBossTelegraphLabel, clearBossState } from './systems/boss';
 
 import {
@@ -231,7 +231,7 @@ let worldH = 720;
 /**paredes do mapa em coordenadas de mundo, para o minimapa */
 let wallRects: { x: number; y: number; w: number; h: number }[] = [];
 let mapDensity = 0;
-let reachZones: { x: number; y: number; radius: number }[] = [];
+let reachZones: ReachZone[] = [];
 
 /** Importações tardias para evitar ciclo com o estado local acima. */
 import { isWaitingForChoice, selectChoice } from './systems/story';
@@ -1247,7 +1247,7 @@ function buildHudData(): HudData {
         telegraphLabel: getBossTelegraphLabel(boss),
       }
       : null,
-    objective: updateObjective(0, p.x, p.y, enemies.length, reachZones),
+    objective: peekObjective(p.x, p.y, enemies.length, reachZones),
     warnings: getEnvironmentWarnings(),
     combos: getActiveCombos().map(c => ({ name: c.name, description: c.description, color: c.color })),
     hint: isTutorialActive() ? getCurrentHint() : null,
