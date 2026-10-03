@@ -51,16 +51,29 @@ campo primeiro, depois enfeitar**.
   brinde o empilhamento some (separação por força, não por path).
 - **Props destrutíveis.** Caixote (solta moeda), barril (explode em cadeia),
   ninho (objetivo de fases `destroy`).
-- **Hazards por bioma**, com efeito mecânico e não só visual: lama deixa
-  lento, lava fere, espinho fere, eletricidade trava a invulnerabilidade,
-  escuridão cega fora do cone da lanterna, baixa gravidade multiplica a
-  velocidade dos inimigos.
+- **Hazards por bioma**, com efeito mecânico e não só visual:
+
+| Bioma | Hazard | Efeito mecânico |
+|---|---|---|
+| Cidade em Ruínas | entulho |_props seguram tiro de inimigo e desmoronam ao primeiro tiro_ |
+| Floresta | névoa | vinheta larga em torno do jogador; dá para ler forma, não distância |
+| Caverna | escuridão | cone de lanterna; fora do cone a tela é preta |
+| Fábrica | eletricidade | pulso que fere e trava a invulnerabilidade |
+| Pântano | lama | deixa o movimento lento e fere quem fica parado |
+| Castelo | espinhos | fere ao pisar |
+| Vulcão | lava | fere por segundo |
+| Espaço | baixa gravidade | dash e explosões empurram mais longe |
+| Bunker Central | — | ar limpo, o desafio final é o jogador |
+
+  Na Cidade a cobertura é a única que funciona de verdade, e é a fase que
+  ensina a usar cobertura — por isso ser a primeira a entregar isso. O
+  entulho desmorona com um tiro, então a cobertura também é perecível.
 
 ## 4. Os 9 biomas
 
 | # | Bioma | Hazard | Objetivo | Boss |
 |---|---|---|---|---|
-| 1 | Cidade em Ruínas | detritos | clear | VIGIA |
+| 1 | Cidade em Ruínas | entulho | clear | VIGIA |
 | 2 | Floresta | névoa | clear | ALPHA WOLF |
 | 3 | Caverna | escuridão | destroy (3 ninhos) | CRYSTAL QUEEN |
 | 4 | Fábrica | eletricidade | survive (45s) | SENTINEL |
