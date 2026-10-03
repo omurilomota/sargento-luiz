@@ -86,6 +86,20 @@ const ENEMY_CHARACTER: Record<string, string> = {
   frog: 'zombie',
   crystal: 'woman',
   spitter: 'zombie',
+
+  // Os 9 chefes. Antes nenhum estava aqui, então os 9 caíam no fallback
+  // 'zombie' e todo chefe do jogo era desenhado como um zumbi genérico — o
+  // mesmo sprite do grunt, só maior. `survivor` é o jogador e nunca entra
+  // aqui; sobram 7 personagens para 9 chefes, então dois compartilham.
+  vigia: 'soldier',            // guarda de cidade em pé numa cidade que caiu
+  alphaWolf: 'manBrown',       // a fera mais terrosa do pack
+  crystalQueen: 'woman',       // mesma persona do cristal da Caverna
+  sentinel: 'robot',           // a máquina da fábrica
+  leviathan: 'manOld',         // criatura grande e velha do pântano
+  reiMutante: 'hitman',        // o rei encapuzado
+  infernoPrime: 'zombie',      // elemental apodrecido: verde e queimado
+  mothership: 'manBlue',       // aço frio do vácuo
+  nucleo: 'soldier',           // comando militar do bunker
 };
 
 /** NPCs e bots compartilham o mesmo pool de personagens */
