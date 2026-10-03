@@ -6,7 +6,6 @@
  * - Diferentes níveis de dificuldade
  */
 
-import { Enemy } from '../types';
 import { normalize } from '../utils';
 
 /** Nível de dificuldade do bot */

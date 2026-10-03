@@ -16,7 +16,7 @@
  * se `P` estiver em parede, ou se não existir caminho de `P` até todo `B`/`N`.
  */
 
-import { HazardKind, ObjectiveKind } from './types';
+import { HazardKind } from './types';
 
 /** Tamanho de uma célula do mapa em pixels */
 export const CELL_SIZE = 64;

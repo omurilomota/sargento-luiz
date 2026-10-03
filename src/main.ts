@@ -1208,8 +1208,6 @@ function buildHudData(): HudData {
   const phase = getCurrentPhase();
   const weapon = getCurrentWeapon();
   const reloadTime = weapon.reloadTime;
-  const camX = getCamX();
-  const camY = getCamY();
 
   const boss = enemies.find(e => ENEMY_TYPES[e.type]?.isBoss);
 

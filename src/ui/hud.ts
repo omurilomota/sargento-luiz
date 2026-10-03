@@ -382,7 +382,6 @@ function drawBottomLeft(d: HudData, H: number): void {
   ctx!.fillStyle = 'rgba(0,0,0,0.55)';
   ctx!.fillRect(x - 2, y - 2, barW + 4, 14);
 
-  const cellW = barW / Math.max(1, d.maxAmmo);
   const bulletsPerCell = Math.max(1, Math.round(d.maxAmmo / 20));
   const cells = Math.min(20, d.maxAmmo);
   const realCell = barW / cells;

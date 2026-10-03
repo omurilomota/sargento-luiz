@@ -96,7 +96,6 @@ export function updateFlash(dt: number): string | null {
 // ─── Slow Motion ─────────────────────────────────────────────
 let slowMotionScale = 1;
 let slowMotionDuration = 0;
-let slowMotionTarget = 1;
 
 /**
  * Ativa slow motion.
@@ -106,7 +105,6 @@ let slowMotionTarget = 1;
 export function triggerSlowMotion(scale: number, duration: number): void {
   slowMotionScale = scale;
   slowMotionDuration = duration;
-  slowMotionTarget = 1;
 }
 
 /**

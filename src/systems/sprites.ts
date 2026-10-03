@@ -62,8 +62,12 @@ export function tileFileName(n: number): string {
   return `tile_${String(n).padStart(2, '0')}.png`;
 }
 
-/** Mapeamento de tipos de inimigo para o personagem do pack */
-const ENEMY_CHARACTER: Record<string, string> = {
+/**
+ * Mapeamento de tipos de inimigo para o personagem do pack.
+ * Exportado para o teste de asset: um tipo sem entrada aqui aparece com o sprite
+ * do zumbi, sem aviso — foi assim que os 9 chefes viraram zumbis.
+ */
+export const ENEMY_CHARACTER: Record<string, string> = {
   grunt: 'zombie',
   runner: 'manBrown',
   tank: 'manOld',

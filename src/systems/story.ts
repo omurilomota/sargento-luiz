@@ -180,7 +180,6 @@ let lineComplete = false;
 let fadeAlpha = 0;
 let fadingIn = true;
 let waitingForChoice = false;
-let selectedChoice = -1;
 let storyChoices: Record<string, string> = {};
 
 /** Velocidade do texto (caracteres por segundo) */
@@ -237,7 +236,6 @@ export function showCutscene(): void {
   fadeAlpha = 0;
   fadingIn = true;
   waitingForChoice = false;
-  selectedChoice = -1;
 }
 
 export function isWaitingForChoice(): boolean {
@@ -248,7 +246,6 @@ export function selectChoice(index: number): void {
   if (!waitingForChoice) return;
   const line = getCurrentLine();
   if (line.choices && index < line.choices.length) {
-    selectedChoice = index;
     const effect = line.choices[index].effect;
     storyChoices[`scene_${currentCutsceneIndex}_line_${currentLineIndex}`] = effect;
     waitingForChoice = false;

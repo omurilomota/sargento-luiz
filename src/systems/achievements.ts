@@ -36,7 +36,6 @@ const STORAGE_KEY = 'bubbleShooter_achievements';
 
 /** Contadores temporários da partida */
 let killsThisRun = 0;
-let noDamageWaveComplete = false;
 let waveDamageTaken = false;
 
 /**

@@ -16,7 +16,6 @@ let lastReward = 0;
 const AD_COOLDOWN = 30;
 const AD_REWARD_BASE = 15;
 const AD_REWARD_PER_WATCH = 5;
-const AD_DURATION = 5;
 
 /**
  * Retorna se um ad está sendo assistido agora.
