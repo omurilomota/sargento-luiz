@@ -133,7 +133,7 @@ describe('mapas: conectividade', () => {
     const spawn = findAll('P')[0];
     expect(spawn).toBeDefined();
 
-    for (const target of ['E', 'B', 'N']) {
+    for (const target of ['E', 'B', 'N', 'R']) {
       for (const cell of findAll(target)) {
         expect(isWall(cell.col, cell.row)).toBe(false);
         expect(hasPath(spawn.col, spawn.row, cell.col, cell.row)).toBe(true);
@@ -229,7 +229,7 @@ describe('tilemap: a validação e a IA percorrem o mesmo grafo', () => {
     loadMap(BIOMES[key].rows);
     const p = findAll('P')[0];
     rebuildFlowField(p.col, p.row);
-    for (const ch of ['E', 'B', 'N']) {
+    for (const ch of ['E', 'B', 'N', 'R']) {
       for (const cell of findAll(ch)) {
         expect(
           isReachable(cell.col, cell.row),
@@ -314,5 +314,32 @@ describe('tilemap: flow field', () => {
     rebuildFlowField(spawn.col, spawn.row);
     const second = sampleFlowDir(100, 100);
     expect(first).toEqual(second);
+  });
+});
+
+describe('objetivo reach: a zona de extração existe e é alcançável', () => {
+  const reachFases = PHASES.filter(f => f.objective === 'reach');
+
+  it('pelo menos uma fase usa reach (o objetivo existia no código sem nenhum mapa)', () => {
+    expect(reachFases.length).toBeGreaterThan(0);
+  });
+
+  it.each(reachFases.map(f => [f.name, f.map] as const))(
+    '%s: o mapa tem zona de extração',
+    (_name, mapKey) => {
+      loadMap(BIOMES[mapKey].rows);
+      expect(findAll('R')).toHaveLength(1);
+    },
+  );
+
+  it('toda zona de reach fica longe o bastante do spawn para ser um trajeto', () => {
+    for (const fase of reachFases) {
+      loadMap(BIOMES[fase.map].rows);
+      const p = findAll('P')[0];
+      const r = findAll('R')[0];
+      const dist = Math.hypot(r.col - p.col, r.row - p.row);
+      // uma zona colada no spawn não é objetivo: é um passo
+      expect(dist, `${fase.name}: zona a ${dist} células do spawn`).toBeGreaterThanOrEqual(8);
+    }
   });
 });

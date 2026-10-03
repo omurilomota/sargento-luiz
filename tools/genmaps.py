@@ -14,6 +14,7 @@ W, H = 30, 20
 
 FLOOR, DECOR, HAZARD, CRATE, BARREL = '.', ',', '^', 'c', 'b'
 PLAYER, SPAWN, BOSS, NEST = 'P', 'E', 'B', 'N'
+REACH = 'R'
 WALL = '#'
 
 
@@ -175,9 +176,10 @@ def validate(name, g, need_boss, nest_target):
     assert orphan == 0, f'{name}: {orphan} células órfãs'
 
 
-def finish(g, name, player_target, spawns, boss=None, nests=()):
+def finish(g, name, player_target, spawns, boss=None, nests=(), reach=None):
     pr, pc = nearest_floor(g, player_target)
-    targets = [(pr, pc)] + list(spawns) + ([boss] if boss else []) + list(nests)
+    targets = ([(pr, pc)] + list(spawns) + ([boss] if boss else [])
+               + list(nests) + ([reach] if reach else []))
     ensure_connected(g, (pr, pc), targets)
     pr, pc = nearest_floor(g, (pr, pc))
     for (r, c) in spawns:
@@ -189,6 +191,9 @@ def finish(g, name, player_target, spawns, boss=None, nests=()):
     for (r, c) in nests:
         rr, cc = nearest_floor(g, (r, c))
         g[rr][cc] = NEST
+    if reach:
+        rr, cc = nearest_floor(g, reach)
+        g[rr][cc] = REACH
     g[pr][pc] = PLAYER
     validate(name, g, bool(boss), len(nests))
     return g
@@ -320,8 +325,11 @@ def vulcao():
     scatter(g, CRATE, 5, 71)
     scatter(g, BARREL, 6, 72)
     scatter(g, DECOR, 7, 73)
+    # Zona de extração no canto inferior esquerdo: o jogador começa embaixo à
+    # direita, então o objetivo reach obriga a atravessar a faixa de lava com a
+    # onda em cima em vez de simplesmente limpar o caminho.
     return finish(g, 'vulcao', (18, 15), [(1, 5), (1, 24), (6, 15), (9, 3), (13, 26), (17, 6)],
-                  boss=(18, 9))
+                  boss=(18, 9), reach=(17, 3))
 
 
 def espaco():

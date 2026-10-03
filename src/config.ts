@@ -43,7 +43,7 @@ export const PHASES: Phase[] = [
   {
     name: 'Vulcão', bg: '#2e0d0d', bgColor2: '#1a0505', gridColor: 'rgba(200,50,50,0.1)',
     enemyTypes: ['fireElemental', 'lavaSlime', 'magmaGolem', 'inferno'], waves: 7, map: 'vulcao', hazard: 'lava',
-    objective: 'clear', objectiveTarget: 0, boss: 'infernoPrime',
+    objective: 'reach', objectiveTarget: 0, boss: 'infernoPrime',
   },
   {
     name: 'Espaço', bg: '#05050d', bgColor2: '#020208', gridColor: 'rgba(100,100,200,0.05)',
