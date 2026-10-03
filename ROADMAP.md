@@ -29,7 +29,7 @@ fizesse o jogador decidir onde ficar.
 - [x] Assets em `public/` (build de produção copia)
 - [x] 4 faixas OGG com crossfade + som por habilidade
 - [x] Screen shake aplicado, ENTER sem cascata, dash com direção
-- [x] 159 testes (swept, layout de loja/menu, validação de mapas, executor de boss)
+- [x] 210 testes (swept, câmera, objetivo, executor de boss, asset, layout de loja/menu, dificuldade dinâmica, validação de mapas)
 
 ## v1.4 — conteúdo que falta ⏳
 
@@ -43,8 +43,13 @@ Cada item destrava algo maior que ele mesmo.
       para todos, então um chefe que investe se suicida: dar de frente é uma
       estratégia válida, e vale para o ALPHA WOLF também. Não é regressão
       desta entrega — é a regra de contato do jogo, que ninguém revisou ainda.
-- [ ] **`protect` com inimigo que caça o NPC.** O objetivo existe no código e
-      no HUD, mas nenhum mapa o usa. Precisa de um inimigo com IA de alvo.
+- [x] **`protect` com inimigo que caça o NPC.** O Castelo é a fase: o `archer`
+      tem `huntsNpc` e ignora o flow field para ir direto no sobrevivente, e
+      atira nele também; `knight` e `mage` continuam no jogador.
+- [ ] **`protect` com falha.** Se o sobrevivente morre, a fase continua e o
+      jogador vence do mesmo jeito. Não existe fim de fase negativo.
+- [ ] **Marcador de chefe no mundo.** O chefe só se distingue do trash pelo
+      tamanho e pela barra de vida; um anel no chão na cor dele resolveria.
 - [ ] **Cobertura que muda a decisão de rota.** Barril destrutível já existe;
       falta uma paleta de props por bioma (Caverna e Vulcão repetem).
 - [x] **Balanceamento por bioma.** Os 9 hazards agora têm efeito mecânico
@@ -155,15 +160,18 @@ O que já foi entregue antes da v1.3, e o que foi entregue nela.
 ### Prioridade ALTA
 - [ ] `main.ts` ainda é uma god-function de 1222 linhas — `update()` e `draw()`
       ainda concentrates o orquestrador inteiro
-- [ ] **`shooter` é tipo morto**: definido em `ENEMY_TYPES` (`config.ts:65`) e
-      citado por nenhum `Phase`. Ou entra numa fase, ou sai do dicionário
-- [ ] **Dificuldade dinâmica de verdade**: `dynamicDifficulty.ts` calcula
-      `getPlayerAccuracy` e nada consome — só a previsão de posição está ligada
-- [ ] `protect` sem inimigo que caça o NPC (ver v1.4)
+- [x] **`shooter` saiu do dicionário**: cada fase já tem atirador temático
+      (spitter, crystal, robot, frog, archer, fireElemental, ufo), então um
+      atirador genérico só diluiria a identidade da fase
+- [x] **Dificuldade dinâmica de verdade**: `getSkillPressure()` alimenta o ritmo
+      do spawn, com banda de 12% e nada antes de 20 tiros
+- [x] `protect` com inimigo que caça o NPC (Castelo)
+- [x] `reach` com mapa (Vulcão, zona a 15 células do spawn)
 
 ### Prioridade MÉDIA
-- [ ] Testes para `props`, `objectives` e `boss` — a lógica que mais mudou na
-      v1.3 é a que menos tem cobertura
+- [x] Testes para `objectives`, `boss` e `camera` — a lógica que mais mudou na
+      v1.3 era a que menos tinha cobertura
+- [ ] Testes para `props` e `terrain`
 - [ ] Achievements expandidos (13 existem)
 - [ ] Editor de fases visual
 
@@ -177,9 +185,9 @@ O que já foi entregue antes da v1.3, e o que foi entregue nela.
 
 | Métrica | Valor |
 |---------|-------|
-| Arquivos TypeScript | 49 |
-| Linhas de código | ~10.500 |
-| Testes unitários | 159 |
+| Arquivos TypeScript | 54 |
+| Linhas de código | ~11.500 |
+| Testes unitários | 210 |
 | Mapas / fases | 9 |
 | Tipos de inimigos | 22 |
 | Bosses | 9 |

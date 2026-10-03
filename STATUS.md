@@ -1,6 +1,6 @@
 # BubbleGame — Status Geral do Projeto
 
-> Atualizado: 2026-10-03 · branch `feature/v1.3-hud-bugfixes` · v1.4
+> Atualizado: 2026-10-03 · branch `feature/v1.3-hud-bugfixes` · v1.4 (pós-review)
 
 Direção do jogo: [`docs/DESIGN.md`](docs/DESIGN.md) ·
 pendências: [`TODO.md`](TODO.md) ·
@@ -34,7 +34,8 @@ ataca isso primeiro.
 - **9 hazards com efeito mecânico**: os 9 biomas têm efeito próprio, inclusive
   os dois que antes eram só número (`fog` e `debris`)
 - **Objetivos de fase**: `clear` · `survive` · `destroy` · `protect` · `reach`
-- **Boss data-driven**: **9 bosses** com padrão declarativo e telegrafia
+- **Boss data-driven**: **9 bosses** com padrão declarativo e telegrafia, cada
+  um com sprite do seu bioma (antes os 9 caíam no fallback `zombie`)
 
 ### Bugs corrigidos
 
@@ -105,18 +106,22 @@ ataca isso primeiro.
 
 ## Testes
 
-159 testes em 5 arquivos, cobrindo exatamente as regressões que já voltaram:
+210 testes em 9 arquivos, cobrindo exatamente as regressões que já voltaram:
 
 | Arquivo | Cobre |
 |---|---|
 | `collision.test.ts` | Colisão swept (tunneling), ponto-segmento, circle-circle |
 | `boss.test.ts` | `updateBoss`: avanço por faixa de HP, telegrafia, `mines` acende barril, summon, e as 9 fases ligadas a um boss |
+| `camera.test.ts` | clamp por eixo, lerp não atravessa o limite, mira desconta o shake |
+| `objectives.test.ts` | os 5 tipos sabem quando terminam, `peekObjective` não muta, latch de `protect` |
+| `dynamicDifficulty.test.ts` | guard de amostra, banda de pressão, ritmo do spawn |
+| `assets.test.ts` | nomes de arquivo (pad de tile), sprite mapeado por tipo, tipo órfão |
 | `shopLayout.test.ts` | `getShopLayout`: sobreposição, colunas, hit-test bate com o draw |
 | `menuLayout.test.ts` | `getMenuLayout`: índice do clique, cabimento em 4 resoluções |
 | `mapValidation.test.ts` | 9 mapas: largura, borda, conectividade, contraste piso/parede, caminho de tile no disco |
 
 ```
-npm test            # 159 passando
+npm test            # 210 passando
 npx tsc --noEmit    # 0 erros
 npm run build       # ok
 ```
@@ -125,8 +130,12 @@ npm run build       # ok
 
 - Modo competitivo online
 - Achievements expandidos
-- `protect` não tem inimigo que proteja ainda: o objetivo existe no código e no HUD,
-  mas nenhum mapa o usa
+- `protect` é o único objetivo cujo gatilho de fim de fase ainda é frágil: limpar
+  a onda 0 já encerra a fase, pulando as ondas seguintes e o chefe. Foi a troca
+  feita para a fase não terminar no primeiro frame, e é o mesmo contrato de
+  `survive`/`destroy`/`reach` — mas num objetivo de escolta é o ponto mais
+  discutível do conjunto
+- `main.ts` ainda é o orquestrador com 1300 linhas
 
 Ver `TODO.md` para a lista completa e `docs/DESIGN.md` §10 para o que está
 fora de escopo por decisão.

@@ -55,7 +55,7 @@ campo primeiro, depois enfeitar**.
 
 | Bioma | Hazard | Efeito mecânico |
 |---|---|---|
-| Cidade em Ruínas | entulho |_props seguram tiro de inimigo e desmoronam ao primeiro tiro_ |
+| Cidade em Ruínas | entulho | props seguram tiro de inimigo e desmoronam ao primeiro tiro |
 | Floresta | névoa | vinheta larga em torno do jogador; dá para ler forma, não distância |
 | Caverna | escuridão | cone de lanterna; fora do cone a tela é preta |
 | Fábrica | eletricidade | pulso que fere e trava a invulnerabilidade |
@@ -78,8 +78,8 @@ campo primeiro, depois enfeitar**.
 | 3 | Caverna | escuridão | destroy (3 ninhos) | CRYSTAL QUEEN |
 | 4 | Fábrica | eletricidade | survive (45s) | SENTINEL |
 | 5 | Pântano | lama | clear | LEVIATHAN |
-| 6 | Castelo | espinhos | clear | REI MUTANTE |
-| 7 | Vulcão | lava | clear | INFERNO PRIME |
+| 6 | Castelo | espinhos | protect | REI MUTANTE |
+| 7 | Vulcão | lava | reach | INFERNO PRIME |
 | 8 | Espaço | baixa gravidade | clear | MOTHERSHIP |
 | 9 | Bunker Central | nenhum | clear | NÚCLEO |
 
@@ -91,6 +91,27 @@ porque o desafio final é o jogador, não o mapa — e o NÚCLEO não tem invest
 numa galeria estreita ela seria só o chefe batendo na parede.
 
 ## 5. Boss data-driven
+
+### Os 5 objetivos de fase, e o que cada um troca
+
+Sair do "só matar tudo" é o ponto, e cada objetivo tem que custar algo ao
+jogador. O que eles trocam:
+
+| Objetivo | Fase | O que o jogador precisa |
+|---|---|---|
+| `clear` | 6 fases | ler o campo e controlar espaço |
+| `survive` | Fábrica | não ficar parado no lugar errado |
+| `destroy` | Caverna | o ninho não se defende sozinho |
+| `protect` | Castelo | o sobrevivente é um alvo que não atira de volta |
+| `reach` | Vulcão | atravessar com a onda em cima |
+
+O `protect` é o único que precisa de um alvo dedicado: sem o `huntsNpc` do
+`archer`, o NPC foge de todo mundo por igual e proteger se resume a limpar a
+fase como sempre. O sobrevivente nasce a 8–12 células do jogador de propósito —
+colado nele, "proteger o NPC" e "proteger a si mesmo" seriam o mesmo objetivo.
+
+O `reach` tem a zona a 15 células do spawn, não do lado: uma zona colada não é
+objetivo, é um passo.
 
 Cada boss é um `EnemyType` com uma lista de `pattern`, não um `if` de faixa de
 HP dentro do `main.ts`:
@@ -178,6 +199,11 @@ Coisas que *pareceriam* óbvias e não estão no escopo agora:
 - Geração procedural de mapa (os 9 são autorais).
 - Multiplayer online.
 - Áudio posicional (tudo é mono estéreo).
+- Fim de fase negativo. Hoje nenhum objetivo tem derrota: se o sobrevivente do
+  `protect` morre, a fase continua e o jogador vence do mesmo jeito. Um fim
+  negativo é um sistema de retry, e retry é conversa de design própria.
+- Marcador de boss no mundo. O chefe se distingue pelo tamanho e pela barra de
+  vida; um anel no chão na cor dele é a solução óbvia e ainda não está lá.
 
 Estão fora porque cada uma abre uma conversa de design diferente. Estar no
 `TODO.md` é o suficiente até alguém decidir por elas.

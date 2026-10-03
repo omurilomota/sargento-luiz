@@ -61,7 +61,13 @@
 
 // --- OBJETIVO DE FASE ---
 // [x] 5 tipos de objetivo: clear, survive, destroy, protect, reach
-// [x] protect e reach sem nenhum mapa usando: falta inimigo que caça o NPC
+// [x] protect com fase (Castelo) e inimigo que caça o NPC (archer, huntsNpc)
+// [x] reach com fase (Vulcão) e zona de extração a 15 células do spawn
+// [x] protect não encerra a fase no 1o frame (latch "houve luta")
+// [x] NPC com dano por segundo, não por frame (30 DPS)
+// [ ] protect: limpar a onda 0 encerra a fase, pulando ondas e chefe
+// [ ] Um marcador de boss no mundo (ringo no chão): hoje um chefe só se
+//     distingue do trash pelo tamanho e pela barra de vida
 
 // --- BOSS ---
 // [x] VIGIA na Cidade em Ruínas (fase 1) — primeira luta ensina o mapa
@@ -69,7 +75,7 @@
 // [x] Arena de boss nos 2 mapas que não tinham (corredor de 13x3 e 1x28)
 // [x] Texto da telegrafia aparece na barra de boss (era dado morto)
 // [x] Primeira ação de cada chefe telegrafada (step do runtime = -1)
-// [ ] Chefe não morre em cima do jogador: killEnemy no contato vale para todos
+// [x] Chefe não morre no contato: investida matava o chefe sozinho
 // [x] Investida resolve contra o grid (a praça do VIGIA ficou inútil sem isso)
 // [x] Lanterna da Caverna centralizada no jogador (overlay transladava 2x)
 // [x] Terreno não desloca mais em viewport maior que o mapa
@@ -79,6 +85,8 @@
 // [x] Pose `reload` usada enquanto recarrega (estava carregada e sem uso)
 // [x] Pose armada no inimigo atirador fora do disparo
 // [x] Sem arma duplicada: a sprite weapon_* da ponta saiu
+// [x] Os 9 chefes com sprite do bioma (antes todos caíam no fallback 'zombie')
+// [x] assets.test.ts: pad de tile, 54 nomes de personagem, tipo sem sprite
 
 // --- HAZARDS ---
 // [x] fog (Floresta) deixa de ser número: vinheta larga em torno do jogador
