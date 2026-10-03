@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   initProps, clearProps, getProps, getNests, getBlockingProps, getBlast,
-  damageProp, igniteBarrel, detonateProp, updateProps,
+  damageProp, igniteBarrel, detonateProp, updateProps, collapsesOnHit,
 } from '../systems/props';
-import { CELL_SIZE } from '../maps';
+import { CELL_SIZE, BIOMES } from '../maps';
+import { PHASES } from '../config';
 
 /** Constrói uma grade de células com os caracteres pedidos. */
 function mapa(caracteres: Record<string, [number, number]>): string[][] {
@@ -243,3 +244,20 @@ describe('props: contagem e reinicialização', () => {
 });
 
 // O tipo precisa continuar exportado: o main.ts usa na assinatura de explodeProp
+
+describe('props: o desmoronamento é exclusivo do entulho', () => {
+  it('só a Cidade em Ruínas tem prop que desmorona com o primeiro tiro', () => {
+    const comDesmoronamento = PHASES.filter(f => collapsesOnHit(f.hazard)).map(f => f.name);
+    expect(comDesmoronamento).toEqual(['Cidade em Ruínas']);
+  });
+
+  it('toda fase tem props no mapa para servirem de cobertura', () => {
+    // cobertura só é decisão de rota se existir; um mapa sem caixote nem barril
+    // não tem cobertura nenhuma, com hazard ou não
+    for (const fase of PHASES) {
+      const rows = BIOMES[fase.map].rows.join('');
+      const props = (rows.match(/[cb]/g) ?? []).length;
+      expect(props, `${fase.name} não tem nenhum prop`).toBeGreaterThan(0);
+    }
+  });
+});

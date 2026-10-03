@@ -28,7 +28,7 @@ import { checkBulletEnemyCollisions, checkEnemyPlayerCollision, checkEnemyBullet
 import { createExplosion, updateExplosions, clearExplosions } from './systems/explosions';
 import { loadMap, colAt, rowAt, charAt, isWall, hasPath, moveCircleBy, rebuildFlowField, sampleFlowDir, pushOutOfWalls, findAll } from './systems/tilemap';
 import { initCamera, setViewportSize, setWorldSize, updateCamera, snapCamera, getCamX, getCamY, screenToWorld, drawVoid, isVisible, setShake } from './systems/camera';
-import { initProps, getProps, updateProps, damageProp, detonateProp, getBlast, drawProps, clearProps, Prop } from './systems/props';
+import { initProps, getProps, updateProps, damageProp, detonateProp, getBlast, drawProps, clearProps, collapsesOnHit, Prop } from './systems/props';
 import { buildTerrain, drawTerrain, clearTerrain } from './systems/terrain';
 import { initObjective, updateObjective, peekObjective, registerObjectiveDestroyed, cellCenter, ReachZone } from './systems/objectives';
 import { updateBoss, isBossTelegraphing, getBossTelegraphLabel, clearBossState } from './systems/boss';
@@ -851,33 +851,28 @@ function explodeProp(prop: Prop): void {
 }
 
 /**
- * Projéteis do jogador quebram props. Os inimigos só colidem quando a fase é de
- * entulho: nas outras os props são madeira e o tiro atravessa.
+ * Projéteis quebram props, do jogador e do inimigo.
  *
- * Essa é a identidade mecânica da Cidade em Ruínas — a única fase onde
- * cobertura é cobertura de verdade — e ela é a fase que ensina o jogador a
- * usar cobertura, então faz sentido que seja a primeira a entregar isso. Também
- * dá uma tensão real: barril explodido pelo tiro do inimino explode em cadeia,
- * então a cobertura do jogador pode virar o problema dele.
+ * Cobertura que não protege é enfeite: quando o tiro dos inimigos atravessava o
+ * caixote, os props das 8 fases sem entulho eram só decoração destruível. Cover
+ * agora funciona em todo o jogo, e o que decide a rota é onde o prop está.
+ *
+ * O que continua exclusivo da Cidade é o desmoronamento: entulho não aguenta
+ * tiro e cai inteiro com o primeiro. Isso dá à Cidade a identidade de "a
+ * cobertura aqui também é perecível", e cria a tensão de o barril explodido pelo
+ * tiro do inimigo explodir em cadeia — a cobertura do jogador virando o
+ * problema dele.
  */
 function updateBulletProps(bullets: ReturnType<typeof getBullets>): void {
-  const hazard = getCurrentPhase().hazard;
-  const enemyShotStops = hazard === 'debris';
-  // Entulho é instável: um tiro derruba o prop inteiro em vez de só arranhá-lo.
-  // Sem isso o hazard da Cidade não aparece em campo nenhum — a fase 1 só tem
-  // grunt, que não atira, então a regra de linha de tiro abaixo nunca é
-  // exercida. Aqui o que o jogador vê é a cobertura desmoronando, que é a
-  // metade visível de "entulho" e a que importa na luta de arena.
-  const collapsesOnHit = hazard === 'debris';
+  const collapsing = collapsesOnHit(getCurrentPhase().hazard);
   for (const b of bullets) {
     if (b.life <= 0) continue;
-    if (b.isEnemy && !enemyShotStops) continue;
     const fromPlayer = !b.isEnemy;
     for (const prop of getProps()) {
       if (prop.health <= 0) continue;
       if (!bulletHitsCircle(b, prop.x, prop.y, prop.radius)) continue;
       let destroyed: boolean;
-      if (collapsesOnHit) {
+      if (collapsing) {
         detonateProp(prop);
         destroyed = true;
       } else {
@@ -1330,4 +1325,6 @@ async function init() {
   });
 }
 
+
+init();
 init();

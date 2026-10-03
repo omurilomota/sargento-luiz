@@ -7,6 +7,7 @@
  */
 
 import { CELL_SIZE } from '../maps';
+import { HazardKind } from '../types';
 import { PALETTE } from '../core/palette';
 
 export interface Prop {
@@ -86,6 +87,19 @@ export function getBlockingProps(): Prop[] {
 export function clearProps(): void {
   props.length = 0;
   acesos.clear();
+}
+
+/**
+ * Se o prop desmorona com o primeiro tiro.
+ *
+ * Só o entulho da Cidade em Ruínas: lá o prop é entulho de estrutura caída, e
+ * ruína não aguenta tiro. Nas outras fases o prop é madeira e metal, que aguentam
+ * — a diferença é o que dá à Cidade a identidade de "a cobertura aqui também é
+ * perecível", já que a cobertura em si (segurar tiro) vale em toda fase.
+ * @param hazard - hazard da fase
+ */
+export function collapsesOnHit(hazard: HazardKind): boolean {
+  return hazard === 'debris';
 }
 
 /** Faz o prop receber dano. Retorna true se foi destruído. */
