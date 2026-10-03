@@ -62,7 +62,6 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
   grunt: { radius: 16, speed: 80, health: 20, damage: 10, color: '#8b4040', scoreValue: 10, coinDrop: 2 },
   runner: { radius: 12, speed: 160, health: 10, damage: 8, color: '#b07050', scoreValue: 15, coinDrop: 3 },
   tank: { radius: 26, speed: 50, health: 80, damage: 20, color: '#608090', scoreValue: 30, coinDrop: 5 },
-  shooter: { radius: 14, speed: 60, health: 30, damage: 5, color: '#608090', scoreValue: 25, coinDrop: 4, canShoot: true, shootRate: 2.0, bulletSpeed: 300, projectileColor: PALETTE.terracotta },
   bat: { radius: 10, speed: 120, health: 15, damage: 6, color: '#6a5a4a', scoreValue: 12, coinDrop: 2 },
   robot: { radius: 18, speed: 70, health: 50, damage: 12, color: '#6a6a6a', scoreValue: 35, coinDrop: 6, canShoot: true, shootRate: 1.5, bulletSpeed: 350, projectileColor: PALETTE.terracotta },
   slime: { radius: 20, speed: 60, health: 25, damage: 8, color: '#5a7a5a', scoreValue: 20, coinDrop: 3 },

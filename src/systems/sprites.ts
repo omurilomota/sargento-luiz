@@ -71,7 +71,6 @@ export const ENEMY_CHARACTER: Record<string, string> = {
   grunt: 'zombie',
   runner: 'manBrown',
   tank: 'manOld',
-  shooter: 'hitman',
   bat: 'zombie',
   robot: 'robot',
   drone: 'robot',

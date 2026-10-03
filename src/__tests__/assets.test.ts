@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ENEMY_TYPES } from '../config';
+import { ENEMY_TYPES, PHASES } from '../config';
 import {
   characterFileExists, weaponFileExists, TILE_NUMBERS, tileFileName,
   POSES, WEAPON_CLASSES, ENEMY_CHARACTER,
@@ -52,6 +52,33 @@ describe('assets: os nomes de arquivo que o jogo pede', () => {
       expect(TILE_NUMBERS).toContain(n);
     }
     expect(TILE_NUMBERS.length).toBeGreaterThanOrEqual(40);
+  });
+});
+
+describe('conteúdo: nenhum tipo de inimigo fica órfão', () => {
+  it('todo tipo em ENEMY_TYPES é usado por alguma fase, por onda ou como boss', () => {
+    // 'shooter' ficou definido meses sem nenhuma fase citar: um inimigo que
+    // existe no código e não existe no jogo. Todo tipo que sobra é lixo com
+    // stats para balancear.
+    const usados = new Set(PHASES.flatMap(f => [...f.enemyTypes, ...(f.boss ? [f.boss] : [])]));
+    const orfaos = Object.keys(ENEMY_TYPES).filter(t => !usados.has(t));
+    expect(orfaos, `tipo definido e nunca usado: ${orfaos.join(', ')}`).toEqual([]);
+  });
+
+  it('toda fase cita pelo menos um tipo que existe', () => {
+    for (const fase of PHASES) {
+      const inexistentes = fase.enemyTypes.filter(t => !ENEMY_TYPES[t]);
+      expect(inexistentes, `${fase.name} cita tipo inexistente: ${inexistentes.join(', ')}`).toEqual([]);
+    }
+  });
+
+  it('toda fase tem ao menos um atirador, exceto a Cidade (tutorial)', () => {
+    // a fase 1 é a única sem atirador por decisão: ela ensina a ler o campo com
+    // um tipo só, e é a única que os props seguram tiro de inimigo.
+    const semAtirador = PHASES.filter(
+      f => !f.enemyTypes.some(t => ENEMY_TYPES[t].canShoot),
+    ).map(f => f.name);
+    expect(semAtirador).toEqual(['Cidade em Ruínas']);
   });
 });
 
