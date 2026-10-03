@@ -23,7 +23,7 @@ import { getCoins, spawnCoins, updateCoins, clearCoins, setMagnetActive, resetPe
 
 // Systems
 import { spawnParticles, updateParticles, clearParticles, getParticles } from './systems/particles';
-import { spawnWaveEnemies, resetSpawner, spawnEnemy } from './systems/spawner';
+import { spawnWaveEnemies, resetSpawner, spawnEnemy, setPhaseDifficulty } from './systems/spawner';
 import { checkBulletEnemyCollisions, checkEnemyPlayerCollision, checkEnemyBulletPlayerCollision, bulletHitsCircle } from './systems/collision';
 import { createExplosion, updateExplosions, clearExplosions } from './systems/explosions';
 import { loadMap, colAt, rowAt, charAt, isWall, hasPath, moveCircleBy, rebuildFlowField, sampleFlowDir, pushOutOfWalls, findAll } from './systems/tilemap';
@@ -282,6 +282,7 @@ function loadPhaseEnvironment(): void {
 
   clearProps();
   initProps(map.cells);
+  setPhaseDifficulty(phase.difficulty ?? 1);
   clearTerrain();
   buildTerrain(biome, map.cells);
 

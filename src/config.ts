@@ -23,17 +23,17 @@ export const PHASES: Phase[] = [
   {
     name: 'Caverna', bg: '#1a1a2e', bgColor2: '#0d0d1a', gridColor: 'rgba(100,100,150,0.1)',
     enemyTypes: ['grunt', 'runner', 'tank', 'bat', 'crystal'], waves: 5, map: 'caverna', hazard: 'darkness',
-    objective: 'destroy', objectiveTarget: 3, boss: 'crystalQueen',
+    difficulty: 0.8, objective: 'destroy', objectiveTarget: 3, boss: 'crystalQueen',
   },
   {
     name: 'Fábrica', bg: '#2e1a1a', bgColor2: '#1a0d0d', gridColor: 'rgba(150,100,100,0.1)',
     enemyTypes: ['grunt', 'runner', 'tank', 'robot', 'drone'], waves: 5, map: 'fabrica', hazard: 'electric',
-    objective: 'survive', objectiveTarget: 45, boss: 'sentinel',
+    difficulty: 0.85, objective: 'survive', objectiveTarget: 45, boss: 'sentinel',
   },
   {
     name: 'Pântano', bg: '#1a2e2e', bgColor2: '#0d1a1a', gridColor: 'rgba(34,150,150,0.1)',
     enemyTypes: ['grunt', 'slime', 'mosquito', 'frog'], waves: 6, map: 'pantano', hazard: 'mud',
-    objective: 'clear', objectiveTarget: 0, boss: 'leviathan',
+    difficulty: 0.95, objective: 'clear', objectiveTarget: 0, boss: 'leviathan',
   },
   {
     name: 'Castelo', bg: '#2e2e1a', bgColor2: '#1a1a0d', gridColor: 'rgba(150,150,100,0.1)',
@@ -43,7 +43,7 @@ export const PHASES: Phase[] = [
   {
     name: 'Vulcão', bg: '#2e0d0d', bgColor2: '#1a0505', gridColor: 'rgba(200,50,50,0.1)',
     enemyTypes: ['fireElemental', 'lavaSlime', 'magmaGolem', 'inferno'], waves: 7, map: 'vulcao', hazard: 'lava',
-    objective: 'reach', objectiveTarget: 0, boss: 'infernoPrime',
+    difficulty: 0.75, objective: 'reach', objectiveTarget: 0, boss: 'infernoPrime',
   },
   {
     name: 'Espaço', bg: '#05050d', bgColor2: '#020208', gridColor: 'rgba(100,100,200,0.05)',
@@ -52,7 +52,7 @@ export const PHASES: Phase[] = [
   },
   {
     name: 'Bunker Central', bg: '#15161a', bgColor2: '#0a0b0d', gridColor: 'rgba(160,128,80,0.05)',
-    enemyTypes: ['grunt', 'runner', 'tank', 'robot'], waves: 6, map: 'bunker', hazard: 'none',
+    enemyTypes: ['grunt', 'runner', 'tank', 'robot'], waves: 8, map: 'bunker', hazard: 'none',
     objective: 'clear', objectiveTarget: 0, boss: 'nucleo',
   },
 ];

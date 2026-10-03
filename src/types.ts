@@ -237,6 +237,13 @@ export interface Phase {
   hazard: HazardKind;
   /** Objetivo da fase */
   objective: ObjectiveKind;
+  /**
+   * Multiplicador de stats dos inimigos da fase (1 = sem ajuste).
+   *
+   * A rampa de dificuldade vem do número de ondas; este campo só corrige os
+   * tipos que fogem dela. Ver `balance.test.ts` para a curva medida.
+   */
+  difficulty?: number;
   /** Alvo numérico do objetivo (segundos, quantidade de ninhos, etc.) */
   objectiveTarget: number;
   /** Chave do tipo de inimigo boss desta fase, se houver */

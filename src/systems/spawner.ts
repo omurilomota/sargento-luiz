@@ -18,6 +18,13 @@ import { getSkillPressure } from './dynamicDifficulty';
 
 /** Temporizador acumulado desde o último spawn */
 let waveTimer = 0;
+/**
+ * Multiplicador de stats da fase atual (Phase.difficulty).
+ *
+ * Vive aqui como estado do módulo em vez de argumento novo em duas assinaturas
+ * que já têm 7 e 8 parâmetros: é o mesmo idioma de `resetSpawner`/`initCamera`.
+ */
+let difficulty = 1;
 /** Quantidade de inimigos já criados na onda atual */
 let enemiesSpawnedThisWave = 0;
 
@@ -28,9 +35,18 @@ export function getWaveTimer(): number { return waveTimer; }
 export function getEnemiesSpawned(): number { return enemiesSpawnedThisWave; }
 
 /** Reseta o temporizador e contador de inimigos da onda. */
+/**
+ * Define o multiplicador de stats da fase. Chamado ao carregar o mapa.
+ * @param value - Phase.difficulty da fase (1 = sem ajuste)
+ */
+export function setPhaseDifficulty(value: number): void {
+  difficulty = value;
+}
+
 export function resetSpawner(): void {
   waveTimer = 0;
   enemiesSpawnedThisWave = 0;
+  difficulty = 1;
 }
 
 /** Distância mínima do jogador para spawnar (px) */
@@ -105,8 +121,8 @@ export function spawnEnemy(
     ? { x: forceX, y: forceY }
     : pickSpawnPosition(rect ?? { w: worldWidth, h: worldHeight, px: 0, py: 0, viewW: worldWidth, viewH: worldHeight });
 
-  const waveScale = 1 + currentWave * WAVE_SCALE_PER_LEVEL;
-  const speedScale = 1 + currentWave * WAVE_SPEED_SCALE_PER_LEVEL;
+  const waveScale = (1 + currentWave * WAVE_SCALE_PER_LEVEL) * difficulty;
+  const speedScale = (1 + currentWave * WAVE_SPEED_SCALE_PER_LEVEL) * Math.sqrt(difficulty);
   const variance = 0.9 + Math.random() * 0.2;
 
   return {
