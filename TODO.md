@@ -59,13 +59,24 @@
 // --- ONLINE ---
 - [ ] Modo competitivo online para jogar com amigos.
 
+// --- OBJETIVO DE FASE ---
+// [x] 5 tipos de objetivo: clear, survive, destroy, protect, reach
+
+// --- GEOMETRIA (a maior pendência do projeto até v1.3) ---
+// [x] Tilemap 30×20 com colisão círculo-vs-grid e deslize por eixo
+// [x] Câmera com follow/clamp e conversão screen→mundo
+// [x] Flow field para IA (troca o seek direto que empilhava inimigos)
+// [x] Prerender do terreno com tint por bioma (1 drawImage/frame)
+// [x] Props destrutíveis: caixote, barril com explosão em cadeia, ninho
+// [x] 9 mapas autorais com hazard e objetivo próprios
+// [x] Colisão swept de projétil (Laser não atravessa mais inimigo)
+
 // --- HISTÓRIA / NARRATIVA ---
 - [x] Cutscenes com mais animação (fundo dinâmico por fase, retrato flutuando)
 - [x] Escolhas na história que afetam o final (3 finais diferentes)
 - [x] Personagens secundários integrados ao gameplay (NPCs spawam aleatoriamente)
 
 // --- GAMEPLAY ---
-- [ ] Continuação do jogo estilo Zombotron (2D lateral)
 
 // --- VISUAL ---
 - [x] Tiles de terreno por fase (floresta, caverna, fábrica, pântano, castelo, vulcão, espaço)
@@ -106,10 +117,25 @@
 // --- Cenas ---
 // retratos dos personagens (Rios, Vale, Ferreira) para cutscenes
 
+// --- LAYOUT / OVERLAP ---
+// [x] HUD 100% canvas em grade de 3 colunas (score não bate mais no minimapa)
+// [x] Geometria única da loja: draw e hit-test no mesmo getShopLayout
+// [x] Geometria única do menu: getMenuLayout (clique não selecionava outro modo)
+// [x] Modos cortados de 7 para 4 (3 eram inertes)
+
+// --- AUDIO ---
+// [x] 4 faixas OGG reais com crossfade no lugar do piano procedural
+// [x] Som distinto por habilidade (dash, escudo, fúria)
+// [x] Toggle de música/SFX no pause, com persistência
+
+// --- ASSETS ---
+// [x] assets/ movido para public/ (build de produção não copiava sprite nenhum)
+// [x] Pad de 2 dígitos no nome do tile (todo tile de 1 a 99 dava 404)
+// [x] Credits reais em public/assets/CREDITS.md
+
 // ═══════════════════════════════════════════════════════════════
 // SUGESTÕES AVANÇADAS (baixa prioridade)
 // ═══════════════════════════════════════════════════════════════
-- [ ] Modo survival com leaderboard online
 - [ ] Sistema de achievement/badges expandido
 - [x] Testes unitários para sistemas de colisão e dano
 - [x] Screen shake mais sutil e consistente (explosões, terremoto, relâmpago reduzidos)

@@ -7,9 +7,15 @@
 - **Stack**: TypeScript + Vite + Canvas 2D
 - **Entry point**: `src/main.ts` (orquestrador central)
 - **Arquitetura**: Módulos separados (entities, systems, ui, core)
-- **Áudio**: 100% procedural via Web Audio API (sem arquivos de áudio para SFX)
-- **Renderização**: Canvas 2D com fallback para sprites PNG
+- **SFX**: 100% procedural via Web Audio API (sem arquivo de SFX no repositório)
+- **Música**: 4 faixas OGG reais em loop, com crossfade (`public/assets/music/`)
+- **Renderização**: Canvas 2D. Sprites do pack Kenney **são** o visual; o
+  fallback procedural só entra se o pack não carregar
+- **Tela**: tudo em canvas. Não existe HUD em DOM — `index.html` tem só o
+  `<canvas>` e 6 linhas de CSS
 - **Estados do jogo**: menu → playing → shop → gameover (loop)
+- **Coordenadas**: o mundo é maior que a tela. Tudo que é entidade vive em
+  coordenadas de mundo; a câmera aplica UMA translação por frame no `draw()`
 
 ### Estrutura de Diretórios
 
@@ -17,54 +23,81 @@
 src/
 ├── main.ts              # Orquestrador, game loop, input, update/draw
 ├── config.ts            # Dados estáticos: fases, inimigos, armas, upgrades
-├── types.ts             # Interfaces TypeScript (Enemy, Bullet, Weapon, etc.)
+├── maps.ts              # Dados dos 9 mapas (30×20 chars) + paletas de bioma
+├── types.ts             # Interfaces TypeScript (Enemy, Bullet, Weapon, Phase...)
 ├── weapons.ts           # Sistema de armas, munição, recarga
 ├── powerups.ts          # Power-ups coletáveis
-├── phases.ts            # Progressão de fases e score
+├── phases.ts            # Progressão de fases, ondas e score
 ├── utils.ts             # Funções utilitárias (dist, normalize, rand)
 ├── core/
 │   ├── constants.ts     # Constantes de balanceamento
-│   └── gameState.ts     # Estado global (MORTO - não usar)
+│   └── palette.ts       # Paleta do jogo (fonte única de cor de UI)
 ├── entities/
 │   ├── player.ts        # Entidade do jogador (movimento, dano, cura)
-│   ├── bullet.ts        # Sistema de projéteis
+│   ├── bullet.ts        # Projéteis (guarda px/py para colisão swept)
 │   └── coin.ts          # Sistema de moedas e magnetismo
 ├── systems/
-│   ├── audio.ts         # Áudio procedural (Web Audio API)
-│   ├── collision.ts     # Detecção de colisão circle-circle
+│   ├── tilemap.ts       # Grid, colisão círculo-vs-grid com deslize, flow field
+│   ├── camera.ts        # Câmera com lerp, clamp e screen→world
+│   ├── terrain.ts       # Prerender do terreno com tint por bioma
+│   ├── props.ts         # Caixotes, barris e ninhos (geometria destrutível)
+│   ├── objectives.ts    # Objetivo por fase (clear/survive/destroy/protect/reach)
+│   ├── boss.ts          # Executor de padrão de boss data-driven
+│   ├── collision.ts     # Colisão swept (ponto-segmento) + circle-circle
+│   ├── audio.ts         # SFX procedural + música OGG com crossfade
 │   ├── effects.ts       # Screen shake, flash, hit stop, slow motion
 │   ├── environment.ts   # Eventos ambientais (terremoto, relâmpago, tempestade)
 │   ├── explosions.ts    # Explosões visuais + dano em área
-│   ├── gameModes.ts     # Modos: campaign, survival, missions, bossrush, competitive
-│   ├── renderer.ts      # Renderização Canvas 2D de todos os elementos
+│   ├── gameModes.ts     # Modos: campaign, competitive, local, hardcore
+│   ├── renderer.ts      # Renderização do mundo + menus + pause
 │   ├── skills.ts        # Habilidades: dash, shield, fury
-│   ├── spawner.ts       # Spawn de inimigos por onda
-│   ├── sprites.ts       # Carregamento lazy de sprites PNG
+│   ├── spawner.ts       # Spawn de inimigos por onda (fora da viewport)
+│   ├── sprites.ts       # Cache de sprites (6 poses × 9 personagens, tiles)
 │   ├── story.ts         # Cutscenes narrativas
 │   ├── bots.ts          # IA de bots para modo competitivo
-│   ├── combos.ts        # Sistema de sinergias entre armas/upgrades
+│   ├── combos.ts        # Sinergias entre armas/upgrades
 │   ├── localMultiplayer.ts # Multiplayer local 2 jogadores
-│   └── skins.ts         # Sistema de skins do jogador
+│   ├── npcs.ts          # NPCs de loja e de objetivo `protect`
+│   ├── achievements.ts  # Conquistas
+│   ├── diary.ts         # Diário de bordo
+│   ├── dynamicDifficulty.ts # Ajuste de dificuldade por comportamento
+│   ├── leaderboard.ts   # Recordes (localStorage)
+│   ├── saveSystem.ts    # Save/load (localStorage)
+│   ├── tutorial.ts      # Dicas contextuais do primeiro minuto
+│   ├── ads.ts           # Anúncios simulados
+│   └── skins.ts         # Skins do jogador
 ├── ui/
-│   ├── hud.ts           # HUD DOM (barra inferior)
-│   └── shop.ts          # Loja canvas (armas, upgrades, skins, ads)
-└── ads.ts (systems/)    # Sistema de anúncios simulados
-```
+│   ├── hud.ts           # HUD 100% canvas (grade de 3 colunas, sem overlap)
+│   └── shop.ts          # Loja canvas (getShopLayout é a geometria única)
+└── __tests__/           # Vitest: colisão swept, layout de loja/menu, mapas
 
-### Comandos
+tools/
+├── genmaps.py           # Gera e valida os 9 mapas (largura, borda, BFS)
+└── genmusic.py          # Sintetiza as 4 faixas OGG (precisa de ffmpeg)
 
-```bash
-npm run dev      # Desenvolvimento com hot reload
-npm run build    # Build de produção (tsc + vite build)
-npx tsc --noEmit # Type check sem gerar output
+public/assets/           # Assets estáticos (Vite copia public/ → dist/)
+├── sprites/topdown-shooter/PNG/  # Kenney Top-down Shooter, CC0
+└── music/*.ogg                   # Faixas originais do projeto, CC0
 ```
 
 ### Fluxo do Jogo
 
 1. **Menu** → ENTER → Cutscene → **Playing**
-2. **Playing** → ondas de inimigos → fase completa → **Shop**
-3. **Shop** → ENTER → próxima fase → **Playing**
-4. **Playing** → health <= 0 → **Game Over** → ENTER → **Menu**
+2. **Playing** → ondas de inimigos até o objetivo da fase ser cumprido
+3. Objetivo cumprido → **Shop** (pula no modo Hardcore)
+4. **Shop** → ENTER → próxima fase → **Playing**
+5. **Playing** → health <= 0 → **Game Over** → ENTER → **Menu**
+
+### Comandos
+
+```bash
+npm run dev        # Desenvolvimento com hot reload
+npm run build      # Build de produção (tsc + vite build)
+npm test           # Vitest
+npx tsc --noEmit   # Type check sem gerar output
+python3 tools/genmaps.py    # Regenera e revalida src/maps.ts
+python3 tools/genmusic.py   # Regenera public/assets/music/*.ogg
+```
 
 ---
 
@@ -153,7 +186,7 @@ npx tsc --noEmit # Type check sem gerar output
 
 3. **Manter o código vivo e orgânico.** Seguir os padrões existentes no projeto. Não introduzir novos frameworks, libs ou padrões sem necessidade explícita.
 
-4. **Remover o que não funciona.** Se um módulo está morto (como `core/gameState.ts`), marcar claramente ou remover. Não manter código morto "por precaução".
+4. **Remover o que não funciona.** Se um módulo está morto, remover. Não manter código morto "por precaução". (`core/gameState.ts` foi removido nesta versão; a lista acima é o estado real do disco.)
 
 5. **Verificar antes de afirmar.** Nunca dizer "está funcionando" sem rodar `npm run build` ou `npx tsc --noEmit`. Evidência antes de afirmação.
 
@@ -165,7 +198,7 @@ npx tsc --noEmit # Type check sem gerar output
 
 9. **Respeitar o escopo.** Se o usuário pede "corrigir o bug X", corrigir o bug X. Não "enquanto isso, vou refatorar o sistema Y".
 
-10. **Perguntar antes de假设.** Se algo é ambíguo, perguntar ao usuário. Não assumir preferências de design ou arquitetura.
+10. **Perguntar antes de assumir.** Se algo é ambíguo, perguntar ao usuário. Não assumir preferências de design ou arquitetura.
 
 ### Fluxo de Trabalho
 
@@ -179,6 +212,8 @@ Receber tarefa
   → Reportar o que foi feito
   → Parar
 ```
+
+Em **Modo Autônomo** (seção abaixo) o fluxo não termina em "Parar": ele volta para "Receber tarefa" e repete até o escopo acabar.
 
 ### O que NÃO fazer
 
@@ -199,6 +234,69 @@ Receber tarefa
 - Tradeoff técnico (Performance vs legibilidade)
 - Prioridade entre tarefas concorrentes
 - Antes de mudar arquitetura existente
+
+### Modo Autônomo (usuário ausente)
+
+**Gatilho.** O usuário avisa que vai sair do PC. Frases equivalentes:
+
+> "vou sair do pc, trabalhe o máximo sem mim"
+> "não vou estar aí, continua sozinho"
+> "deixa rodando, eu revejo depois"
+> "pode ir sem me perguntar nada"
+
+**O que muda.** A partir dessa frase, e até o escopo acabar:
+
+1. **Não perguntar nada.** Zero perguntas, mesmo as que a seção "Quando Perguntar" listaria. Ambiguidade não é motivo para parar.
+2. **Não parar para reportar.** Não encerrar a tarefa, não esperar confirmação, não devolver "pronto, e agora?". Cada entrega vira entrada da próxima.
+3. **Não travar.** Se um caminho falhar (teste quebrado, hipótese errada, arquivo inesperado), registrar e seguir pelo próximo caminho. Só parar em bloqueio absoluto que impeça qualquer progresso.
+4. **Decidir e registrar.** Toda decisão tomada no lugar do usuário vai para o log (§ abaixo), com o motivo. O usuário audita depois em vez de responder pergunta a pergunta.
+5. **Encerrar quando o escopo acabar, não antes.** Se o pedido for "faça o plano inteiro", entregar o plano inteiro — sprint por sprint, sem para no meio para perguntar se continua.
+6. **Ter autoridade para criar tarefa e resolver pendência por conta própria.** Não é só executar o que foi pedido: enquanto o usuário estiver fora, o backlog é do projeto. Se aparecer bug, teste quebrado, código morto, inconsistência entre docs e código ou item do `TODO.md`/`STATUS.md` dentro do escopo do projeto, a IA cria a tarefa e resolve. Não precisa esperar alguém listar o que fazer.
+
+### O que a autoridade autônoma alcança
+
+Cobre, sem depender de novo pedido:
+
+- **Criar e gerenciar tarefas** — escrever no `TODO.md`/`STATUS.md` o que foi descoberto e o que foi entregue, para retomar de onde parou.
+- **Corrigir bugs e testes quebrados** que aparecerem durante a execução, mesmo não tendo sido o alvo.
+- **Remover código morto** e reconciliar documentação desatualizada com o código real.
+- **Executar o plano inteiro** quando o pedido foi um plano, e só parar quando ele acabar.
+- **Refazer a verificação** (`npx tsc --noEmit`, `npm test`, `npm run build`) a cada unidade de trabalho.
+
+Não cobre — continua valendo a regra de sempre:
+
+- Push, tag, release ou qualquer escrita em remoto.
+- `reset --hard`, `push --force`, `rebase -i`, alteração de branch no meio da autonomous.
+- Commit, a menos que o pedido original já tenha dito para commitar.
+- Mudança de direção de design (novo sistema, remover um sistema inteiro, trocar a identidade do jogo).
+
+### O que NÃO muda
+
+O modo autônomo dá autonomia de escopo, não de segurança:
+
+- **Nada de git destrutivo.** Sem `push --force`, sem `reset --hard`, sem `rebase -i`, sem mexer em git config. Commitar apenas se o usuário tiver pedido commit.
+- **Sem trocar o arquivo de branch no meio da autonomous.** Escolher a branch uma vez, no começo.
+- **Verificação continua obrigatória.** `npx tsc --noEmit` e `npm test` no fim de cada unidade de trabalho. Modo autônomo sem build verde é só código não verificado.
+- **Sem decisão de design irreversível.** Escolher entre duas leituras defensáveis é ok; apagar ou reescrever algo fora do escopo pedido, não.
+
+### Log de Decisões Autônomas
+
+Enquanto o usuário estiver ausente, manter `docs/DECISIONS.md` aberto e acrescentando uma linha por decisão:
+
+```markdown
+| # | Onde | Decisão | Motivo | Alternativa rejeitada |
+|---|------|---------|--------|------------------------|
+| 1 | src/systems/renderer.ts | HUD 100% canvas | 4 layers disputavam os mesmos pixels | Manter HUD parcial em DOM |
+```
+
+Regras do log:
+
+- Uma linha por decisão, sem parágrafo.
+- Sempre com a alternativa rejeitada — é o que permite revisar sem reconstruir o raciocínio.
+- Só decisões, não narrated de etapas ("rodei o teste", "editei o arquivo").
+- Nunca editados retroativamente para justificar a escolha: se a decisão mudou, linha nova.
+
+No relatório final ao usuário voltar, listar as decisões que ele pode querer desfazer, com o número da linha.
 
 ---
 
