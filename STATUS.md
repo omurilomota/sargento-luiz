@@ -31,6 +31,8 @@ ataca isso primeiro.
 - **Props destrutíveis**: caixote (moeda), barril (explosão em cadeia), ninho
   (objetivo de fase)
 - **9 mapas autorais**, cada um com hazard e objetivo próprios
+- **9 hazards com efeito mecânico**: os 9 biomas têm efeito próprio, inclusive
+  os dois que antes eram só número (`fog` e `debris`)
 - **Objetivos de fase**: `clear` · `survive` · `destroy` · `protect` · `reach`
 - **Boss data-driven**: **9 bosses** com padrão declarativo e telegrafia
 
@@ -56,6 +58,15 @@ ataca isso primeiro.
 - **Chefe não telegrafava a primeira ação**: `step` do runtime começava em `0`, o
   que fazia `step.index !== rt.step` ser falso no primeiro frame — o chefe
   ficava 2.6s em silêncio e atacava sem aviso
+- **O terreno deslocava em tela larga**: a câmera já centraliza o mundo quando
+  ele é menor que a viewport, e `drawTerrain` centralizava de novo — numa janela
+  de 2560px o mapa de 1920px aparecia 320px à direita, com a borda cortada
+- **A lanterna da Caverna ficava fora de lugar**: o overlay transladava a câmera
+  duas vezes, então o furo do cone saía deslocado de (camX, camY). Só coincidia
+  no canto do mapa, onde `camX` é 0
+- **Investida de chefe atravessava parede**: `updateBoss` escrevia em `e.x`/`e.y`
+  direto, sem passar por `moveCircleBy`. Os quatro blocos de cobertura da praça
+  do VIGIA eram inúteis porque o chefe saía da arena pela parede
 - Relâmpago tirava 40 de dano sem nenhum feedback visual
 - Tiro do Laser na cor errada (o `isCrit` agora é flag, não comparação de string)
 - Chave presa ao voltar para a janela (`keyup` só era tratado em `playing`)

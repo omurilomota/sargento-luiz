@@ -70,6 +70,14 @@
 // [x] Texto da telegrafia aparece na barra de boss (era dado morto)
 // [x] Primeira ação de cada chefe telegrafada (step do runtime = -1)
 // [ ] Chefe não morre em cima do jogador: killEnemy no contato vale para todos
+// [x] Investida resolve contra o grid (a praça do VIGIA ficou inútil sem isso)
+// [x] Lanterna da Caverna centralizada no jogador (overlay transladava 2x)
+// [x] Terreno não desloca mais em viewport maior que o mapa
+
+// --- HAZARDS ---
+// [x] fog (Floresta) deixa de ser número: vinheta larga em torno do jogador
+// [x] debris (Cidade) deixa de ser número: props seguram tiro e desmoronam
+// [x] Os 9 biomas têm efeito mecânico próprio (antes 6 de 9)
 
 // --- GEOMETRIA (a maior pendência do projeto até v1.3) ---
 // [x] Tilemap 30×20 com colisão círculo-vs-grid e deslize por eixo

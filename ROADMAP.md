@@ -47,8 +47,11 @@ Cada item destrava algo maior que ele mesmo.
       no HUD, mas nenhum mapa o usa. Precisa de um inimigo com IA de alvo.
 - [ ] **Cobertura que muda a decisão de rota.** Barril destrutível já existe;
       falta uma paleta de props por bioma (Caverna e Vulcão repetem).
-- [ ] **Balanceamento por bioma.** Hoje a dificuldade é a mesma nos 9; o que
-      diferencia é o hazard. Verificar se hazard substitui diferença de stats.
+- [x] **Balanceamento por bioma.** Os 9 hazards agora têm efeito mecânico
+      próprio, inclusive `fog` e `debris`, que eram só número. Falta decidir se
+      isso substitui diferença de stats entre fases.
+- [ ] **Props como cobertura real nas outras fases.** Só a Cidade tem props que
+      seguram tiro de inimigo; aplicar nas 9 muda o balanceamento de uma vez.
 - [ ] **Achievements expandidos** (13 existem, o backlog pede mais).
 
 ## v2.0 — o que exige decisão de design, não implementação ⏳
