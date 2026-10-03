@@ -269,6 +269,12 @@ export interface EnemyType {
   isBoss?: boolean;
   /** Indica se possui armadura (forma hexagonal) */
   armor?: boolean;
+  /**
+   * Indica que o inimigo caça o NPC protegido em vez do jogador.
+   * Só o objetivo `protect` usa; sem isso o NPC é só alguém que foge de todo
+   * mundo por igual e o jogador não tem agência nenhuma no objetivo.
+   */
+  huntsNpc?: boolean;
   /** Indica se dispara múltiplos projéteis em leque */
   spreadShot?: boolean;
   /** Indica se o projétil se divide em 4 direções */

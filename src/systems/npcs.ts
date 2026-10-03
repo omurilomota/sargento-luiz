@@ -12,6 +12,11 @@ export interface NPC {
   messageTimer: number;
 }
 
+import { registerVipDown } from './objectives';
+
+/** Dano por segundo do NPC enquanto um inimigo encosta nele. */
+const NPC_CONTACT_DPS = 30;
+
 let npcs: NPC[] = [];
 
 const NPC_DEFS = [
@@ -72,9 +77,15 @@ export function updateNPCs(dt: number, playerX: number, playerY: number, enemies
       if (e.health <= 0) continue;
       const d = Math.hypot(e.x - npc.x, e.y - npc.y);
       if (d < npc.radius + e.radius) {
-        npc.health -= 10;
+        // dano por segundo, não por frame: `health -= 10` dentro do loop dava
+        // 600 HP/s a 60fps e 300 a 30fps, e matava o sobrevivente em 5 frames
+        npc.health -= NPC_CONTACT_DPS * dt;
         if (npc.health <= 0) {
           npc.alive = false;
+          // avisa o objetivo: sem isso `deadNpc` ficava false para sempre e o
+          // objetivo protect dependia só de vip.alive, que deixa de funcionar
+          // quando o NPC sai da lista depois do messageTimer
+          registerVipDown();
         }
         break;
       }

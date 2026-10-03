@@ -26,7 +26,7 @@ import { spawnParticles, updateParticles, clearParticles, getParticles } from '.
 import { spawnWaveEnemies, resetSpawner, spawnEnemy } from './systems/spawner';
 import { checkBulletEnemyCollisions, checkEnemyPlayerCollision, checkEnemyBulletPlayerCollision, bulletHitsCircle } from './systems/collision';
 import { createExplosion, updateExplosions, clearExplosions } from './systems/explosions';
-import { loadMap, colAt, rowAt, charAt, moveCircleBy, rebuildFlowField, sampleFlowDir, pushOutOfWalls, findAll } from './systems/tilemap';
+import { loadMap, colAt, rowAt, charAt, isWall, hasPath, moveCircleBy, rebuildFlowField, sampleFlowDir, pushOutOfWalls, findAll } from './systems/tilemap';
 import { initCamera, setViewportSize, setWorldSize, updateCamera, snapCamera, getCamX, getCamY, screenToWorld, drawVoid, isVisible, setShake } from './systems/camera';
 import { initProps, getProps, updateProps, damageProp, detonateProp, getBlast, drawProps, clearProps, Prop } from './systems/props';
 import { buildTerrain, drawTerrain, clearTerrain } from './systems/terrain';
@@ -240,6 +240,26 @@ function isWaitingForChoiceSafe(): boolean { return isWaitingForChoice(); }
 function selectChoiceSafe(i: number): void { selectChoice(i); }
 
 /** Carrega mapa, terreno, props, câmera e objetivo da fase atual. */
+/**
+ * Acha uma célula andável a 8–12 células do spawn, para o sobrevivente do
+ * objetivo `protect`.
+ *
+ * Distância importa: com o NPC colado no jogador, "proteger o sobrevivente" e
+ * "proteger a si mesmo" viram literalmente o mesmo objetivo, e o arquiereiro
+ * caçando o NPC parece indistinguishable de qualquer inimigo normal.
+ */
+function findVipCell(origin: { col: number; row: number }): { col: number; row: number } {
+  const direcoes: [number, number][] = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+  for (const raio of [12, 11, 10, 9, 8]) {
+    for (const [dc, dr] of direcoes) {
+      const col = origin.col + dc * raio;
+      const row = origin.row + dr * raio;
+      if (!isWall(col, row) && hasPath(origin.col, origin.row, col, row)) return { col, row };
+    }
+  }
+  return { col: origin.col + 1, row: origin.row };
+}
+
 function loadPhaseEnvironment(): void {
   const phase = getCurrentPhase();
   const biome = BIOMES[phase.map];
@@ -270,6 +290,16 @@ function loadPhaseEnvironment(): void {
 
   const spawn = findAll('P')[0] ?? { col: 1, row: 1 };
   const pos = cellCenter(spawn.col, spawn.row);
+
+  // O objetivo protect precisa de um sobrevivente determinístico: os NPCs que
+  // aparecem na loja são aleatórios e podem não existir nenhum. Nasce do lado
+  // do jogador, e o índice 0 é o que o objectives.ts lê.
+  resetNPCs();
+  if (phase.objective === 'protect') {
+    const vipCell = findVipCell(spawn);
+    const vip = cellCenter(vipCell.col, vipCell.row);
+    spawnNPC(vip.x, vip.y, 1);
+  }
   player.initPlayer(worldW, worldH);
   player.getPlayer().x = pos.x;
   player.getPlayer().y = pos.y;
@@ -505,12 +535,21 @@ function update(dt: number) {
       // boss não entra no empilhamento
       if (e.hitFlash > 0) continue;
     } else {
+      // O caçador do NPC (huntsNpc) ignora o flow field, que aponta para o
+      // jogador, e vai direto no sobrevivente. Sem isso o objetivo protect é só
+      // "não deixe o NPC morrer", e o NPC foge de todo mundo por igual — o
+      // jogador não teria nada a fazer além de limpar a fase como sempre.
+      const prey = def?.huntsNpc ? getNPCs().find(n => n.alive) : undefined;
       const flow = sampleFlowDir(e.x, e.y);
       // perto do jogador o flow field é ruidoso: aí vai o seek direto
       const distToPlayer = Math.hypot(p.x - e.x, p.y - e.y);
       let seekX: number;
       let seekY: number;
-      if (distToPlayer < 140) {
+      if (prey) {
+        const caça = normalize({ x: prey.x - e.x, y: prey.y - e.y });
+        seekX = caça.x;
+        seekY = caça.y;
+      } else if (distToPlayer < 140) {
         const direct = normalize({ x: p.x + tendency.h * 60 - e.x, y: p.y + tendency.v * 60 - e.y });
         seekX = direct.x;
         seekY = direct.y;
@@ -551,7 +590,9 @@ function update(dt: number) {
 
     if (e.canShoot && !ENEMY_TYPES[e.type]?.isBoss) {
       e.shootTimer -= dt;
-      if (e.shootTimer <= 0) shootEnemyAt(e, p.x, p.y);
+      // o caçador atira no sobrevivente, não no jogador
+      const preyAlvo = def?.huntsNpc ? getNPCs().find(n => n.alive) : undefined;
+      if (e.shootTimer <= 0) shootEnemyAt(e, preyAlvo ? preyAlvo.x : p.x, preyAlvo ? preyAlvo.y : p.y);
     }
 
     if (ENEMY_TYPES[e.type]?.leavesFire) {
@@ -1030,7 +1071,9 @@ function leaveShop(): void {
   clearParticles();
   damageNumbers.length = 0;
   resetCombo();
-  resetNPCs();
+  // resetNPCs fica em loadPhaseEnvironment: ele monta o estado por fase (props,
+  // terreno, objetivo, NPC). Resetar aqui depois apagaria o sobrevivente que o
+  // objetivo protect acabou de criar.
   bossZoomTriggered = false;
   phaseTransitionTimer = 2.0;
   resetInput();

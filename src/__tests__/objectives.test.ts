@@ -3,7 +3,7 @@ import {
   initObjective, updateObjective, peekObjective, registerObjectiveDestroyed,
   registerVipDown, cellCenter, ReachZone,
 } from '../systems/objectives';
-import { resetNPCs, spawnNPC } from '../systems/npcs';
+import { resetNPCs, spawnNPC, getNPCs, updateNPCs } from '../systems/npcs';
 
 const ZONA: ReachZone[] = [{ x: 500, y: 500, radius: 60 }];
 
@@ -112,5 +112,59 @@ describe('objectives: cellCenter', () => {
   it('devolve o centro da célula, não o canto', () => {
     expect(cellCenter(0, 0)).toEqual({ x: 32, y: 32 });
     expect(cellCenter(15, 22)).toEqual({ x: 992, y: 1440 });
+  });
+});
+describe('objectives: protect não termina antes da luta começar', () => {
+  beforeEach(() => resetNPCs());
+
+  it('com a área limpa no primeiro frame, a fase NÃO encerra', () => {
+    // `enemiesAlive === 0` é verdade nos 0.8s antes do primeiro spawn: sem o
+    // latch a fase de protect acabava antes de aparecer inimigo nenhum.
+    initObjective('protect', 0);
+    spawnNPC(400, 400, 1);
+    const r = peekObjective(0, 0, 0, ZONA);
+    expect(r.done).toBe(false);
+    expect(r.detail).toContain('aguardando');
+  });
+
+  it('conclui quando o NPC sobrevive, a área limpa e houve luta', () => {
+    initObjective('protect', 0);
+    spawnNPC(400, 400, 1);
+    updateObjective(0, 0, 0, 3, ZONA);   // houve inimigo em campo
+    expect(updateObjective(0, 0, 0, 0, ZONA).done).toBe(true);
+  });
+
+  it('o latch zera na troca de fase', () => {
+    initObjective('protect', 0);
+    spawnNPC(400, 400, 1);
+    updateObjective(0, 0, 0, 3, ZONA);
+    initObjective('protect', 0);
+    spawnNPC(400, 400, 1);
+    expect(peekObjective(0, 0, 0, ZONA).done).toBe(false);
+  });
+});
+
+describe('npcs: o dano por contato é por segundo, não por frame', () => {
+  beforeEach(() => resetNPCs());
+
+  it('30 DPS independe do frame rate', () => {
+    // a 10 frames de 1/60 e a 10 frames de 1/30 o NPC perde o mesmo
+    resetNPCs(); spawnNPC(400, 400, 2);   // Civil: 15 de vida
+    const npc1 = getNPCs()[0];
+    const alvo1 = npc1.health;
+    updateNPCs(1 / 60, 0, 0, [{ x: 400, y: 400, radius: 40, health: 10 }]);
+
+    resetNPCs(); spawnNPC(400, 400, 2);
+    const npc2 = getNPCs()[0];
+    const alvo2 = npc2.health;
+    updateNPCs(1 / 30, 0, 0, [{ x: 400, y: 400, radius: 40, health: 10 }]);
+
+    // 30 DPS × 1/60 = 0.5 por frame contra 30 × 1/30 = 1.0: o dobro de dano no
+    // dobro de tempo. O que não pode é o、旧 comportamento de 10 por frame.
+    const dano1 = alvo1 - npc1.health;
+    const dano2 = alvo2 - npc2.health;
+    expect(dano1).toBeCloseTo(0.5, 1);
+    expect(dano2).toBeCloseTo(1.0, 1);
+    expect(dano1).toBeLessThan(10);
   });
 });

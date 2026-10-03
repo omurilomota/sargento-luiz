@@ -38,7 +38,7 @@ export const PHASES: Phase[] = [
   {
     name: 'Castelo', bg: '#2e2e1a', bgColor2: '#1a1a0d', gridColor: 'rgba(150,150,100,0.1)',
     enemyTypes: ['knight', 'archer', 'mage'], waves: 6, map: 'castelo', hazard: 'spikes',
-    objective: 'clear', objectiveTarget: 0, boss: 'reiMutante',
+    objective: 'protect', objectiveTarget: 0, boss: 'reiMutante',
   },
   {
     name: 'Vulcão', bg: '#2e0d0d', bgColor2: '#1a0505', gridColor: 'rgba(200,50,50,0.1)',
@@ -71,7 +71,10 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
   mosquito: { radius: 8, speed: 200, health: 8, damage: 4, color: '#8a6a4a', scoreValue: 8, coinDrop: 1 },
   frog: { radius: 18, speed: 90, health: 22, damage: 10, color: '#5a7a5a', scoreValue: 22, coinDrop: 3, canShoot: true, shootRate: 2.5, bulletSpeed: 300, projectileColor: PALETTE.stone },
   knight: { radius: 20, speed: 65, health: 45, damage: 18, color: '#8a8a7a', scoreValue: 35, coinDrop: 5, armor: true },
-  archer: { radius: 13, speed: 55, health: 20, damage: 8, color: '#b07050', scoreValue: 28, coinDrop: 4, canShoot: true, shootRate: 1.2, bulletSpeed: 400, projectileColor: PALETTE.terracotta },
+  // O arqueiro é o caçador do sobrevivente: passa por você para atirar no NPC.
+  // knight e mage continuam caçando o jogador, então a pressão não some — o
+  // jogador escolhe entre matar o arqueiro ou servir de escudo.
+  archer: { radius: 13, speed: 55, health: 20, damage: 8, color: '#b07050', scoreValue: 28, coinDrop: 4, canShoot: true, huntsNpc: true, shootRate: 1.2, bulletSpeed: 400, projectileColor: PALETTE.terracotta },
   mage: { radius: 15, speed: 50, health: 25, damage: 12, color: '#7a6a8a', scoreValue: 45, coinDrop: 8, canShoot: true, shootRate: 2.0, bulletSpeed: 350, projectileColor: '#7a6a8a' },
   fireElemental: { radius: 17, speed: 85, health: 28, damage: 12, color: '#8b4040', scoreValue: 30, coinDrop: 4, canShoot: true, shootRate: 1.8, bulletSpeed: 300, leavesFire: true, projectileColor: '#c46a3a' },
   lavaSlime: { radius: 22, speed: 45, health: 35, damage: 10, color: '#8a5a3a', scoreValue: 25, coinDrop: 4 },

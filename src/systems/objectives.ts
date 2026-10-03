@@ -27,6 +27,8 @@ let timer = 0;
 let destroyed = 0;
 let deadNpc = false;
 let reached = false;
+/** O objetivo `protect` latcheia isto: sem ele, a fase termina no 1o frame. */
+let sawEnemies = false;
 
 /**
  * Inicia o objetivo da fase.
@@ -40,6 +42,7 @@ export function initObjective(objective: ObjectiveKind, objectiveTarget: number)
   destroyed = 0;
   deadNpc = false;
   reached = false;
+  sawEnemies = false;
 }
 
 /** Registra a destruição de um ninho/objetivo do mapa. */
@@ -89,14 +92,18 @@ export function peekObjective(
     case 'protect': {
       const vip = getNPCs()[0];
       const alive = !deadNpc && !!vip && vip.alive;
-      // Concluir é: o NPC sobreviveu E a fase acabou. `enemiesAlive === 0`
-      // sozinho nunca bastava — sem isso o objetivo era impossível de fechar
-      // em qualquer fase, porque nunca devolvia `done: true`.
+      // Concluir é: o NPC sobreviveu, a área está limpa, e a luta aconteceu.
+      //
+      // O terceiro predicado é o que impede a fase de acabar no primeiro frame:
+      // `enemiesAlive === 0` é verdade nos 0.8s antes do primeiro spawn, então
+      // sem o latch uma fase de protect terminava antes de aparecer inimigo
+      // nenhum. A troca: limpar a onda 0 já encerra a fase, pulando as ondas
+      // seguintes e o chefe — o mesmo contrato dos outros objetivos não-clear.
       return {
         label: 'PROTEGER O SOBREVIVENTE',
         progress: alive ? 1 : 0,
-        detail: alive ? 'VIVO' : 'PERDIDO',
-        done: alive && enemiesAlive === 0,
+        detail: alive ? (sawEnemies ? 'VIVO' : 'VIVO (aguardando)') : 'PERDIDO',
+        done: alive && enemiesAlive === 0 && sawEnemies,
       };
     }
     case 'reach': {
@@ -137,6 +144,7 @@ export function updateObjective(
   enemiesAlive: number,
   reachZones: ReachZone[] = []
 ): ObjectiveProgress {
+  if (enemiesAlive > 0) sawEnemies = true;
   if (kind === 'survive') timer += dt;
   if (kind === 'reach' && !reached) {
     for (const z of reachZones) {
