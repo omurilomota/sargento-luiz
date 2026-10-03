@@ -514,6 +514,28 @@ export function drawEnemies(
     ctx.fill();
 
     const def = ENEMY_TYPES[e.type];
+
+    // Chefe ganha um anel no chão, na mesma linguagem das auras do jogador. Sem
+    // isso o chefe só se distingue do trash pelo tamanho e pela barra de vida, e
+    // num mapa com 12 inimigos o jogador não sabe de relance qual é o alvo.
+    //
+    // A cor é uma só para todos os chefes, e não a do chefe: com a cor dele o
+    // anel do NÚCLEO (#7a7a8a) desaparecia no piso cinza do Bunker. Uma cor
+    // única diz "isto é o alvo" sem competir com a paleta do bioma. Terracota é
+    // a mesma família da barra de vida do inimigo, então é o mesmo vocabulário.
+    // O alpha respira devagar para não se confundir com a elipse estática do
+    // hazard no chão.
+    if (def?.isBoss) {
+      const pulso = 0.5 + Math.sin(Date.now() / 800 + e.x * 0.01) * 0.18;
+      ctx.strokeStyle = PALETTE.terracotta;
+      ctx.globalAlpha = pulso;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.ellipse(e.x, e.y + e.radius * 0.6, e.radius * 1.1, e.radius * 0.42, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
     const char = getEnemyCharacter(e.type);
     const pose = enemyPose(e);
     const img = spritesOn ? getSprite(poseKey(char, pose)) : null;
