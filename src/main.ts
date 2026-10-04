@@ -508,222 +508,14 @@ function update(dt: number) {
     }
   }
 
-  // ── IA dos inimigos: flow field + separação ──
-  const tendency = getPlayerTendency();
-  for (const e of enemies) {
-    if (e.spawnDelay > 0) {
-      e.spawnDelay -= dt;
-      continue;
-    }
-    if (e.hitFlash > 0) e.hitFlash -= dt;
-
-    const def = ENEMY_TYPES[e.type];
-    if (def?.isBoss) {
-      for (const minion of updateBoss(e, p.x, p.y, worldW, worldH, dt)) enemies.push(minion);
-      // boss não entra no empilhamento
-      if (e.hitFlash > 0) continue;
-    } else {
-      // O caçador do NPC (huntsNpc) ignora o flow field, que aponta para o
-      // jogador, e vai direto no sobrevivente. Sem isso o objetivo protect é só
-      // "não deixe o NPC morrer", e o NPC foge de todo mundo por igual — o
-      // jogador não teria nada a fazer além de limpar a fase como sempre.
-      const prey = def?.huntsNpc ? getNPCs().find(n => n.alive) : undefined;
-      const flow = sampleFlowDir(e.x, e.y);
-      // perto do jogador o flow field é ruidoso: aí vai o seek direto
-      const distToPlayer = Math.hypot(p.x - e.x, p.y - e.y);
-      let seekX: number;
-      let seekY: number;
-      if (prey) {
-        const caça = normalize({ x: prey.x - e.x, y: prey.y - e.y });
-        seekX = caça.x;
-        seekY = caça.y;
-      } else if (distToPlayer < 140) {
-        const direct = normalize({ x: p.x + tendency.h * 60 - e.x, y: p.y + tendency.v * 60 - e.y });
-        seekX = direct.x;
-        seekY = direct.y;
-      } else if (flow.x !== 0 || flow.y !== 0) {
-        seekX = flow.x;
-        seekY = flow.y;
-      } else {
-        const direct = normalize({ x: p.x - e.x, y: p.y - e.y });
-        seekX = direct.x;
-        seekY = direct.y;
-      }
-
-      // separação: resolve o empilhamento sem custo de pathfinding
-      let sepX = 0;
-      let sepY = 0;
-      for (const other of enemies) {
-        if (other === e) continue;
-        const d = Math.hypot(other.x - e.x, other.y - e.y);
-        const minDist = e.radius + other.radius;
-        if (d > 0.001 && d < minDist) {
-          const push = (minDist - d) / minDist;
-          sepX -= ((other.x - e.x) / d) * push;
-          sepY -= ((other.y - e.y) / d) * push;
-        }
-      }
-
-      const spd = e.type === 'mosquito' ? e.speed * 1.3 : e.speed;
-      const gravityPush = phase.hazard === 'lowGravity' ? 1.35 : 1;
-      const next = moveCircleBy(
-        e.x, e.y,
-        (seekX + sepX * 1.6) * spd * dt * gravityPush,
-        (seekY + sepY * 1.6) * spd * dt * gravityPush,
-        e.radius
-      );
-      e.x = next.x;
-      e.y = next.y;
-    }
-
-    if (e.canShoot && !ENEMY_TYPES[e.type]?.isBoss) {
-      e.shootTimer -= dt;
-      // o caçador atira no sobrevivente, não no jogador
-      const preyAlvo = def?.huntsNpc ? getNPCs().find(n => n.alive) : undefined;
-      if (e.shootTimer <= 0) shootEnemyAt(e, preyAlvo ? preyAlvo.x : p.x, preyAlvo ? preyAlvo.y : p.y);
-    }
-
-    if (ENEMY_TYPES[e.type]?.leavesFire) {
-      e.attackTimer += dt;
-      if (e.attackTimer >= 0.5) {
-        e.attackTimer = 0;
-        spawnParticles(e.x, e.y + e.radius, '#c46a3a', 3, 50);
-      }
-    }
-  }
+  updateEnemyAi(dt, p, phase);
 
   // ── bots (competitivo) ──
   if (getCurrentMode() === 'competitive') updateBotsAndCompetitors(p);
+  resolveCollisions(p);
 
-  // ── colisões ──
-  const activeEnemies = enemies.filter(e => e.spawnDelay <= 0);
-  checkEnemyPlayerCollision(activeEnemies, p.x, p.y, p.radius, p.invincible, (e) => {
-    const baseDmg = hasPowerUp('invincible') ? 0 : e.damage;
-    const dmg = Math.floor(baseDmg * getDamageTakenMultiplier());
-    if (dmg > 0) {
-      checkAchievements('damage_taken');
-      player.enemyCollisionDamage(dmg);
-      sfxPlayerHit();
-      triggerDamageFlash();
-    }
-    // Encostar mata melee — investir num zumbi funciona e é uma decisão do
-    // jogador. Chefe não: VIGIA, ALPHA WOLF e REI MUTANTE abrem o padrão com
-    // investida, e se matariam sozinhos no contato, o que entregava a luta de
-    // graça para quem ficasse parado. O chefe leva o dano e continua.
-    if (!ENEMY_TYPES[e.type]?.isBoss) killEnemy(e, false);
-  });
+  endOfFrame(dt, p);
 
-  const bullets = getBullets();
-
-  checkEnemyBulletPlayerCollision(bullets, p.x, p.y, p.radius, p.invincible, (b) => {
-    const dmg = Math.floor(b.damage * getDamageTakenMultiplier());
-    if (dmg > 0) {
-      checkAchievements('damage_taken');
-      player.enemyCollisionDamage(dmg);
-      sfxPlayerHit();
-      triggerDamageFlash();
-    }
-    b.life = 0;
-    spawnParticles(b.x, b.y, b.color, 3, 100);
-  });
-
-  // projétil vs prop (a bala quebra o que estiver no caminho)
-  updateBulletProps(bullets);
-
-  checkBulletEnemyCollisions(bullets, enemies, (b, e) => {
-    e.hitFlash = 0.15;
-    registerHit();
-    // crítico vem do flag, não de comparar string de cor
-    const isCrit = b.isCrit;
-    if (b.explosive && b.explosionRadius) {
-      createExplosion(b.x, b.y, b.explosionRadius, b.damage, enemies, b.color);
-      sfxExplosion();
-      triggerScreenShake(5, 0.15);
-    } else {
-      e.health -= b.damage;
-      damageNumbers.push({
-        x: e.x + (Math.random() - 0.5) * 20,
-        y: e.y - 20,
-        text: isCrit ? `${Math.floor(b.damage)}!` : String(Math.floor(b.damage)),
-        color: isCrit ? PALETTE.crit : PALETTE.text,
-        life: 1,
-        vy: -80,
-      });
-    }
-    if (isCrit) {
-      triggerSlowMotion(0.15, 0.3);
-      spawnParticles(b.x, b.y, PALETTE.crit, 8, 200);
-    }
-    if (!b.pierce) b.life = 0;
-    spawnParticles(b.x, b.y, b.color, 3, 150);
-    triggerHitStop(0.015);
-  });
-
-  if (getCurrentMode() === 'competitive') {
-    for (const b of bullets) {
-      if (b.isEnemy || b.life <= 0) continue;
-      for (const bot of getBots()) {
-        if (b.life <= 0) break;
-        if (bulletHitsCircle(b, bot.x, bot.y, bot.radius + 5)) {
-          bot.health -= b.damage;
-          damageNumbers.push({
-            x: bot.x + (Math.random() - 0.5) * 20,
-            y: bot.y - 20,
-            text: b.isCrit ? `${Math.floor(b.damage)}!` : String(Math.floor(b.damage)),
-            color: b.isCrit ? PALETTE.crit : PALETTE.text,
-            life: 1,
-            vy: -80,
-          });
-          if (!b.pierce) b.life = 0;
-          spawnParticles(b.x, b.y, b.color, 3, 150);
-        }
-      }
-    }
-  }
-
-  // ── limpeza dos mortos ──
-  for (let i = enemies.length - 1; i >= 0; i--) {
-    if (enemies[i].health <= 0) killEnemy(enemies[i], true);
-  }
-
-  updateBullets(dt, worldW, worldH);
-  updateParticles(dt);
-  updateExplosions(dt);
-  updateBarrels(dt);
-  updateDamageNumbers(dt);
-
-  updateCombo(dt);
-  updateCombos();
-  setComboHealthMultiplier(getComboHealthBonus());
-  updateTutorial(dt);
-  setMagnetActive(hasPowerUp('magnet'));
-
-  // `getPlayer2` não tem guard de `enabled` por dentro, então o modo é conferido
-  // antes de puxar o objeto — senão o código lia estado de uma sessão local
-  // anterior mesmo estando em campanha.
-  const p2 = isLocalEnabled() ? getPlayer2() : null;
-  if (p2) {
-    for (const e of enemies) {
-      if (e.health > 0 && checkPlayer2EnemyCollision(e.x, e.y, e.radius)) {
-        e.health = 0;
-        spawnParticles(e.x, e.y, e.color, 12, 200);
-      }
-    }
-  }
-
-  updateCoins(dt, p.x, p.y, p.radius, (v) => {
-    addScoreFlat(v);
-    addShopCoins(v);
-    sfxCoin();
-  });
-  updatePowerUps(dt, p.x, p.y, p.radius, (type) => {
-    if (type === 'health') player.healPlayer(30);
-    if (type === 'shield') p.shield += 2;
-    spawnParticles(p.x, p.y, POWERUP_TYPES[type].color, 15, 200);
-    sfxPowerup();
-  });
-
-  updateNPCs(dt, p.x, p.y, enemies);
 
   // ── objetivo da fase ──
   // Em fases com objetivo ≠ clear, cumprir o objetivo encerra a fase: é o que
@@ -1368,6 +1160,243 @@ async function init() {
   });
 }
 
+init();
 
-init();
-init();
+
+/**
+ * IA dos inimigos: flow field para o caminho, seek direto perto do jogador, e
+ * separação para desempilhar sem custo de pathfinding.
+ *
+ * Saiu de `update` para o orquestrador ler como uma lista de passos. A lógica é
+ * a mesma; mudou o nome e o receiver explícito.
+ */
+function updateEnemyAi(dt: number, p: ReturnType<typeof player.getPlayer>, phase: ReturnType<typeof getCurrentPhase>): void {
+// ── IA dos inimigos: flow field + separação ──
+const tendency = getPlayerTendency();
+for (const e of enemies) {
+  if (e.spawnDelay > 0) {
+    e.spawnDelay -= dt;
+    continue;
+  }
+  if (e.hitFlash > 0) e.hitFlash -= dt;
+
+  const def = ENEMY_TYPES[e.type];
+  if (def?.isBoss) {
+    for (const minion of updateBoss(e, p.x, p.y, worldW, worldH, dt)) enemies.push(minion);
+    // boss não entra no empilhamento
+    if (e.hitFlash > 0) continue;
+  } else {
+    // O caçador do NPC (huntsNpc) ignora o flow field, que aponta para o
+    // jogador, e vai direto no sobrevivente. Sem isso o objetivo protect é só
+    // "não deixe o NPC morrer", e o NPC foge de todo mundo por igual — o
+    // jogador não teria nada a fazer além de limpar a fase como sempre.
+    const prey = def?.huntsNpc ? getNPCs().find(n => n.alive) : undefined;
+    const flow = sampleFlowDir(e.x, e.y);
+    // perto do jogador o flow field é ruidoso: aí vai o seek direto
+    const distToPlayer = Math.hypot(p.x - e.x, p.y - e.y);
+    let seekX: number;
+    let seekY: number;
+    if (prey) {
+      const caça = normalize({ x: prey.x - e.x, y: prey.y - e.y });
+      seekX = caça.x;
+      seekY = caça.y;
+    } else if (distToPlayer < 140) {
+      const direct = normalize({ x: p.x + tendency.h * 60 - e.x, y: p.y + tendency.v * 60 - e.y });
+      seekX = direct.x;
+      seekY = direct.y;
+    } else if (flow.x !== 0 || flow.y !== 0) {
+      seekX = flow.x;
+      seekY = flow.y;
+    } else {
+      const direct = normalize({ x: p.x - e.x, y: p.y - e.y });
+      seekX = direct.x;
+      seekY = direct.y;
+    }
+
+    // separação: resolve o empilhamento sem custo de pathfinding
+    let sepX = 0;
+    let sepY = 0;
+    for (const other of enemies) {
+      if (other === e) continue;
+      const d = Math.hypot(other.x - e.x, other.y - e.y);
+      const minDist = e.radius + other.radius;
+      if (d > 0.001 && d < minDist) {
+        const push = (minDist - d) / minDist;
+        sepX -= ((other.x - e.x) / d) * push;
+        sepY -= ((other.y - e.y) / d) * push;
+      }
+    }
+
+    const spd = e.type === 'mosquito' ? e.speed * 1.3 : e.speed;
+    const gravityPush = phase.hazard === 'lowGravity' ? 1.35 : 1;
+    const next = moveCircleBy(
+      e.x, e.y,
+      (seekX + sepX * 1.6) * spd * dt * gravityPush,
+      (seekY + sepY * 1.6) * spd * dt * gravityPush,
+      e.radius
+    );
+    e.x = next.x;
+    e.y = next.y;
+  }
+
+  if (e.canShoot && !ENEMY_TYPES[e.type]?.isBoss) {
+    e.shootTimer -= dt;
+    // o caçador atira no sobrevivente, não no jogador
+    const preyAlvo = def?.huntsNpc ? getNPCs().find(n => n.alive) : undefined;
+    if (e.shootTimer <= 0) shootEnemyAt(e, preyAlvo ? preyAlvo.x : p.x, preyAlvo ? preyAlvo.y : p.y);
+  }
+
+  if (ENEMY_TYPES[e.type]?.leavesFire) {
+    e.attackTimer += dt;
+    if (e.attackTimer >= 0.5) {
+      e.attackTimer = 0;
+      spawnParticles(e.x, e.y + e.radius, '#c46a3a', 3, 50);
+    }
+  }
+}
+
+}
+
+/**
+ * Colisões do frame: inimigo contra jogador, projétil contra jogador e
+ * projétil contra prop.
+ */
+function resolveCollisions(p: ReturnType<typeof player.getPlayer>): void {
+
+// ── colisões ──
+const activeEnemies = enemies.filter(e => e.spawnDelay <= 0);
+checkEnemyPlayerCollision(activeEnemies, p.x, p.y, p.radius, p.invincible, (e) => {
+  const baseDmg = hasPowerUp('invincible') ? 0 : e.damage;
+  const dmg = Math.floor(baseDmg * getDamageTakenMultiplier());
+  if (dmg > 0) {
+    checkAchievements('damage_taken');
+    player.enemyCollisionDamage(dmg);
+    sfxPlayerHit();
+    triggerDamageFlash();
+  }
+  // Encostar mata melee — investir num zumbi funciona e é uma decisão do
+  // jogador. Chefe não: VIGIA, ALPHA WOLF e REI MUTANTE abrem o padrão com
+  // investida, e se matariam sozinhos no contato, o que entregava a luta de
+  // graça para quem ficasse parado. O chefe leva o dano e continua.
+  if (!ENEMY_TYPES[e.type]?.isBoss) killEnemy(e, false);
+});
+
+const bullets = getBullets();
+
+checkEnemyBulletPlayerCollision(bullets, p.x, p.y, p.radius, p.invincible, (b) => {
+  const dmg = Math.floor(b.damage * getDamageTakenMultiplier());
+  if (dmg > 0) {
+    checkAchievements('damage_taken');
+    player.enemyCollisionDamage(dmg);
+    sfxPlayerHit();
+    triggerDamageFlash();
+  }
+  b.life = 0;
+  spawnParticles(b.x, b.y, b.color, 3, 100);
+});
+
+// projétil vs prop (a bala quebra o que estiver no caminho)
+updateBulletProps(bullets);
+
+checkBulletEnemyCollisions(bullets, enemies, (b, e) => {
+  e.hitFlash = 0.15;
+  registerHit();
+  // crítico vem do flag, não de comparar string de cor
+  const isCrit = b.isCrit;
+  if (b.explosive && b.explosionRadius) {
+    createExplosion(b.x, b.y, b.explosionRadius, b.damage, enemies, b.color);
+    sfxExplosion();
+    triggerScreenShake(5, 0.15);
+  } else {
+    e.health -= b.damage;
+    damageNumbers.push({
+      x: e.x + (Math.random() - 0.5) * 20,
+      y: e.y - 20,
+      text: isCrit ? `${Math.floor(b.damage)}!` : String(Math.floor(b.damage)),
+      color: isCrit ? PALETTE.crit : PALETTE.text,
+      life: 1,
+      vy: -80,
+    });
+  }
+  if (isCrit) {
+    triggerSlowMotion(0.15, 0.3);
+    spawnParticles(b.x, b.y, PALETTE.crit, 8, 200);
+  }
+  if (!b.pierce) b.life = 0;
+  spawnParticles(b.x, b.y, b.color, 3, 150);
+  triggerHitStop(0.015);
+});
+
+if (getCurrentMode() === 'competitive') {
+  for (const b of bullets) {
+    if (b.isEnemy || b.life <= 0) continue;
+    for (const bot of getBots()) {
+      if (b.life <= 0) break;
+      if (bulletHitsCircle(b, bot.x, bot.y, bot.radius + 5)) {
+        bot.health -= b.damage;
+        damageNumbers.push({
+          x: bot.x + (Math.random() - 0.5) * 20,
+          y: bot.y - 20,
+          text: b.isCrit ? `${Math.floor(b.damage)}!` : String(Math.floor(b.damage)),
+          color: b.isCrit ? PALETTE.crit : PALETTE.text,
+          life: 1,
+          vy: -80,
+        });
+        if (!b.pierce) b.life = 0;
+        spawnParticles(b.x, b.y, b.color, 3, 150);
+      }
+    }
+  }
+}
+
+}
+
+/**
+ * Fim do frame: mata o que sobrou sem vida e roda os sistemas de tick (projéteis,
+ * partículas, explosões, barris, combo, moedas, power-ups, NPCs).
+ */
+function endOfFrame(dt: number, p: ReturnType<typeof player.getPlayer>): void {
+// ── limpeza dos mortos ──
+for (let i = enemies.length - 1; i >= 0; i--) {
+  if (enemies[i].health <= 0) killEnemy(enemies[i], true);
+}
+
+updateBullets(dt, worldW, worldH);
+updateParticles(dt);
+updateExplosions(dt);
+updateBarrels(dt);
+updateDamageNumbers(dt);
+
+updateCombo(dt);
+updateCombos();
+setComboHealthMultiplier(getComboHealthBonus());
+updateTutorial(dt);
+setMagnetActive(hasPowerUp('magnet'));
+
+// `getPlayer2` não tem guard de `enabled` por dentro, então o modo é conferido
+// antes de puxar o objeto — senão o código lia estado de uma sessão local
+// anterior mesmo estando em campanha.
+const p2 = isLocalEnabled() ? getPlayer2() : null;
+if (p2) {
+  for (const e of enemies) {
+    if (e.health > 0 && checkPlayer2EnemyCollision(e.x, e.y, e.radius)) {
+      e.health = 0;
+      spawnParticles(e.x, e.y, e.color, 12, 200);
+    }
+  }
+}
+
+updateCoins(dt, p.x, p.y, p.radius, (v) => {
+  addScoreFlat(v);
+  addShopCoins(v);
+  sfxCoin();
+});
+updatePowerUps(dt, p.x, p.y, p.radius, (type) => {
+  if (type === 'health') player.healPlayer(30);
+  if (type === 'shield') p.shield += 2;
+  spawnParticles(p.x, p.y, POWERUP_TYPES[type].color, 15, 200);
+  sfxPowerup();
+});
+
+updateNPCs(dt, p.x, p.y, enemies);
+}
