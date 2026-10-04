@@ -65,9 +65,15 @@
 // [x] reach com fase (Vulcão) e zona de extração a 15 células do spawn
 // [x] protect não encerra a fase no 1o frame (latch "houve luta")
 // [x] NPC com dano por segundo, não por frame (30 DPS)
-// [ ] protect: limpar a onda 0 encerra a fase, pulando ondas e chefe
-// [ ] Um marcador de boss no mundo (ringo no chão): hoje um chefe só se
-//     distingue do trash pelo tamanho e pela barra de vida
+// [x] protect: o objetivo não encerra mais a fase, ele libera o chefe
+// [x] protect: o sobrevivente cair reinicia a fase (não existe fim negativo)
+// [x] Marcador de boss no mundo: anel no chão, cor única terracota
+// [x] Cobertura real nas 9 fases; só o entulho da Cidade desmorona
+// [x] Paleta de props por bioma (antes 9 engradados bege iguais)
+// [x] Curva de balanceamento monotônica + balance.test.ts (9)
+// [x] 21 conquistas (13 -> 21) + achievements.test.ts (14)
+// [x] main.ts: update() de 463 para 252 linhas; init() duplicado removido
+// [x] props.test.ts (26) e terrain.test.ts (98)
 
 // --- BOSS ---
 // [x] VIGIA na Cidade em Ruínas (fase 1) — primeira luta ensina o mapa
@@ -92,6 +98,9 @@
 // [x] fog (Floresta) deixa de ser número: vinheta larga em torno do jogador
 // [x] debris (Cidade) deixa de ser número: props seguram tiro e desmoronam
 // [x] Os 9 biomas têm efeito mecânico próprio (antes 6 de 9)
+
+// --- LOJA ---
+// [ ] Editor de fases visual: é uma ferramenta, não uma fase do jogo
 
 // --- GEOMETRIA (a maior pendência do projeto até v1.3) ---
 // [x] Tilemap 30×20 com colisão círculo-vs-grid e deslize por eixo
@@ -167,7 +176,7 @@
 // ═══════════════════════════════════════════════════════════════
 // SUGESTÕES AVANÇADAS (baixa prioridade)
 // ═══════════════════════════════════════════════════════════════
-- [ ] Sistema de achievement/badges expandido
+- [x] Sistema de achievement/badges expandido (13 -> 21)
 - [x] Testes unitários para sistemas de colisão e dano
 - [x] Screen shake mais sutil e consistente (explosões, terremoto, relâmpago reduzidos)
 - [x] Partículas de poeira no chão durante terremoto

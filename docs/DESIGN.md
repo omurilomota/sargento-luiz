@@ -49,8 +49,14 @@ campo primeiro, depois enfeitar**.
 - **Flow field, não A\* por inimigo.** Dijkstra a partir da célula do jogador:
   600 células custam quase nada, o resultado é o mesmo para todo mundo e de
   brinde o empilhamento some (separação por força, não por path).
-- **Props destrutíveis.** Caixote (solta moeda), barril (explode em cadeia),
-  ninho (objetivo de fases `destroy`).
+- **Props destrutíveis.** Caixote (solta moeda), barril (pavio de 0.9s e explosão
+  em cadeia — cada barril alcançado também explode), ninho (objetivo de fases
+  `destroy`). **Tiro de inimigo para em prop**: cobertura que não protege é
+  enfeite. O que é exclusivo do entulho da Cidade é desmoronar com o primeiro
+  tiro — a cobertura aqui é real e perecível.
+- **Cor por bioma no prop.** Caixote de madeira na Floresta, chapa na Fábrica,
+  rocha na Caverna, basalto no Vulcão. Cor fixa fazia os 9 biomas terem o mesmo
+  engradado bege.
 - **Hazards por bioma**, com efeito mecânico e não só visual:
 
 | Bioma | Hazard | Efeito mecânico |
@@ -91,6 +97,20 @@ porque o desafio final é o jogador, não o mapa — e o NÚCLEO não tem invest
 numa galeria estreita ela seria só o chefe batendo na parede.
 
 ## 5. Boss data-driven
+
+### A rampa de dificuldade
+
+Duas coisas, e só duas:
+
+1. **O número de ondas** é a rampa: 3, 4, 5, 5, 6, 6, 7, 7, 8. É o que o
+   jogador sente.
+2. **`Phase.difficulty`** é um ajuste pequeno (0.75 a 1.0) só nas 4 fases cujo
+   mix de tipos fugia da rampa. As pontas — Cidade e Bunker — ficam em 1.
+
+A curva é **monotônica, mas não uniforme**: os passos vão de +2% a +106%. O
+custo base das fases varia 10× entre a primeira e a última, e um multiplicador
+só não achata sem deixar o jogo todo igual. Monotônico é o contrato que
+`balance.test.ts` trava.
 
 ### Os 5 objetivos de fase, e o que cada um troca
 
@@ -199,11 +219,12 @@ Coisas que *pareceriam* óbvias e não estão no escopo agora:
 - Geração procedural de mapa (os 9 são autorais).
 - Multiplayer online.
 - Áudio posicional (tudo é mono estéreo).
-- Fim de fase negativo. Hoje nenhum objetivo tem derrota: se o sobrevivente do
-  `protect` morre, a fase continua e o jogador vence do mesmo jeito. Um fim
-  negativo é um sistema de retry, e retry é conversa de design própria.
-- Marcador de boss no mundo. O chefe se distingue pelo tamanho e pela barra de
-  vida; um anel no chão na cor dele é a solução óbvia e ainda não está lá.
+- Espaçamento uniforme da curva de dificuldade (a rampa é monotônica, não
+  uniforme — ver §5).
+- Fim de fase negativo. Hoje o `protect` **reinicia** a fase quando o
+  sobrevivente cai — consequência sem ser game over. Derrotar de verdade é
+  sistema de retry, e retry é conversa de design própria.
+- Editor de fases visual. É uma ferramenta, não uma fase do jogo.
 
 Estão fora porque cada uma abre uma conversa de design diferente. Estar no
 `TODO.md` é o suficiente até alguém decidir por elas.

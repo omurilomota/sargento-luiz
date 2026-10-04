@@ -39,25 +39,28 @@ Cada item destrava algo maior que ele mesmo.
       telegrafia que diz o que vem, investida como primeira coisa a desviar,
       praça com cobertura) e NÚCLEO no Bunker (tira uma opção por faixa, sem
       investida porque a galeria não comporta).
-- [ ] **Boss que não morre em cima do jogador.** `killEnemy` no contato vale
-      para todos, então um chefe que investe se suicida: dar de frente é uma
-      estratégia válida, e vale para o ALPHA WOLF também. Não é regressão
-      desta entrega — é a regra de contato do jogo, que ninguém revisou ainda.
+- [x] **Boss que não morre em cima do jogador.** O contato só mata melee;
+      chefe leva o dano e continua. Um chefe que investia se matava sozinho, e a
+      investida telegrafada virava um presente para quem ficasse parado.
 - [x] **`protect` com inimigo que caça o NPC.** O Castelo é a fase: o `archer`
       tem `huntsNpc` e ignora o flow field para ir direto no sobrevivente, e
       atira nele também; `knight` e `mage` continuam no jogador.
-- [ ] **`protect` com falha.** Se o sobrevivente morre, a fase continua e o
-      jogador vence do mesmo jeito. Não existe fim de fase negativo.
-- [ ] **Marcador de chefe no mundo.** O chefe só se distingue do trash pelo
-      tamanho e pela barra de vida; um anel no chão na cor dele resolveria.
-- [ ] **Cobertura que muda a decisão de rota.** Barril destrutível já existe;
-      falta uma paleta de props por bioma (Caverna e Vulcão repetem).
-- [x] **Balanceamento por bioma.** Os 9 hazards agora têm efeito mecânico
-      próprio, inclusive `fog` e `debris`, que eram só número. Falta decidir se
-      isso substitui diferença de stats entre fases.
-- [ ] **Props como cobertura real nas outras fases.** Só a Cidade tem props que
-      seguram tiro de inimigo; aplicar nas 9 muda o balanceamento de uma vez.
-- [ ] **Achievements expandidos** (13 existem, o backlog pede mais).
+- [x] **`protect` com falha.** O sobrevivente cair reinicia a fase: mesmo mapa,
+      onda zerada, sobrevivente novo. Um objetivo de escolta sem consequência
+      não é escolta.
+- [x] **Marcador de chefe no mundo.** Anel no chão, na linguagem das auras do
+      jogador. Cor única (terracota) e não a do chefe: com a cor dele o anel do
+      NÚCLEO sumia no piso do Bunker.
+- [x] **Cobertura que muda a decisão de rota.** Paleta de props por bioma —
+      madeira na Floresta, chapa na Fábrica, rocha na Caverna, basalto no Vulcão.
+      Antes todo mundo era o mesmo engradado bege.
+- [x] **Balanceamento por bioma.** A rampa agora é o número de ondas
+      (3,4,5,5,6,6,7,7,8) e `Phase.difficulty` só corrige os 4 tipos que fugiam
+      dela. `balance.test.ts` trava que a curva cresce.
+- [x] **Props como cobertura real nas outras fases.** O tiro de inimigo para em
+      prop nas 9. O que continua exclusivo da Cidade é o desmoronamento: entulho
+      não aguenta tiro e cai inteiro com o primeiro.
+- [x] **Achievements expandidos** (13 -> 21, sem sistema de tracking novo).
 
 ## v2.0 — o que exige decisão de design, não implementação ⏳
 
@@ -158,8 +161,12 @@ O que já foi entregue antes da v1.3, e o que foi entregue nela.
 ## 📋 PENDENTE
 
 ### Prioridade ALTA
-- [ ] `main.ts` ainda é uma god-function de 1222 linhas — `update()` e `draw()`
-      ainda concentrates o orquestrador inteiro
+- [x] `main.ts`: `update()` foi de 463 para 252 linhas e o `init()` duplicado
+      — que rodava o game loop duas vezes por frame — saiu. Ainda é um arquivo
+      grande, mas agora é um orquestrador de passos nomeados, não um bloco só
+- [ ] `main.ts` ainda concentra input, menu, loja, cutscene e save no mesmo
+      arquivo. Extrair menu/loja é o próximo passo natural, mas é refactor de
+      arquivo sem bug conhecido por trás
 - [x] **`shooter` saiu do dicionário**: cada fase já tem atirador temático
       (spitter, crystal, robot, frog, archer, fireElemental, ufo), então um
       atirador genérico só diluiria a identidade da fase
@@ -171,9 +178,10 @@ O que já foi entregue antes da v1.3, e o que foi entregue nela.
 ### Prioridade MÉDIA
 - [x] Testes para `objectives`, `boss` e `camera` — a lógica que mais mudou na
       v1.3 era a que menos tinha cobertura
-- [ ] Testes para `props` e `terrain`
-- [ ] Achievements expandidos (13 existem)
-- [ ] Editor de fases visual
+- [x] Testes para `props` (24) e `terrain` (98)
+- [x] Testes para `balance`, `achievements`, `objectives`, `camera` e `assets`
+- [x] Achievements expandidos (13 -> 21)
+- [ ] Editor de fases visual — é uma ferramenta, não uma fase do jogo
 
 ### Prioridade BAIXA
 - [ ] Multiplayer online

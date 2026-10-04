@@ -1,6 +1,6 @@
 # BubbleGame — Status Geral do Projeto
 
-> Atualizado: 2026-10-03 · branch `feature/v1.3-hud-bugfixes` · v1.4 (pós-review)
+> Atualizado: 2026-10-03 · branch `feature/v1.3-hud-bugfixes` · v1.4 (pós-review + pendências)
 
 Direção do jogo: [`docs/DESIGN.md`](docs/DESIGN.md) ·
 pendências: [`TODO.md`](TODO.md) ·
@@ -28,14 +28,21 @@ ataca isso primeiro.
   direção errada quando o mapa é maior que a tela
 - **Terreno prerenderizado** com tint por bioma: 1 `drawImage` por frame em vez
   de ~600 `drawImage`
-- **Props destrutíveis**: caixote (moeda), barril (explosão em cadeia), ninho
-  (objetivo de fase)
+- **Props destrutíveis**: caixote (moeda), barril com pavio de 0.9s e explosão
+  em **cadeia de verdade** (cada barril alcançado também explode), ninho
+  (objetivo de fase) — e com a paleta do bioma
 - **9 mapas autorais**, cada um com hazard e objetivo próprios
 - **9 hazards com efeito mecânico**: os 9 biomas têm efeito próprio, inclusive
   os dois que antes eram só número (`fog` e `debris`)
-- **Objetivos de fase**: `clear` · `survive` · `destroy` · `protect` · `reach`
+- **Objetivos de fase**: `clear` · `survive` · `destroy` · `protect` · `reach`,
+  cada um com fase própria. O objetivo não encerra mais a fase: ele **libera o
+  chefe**, e é o chefe que fecha a fase. Se o sobrevivente do `protect` cai, a
+  fase reinicia
+- **Cobertura real nas 9 fases**: o tiro de inimigo para em prop. Só o entulho da
+  Cidade desmorona com o primeiro tiro
 - **Boss data-driven**: **9 bosses** com padrão declarativo e telegrafia, cada
-  um com sprite do seu bioma (antes os 9 caíam no fallback `zombie`)
+  um com sprite do seu bioma (antes os 9 caíam no fallback `zombie`) e com um
+  anel no chão que o distingue do trash
 
 ### Bugs corrigidos
 
@@ -59,6 +66,17 @@ ataca isso primeiro.
 - **Chefe não telegrafava a primeira ação**: `step` do runtime começava em `0`, o
   que fazia `step.index !== rt.step` ser falso no primeiro frame — o chefe
   ficava 2.6s em silêncio e atacava sem aviso
+- **O game loop rodava duas vezes por frame**: `init()` estava escrito duas vezes
+  no fim do main.ts, e cada chamada agenda o seu `requestAnimationFrame`
+- **O objetivo encerrava a fase antes da fase existir**: o `protect` do Castelo
+  terminava na onda 0 de 7 e o `survive` da Fábrica na onda 1 de 6, sem chefe
+- **A curva de dificuldade não era uma curva**: as três últimas fases ficavam
+  progressivamente mais baratas, e a final custava 24% a menos que a sétima
+- **O pavio do barril não existia**: `updateBarrels` zerava o timer e detonava no
+  frame seguinte à ignitação, e a cadeia de barril não encadeava — o barril
+  alcançado morria sem explodir
+- **A Intocável era impossível depois da primeira leva de dano**: o flag era
+  zerado só quando já estava limpo, então gruda até o fim da partida
 - **O terreno deslocava em tela larga**: a câmera já centraliza o mundo quando
   ele é menor que a viewport, e `drawTerrain` centralizava de novo — numa janela
   de 2560px o mapa de 1920px aparecia 320px à direita, com a borda cortada
@@ -106,7 +124,7 @@ ataca isso primeiro.
 
 ## Testes
 
-210 testes em 9 arquivos, cobrindo exatamente as regressões que já voltaram:
+360 testes em 13 arquivos, cobrindo exatamente as regressões que já voltaram:
 
 | Arquivo | Cobre |
 |---|---|
@@ -116,12 +134,16 @@ ataca isso primeiro.
 | `objectives.test.ts` | os 5 tipos sabem quando terminam, `peekObjective` não muta, latch de `protect` |
 | `dynamicDifficulty.test.ts` | guard de amostra, banda de pressão, ritmo do spawn |
 | `assets.test.ts` | nomes de arquivo (pad de tile), sprite mapeado por tipo, tipo órfão |
+| `props.test.ts` | os 3 tipos, dano, cadeia de barril, pavio de 0.9s, entulho |
+| `terrain.test.ts` | `shade`, e o contrato de dado dos 9 biomas que o prerender consome |
+| `balance.test.ts` | a curva de dificuldade das 9 fases cresce |
+| `achievements.test.ts` | os 21 ids únicos e cada gatilho |
 | `shopLayout.test.ts` | `getShopLayout`: sobreposição, colunas, hit-test bate com o draw |
 | `menuLayout.test.ts` | `getMenuLayout`: índice do clique, cabimento em 4 resoluções |
 | `mapValidation.test.ts` | 9 mapas: largura, borda, conectividade, contraste piso/parede, caminho de tile no disco |
 
 ```
-npm test            # 210 passando
+npm test            # 360 passando
 npx tsc --noEmit    # 0 erros
 npm run build       # ok
 ```
@@ -129,12 +151,10 @@ npm run build       # ok
 ## ⏳ NÃO ENTREGUE (está no `TODO.md`)
 
 - Modo competitivo online
-- Achievements expandidos
-- `protect` é o único objetivo cujo gatilho de fim de fase ainda é frágil: limpar
-  a onda 0 já encerra a fase, pulando as ondas seguintes e o chefe. Foi a troca
-  feita para a fase não terminar no primeiro frame, e é o mesmo contrato de
-  `survive`/`destroy`/`reach` — mas num objetivo de escolta é o ponto mais
-  discutível do conjunto
+- A curva de dificuldade é **monotônica, mas não uniforme**: os passos vão de
+  +2% a +106%. O custo base das fases varia 10× entre a primeira e a última, e
+  um multiplicador só não achata sem deixar o jogo uniforme. Monotônico é o
+  contrato que `balance.test.ts` trava
 - `main.ts` ainda é o orquestrador com 1300 linhas
 
 Ver `TODO.md` para a lista completa e `docs/DESIGN.md` §10 para o que está
