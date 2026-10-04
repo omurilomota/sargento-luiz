@@ -65,7 +65,7 @@ import { resetSkins } from './systems/skins';
 import { resetAds } from './systems/ads';
 import { saveGame, loadGame, hasSave, markGameCompleted } from './systems/saveSystem';
 import { addLeaderboardEntry } from './systems/leaderboard';
-import { loadAchievements, checkAchievements, resetRunCounters } from './systems/achievements';
+import { loadAchievements, checkAchievements, checkObjectiveAchievement, resetRunCounters } from './systems/achievements';
 import { loadDiary, unlockDiaryEntry } from './systems/diary';
 import { startTutorial, isTutorialActive, getCurrentHint, updateTutorial } from './systems/tutorial';
 import { updateBehavior, registerShot, registerHit, getPlayerTendency, resetBehavior } from './systems/dynamicDifficulty';
@@ -226,6 +226,8 @@ let currentFlash: string | null = null;
 let currentShake: { x: number; y: number } = { x: 0, y: 0 };
 let selectedMode: GameMode = 'campaign';
 let bossSpawned = false;
+/** Objetivos já contabilizados na partida, para o toast de conquista sair uma vez só. */
+const objectiveCounted = new Set<string>();
 let worldW = 1280;
 let worldH = 720;
 /**paredes do mapa em coordenadas de mundo, para o minimapa */
@@ -745,6 +747,11 @@ function update(dt: number) {
   }
 
   const objective = updateObjective(dt, p.x, p.y, enemies.length, reachZones);
+  if (objective.done && !objectiveCounted.has(phase.objective)) {
+    objectiveCounted.add(phase.objective);
+    const objAch = checkObjectiveAchievement(phase.objective);
+    if (objAch) pushToast(objAch.name, 3);
+  }
 
   // ── chefe da fase: campo vazio da última onda, e só depois do objetivo ──
   // O objetivo não encerra a fase: ele LIBERA o chefe. Cumprir o objetivo no
@@ -867,7 +874,12 @@ function explodeProp(prop: Prop): void {
     sfxPlayerHit();
     triggerDamageFlash();
   }
-  for (const destroyed of detonateProp(prop)) {
+  const destruidos = detonateProp(prop);
+  if (destruidos.length > 1) {
+    const chainAch = checkAchievements('chain', destruidos.length);
+    if (chainAch) pushToast(chainAch.name, 3);
+  }
+  for (const destroyed of destruidos) {
     if (destroyed !== prop) {
       spawnParticles(destroyed.x, destroyed.y, PALETTE.mustard, 6, 140);
       if (destroyed.kind === 'crate' && Math.random() < 0.5) {
