@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { getShopLayout, Rect } from '../ui/shop';
+import { describe, it, expect, beforeAll } from 'vitest';
+import { getShopLayout, rowActionButtons, Rect, pushPendingReveal, addPurchasedWeapon } from '../ui/shop';
 import { WEAPONS, UPGRADES } from '../config';
 
 const W = 1280;
@@ -16,8 +16,8 @@ function overlaps(a: Rect, b: Rect): boolean {
 describe('getShopLayout: geometria única', () => {
   const L = getShopLayout(W, H);
 
-  it('cria um retângulo por arma e por upgrade, na ordem do config', () => {
-    expect(L.weapons).toHaveLength(WEAPONS.length);
+  it('cria 3 slots de arma sorteados e um retângulo por upgrade', () => {
+    expect(L.weapons).toHaveLength(3);
     expect(L.upgrades).toHaveLength(UPGRADES.length);
   });
 
@@ -116,5 +116,62 @@ describe('getShopLayout: o hit-test bate com o desenho', () => {
   it('maxScroll nunca deixa o conteúdo passar do fim da lista', () => {
     expect(L.maxScroll).toBeGreaterThan(0);
     expect(L.contentHeight).toBeGreaterThan(0);
+  });
+});
+
+describe('rowActionButtons: vender só no botão VENDER', () => {
+  beforeAll(() => {
+    // estado padrão do módulo: 1 arma no inventário e nenhuma novidade —
+    // completa o estado para ter linhas reais nas duas seções
+    pushPendingReveal(1, 'normal');
+    pushPendingReveal(2, 'normal');
+    pushPendingReveal(3, 'normal');
+    addPurchasedWeapon(1);
+    addPurchasedWeapon(2);
+    addPurchasedWeapon(3);
+  });
+
+  it('caixas ficam dentro da linha, sem sobreposição entre si, alinhadas verticalmente', () => {
+    const L = getShopLayout(W, H);
+    expect(L.inventory.length).toBeGreaterThanOrEqual(2);
+    expect(L.novidades.length).toBeGreaterThanOrEqual(2);
+    for (const r of [...L.inventory, ...L.novidades]) {
+      const { primary, sell } = rowActionButtons(r);
+      for (const b of [primary, sell]) {
+        expect(b.x).toBeGreaterThanOrEqual(r.x);
+        expect(b.x + b.w).toBeLessThanOrEqual(r.x + r.w);
+        expect(b.y).toBeGreaterThanOrEqual(r.y);
+        expect(b.y + b.h).toBeLessThanOrEqual(r.y + r.h);
+      }
+      expect(overlaps(primary, sell)).toBe(false);
+      expect(primary.y).toBe(sell.y);
+      expect(primary.h).toBe(sell.h);
+    }
+  });
+
+  it('centro-esquerda da linha não acerta a caixa de venda; o centro dela, sim', () => {
+    const L = getShopLayout(W, H);
+    for (const r of [...L.inventory, ...L.novidades]) {
+      const { sell } = rowActionButtons(r);
+      const midY = r.y + r.h / 2;
+      expect(hits(sell, r.x + r.w * 0.25, midY)).toBe(false);
+      // metade direita fora da caixa também não vende (o bug original)
+      expect(hits(sell, sell.x - 1, midY)).toBe(false);
+      expect(hits(sell, sell.x + sell.w / 2, midY)).toBe(true);
+    }
+  });
+
+  it('caixas de linhas adjacentes não se sobrepõem', () => {
+    const L = getShopLayout(W, H);
+    for (const list of [L.inventory, L.novidades]) {
+      for (let i = 1; i < list.length; i++) {
+        const prev = rowActionButtons(list[i - 1]);
+        const cur = rowActionButtons(list[i]);
+        expect(overlaps(prev.primary, cur.primary)).toBe(false);
+        expect(overlaps(prev.sell, cur.sell)).toBe(false);
+        expect(overlaps(prev.primary, cur.sell)).toBe(false);
+        expect(overlaps(prev.sell, cur.primary)).toBe(false);
+      }
+    }
   });
 });
