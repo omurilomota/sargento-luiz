@@ -136,6 +136,7 @@ python3 tools/genmusic.py   # Regenera public/assets/music/*.ogg
 
 | Anti-padrão | Por quê é ruim | O que fazer |
 |---|---|---|
+| **Desenho procedural no lugar de asset** | O usuário odeia. Elipse, retângulo, `arc()`, `fillRect` e `drawImage` de nada fabricando forma, parede, chão, árvore ou inimigo = visual de programador, não de jogo. É a causa nº 1 do "jogo com cara de IA" | **Usar o sprite/tile do pack.** O Kenney já tem a arte; escolher e curar é design, inventar com código é contorno. Procedural só entra como fallback quando o asset **não carregar** — nunca como visual pretendido |
 | `shadowBlur` excessivo em tudo | Cria visual "fantasma", artificial, cansativo visualmente | Usar sombra apenas em 1-2 elementos-chave (título, botão ativo) |
 | Cores neon saturadas (verde-azul, magenta, ciano) | Visual "tech demo", não tem personalidade | Usar paleta sóbria: terracota, cinza, mostarda, verde-oliva |
 | Muitas partículas coloridas simultaneamente | Ruído visual, tira foco do gameplay | Partículas sutis, poucas, mesmas cores do tema |
@@ -199,6 +200,16 @@ python3 tools/genmusic.py   # Regenera public/assets/music/*.ogg
 9. **Respeitar o escopo.** Se o usuário pede "corrigir o bug X", corrigir o bug X. Não "enquanto isso, vou refatorar o sistema Y".
 
 10. **Perguntar antes de assumir.** Se algo é ambíguo, perguntar ao usuário. Não assumir preferências de design ou arquitetura.
+
+11. **Seguir a lista de tarefas ao pé da letra.** Manter `todowrite` atualizado em tempo real: um item `in_progress` por vez, marcar `completed` só após verificar (build/teste), e nunca deixar item feito pendente ou feito esquecido. Ao receber uma lista de itens do usuário, registrá-la inteira antes de começar a executar.
+
+12. **Marcar status dos TODOs na hora.** Toda troca de status (`pending` → `in_progress` → `completed`) deve ser registrada no `todowrite` imediatamente ao iniciar e ao concluir cada item — não no fim da sessão, não "quando lembrar". Se um item está sendo trabalhado, o registro tem que dizer `in_progress` naquele momento.
+
+13. **Pode propor (e distinguir) ideias.** Quando fizer sentido melhorar a experiência — mesmo sem pedido explícito — a IA pode sugerir ideias criativas (balanceamento, mecânicas, loot, design por bioma, HUD). Ideia nova ≠ escopo: é oferecida como proposta, com o que ganha e o custo, e só vira implementação depois de aprovada. O que não pode é implementá-la em silêncio misturada no pedido atual.
+
+14. **Assets sempre livres.** Qualquer asset novo (sprite, som, música, fonte) tem que ser de licença livre (CC0, CC-BY, domínio público). Atribuição obrigatória não é problema — pode usar mesmo se precisar creditar — mas o crédito entra em `public/assets/CREDITS.md` e na tela de créditos do jogo. Nunca assets pagos ou de licença personalizada.
+
+15. **Visual vem de asset, nunca de código.** O usuário **odeia desenho procedural**. O pack em `public/assets/` é o visual; desenhar forma com `arc`/`fillRect`/`stroke`/`ellipse` em vez de usar o sprite é fazer arte no editor de código, e o resultado é lido como IA, não como jogo. Vale para parede, chão, inimigo, item, ícone e árvore. Antes de escrever código que desenha alguma coisa, procurar o tile correspondente. Procedural é permitido **só como fallback** de um asset que falhou ao carregar, e essa intenção tem que estar dita no comentário. Em dúvida entre "tile do pack" e "desenho meu": tile.
 
 ### Fluxo de Trabalho
 
