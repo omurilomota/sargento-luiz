@@ -23,6 +23,7 @@ import { hasSave } from './saveSystem';
 import { getLeaderboard } from './leaderboard';
 import { PALETTE } from '../core/palette';
 import { GAME_MODES } from './gameModes';
+import { CLASSES, ClassId } from './classes';
 
 /** Contexto 2D do canvas */
 let ctx: CanvasRenderingContext2D;
@@ -51,11 +52,13 @@ export interface MenuItemLayout {
  * @param w - largura do canvas
  * @param h - altura do canvas
  */
-export function getMenuLayout(w: number, h: number): { titleY: number; items: MenuItemLayout[] } {
+export function getMenuLayout(w: number, h: number): { titleY: number; items: MenuItemLayout[]; classItems: MenuItemLayout[] } {
   const startY = h * 0.3;
   const spacing = Math.min(46, (h * 0.5) / GAME_MODES.length);
   const boxW = Math.min(340, w * 0.7);
   const boxH = Math.min(32, spacing - 6);
+  const classStartY = startY + GAME_MODES.length * spacing + 30;
+  const classSpacing = Math.min(36, (h * 0.3) / 4);
   return {
     titleY: h * 0.12,
     items: GAME_MODES.map((_, i) => ({
@@ -64,11 +67,18 @@ export function getMenuLayout(w: number, h: number): { titleY: number; items: Me
       w: boxW,
       h: boxH,
     })),
+    classItems: [0, 1, 2, 3].map(i => ({
+      x: w / 2 - boxW / 2,
+      y: classStartY + i * classSpacing,
+      w: boxW,
+      h: classSpacing - 4,
+    })),
   };
 }
 
 /**
  * Retorna o índice do modo sob o clique, ou -1.
+ * Também verifica seleção de classe (retorna 100 + índice da classe).
  */
 export function menuIndexAt(x: number, y: number, w: number, h: number): number {
   const L = getMenuLayout(w, h);
@@ -76,16 +86,67 @@ export function menuIndexAt(x: number, y: number, w: number, h: number): number 
     const r = L.items[i];
     if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) return i;
   }
+  for (let i = 0; i < L.classItems.length; i++) {
+    const r = L.classItems[i];
+    if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) return 100 + i;
+  }
   return -1;
 }
 
-export function drawMenu(selectedMode: string = 'campaign'): void {
+/**
+ * Tile do pack que texturiza o fundo do menu: rocha escura de baixo
+ * contraste (piso de caverna — média 75/255 e desvio 11, a mais
+ * escura com textura entre os tiles do `TILE_NUMBERS`).
+ */
+const MENU_TILE = 'tile_31';
+
+/** Fundo prerenderizado do menu (null antes do primeiro draw). */
+let menuBg: HTMLCanvasElement | null = null;
+/** Resolução do fundo prerenderizado — o offscreen é por (W,H). */
+let menuBgKey = '';
+
+/**
+ * Fundo do menu: tile do pack desenhado 1× num offscreen por resolução,
+ * coberto de quase-preto e vinheta radial (o único gradiente permitido).
+ * Sem tile carregado o fundo é o quase-preto liso — fallback silencioso,
+ * sem desenho procedural (regra 15).
+ */
+function drawMenuBackground(W: number, H: number): void {
+  const key = `${W}x${H}`;
+  if (!menuBg || menuBgKey !== key) {
+    menuBg = document.createElement('canvas');
+    menuBg.width = W;
+    menuBg.height = H;
+    const c = menuBg.getContext('2d')!;
+    c.fillStyle = PALETTE.void;
+    c.fillRect(0, 0, W, H);
+    const tile = getSprite(MENU_TILE);
+    if (tile) {
+      const S = 64;
+      for (let y = 0; y < H; y += S) {
+        for (let x = 0; x < W; x += S) {
+          c.drawImage(tile, x, y, S, S);
+        }
+      }
+    }
+    c.fillStyle = 'rgba(8,8,10,0.72)';
+    c.fillRect(0, 0, W, H);
+    const g = c.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.75);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(1, 'rgba(0,0,0,0.5)');
+    c.fillStyle = g;
+    c.fillRect(0, 0, W, H);
+    menuBgKey = key;
+  }
+  ctx.drawImage(menuBg, 0, 0);
+}
+
+export function drawMenu(selectedMode: string = 'campaign', selectedClass: ClassId = 'soldado'): void {
   const W = canvas.width;
   const H = canvas.height;
   const L = getMenuLayout(W, H);
 
-  ctx.fillStyle = PALETTE.bg;
-  ctx.fillRect(0, 0, W, H);
+  drawMenuBackground(W, H);
 
   // poeira de fundo — poucas partículas, cor do tema
   for (let i = 0; i < 8; i++) {
@@ -97,38 +158,64 @@ export function drawMenu(selectedMode: string = 'campaign'): void {
     ctx.fill();
   }
 
+  // preview da classe: esquerda (assimetria orgânica), reage à seleção.
+  // Só em tela larga e com o sprite do pack — sem ele, nada se desenha.
+  const cls = CLASSES.find(c => c.id === selectedClass) ?? CLASSES[0];
+  const preview = W >= 900 ? getSprite(poseKey(cls.sprite, 'hold')) : null;
+  if (preview) {
+    const px = W * 0.2;
+    const py = H * 0.52;
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.beginPath();
+    ctx.ellipse(px, py + 52, 44, 14, 0, 0, Math.PI * 2);
+    ctx.fill();
+    drawSpriteFit(ctx, preview, px, py, 130, -0.15);
+  }
+
+  // título — a 1 exceção de sombra permitida (elemento-chave da tela)
   ctx.textAlign = 'center';
   ctx.fillStyle = PALETTE.title;
-  ctx.font = 'bold 34px monospace';
-  ctx.fillText('BUBBLE SHOOTER', W / 2, L.titleY);
+  ctx.font = 'bold 48px monospace';
+  ctx.shadowColor = 'rgba(0,0,0,0.6)';
+  ctx.shadowBlur = 8;
+  ctx.fillText('ASHFALL', W / 2, L.titleY);
+  ctx.shadowBlur = 0;
 
   ctx.fillStyle = PALETTE.textOff;
   ctx.font = '12px monospace';
-  ctx.fillText('POS-APOCALIPTICO', W / 2, L.titleY + 22);
+  ctx.fillText('PÓS-APOCALÍPTICO', W / 2, L.titleY + 24);
 
   ctx.strokeStyle = 'rgba(255,255,255,0.06)';
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(W * 0.3, L.titleY + 34);
-  ctx.lineTo(W * 0.7, L.titleY + 34);
+  ctx.moveTo(W * 0.3, L.titleY + 36);
+  ctx.lineTo(W * 0.7, L.titleY + 36);
   ctx.stroke();
 
   ctx.fillStyle = PALETTE.textDim;
   ctx.font = '11px monospace';
   ctx.fillText('SELECIONE O MODO (1-4)', W / 2, L.items[0].y - 14);
 
+  const hoveredMode = menuIndexAt(uiMouse.x, uiMouse.y, W, H);
   GAME_MODES.forEach((mode, i) => {
     const r = L.items[i];
     const isSelected = mode.mode === selectedMode;
+    const isHovered = i === hoveredMode;
 
-    ctx.fillStyle = isSelected ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.02)';
+    ctx.fillStyle = isSelected ? 'rgba(255,255,255,0.07)' : isHovered ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.02)';
     ctx.beginPath();
     ctx.roundRect(r.x, r.y, r.w, r.h, 3);
     ctx.fill();
 
-    ctx.strokeStyle = isSelected ? mode.color : 'rgba(255,255,255,0.06)';
+    ctx.strokeStyle = isSelected ? mode.color : isHovered ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.06)';
     ctx.lineWidth = isSelected ? 1.5 : 0.5;
     ctx.stroke();
+
+    // barra de acento do modo selecionado
+    if (isSelected) {
+      ctx.fillStyle = mode.color;
+      ctx.fillRect(r.x, r.y, 3, r.h);
+    }
 
     const midY = r.y + r.h / 2 + 4;
     ctx.textAlign = 'left';
@@ -150,11 +237,54 @@ export function drawMenu(selectedMode: string = 'campaign'): void {
     ctx.textAlign = 'center';
   });
 
+  // ── SELEÇÃO DE CLASSE ──
+  ctx.fillStyle = PALETTE.textDim;
+  ctx.font = '11px monospace';
+  ctx.fillText('SELECIONE A CLASSE', W / 2, L.classItems[0].y - 14);
+
+  CLASSES.forEach((clsDef, i) => {
+    const r = L.classItems[i];
+    const isSelected = clsDef.id === selectedClass;
+    const isHovered = 100 + i === hoveredMode;
+
+    ctx.fillStyle = isSelected ? 'rgba(255,255,255,0.07)' : isHovered ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.02)';
+    ctx.beginPath();
+    ctx.roundRect(r.x, r.y, r.w, r.h, 3);
+    ctx.fill();
+
+    ctx.strokeStyle = isSelected ? clsDef.color : isHovered ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.06)';
+    ctx.lineWidth = isSelected ? 1.5 : 0.5;
+    ctx.stroke();
+
+    // barra de acento da classe selecionada
+    if (isSelected) {
+      ctx.fillStyle = clsDef.color;
+      ctx.fillRect(r.x, r.y, 3, r.h);
+    }
+
+    const midY = r.y + r.h / 2 + 4;
+    ctx.textAlign = 'left';
+    if (isSelected) {
+      ctx.fillStyle = clsDef.color;
+      ctx.font = '11px monospace';
+      ctx.fillText('>', r.x + 8, midY);
+    }
+    ctx.fillStyle = isSelected ? PALETTE.text : clsDef.color;
+    ctx.font = 'bold 13px monospace';
+    ctx.fillText(clsDef.name, r.x + 22, midY);
+    ctx.fillStyle = isSelected ? PALETTE.textDim : PALETTE.textOff;
+    ctx.font = '10px monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText(clsDef.desc, r.x + r.w - 10, midY);
+    ctx.textAlign = 'center';
+  });
+
   ctx.fillStyle = PALETTE.textOff;
   ctx.font = '10px monospace';
   ctx.fillText('WASD: Mover | Mouse: Mirar | Click: Atirar', W / 2, H * 0.88);
   ctx.fillText('Espaco: Dash | F: Escudo | E: Furia | R: Recarregar', W / 2, H * 0.88 + 14);
   ctx.fillText('M: Musica | S: Efeitos', W / 2, H * 0.88 + 28);
+  ctx.fillText('V: Créditos', W / 2, H * 0.88 + 42);
 
   if (hasSave()) {
     ctx.fillStyle = PALETTE.mustard;
@@ -206,19 +336,25 @@ export function drawCutscene(): void {
   const portraitY = canvas.height * 0.45 + Math.sin(Date.now() / 800) * 4;
   const portraitR = 35;
 
-  ctx.fillStyle = 'rgba(255,255,255,0.04)';
-  ctx.beginPath();
-  ctx.arc(portraitX, portraitY, portraitR, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = portrait.color;
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  ctx.fillStyle = line.speaker !== 'narrador' ? portrait.color : PALETTE.textOff;
-  ctx.font = line.speaker !== 'narrador' ? 'bold 24px monospace' : '20px monospace';
-  ctx.textAlign = 'center';
-  const initial = line.speaker === 'rios' ? 'R' : line.speaker === 'comandante' ? 'V' : 'F';
-  ctx.fillText(line.speaker !== 'narrador' ? initial : '*', portraitX, portraitY + 8);
+  // Sprite do personagem (Kenney) em vez do círculo procedural com iniciais.
+  // O fallback só entra quando o asset não carregou — narrador e mensagem são
+  // entidades sem forma física, então não têm sprite por design (Regra 15).
+  const portraitImg = portrait.sprite ? getSprite(portrait.sprite) : null;
+  if (portraitImg) {
+    const targetH = portraitR * 1.8;
+    const iw = portraitImg.naturalWidth || portraitImg.width;
+    const ih = portraitImg.naturalHeight || portraitImg.height;
+    const sw = iw * (targetH / ih);
+    ctx.drawImage(portraitImg, portraitX - sw / 2, portraitY - targetH / 2, sw, targetH);
+  } else {
+    ctx.fillStyle = 'rgba(255,255,255,0.04)';
+    ctx.beginPath();
+    ctx.arc(portraitX, portraitY, portraitR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = portrait.color;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
 
   ctx.fillStyle = portrait.color;
   ctx.font = 'bold 12px monospace';
@@ -360,6 +496,53 @@ export function drawGameOver(score: number, killStreak: number): void {
   ctx.fillStyle = PALETTE.textDim;
   ctx.font = '13px monospace';
   ctx.fillText('ENTER para voltar ao menu', W / 2, H * 0.85);
+  ctx.globalAlpha = 1;
+}
+
+// ─── Créditos ────────────────────────────────────────────────
+
+export function drawCredits(): void {
+  const W = canvas.width;
+  const H = canvas.height;
+
+  ctx.fillStyle = PALETTE.bg;
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = PALETTE.title;
+  ctx.font = 'bold 28px monospace';
+  ctx.fillText('CRÉDITOS', W / 2, H * 0.1);
+
+  const linhas: { texto: string; cor: string; tamanho: string; peso: string }[] = [
+    { texto: 'MÚSICA', cor: PALETTE.mustard, tamanho: '13px', peso: 'bold ' },
+    { texto: 'Eric Matyas (soundimage.org) — Mystical Ocean, Automation, Darkness Below, Puzzle Dreams', cor: PALETTE.text, tamanho: '12px', peso: '' },
+    { texto: 'Uso gratuito com atribuição desta tela e do CREDITS.md', cor: PALETTE.textDim, tamanho: '11px', peso: '' },
+    { texto: '', cor: PALETTE.textDim, tamanho: '11px', peso: '' },
+    { texto: 'SFX', cor: PALETTE.mustard, tamanho: '13px', peso: 'bold ' },
+    { texto: 'freesound.org — CC0 / CC-BY (curadoria incremental)', cor: PALETTE.text, tamanho: '12px', peso: '' },
+    { texto: 'Enquanto o arquivo não chega, o efeito é procedural (audio.ts)', cor: PALETTE.textDim, tamanho: '11px', peso: '' },
+    { texto: 'Autores por arquivo: assets/CREDITS.md', cor: PALETTE.textDim, tamanho: '11px', peso: '' },
+    { texto: '', cor: PALETTE.textDim, tamanho: '11px', peso: '' },
+    { texto: 'SPRITES', cor: PALETTE.mustard, tamanho: '13px', peso: 'bold ' },
+    { texto: 'Kenney — Top-down Shooter · kenney.nl · CC0', cor: PALETTE.text, tamanho: '12px', peso: '' },
+    { texto: 'Personagens, armas e tiles (PNG/Tiles)', cor: PALETTE.textDim, tamanho: '11px', peso: '' },
+    { texto: '', cor: PALETTE.textDim, tamanho: '11px', peso: '' },
+    { texto: 'CÓDIGO E DESIGN', cor: PALETTE.mustard, tamanho: '13px', peso: 'bold ' },
+    { texto: 'ASHFALL — projeto original', cor: PALETTE.text, tamanho: '12px', peso: '' },
+  ];
+
+  let y = H * 0.2;
+  for (const l of linhas) {
+    ctx.fillStyle = l.cor;
+    ctx.font = `${l.peso}${l.tamanho} monospace`;
+    ctx.fillText(l.texto, W / 2, y);
+    y += l.texto === '' ? 10 : 20;
+  }
+
+  ctx.globalAlpha = 0.3 + Math.sin(Date.now() / 600) * 0.3;
+  ctx.fillStyle = PALETTE.textDim;
+  ctx.font = '13px monospace';
+  ctx.fillText('ENTER ou ESC para voltar', W / 2, H * 0.88);
   ctx.globalAlpha = 1;
 }
 
@@ -805,7 +988,33 @@ let pauseIndex = 0;
 export function getPauseIndex(): number { return pauseIndex; }
 export function movePause(delta: number): void {
   pauseIndex = (pauseIndex + delta + PAUSE_OPTIONS.length) % PAUSE_OPTIONS.length;
-  return;
+}
+
+export function setPauseIndex(i: number): void {
+  if (i >= 0 && i < PAUSE_OPTIONS.length) pauseIndex = i;
+}
+
+/** Posição do mouse em coordenadas de canvas, sincronizada pelo main.ts */
+const uiMouse = { x: 0, y: 0 };
+export function setUiMouse(x: number, y: number): void {
+  uiMouse.x = x;
+  uiMouse.y = y;
+}
+
+/** Linha da pausa onde o mouse está, ou -1 */
+export function pauseOptionAt(mx: number, my: number): number {
+  const W = canvas.width;
+  const H = canvas.height;
+  const boxW = 280;
+  const rowH = 34;
+  const boxH = 90 + PAUSE_OPTIONS.length * rowH;
+  const x = W / 2 - boxW / 2;
+  const y = H / 2 - boxH / 2;
+  for (let i = 0; i < PAUSE_OPTIONS.length; i++) {
+    const oy = y + 70 + i * rowH;
+    if (mx >= x && mx <= x + boxW && my >= oy - 18 && my <= oy + 12) return i;
+  }
+  return -1;
 }
 
 /**
@@ -839,7 +1048,9 @@ export function drawPause(musicOn: boolean, sfxOn: boolean): void {
 
   PAUSE_OPTIONS.forEach((opt, i) => {
     const oy = y + 70 + i * rowH;
-    const selected = i === pauseIndex;
+    const hovered = pauseOptionAt(uiMouse.x, uiMouse.y) === i;
+    const selected = i === pauseIndex || hovered;
+    if (hovered) { ctx.fillStyle = 'rgba(255,255,255,0.05)'; ctx.fillRect(x+8, oy-16, boxW-16, rowH-6); }
     let label: string = opt.label;
     if (opt.id === 'music') label = `MÚSICA: ${musicOn ? 'LIGADA' : 'DESLIGADA'}`;
     if (opt.id === 'sfx') label = `EFEITOS: ${sfxOn ? 'LIGADOS' : 'DESLIGADOS'}`;

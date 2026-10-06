@@ -2,12 +2,13 @@
 
 ## Contexto do Projeto
 
-**Bubble Shooter Pós-Apocalíptico** — Jogo top-down survival shooter com progressão roguelite.
+**ASHFALL** — Jogo top-down survival shooter com progressão roguelite.
 
 - **Stack**: TypeScript + Vite + Canvas 2D
 - **Entry point**: `src/main.ts` (orquestrador central)
 - **Arquitetura**: Módulos separados (entities, systems, ui, core)
-- **SFX**: 100% procedural via Web Audio API (sem arquivo de SFX no repositório)
+- **SFX**: arquivos OGG de freesound.org (CC0/CC-BY) em `public/assets/sfx/`,
+  com fallback procedural quando o arquivo não existe (`src/systems/audio.ts`)
 - **Música**: 4 faixas OGG reais em loop, com crossfade (`public/assets/music/`)
 - **Renderização**: Canvas 2D. Sprites do pack Kenney **são** o visual; o
   fallback procedural só entra se o pack não carregar
