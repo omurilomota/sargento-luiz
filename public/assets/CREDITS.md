@@ -12,18 +12,12 @@
 - `assets/sprites/topdown-shooter/PNG/Tiles/tile_*.png` — 524 tiles de 64×64
 - `assets/sprites/topdown-shooter/License.txt` — licença original do pack
 
-Do pack o jogo usa principalmente os tiles:
+Os personagens são vistos de cima e apontam para a direita, então são girados em
+tempo de execução pela direção de mira. O pivô é o centro do corpo
+(`BODY_PIVOT_X`/`BODY_PIVOT_Y` em `src/systems/sprites.ts`), não o centro da
+imagem — pivotar pela imagem faria o personagem girar em volta do cano.
 
-- `assets/sprites/topdown-shooter/PNG/<Personagem>/*.png` — 9 personagens × 6 poses
-  (`stand`, `hold`, `gun`, `machine`, `reload`, `silencer`)
-- `assets/sprites/topdown-shooter/PNG/weapon_*.png` — 3 classes de cano
-  (`gun`, `machine`, `silencer`)
-- `assets/sprites/topdown-shooter/PNG/Tiles/tile_*.png` — tiles de 64×64
-  (chão por bioma, paredes via `WALL_TILES`, hazards via `HAZARD_SPRITES`,
-  decor via `spriteFor`, props via `PROP_SPRITES`)
-- `assets/sprites/topdown-shooter/License.txt` — licença original do pack
-
-Detalhes do pack que já custaram bug e estão guardados em teste:
+Detalhes do pack quemitteram bug e estão guardados em teste:
 
 - A numeração dos tiles tem **buracos**: `tile_054`, `tile_081`, `tile_135`,
   `tile_162`, `tile_459`, `tile_485` e outros não existem. Pedir um intervalo em
@@ -33,21 +27,18 @@ Detalhes do pack que já custaram bug e estão guardados em teste:
 - O pad do nome do arquivo é de **2 dígitos** (`tile_01.png`), não 3. Com pad 3
   todo tile de 1 a 99 dá 404 e o chão inteiro cai no fallback de cor chapada.
 
-Parede, props e hazards **não** usam tiles do pack: tile de borda direcional não
-serve como geometria legível, e o jogador precisa ler "isto bloqueia" num
-olhar. Essas peças são desenhadas em `src/systems/terrain.ts` e
-`src/systems/props.ts` e recebem o tint do bioma.
-
 ## Música
 
-**Faixas originais deste projeto · CC0 1.0 Universal**
+**Eric Matyas — soundimage.org · livre com atribuição do autor**
 
-- `assets/music/menu.ogg` — 64s, ambiência lenta e vazia
-- `assets/music/combat.ogg` — 44s, pulso de baixo em colcheias
-- `assets/music/boss.ogg` — 39s, tensão cromática sem resolução
-- `assets/music/shop.ogg` — 53s, acordes quentes
+- `assets/music/menu.ogg` — Mystical Ocean Puzzle Game (loop de ambiente)
+- `assets/music/combat.ogg` — Automation (loop de combate)
+- `assets/music/boss.ogg` — The Darkness Below (loop de boss)
+- `assets/music/shop.ogg` — Puzzle Dreams (loop de loja)
 
-Ver `assets/music/CREDITS.md` para o método de geração e a licença.
+Ver `assets/music/CREDITS.md` para as URLs exatas e a forma de atribuição.
+As versões antigas sintetizadas por `tools/genmusic.py` continuam disponíveis
+no histórico do git como fallback.
 
 ## Áudio de efeito
 

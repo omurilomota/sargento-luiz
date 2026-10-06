@@ -2,39 +2,41 @@
 
 ## Licença
 
-**CC0 1.0 Universal (domínio público).** Sem atribuição obrigatória; atribuída
-aqui para deixar a origem explícita.
+**Gratuita com atribuição (Royalty-Free com crédito obrigatório) — Eric Matyas / soundimage.org.**
+Não é CC0: a licença exige atribuir o autor. O crédito aqui e na tela de
+créditos do jogo é a forma de cumprir.
 
 ## Origem
 
-As quatro faixas são **obra original deste projeto**, sintetizadas por
-`tools/genmusic.py`. Não há amostra, loop ou gravação de terceiros envolvida.
+Após várias alternativas, as quatro faixas agora são as faixas originais do
+autor Eric Matyas (soundimage.org), baixadas dos links diretos do site:
 
-O plano original previa baixar loops CC0 de itch.io (CoMiGo, Not Jam) e
-creditá-los. Sem rede garantida no ambiente de build, a alternativa foi sintetizar
-as faixas: o resultado é pior que um loop de compositor em qualidade de produção,
-mas é licença limpa e reprodutível — `python3 tools/genmusic.py` regenera os
-quatro arquivos bit a bit.
+| Arquivo | Fonte | Página |
+|---|---|---|
+| `menu.ogg` | Mystical-Ocean-Puzzle-Game_v001.ogg | soundimage.org/looping-music/ |
+| `combat.ogg` | Automation.ogg | soundimage.org/looping-music/ |
+| `boss.ogg` | The-Darkness-Below_Looping.ogg | soundimage.org/looping-music/ |
+| `shop.ogg` | Puzzle-Dreams.ogg | soundimage.org/looping-music/ |
 
-## Faixas
+Os 4 arquivos originais sintetizados por `tools/genmusic.py` foram preservados
+em `/tmp/{menu,combat,boss,shop}_synth.ogg` durante o desenvolvimento para
+fallback; o arquivo `genmusic.py` está no histórico do git e pode ser restaurado.
 
-| Arquivo | Duração | Bitrate | Conteúdo |
-|---|---|---|---|
-| `menu.ogg` | 64s | 47 kbps | Drone em Lá menor, toques esparsos de sino a cada 3 tempos |
-| `combat.ogg` | 44s | 75 kbps | Pulso de baixo em colcheias + stab filtrado, 132 BPM |
-| `boss.ogg` | 39s | 81 kbps | Tríton grave, motivo cromático sem resolução, 148 BPM |
-| `shop.ogg` | 53s | 46 kbps | Progressão de acordes quentes com arpejo lento, 72 BPM |
+## Como se atribui
 
-Total: **~1,4 MB** mono OGG Vorbis a 22,05 kHz.
+- Esta página: "Eric Matyas — soundimage.org — https://soundimage.org"
+- Fora do game (README): idem.
+- No game: a tela de créditos (`V` no menu) já lista a origem.
 
-O crossfade de emenda de 0,8s em `loopify()` corta os primeiros e últimos 50 ms
-em cruzamento, para o loop não estalar na volta. O crossfade entre faixas
-(distinto desse) está em `playMusic()`, em `src/systems/audio.ts`.
+A licença diz que atribuição *é* a forma correta de usar: sem ela, o uso é
+ilegal; com ela, o uso comercial/não-comercial é livre.
 
 ## Regenerar
 
 ```bash
-python3 tools/genmusic.py     # precisa de ffmpeg no PATH
+# Re-baixar as quatro faixas atuais:
+curl -sL -o menu.ogg "https://soundimage.org/wp-content/uploads/2025/10/Mystical-Ocean-Puzzle-Game_v001.ogg"
+curl -sL -o combat.ogg "https://soundimage.org/wp-content/uploads/2025/10/Automation.ogg"
+curl -sL -o boss.ogg "https://soundimage.org/wp-content/uploads/2025/10/The-Darkness-Below_Looping.ogg"
+curl -sL -o shop.ogg "https://soundimage.org/wp-content/uploads/2025/10/Puzzle-Dreams.ogg"
 ```
-
-A semente é fixa por faixa; o mesmo script produz sempre os mesmos arquivos.
