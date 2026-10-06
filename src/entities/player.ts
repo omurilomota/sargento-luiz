@@ -64,6 +64,7 @@ export function resetPlayer(canvasWidth: number, canvasHeight: number): void {
   player.invincible = 0;
   player.shield = 0;
   player.hitFlash = 0;
+  medkits = 0;
 }
 
 /**
@@ -132,6 +133,23 @@ export function enemyCollisionDamage(enemyDamage: number): void {
  * Cura o jogador, limitado ao máximo de vida.
  * @param amount - quantidade de vida a restaurar
  */
+export function useMedkit(): void {
+  if (medkits <= 0 || player.health >= player.maxHealth) return;
+  medkits--;
+  player.health = Math.min(player.maxHealth, player.health + 50);
+  player.hitFlash = 0.1;
+}
+
+export function addMedkits(n: number): void {
+  medkits = Math.min(medkits + n, 9);
+}
+
+export function getMedkits(): number {
+  return medkits;
+}
+
+let medkits = 0;
+
 export function healPlayer(amount: number): void {
   player.health = Math.min(player.maxHealth, player.health + amount);
 }
