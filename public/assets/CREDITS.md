@@ -12,12 +12,18 @@
 - `assets/sprites/topdown-shooter/PNG/Tiles/tile_*.png` — 524 tiles de 64×64
 - `assets/sprites/topdown-shooter/License.txt` — licença original do pack
 
-Os personagens são vistos de cima e apontam para a direita, então são girados em
-tempo de execução pela direção de mira. O pivô é o centro do corpo
-(`BODY_PIVOT_X`/`BODY_PIVOT_Y` em `src/systems/sprites.ts`), não o centro da
-imagem — pivotar pela imagem faria o personagem girar em volta do cano.
+Do pack o jogo usa principalmente os tiles:
 
-Detalhes do pack quemitteram bug e estão guardados em teste:
+- `assets/sprites/topdown-shooter/PNG/<Personagem>/*.png` — 9 personagens × 6 poses
+  (`stand`, `hold`, `gun`, `machine`, `reload`, `silencer`)
+- `assets/sprites/topdown-shooter/PNG/weapon_*.png` — 3 classes de cano
+  (`gun`, `machine`, `silencer`)
+- `assets/sprites/topdown-shooter/PNG/Tiles/tile_*.png` — tiles de 64×64
+  (chão por bioma, paredes via `WALL_TILES`, hazards via `HAZARD_SPRITES`,
+  decor via `spriteFor`, props via `PROP_SPRITES`)
+- `assets/sprites/topdown-shooter/License.txt` — licença original do pack
+
+Detalhes do pack que já custaram bug e estão guardados em teste:
 
 - A numeração dos tiles tem **buracos**: `tile_054`, `tile_081`, `tile_135`,
   `tile_162`, `tile_459`, `tile_485` e outros não existem. Pedir um intervalo em

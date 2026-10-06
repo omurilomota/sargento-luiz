@@ -9,6 +9,38 @@
 import { CELL_SIZE } from '../maps';
 import { HazardKind } from '../types';
 import { PALETTE } from '../core/palette';
+import { getSprite } from './sprites';
+
+/**
+ * Sprite de prop por tipo. Mesmo padrão das paredes: o tile cobre o corpo e
+ * a cor do bioma (`propCrate`/`propBarrel` do mapa) continua vindo do tint.
+ * Por isso os mesmos 5 caixotes do pack servem aos 9 biomas.
+ *
+ * `barrel` fica de fora porque o pack não tem barril nem bomba redonda
+ * (163 objetos inspecionados): o barril com cintas continua procedural até
+ * o download do Sprint 3 trazer um.
+ */
+export const PROP_SPRITES: Record<'crate' | 'nest', number[]> = {
+  crate: [129, 130, 156, 157, 158],
+  nest: [181, 182, 183],
+};
+
+/** Tinta um sprite do pack com a cor do bioma. Offscreen por prop vivo. */
+function tintSprite(img: HTMLImageElement, color: string, size: number): HTMLCanvasElement {
+  const off = document.createElement('canvas');
+  off.width = size;
+  off.height = size;
+  const c = off.getContext('2d')!;
+  c.drawImage(img, 0, 0, size, size);
+  c.globalCompositeOperation = 'saturation';
+  c.fillStyle = '#808080';
+  c.fillRect(0, 0, size, size);
+  c.globalCompositeOperation = 'multiply';
+  c.fillStyle = color;
+  c.fillRect(0, 0, size, size);
+  c.globalCompositeOperation = 'source-over';
+  return off;
+}
 
 export interface Prop {
   col: number;
@@ -217,22 +249,32 @@ export function drawProps(
     ctx.fill();
 
     if (p.kind === 'nest') {
-      // ninho: monte orgânico escuro com brasa no meio
-      ctx.fillStyle = '#241a14';
-      ctx.beginPath();
-      ctx.ellipse(p.x, p.y, p.radius, p.radius * 0.82, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = p.hitFlash > 0 ? PALETTE.crit : '#3a2a1e';
-      ctx.lineWidth = 3;
-      ctx.stroke();
-      for (let i = 0; i < 5; i++) {
-        const a = (i * Math.PI * 2) / 5 - 0.4;
-        ctx.strokeStyle = '#3a2a1e';
-        ctx.lineWidth = 2;
+      // ninho: arbusto do pack na cor do bioma, com a brasa no meio. A brasa
+      // pulsa e acende no dano — é feedback de "cabeça" do objetivo, não
+      // identidade, então continua em código.
+      const nestTiles = PROP_SPRITES.nest;
+      const nestImg = getSprite(`tile_${nestTiles[(p.col + p.row) % nestTiles.length]}`);
+      if (nestImg) {
+        const s = p.radius * 2.2;
+        const body = tintSprite(nestImg, '#3a2f24', Math.ceil(s));
+        ctx.drawImage(body, p.x - s / 2, p.y - s / 2, s, s);
+      } else {
+        ctx.fillStyle = '#241a14';
         ctx.beginPath();
-        ctx.moveTo(p.x + Math.cos(a) * p.radius * 0.35, p.y + Math.sin(a) * p.radius * 0.35);
-        ctx.lineTo(p.x + Math.cos(a) * p.radius * 0.95, p.y + Math.sin(a) * p.radius * 0.85);
+        ctx.ellipse(p.x, p.y, p.radius, p.radius * 0.82, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = p.hitFlash > 0 ? PALETTE.crit : '#3a2a1e';
+        ctx.lineWidth = 3;
         ctx.stroke();
+        for (let i = 0; i < 5; i++) {
+          const a = (i * Math.PI * 2) / 5 - 0.4;
+          ctx.strokeStyle = '#3a2a1e';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(p.x + Math.cos(a) * p.radius * 0.35, p.y + Math.sin(a) * p.radius * 0.35);
+          ctx.lineTo(p.x + Math.cos(a) * p.radius * 0.95, p.y + Math.sin(a) * p.radius * 0.85);
+          ctx.stroke();
+        }
       }
       ctx.fillStyle = p.hitFlash > 0 ? PALETTE.crit : PALETTE.terracotta;
       ctx.beginPath();
@@ -262,18 +304,28 @@ export function drawProps(
         ctx.fill();
       }
     } else {
-      const s = p.radius * 0.9;
-      ctx.fillStyle = p.hitFlash > 0 ? PALETTE.crit : paleta.crate;
-      ctx.fillRect(p.x - s, p.y - s, s * 2, s * 2);
-      ctx.strokeStyle = shadeCor(paleta.crate, -0.28);
-      ctx.lineWidth = 2;
-      ctx.strokeRect(p.x - s, p.y - s, s * 2, s * 2);
-      ctx.beginPath();
-      ctx.moveTo(p.x - s, p.y - s);
-      ctx.lineTo(p.x + s, p.y + s);
-      ctx.moveTo(p.x + s, p.y - s);
-      ctx.lineTo(p.x - s, p.y + s);
-      ctx.stroke();
+      // caixote: caixa do pack na cor do bioma. O resto — barra de vida,
+      // flash de dano, sombra — é estado que muda por frame, não identidade.
+      const crateTiles = PROP_SPRITES.crate;
+      const crateImg = getSprite(`tile_${crateTiles[(p.col + p.row) % crateTiles.length]}`);
+      if (crateImg) {
+        const s = p.radius * 0.9;
+        const body = tintSprite(crateImg, paleta.crate, Math.ceil(s * 2));
+        ctx.drawImage(body, p.x - s, p.y - s, s * 2, s * 2);
+      } else {
+        const s = p.radius * 0.9;
+        ctx.fillStyle = p.hitFlash > 0 ? PALETTE.crit : paleta.crate;
+        ctx.fillRect(p.x - s, p.y - s, s * 2, s * 2);
+        ctx.strokeStyle = shadeCor(paleta.crate, -0.28);
+        ctx.lineWidth = 2;
+        ctx.strokeRect(p.x - s, p.y - s, s * 2, s * 2);
+        ctx.beginPath();
+        ctx.moveTo(p.x - s, p.y - s);
+        ctx.lineTo(p.x + s, p.y + s);
+        ctx.moveTo(p.x + s, p.y - s);
+        ctx.lineTo(p.x - s, p.y + s);
+        ctx.stroke();
+      }
     }
 
     if (p.health < p.maxHealth) {

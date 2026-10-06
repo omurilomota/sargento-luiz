@@ -42,6 +42,20 @@ const BODY_PIVOT_Y = 21;
 /** Tiles do Kenney que realmente existem e servem de chão (curadoria visual) */
 export const TILE_NUMBERS = [
   1, 2, 3, 4, 13, 15, 17, 18, 19, 20, 31, 32, 35, 36, 37, 40, 41, 58, 59, 62, 63, 64, 67, 68, 76, 77, 79, 80, 86, 89, 90, 91, 92, 93, 95, 169, 178, 334, 340, 349, 350, 361, 362, 363, 376, 377, 398,
+  // objetos de decoração (copas, folhas, pedras) usados nas paredes/decor do bioma
+  134, 181, 209, 238, 239, 316,
+  // superfícies de parede por bioma (WALL_TILES em terrain.ts)
+  43, 44, 45, 46, 96, 97, 98, 99, 110, 111, 112, 113,
+  163, 164, 165, 166, 172, 173, 174, 175, 335, 336, 337,
+  415, 416, 417, 418, 489, 490, 491, 492,
+  // decor de chão por bioma (spriteFor em drawDecor)
+  129, 133, 180, 292, 333,
+  // objetos de hazard (HAZARD_SPRITES em terrain.ts)
+  260, 265, 316, 319, 320, 264, 268,
+  // Sprint 3 (opção A): tábua+faca p/ spikes, anel+aviso p/ electric
+  197, 198, 267, 268, 511,
+  // sprites de prop (PROP_SPRITES em props.ts)
+  130, 156, 157, 158, 182, 183,
 ];
 
 const BASE = 'assets/sprites/topdown-shooter/PNG';
@@ -61,6 +75,11 @@ export const WEAPON_CLASSES = ['gun', 'machine', 'silencer'] as const;
 export function tileFileName(n: number): string {
   return `tile_${String(n).padStart(2, '0')}.png`;
 }
+
+/** Chave do barril do Tower Defense curado em `public/assets/sprites/hazards/`. */
+export const HAZARD_BARREL_KEY = 'hazard_barrel_red';
+/** Caminho do barril (pasta separada — não misturar com o pack Top-down Shooter). */
+export const HAZARD_BARREL_PATH = 'assets/sprites/hazards/barrel_red.png';
 
 /**
  * Mapeamento de tipos de inimigo para o personagem do pack.

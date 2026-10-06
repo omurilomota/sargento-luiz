@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { TILE_NUMBERS } from '../systems/sprites';
 import {
   initProps, clearProps, getProps, getNests, getBlockingProps, getBlast,
-  damageProp, igniteBarrel, detonateProp, updateProps, collapsesOnHit,
+  damageProp, igniteBarrel, detonateProp, updateProps, collapsesOnHit, PROP_SPRITES,
 } from '../systems/props';
 import { CELL_SIZE, BIOMES } from '../maps';
 import { PHASES } from '../config';
@@ -259,5 +260,19 @@ describe('props: o desmoronamento é exclusivo do entulho', () => {
       const props = (rows.match(/[cb]/g) ?? []).length;
       expect(props, `${fase.name} não tem nenhum prop`).toBeGreaterThan(0);
     }
+  });
+});
+
+describe('props: sprites de caixote e ninho', () => {
+  it('todo tile de prop está em TILE_NUMBERS, senão não é carregado', () => {
+    for (const [kind, nums] of Object.entries(PROP_SPRITES)) {
+      for (const n of nums) {
+        expect(TILE_NUMBERS, `tile_${n} (${kind}) fora da lista de carregamento`).toContain(n);
+      }
+    }
+  });
+
+  it('barril não tem sprite no pacote atual — fica de fora de propósito', () => {
+    expect(PROP_SPRITES).not.toHaveProperty('barrel');
   });
 });
