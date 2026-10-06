@@ -86,7 +86,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
 
   // ─── Bosses ────────────────────────────────────────────────
   vigia: {
-    radius: 40, speed: 78, health: 520, damage: 18, color: '#8a7a6a', scoreValue: 250, coinDrop: 30,
+    radius: 40, speed: 78, health: 499, damage: 18, color: '#8a7a6a', scoreValue: 250, coinDrop: 30,
     canShoot: false, isBoss: true, bossName: 'VIGIA', telegraph: 1.1,
     // Primeira luta do jogo, então o padrão é uma aula: telegrafia longa,
     // uma ação por faixa, e o texto da telegrafia diz o que vai acontecer.
@@ -99,7 +99,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
     ],
   },
   alphaWolf: {
-    radius: 42, speed: 95, health: 900, damage: 26, color: '#7a6a5a', scoreValue: 400, coinDrop: 45,
+    radius: 42, speed: 95, health: 1440, damage: 26, color: '#7a6a5a', scoreValue: 400, coinDrop: 45,
     canShoot: false, isBoss: true, bossName: 'ALPHA WOLF', telegraph: 0.9,
     pattern: [
       { atHp: 1.0, action: 'charge', telegraph: 'CARREGANDO' },
@@ -108,7 +108,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
     ],
   },
   crystalQueen: {
-    radius: 46, speed: 45, health: 1400, damage: 30, color: '#608090', scoreValue: 550, coinDrop: 60,
+    radius: 46, speed: 45, health: 1344, damage: 30, color: '#608090', scoreValue: 550, coinDrop: 60,
     canShoot: true, shootRate: 2.4, bulletSpeed: 260, isBoss: true, bossName: 'CRYSTAL QUEEN', telegraph: 1.0,
     projectileColor: PALETTE.stone,
     pattern: [
@@ -118,7 +118,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
     ],
   },
   sentinel: {
-    radius: 48, speed: 38, health: 1900, damage: 34, color: '#6a6a6a', scoreValue: 700, coinDrop: 80,
+    radius: 48, speed: 38, health: 1520, damage: 34, color: '#6a6a6a', scoreValue: 700, coinDrop: 80,
     canShoot: true, shootRate: 1.8, bulletSpeed: 300, isBoss: true, bossName: 'SENTINEL', telegraph: 0.8,
     projectileColor: PALETTE.terracotta,
     pattern: [
@@ -129,7 +129,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
     ],
   },
   leviathan: {
-    radius: 50, speed: 60, health: 2200, damage: 36, color: '#5a7a5a', scoreValue: 750, coinDrop: 85,
+    radius: 50, speed: 60, health: 2112, damage: 36, color: '#5a7a5a', scoreValue: 750, coinDrop: 85,
     canShoot: true, shootRate: 2.0, bulletSpeed: 280, isBoss: true, bossName: 'LEVIATHAN', telegraph: 0.9,
     projectileColor: '#5a7a5a',
     pattern: [
@@ -138,7 +138,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
     ],
   },
   reiMutante: {
-    radius: 46, speed: 55, health: 2600, damage: 38, color: '#8a8a7a', scoreValue: 800, coinDrop: 90,
+    radius: 46, speed: 55, health: 2496, damage: 38, color: '#8a8a7a', scoreValue: 800, coinDrop: 90,
     canShoot: true, shootRate: 2.2, bulletSpeed: 320, isBoss: true, bossName: 'REI MUTANTE', telegraph: 0.9,
     projectileColor: PALETTE.terracotta, armor: true,
     pattern: [
@@ -148,7 +148,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
     ],
   },
   infernoPrime: {
-    radius: 48, speed: 62, health: 3000, damage: 40, color: '#c46a3a', scoreValue: 900, coinDrop: 100,
+    radius: 48, speed: 62, health: 2880, damage: 40, color: '#c46a3a', scoreValue: 900, coinDrop: 100,
     canShoot: true, shootRate: 1.4, bulletSpeed: 340, isBoss: true, bossName: 'INFERNO PRIME', telegraph: 0.7,
     projectileColor: '#c46a3a',
     pattern: [
@@ -158,7 +158,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
     ],
   },
   mothership: {
-    radius: 54, speed: 30, health: 3600, damage: 44, color: '#7a6a8a', scoreValue: 1200, coinDrop: 140,
+    radius: 54, speed: 30, health: 3456, damage: 44, color: '#7a6a8a', scoreValue: 1200, coinDrop: 140,
     canShoot: true, shootRate: 1.2, bulletSpeed: 300, isBoss: true, bossName: 'MOTHERSHIP', telegraph: 0.8,
     projectileColor: '#7a6a8a',
     pattern: [
@@ -169,7 +169,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
     ],
   },
   nucleo: {
-    radius: 46, speed: 34, health: 4200, damage: 46, color: '#7a7a8a', scoreValue: 1500, coinDrop: 180,
+    radius: 46, speed: 34, health: 4032, damage: 46, color: '#7a7a8a', scoreValue: 1500, coinDrop: 180,
     canShoot: true, shootRate: 1.0, bulletSpeed: 340, isBoss: true, bossName: 'NÚCLEO', telegraph: 0.7,
     projectileColor: PALETTE.stone, armor: true,
     // O último chefe tira uma opção por faixa, em vez de somar HP: tiro
@@ -189,17 +189,19 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
 
 /** Lista de armas disponíveis, ordenadas por desbloqueio */
 export const WEAPONS: Weapon[] = [
-  { name: 'Pistola', damage: 10, shootRate: 0.35, bulletSpeed: 600, bulletCount: 1, spread: 0, color: PALETTE.moss, price: 0, pierce: false, magazineSize: 10, reloadTime: 1.2, weaponClass: 'pistol' },
-  { name: 'Shotgun', damage: 7, shootRate: 0.6, bulletSpeed: 500, bulletCount: 3, spread: 0.3, color: PALETTE.terracotta, price: 80, pierce: false, magazineSize: 8, reloadTime: 1.3, weaponClass: 'pistol' },
-  { name: 'Metralhadora', damage: 5, shootRate: 0.14, bulletSpeed: 700, bulletCount: 1, spread: 0.1, color: '#a05a4a', price: 150, pierce: false, magazineSize: 25, reloadTime: 2.0, weaponClass: 'machine' },
-  { name: 'Sniper', damage: 40, shootRate: 1.2, bulletSpeed: 1000, bulletCount: 1, spread: 0, color: PALETTE.stone, price: 200, pierce: true, magazineSize: 4, reloadTime: 2.5, weaponClass: 'silencer' },
-  { name: 'Laser', damage: 3, shootRate: 0.06, bulletSpeed: 1200, bulletCount: 1, spread: 0, color: PALETTE.mustard, price: 250, pierce: true, magazineSize: 40, reloadTime: 1.5, weaponClass: 'machine' },
-  { name: 'RPG', damage: 65, shootRate: 1.8, bulletSpeed: 400, bulletCount: 1, spread: 0, color: PALETTE.terracotta, price: 350, pierce: false, magazineSize: 2, reloadTime: 2.5, weaponClass: 'machine' },
-  { name: 'Raios', damage: 6, shootRate: 0.25, bulletSpeed: 800, bulletCount: 2, spread: 0.2, color: PALETTE.stone, price: 300, pierce: true, magazineSize: 15, reloadTime: 2.0, weaponClass: 'machine' },
-  { name: 'Gel', damage: 6, shootRate: 0.28, bulletSpeed: 550, bulletCount: 2, spread: 0.2, color: '#7a9aa8', price: 180, pierce: false, magazineSize: 20, reloadTime: 1.5, weaponClass: 'pistol' },
-  { name: 'Granada', damage: 40, shootRate: 1.4, bulletSpeed: 350, bulletCount: 1, spread: 0, color: '#a05a4a', price: 250, pierce: false, explosive: true, explosionRadius: 110, magazineSize: 3, reloadTime: 2.5, weaponClass: 'pistol' },
-  { name: 'Mina', damage: 40, shootRate: 2.8, bulletSpeed: 0, bulletCount: 1, spread: 0, color: PALETTE.mustard, price: 200, pierce: false, explosive: true, explosionRadius: 140, magazineSize: 2, reloadTime: 2.5, weaponClass: 'pistol' },
-  { name: 'BFG', damage: 80, shootRate: 2.0, bulletSpeed: 500, bulletCount: 5, spread: 0.4, color: PALETTE.title, price: 999, pierce: true, explosive: true, explosionRadius: 120, magazineSize: 1, reloadTime: 3.5, weaponClass: 'machine', secret: true },
+  { name: 'Pistola', damage: 12, shootRate: 0.35, bulletSpeed: 600, bulletCount: 1, spread: 0, color: PALETTE.moss, price: 0, pierce: false, magazineSize: 10, reloadTime: 1.2, weaponClass: 'pistol' },
+  { name: 'Shotgun', damage: 9, shootRate: 0.6, bulletSpeed: 500, bulletCount: 3, spread: 0.3, color: PALETTE.terracotta, price: 80, pierce: false, magazineSize: 8, reloadTime: 1.3, weaponClass: 'pistol' },
+  { name: 'Metralhadora', damage: 6, shootRate: 0.14, bulletSpeed: 700, bulletCount: 1, spread: 0.1, color: '#a05a4a', price: 150, pierce: false, magazineSize: 25, reloadTime: 2.0, weaponClass: 'machine' },
+  { name: 'Sniper', damage: 50, shootRate: 1.2, bulletSpeed: 1000, bulletCount: 1, spread: 0, color: PALETTE.stone, price: 200, pierce: true, magazineSize: 4, reloadTime: 2.5, weaponClass: 'silencer' },
+  { name: 'Laser', damage: 2, shootRate: 0.06, bulletSpeed: 1200, bulletCount: 1, spread: 0, color: PALETTE.mustard, price: 250, pierce: true, magazineSize: 40, reloadTime: 1.5, weaponClass: 'machine' },
+  { name: 'RPG', damage: 81, shootRate: 1.8, bulletSpeed: 400, bulletCount: 1, spread: 0, color: PALETTE.terracotta, price: 350, pierce: false, explosive: true, explosionRadius: 140, magazineSize: 2, reloadTime: 2.5, weaponClass: 'machine' },
+  { name: 'Raios', damage: 4, shootRate: 0.25, bulletSpeed: 800, bulletCount: 2, spread: 0.2, color: PALETTE.stone, price: 300, pierce: true, magazineSize: 15, reloadTime: 2.0, weaponClass: 'machine' },
+  { name: 'Gel', damage: 8, shootRate: 0.28, bulletSpeed: 550, bulletCount: 2, spread: 0.2, color: '#7a9aa8', price: 180, pierce: false, magazineSize: 20, reloadTime: 1.5, weaponClass: 'pistol' },
+  { name: 'Granada', damage: 50, shootRate: 1.4, bulletSpeed: 350, bulletCount: 1, spread: 0, color: '#a05a4a', price: 250, pierce: false, explosive: true, explosionRadius: 110, magazineSize: 3, reloadTime: 2.5, weaponClass: 'pistol' },
+  { name: 'Mina', damage: 50, shootRate: 2.8, bulletSpeed: 0, bulletCount: 1, spread: 0, color: PALETTE.mustard, price: 200, pierce: false, explosive: true, explosionRadius: 140, magazineSize: 2, reloadTime: 2.5, weaponClass: 'pistol' },
+  { name: 'BFG', damage: 100, shootRate: 2.0, bulletSpeed: 500, bulletCount: 5, spread: 0.4, color: PALETTE.title, price: 999, pierce: true, explosive: true, explosionRadius: 120, magazineSize: 1, reloadTime: 3.5, weaponClass: 'machine', secret: true },
+  // índice 11 — só vem da caixa especial do boss
+  { name: 'M. Quebrada', damage: 5, shootRate: 0.3, bulletSpeed: 650, bulletCount: 1, spread: 0.18, color: '#a08050', price: 0, pierce: false, magazineSize: 30, reloadTime: 1.6, weaponClass: 'machine', broken: true },
 ];
 
 /** Lista de upgrades permanentes disponíveis na loja */

@@ -38,6 +38,8 @@ export interface Bullet {
   explosive?: boolean;
   /** Raio da explosão em pixels */
   explosionRadius?: number;
+  /** Inimigos já atingidos por esta bala (perfurante não re-hitta o mesmo alvo) */
+  hitBy?: Set<Enemy>;
 }
 
 /** Representa um inimigo no campo de batalha */
@@ -156,6 +158,8 @@ export interface Weapon {
   explosionRadius?: number;
   /** Se a arma é secreta (desbloqueada ao completar o jogo) */
   secret?: boolean;
+  /** Armas 'quebradas' encasquilham após N disparos e exigem conserto */
+  broken?: boolean;
   /** Classe visual da arma — define qual sprite de cano é desenhado */
   weaponClass?: 'pistol' | 'machine' | 'silencer';
   /** Tamanho do pente */
@@ -301,4 +305,4 @@ export interface EnemyType {
 }
 
 /** Estados possíveis do ciclo de vida do jogo */
-export type GameStateType = 'menu' | 'playing' | 'shop' | 'gameover' | 'paused';
+export type GameStateType = 'menu' | 'playing' | 'shop' | 'gameover' | 'paused' | 'credits';
