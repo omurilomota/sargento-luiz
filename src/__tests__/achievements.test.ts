@@ -1,10 +1,14 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   ACHIEVEMENTS, checkAchievements, checkObjectiveAchievement,
   resetRunCounters, getAllAchievements,
 } from '../systems/achievements';
 import { PHASES } from '../config';
 import { ObjectiveKind } from '../types';
+
+// O achievements.ts toca sfxAchievement ao desbloquear, e não existe
+// AudioContext no node — o mock cobre o contrato sem trazer som para o teste.
+vi.mock('../systems/audio', () => ({ sfxAchievement: () => {} }));
 
 const TIPOS: ObjectiveKind[] = ['clear', 'survive', 'destroy', 'protect', 'reach'];
 

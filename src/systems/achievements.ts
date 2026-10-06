@@ -16,6 +16,7 @@ export interface Achievement {
 }
 
 import { ObjectiveKind } from '../types';
+import { sfxAchievement } from './audio';
 
 /** Lista de achievements. Exportada para o teste poder resetar o estado. */
 export const ACHIEVEMENTS: Achievement[] = [
@@ -45,6 +46,9 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'chain_5', name: 'Rebaixo', desc: 'Derrube 5 props numa explosão só', unlocked: false },
   { id: 'vip_saved', name: 'Escolta', desc: 'Conclua uma fase protegendo o sobrevivente', unlocked: false },
   { id: 'all_objectives', name: 'General', desc: 'Conclua os 5 tipos de objetivo', unlocked: false },
+    { id: 'medkit_5', name: 'Auto-Socorrista', desc: 'Use 5 medkits no total', unlocked: false },
+  { id: 'medkit_20', name: 'Bateria de Pronto-Socorro', desc: 'Use 20 medkits no total', unlocked: false },
+  { id: 'chacina', name: 'Chacina', desc: 'Dispare a câmera lenta com 3+ kills em 2s', unlocked: false },
 ];
 
 const STORAGE_KEY = 'bubbleShooter_achievements';
@@ -54,6 +58,7 @@ let killsThisRun = 0;
 let waveDamageTaken = false;
 let bossesThisRun = 0;
 let objetivosVistos = new Set<string>();
+let medkitsUsados = 0;
 
 /**
  * Carrega achievements salvos.
@@ -89,6 +94,7 @@ function unlockById(id: string): { id: string; name: string } | null {
   if (a && !a.unlocked) {
     a.unlocked = true;
     saveAchievements();
+    sfxAchievement();
     return { id: a.id, name: a.name };
   }
   return null;
@@ -120,6 +126,13 @@ export function checkAchievements(event: string, value?: number): { id: string; 
     case 'damage_taken':
       waveDamageTaken = true;
       break;
+    case 'medkit':
+      medkitsUsados++;
+      if (medkitsUsados >= 5) unlock('medkit_5');
+      if (medkitsUsados >= 20) unlock('medkit_20');
+      break;
+    case 'chacina':
+      return unlock('chacina');
     case 'score':
       if (value && value >= 5000) unlock('score_5000');
       if (value && value >= 20000) unlock('score_20000');

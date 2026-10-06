@@ -1,12 +1,13 @@
 /**
  * src/systems/audio.ts
  *
- * SFX 100% procedurais via Web Audio API (o AGENTS.md pede isso: som distinto
- * e reconhecível por arma/ação, sem arquivos). A música é o oposto — faixas
- * reais em loop, crossfade de 0.8s, credited em `assets/music/CREDITS.md`.
+ * SFX: arquivo real primeiro (`SFX_FILES` → `assets/sfx/*.ogg`, freesound
+ * CC0/CC-BY), procedural como fallback quando o arquivo não existe — o
+ * mesmo padrão de `sprites.ts`. A curadoria é incremental: com o diretório
+ * vazio o jogo toca 100% procedural, sem silêncio e sem erro no console.
  *
- * E de brinde a música procedural antiga foi removida: `MAIN_MELODY` e
- * `BASS_LINE` eram um piano de 12 notas que tocava igual em todas as fases.
+ * A música é real desde sempre: faixas OGG em loop, crossfade de 0.8s,
+ * credited em `assets/music/CREDITS.md`.
  */
 
 let ctx: AudioContext | null = null;
@@ -42,12 +43,14 @@ export function initAudio(): void {
   masterGain.connect(ctx.destination);
 
   musicGain = ctx.createGain();
-  musicGain.gain.value = 0.15;
+  musicGain.gain.value = 0.28;
   musicGain.connect(masterGain);
 
   sfxGain = ctx.createGain();
-  sfxGain.gain.value = 0.5;
+  sfxGain.gain.value = 0.72;
   sfxGain.connect(masterGain);
+
+  preloadSfx();
 }
 
 function ensureCtx(): AudioContext {
@@ -91,6 +94,45 @@ function playNoise(duration: number, volume = 0.2): void {
   source.start(ac.currentTime);
 }
 
+/**
+ * Rajada de ruído filtrado — é o "estalo" do disparo. O filtro é o que
+ * separa uma sniper de uma metralhadora: a sniper é grave e curta, a
+ * metralhadora é fina e alta. `playNoise` sozinho (ruído branco) soa igual
+ * para todas as armas.
+ */
+function playBurst(duration: number, volume: number, filter: BiquadFilterType, freq: number, q = 1): void {
+  const ac = ensureCtx();
+  if (!sfxGain) return;
+  const bufferSize = Math.max(1, Math.floor(ac.sampleRate * duration));
+  const buffer = ac.createBuffer(1, bufferSize, ac.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) {
+    data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+  }
+  const source = ac.createBufferSource();
+  source.buffer = buffer;
+  const biquad = ac.createBiquadFilter();
+  biquad.type = filter;
+  biquad.frequency.value = freq;
+  biquad.Q.value = q;
+  const gain = ac.createGain();
+  gain.gain.value = volume;
+  gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + duration);
+  source.connect(biquad);
+  biquad.connect(gain);
+  gain.connect(sfxGain);
+  source.start(ac.currentTime);
+}
+
+/**
+ * Variação de tom. Tiro automático repete 16× por segundo: com a frequência
+ * idêntica cada disparo vira um bipe mecânico, e o ouvido identifica a arma
+ * pelo padrão, não pela nota. `amount` é a fração (0.08 = ±8%).
+ */
+function vary(freq: number, amount: number): number {
+  return freq * (1 + (Math.random() * 2 - 1) * amount);
+}
+
 /** Varredura de frequência — base das habilidades e da navegação de menu. */
 function playSweep(from: number, to: number, duration: number, type: OscillatorType, volume: number): void {
   const ac = ensureCtx();
@@ -108,93 +150,229 @@ function playSweep(from: number, to: number, duration: number, type: OscillatorT
   osc.stop(ac.currentTime + duration);
 }
 
+// ─── SFX em arquivo (freesound, CC0/CC-BY) ──────────────
+
+interface SfxDef {
+  file: string;
+  /** Ganho do buffer — recordings têm níveis inconsistentes, por isso o
+   * ajuste existe por chave; omitido = 1 (nível original da gravação). */
+  vol?: number;
+  /** Variação de playbackRate (±fração) para sons repetidos — mesmo
+   * conceito do `vary()` procedural: a automática repete 16×/s e com o
+   * buffer idêntico cada disparo vira bipe mecânico. */
+  vary?: number;
+}
+
+/**
+ * Uma chave por `sfxX()` abaixo. Arquivo ausente não é erro: o jogo
+ * toca o procedural equivalente (fallback, mesmo padrão de sprites.ts).
+ */
+const SFX_FILES: Record<string, SfxDef> = {
+  pistol:      { file: 'assets/sfx/pistol.ogg',      vary: 0.06 },
+  shotgun:     { file: 'assets/sfx/shotgun.ogg' },
+  machinegun:  { file: 'assets/sfx/machinegun.ogg',  vary: 0.12 },
+  sniper:      { file: 'assets/sfx/sniper.ogg' },
+  laser:       { file: 'assets/sfx/laser.ogg',       vary: 0.05 },
+  rpg:         { file: 'assets/sfx/rpg.ogg' },
+  raios:       { file: 'assets/sfx/raios.ogg',       vary: 0.2 },
+  gel:         { file: 'assets/sfx/gel.ogg' },
+  granade:     { file: 'assets/sfx/granade.ogg',     vary: 0.1 },
+  mina:        { file: 'assets/sfx/mina.ogg' },
+  enemyShoot:  { file: 'assets/sfx/enemyShoot.ogg',  vary: 0.08 },
+  explosion:   { file: 'assets/sfx/explosion.ogg' },
+  bossDeath:   { file: 'assets/sfx/bossDeath.ogg' },
+  playerHit:   { file: 'assets/sfx/playerHit.ogg' },
+  coin:        { file: 'assets/sfx/coin.ogg' },
+  powerup:     { file: 'assets/sfx/powerup.ogg' },
+  achievement: { file: 'assets/sfx/achievement.ogg' },
+  levelUp:     { file: 'assets/sfx/levelUp.ogg' },
+  waveStart:   { file: 'assets/sfx/waveStart.ogg' },
+  buy:         { file: 'assets/sfx/buy.ogg' },
+  error:       { file: 'assets/sfx/error.ogg' },
+  jammed:      { file: 'assets/sfx/jammed.ogg',      vary: 0.1 },
+  gameOver:    { file: 'assets/sfx/gameOver.ogg' },
+  hitStop:     { file: 'assets/sfx/hitStop.ogg' },
+  dash:        { file: 'assets/sfx/dash.ogg' },
+  shield:      { file: 'assets/sfx/shield.ogg' },
+  fury:        { file: 'assets/sfx/fury.ogg' },
+  menuMove:    { file: 'assets/sfx/menuMove.ogg' },
+  menuSelect:  { file: 'assets/sfx/menuSelect.ogg' },
+};
+
+const sfxBuffers = new Map<string, AudioBuffer>();
+const sfxLoading = new Set<string>();
+
+/**
+ * Carrega o OGG de uma chave (espelho de `loadTrack`). Falha silenciosa:
+ * arquivo ausente ou não-decodificável retorna null e o procedural assume.
+ */
+async function loadSfx(key: string): Promise<AudioBuffer | null> {
+  const cached = sfxBuffers.get(key);
+  if (cached) return cached;
+  if (sfxLoading.has(key)) return null;
+  sfxLoading.add(key);
+  try {
+    const ac = ensureCtx();
+    const res = await fetch(SFX_FILES[key].file);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const raw = await res.arrayBuffer();
+    const buf = await ac.decodeAudioData(raw);
+    sfxBuffers.set(key, buf);
+    return buf;
+  } catch {
+    return null;
+  } finally {
+    sfxLoading.delete(key);
+  }
+}
+
+/**
+ * Toca o arquivo real no `sfxGain`. Retorna false sem buffer (ausente ou
+ * ainda carregando) — quem chamou cai no procedural. Passa por `sfxGain`,
+ * então o toggle de efeitos e o volume funcionam igual no procedural.
+ */
+function playSfxFile(key: string): boolean {
+  const def = SFX_FILES[key];
+  const buf = sfxBuffers.get(key);
+  if (!def || !buf || !ctx || !sfxGain) return false;
+  const source = ctx.createBufferSource();
+  source.buffer = buf;
+  if (def.vary) source.playbackRate.value = 1 + (Math.random() * 2 - 1) * def.vary;
+  const gain = ctx.createGain();
+  gain.gain.value = def.vol ?? 1;
+  source.connect(gain);
+  gain.connect(sfxGain);
+  source.start();
+  return true;
+}
+
+/** Dispara o carregamento de todos os SFX (fire-and-forget, cacheado). */
+export function preloadSfx(): void {
+  for (const key of Object.keys(SFX_FILES)) void loadSfx(key);
+}
+
 // ─── Sons do Jogo ───────────────────────────────────────────────
 
+// Cada arma tem um par (estalo, corpo) distinto. O `estalo` é o ruído
+// filtrado que dá a textura metálica; o `corpo` é a caixa de ressonância que
+// dá o peso. Sem a variação de `vary`, as automáticas viram bipe.
+
 export function sfxPistol(): void {
-  playTone(900, 0.04, 'square', 0.15);
-  playTone(700, 0.03, 'square', 0.1);
+  if (playSfxFile('pistol')) return;
+  playBurst(0.05, 0.22, 'bandpass', 1900, 1.2);
+  playTone(vary(320, 0.06), 0.05, 'triangle', 0.11);
 }
 
 export function sfxShotgun(): void {
-  playNoise(0.08, 0.2);
-  playTone(200, 0.06, 'sawtooth', 0.15);
+  if (playSfxFile('shotgun')) return;
+  playBurst(0.16, 0.3, 'lowpass', 900, 0.8);
+  playSweep(220, 60, 0.14, 'sawtooth', 0.16);
 }
 
 export function sfxMachinegun(): void {
-  playTone(500, 0.02, 'square', 0.12);
-  playNoise(0.02, 0.08);
+  if (playSfxFile('machinegun')) return;
+  playBurst(0.035, 0.17, 'highpass', 1500, 0.9);
+  playTone(vary(520, 0.12), 0.03, 'triangle', 0.09);
 }
 
 export function sfxSniper(): void {
-  playTone(1200, 0.06, 'sine', 0.2);
-  playTone(800, 0.08, 'sine', 0.15);
-  playNoise(0.04, 0.1);
+  if (playSfxFile('sniper')) return;
+  // estalo agudo e seco, com a cauda longa embaixo
+  playBurst(0.06, 0.3, 'bandpass', 3200, 2.2);
+  playSweep(1400, 180, 0.22, 'sawtooth', 0.13);
+  playTone(70, 0.24, 'sine', 0.16);
 }
 
 export function sfxLaser(): void {
-  playSweep(1400, 400, 0.08, 'sine', 0.15);
+  if (playSfxFile('laser')) return;
+  playSweep(vary(1700, 0.05), 380, 0.09, 'sawtooth', 0.09);
+  playBurst(0.04, 0.07, 'bandpass', 2600, 3);
 }
 
 export function sfxRPG(): void {
-  playTone(150, 0.1, 'sawtooth', 0.2);
-  playTone(100, 0.15, 'sine', 0.15);
-  playNoise(0.06, 0.12);
+  if (playSfxFile('rpg')) return;
+  playSweep(90, 300, 0.16, 'sawtooth', 0.2);
+  playBurst(0.2, 0.22, 'lowpass', 500, 0.7);
+  playTone(60, 0.2, 'sine', 0.14);
 }
 
 export function sfxRaios(): void {
-  playTone(1000, 0.03, 'sine', 0.15);
-  playTone(1200, 0.03, 'sine', 0.12);
-  playTone(800, 0.04, 'triangle', 0.1);
+  if (playSfxFile('raios')) return;
+  // crepitação filtrável em lugar de bipe retro
+  for (let i = 0; i < 3; i++) {
+    setTimeout(() => playBurst(0.03, 0.18, 'highpass', 1800, 1.6), i * 35);
+  }
+  playSweep(vary(2200, 0.2), 700, 0.09, 'sawtooth', 0.09);
 }
 
 export function sfxGel(): void {
-  playTone(600, 0.05, 'sine', 0.1);
-  playTone(500, 0.04, 'triangle', 0.08);
+  if (playSfxFile('gel')) return;
+  // "gotejando": glissando para cima e morrendo
+  playSweep(300, 900, 0.09, 'sine', 0.12);
+  playBurst(0.07, 0.08, 'lowpass', 1200, 2);
 }
 
 export function sfxGranade(): void {
-  playTone(200, 0.08, 'sawtooth', 0.15);
-  playNoise(0.04, 0.1);
+  if (playSfxFile('granade')) return;
+  playBurst(0.06, 0.2, 'bandpass', 800, 1.6);
+  playTone(vary(180, 0.1), 0.1, 'triangle', 0.13);
 }
 
 export function sfxMina(): void {
-  playTone(300, 0.06, 'square', 0.12);
-  playTone(250, 0.08, 'sine', 0.1);
+  if (playSfxFile('mina')) return;
+  playSweep(400, 90, 0.13, 'triangle', 0.13);
+  playBurst(0.1, 0.13, 'lowpass', 600, 0.9);
 }
 
 export function sfxEnemyShoot(): void {
-  playTone(400, 0.04, 'sawtooth', 0.08);
+  if (playSfxFile('enemyShoot')) return;
+  playTone(vary(260, 0.08), 0.05, 'triangle', 0.06);
+  playBurst(0.03, 0.1, 'bandpass', 900, 0.8);
 }
 
 export function sfxExplosion(): void {
+  if (playSfxFile('explosion')) return;
   playNoise(0.15, 0.25);
   playTone(150, 0.1, 'sine', 0.15);
   playTone(80, 0.15, 'sine', 0.1);
 }
 
 export function sfxBossDeath(): void {
+  if (playSfxFile('bossDeath')) return;
   playNoise(0.4, 0.35);
   playTone(100, 0.3, 'sine', 0.2);
   playTone(60, 0.4, 'sine', 0.15);
 }
 
 export function sfxPlayerHit(): void {
+  if (playSfxFile('playerHit')) return;
   playTone(200, 0.1, 'sawtooth', 0.2);
   playTone(150, 0.15, 'square', 0.15);
 }
 
 export function sfxCoin(): void {
+  if (playSfxFile('coin')) return;
   playTone(1200, 0.05, 'sine', 0.15);
   playTone(1600, 0.05, 'sine', 0.1);
 }
 
 export function sfxPowerup(): void {
+  if (playSfxFile('powerup')) return;
   playTone(600, 0.08, 'sine', 0.15);
   playTone(800, 0.08, 'sine', 0.12);
   playTone(1000, 0.1, 'sine', 0.1);
 }
 
+export function sfxAchievement(): void {
+  if (playSfxFile('achievement')) return;
+  const notes = [659, 988, 1319];
+  notes.forEach((freq, i) => {
+    setTimeout(() => playTone(freq, 0.12, 'sine', 0.12), i * 70);
+  });
+}
+
 export function sfxLevelUp(): void {
+  if (playSfxFile('levelUp')) return;
   const notes = [523, 659, 784, 1047];
   notes.forEach((freq, i) => {
     setTimeout(() => playTone(freq, 0.15, 'sine', 0.15), i * 80);
@@ -202,22 +380,32 @@ export function sfxLevelUp(): void {
 }
 
 export function sfxWaveStart(): void {
+  if (playSfxFile('waveStart')) return;
   playTone(440, 0.1, 'triangle', 0.1);
   setTimeout(() => playTone(550, 0.1, 'triangle', 0.1), 100);
   setTimeout(() => playTone(660, 0.15, 'triangle', 0.12), 200);
 }
 
 export function sfxBuy(): void {
+  if (playSfxFile('buy')) return;
   playTone(800, 0.06, 'sine', 0.12);
   playTone(1000, 0.08, 'sine', 0.1);
 }
 
 export function sfxError(): void {
+  if (playSfxFile('error')) return;
   playTone(200, 0.1, 'square', 0.1);
   playTone(150, 0.15, 'square', 0.08);
 }
 
+export function sfxJammed(): void {
+  if (playSfxFile('jammed')) return;
+  playTone(vary(200, 0.1), 0.07, 'square', 0.1);
+  setTimeout(() => playBurst(0.04, 0.25, 'highpass', 4000, 2), 70);
+}
+
 export function sfxGameOver(): void {
+  if (playSfxFile('gameOver')) return;
   const notes = [440, 370, 330, 262];
   notes.forEach((freq, i) => {
     setTimeout(() => playTone(freq, 0.3, 'sine', 0.15), i * 200);
@@ -225,6 +413,7 @@ export function sfxGameOver(): void {
 }
 
 export function sfxHitStop(): void {
+  if (playSfxFile('hitStop')) return;
   playNoise(0.03, 0.3);
   playTone(100, 0.05, 'sine', 0.25);
 }
@@ -233,29 +422,34 @@ export function sfxHitStop(): void {
 
 /** Dash: Whoosh curto descendo — leitura de "movimento". */
 export function sfxDash(): void {
+  if (playSfxFile('dash')) return;
   playSweep(700, 180, 0.16, 'sawtooth', 0.16);
   playNoise(0.1, 0.08);
 }
 
 /** Escudo: sino subindo e sustentando — leitura de "proteção". */
 export function sfxShield(): void {
+  if (playSfxFile('shield')) return;
   playTone(330, 0.25, 'triangle', 0.16);
   setTimeout(() => playTone(495, 0.3, 'triangle', 0.12), 60);
 }
 
 /** Fúria: rugido grave com ruído — leitura de "perigo". */
 export function sfxFury(): void {
+  if (playSfxFile('fury')) return;
   playSweep(220, 60, 0.5, 'sawtooth', 0.2);
   playNoise(0.4, 0.12);
 }
 
 /** Navegação de menu: clique seco e curto. */
 export function sfxMenuMove(): void {
+  if (playSfxFile('menuMove')) return;
   playTone(520, 0.035, 'square', 0.08);
 }
 
 /** Seleção de menu: dois tons ascendentes. */
 export function sfxMenuSelect(): void {
+  if (playSfxFile('menuSelect')) return;
   playTone(560, 0.05, 'square', 0.1);
   setTimeout(() => playTone(840, 0.07, 'square', 0.09), 55);
 }
@@ -297,7 +491,7 @@ export function setMusicEnabled(on: boolean): void {
   musicEnabled = on;
   writePref(MUSIC_KEY, on);
   if (!musicGain) return;
-  musicGain.gain.value = on ? 0.15 : 0;
+  musicGain.gain.value = on ? 0.28 : 0;
   if (!on) stopMusic();
   else if (currentTrack) void playMusic(currentTrack);
 }
@@ -306,7 +500,7 @@ export function setMusicEnabled(on: boolean): void {
 export function setSfxEnabled(on: boolean): void {
   sfxEnabled = on;
   writePref(SFX_KEY, on);
-  if (sfxGain) sfxGain.gain.value = on ? 0.5 : 0;
+  if (sfxGain) sfxGain.gain.value = on ? 0.72 : 0;
 }
 
 export function isMusicEnabled(): boolean { return musicEnabled; }
