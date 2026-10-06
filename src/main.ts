@@ -12,7 +12,7 @@
  */
 
 import { normalize } from './utils';
-import { PHASES, ENEMY_TYPES, POWERUP_TYPES } from './config';
+import { PHASES, ENEMY_TYPES, POWERUP_TYPES, WEAPONS } from './config';
 import { PALETTE } from './core/palette';
 
 // Entities
@@ -23,10 +23,18 @@ import { getCoins, spawnCoins, updateCoins, clearCoins, setMagnetActive, resetPe
 
 // Systems
 import { spawnParticles, updateParticles, clearParticles, getParticles } from './systems/particles';
-import { spawnWaveEnemies, resetSpawner, spawnEnemy, setPhaseDifficulty } from './systems/spawner';
+import { spawnWaveEnemies, resetSpawner, spawnEnemy, setPhaseDifficulty, setPhaseTime } from './systems/spawner';
+
+/** Tempo decorrido na fase atual (para a escalada de dificuldade temporal) */
+let phaseElapsed = 0;
+
+let wasJammed = false;
+
+//Timestamp dos últimos kills, para detectar a chacina que gatilha slow-mo
+const killTimes: number[] = [];
 import { checkBulletEnemyCollisions, checkEnemyPlayerCollision, checkEnemyBulletPlayerCollision, bulletHitsCircle } from './systems/collision';
 import { createExplosion, updateExplosions, clearExplosions } from './systems/explosions';
-import { loadMap, colAt, rowAt, charAt, isWall, hasPath, moveCircleBy, rebuildFlowField, sampleFlowDir, pushOutOfWalls, findAll } from './systems/tilemap';
+import { loadMap, colAt, rowAt, charAt, isWall, hasPath, moveCircleBy, rebuildFlowField, sampleFlowDir, pushOutOfWalls, findAll, segmentHitsWall } from './systems/tilemap';
 import { initCamera, setViewportSize, setWorldSize, updateCamera, snapCamera, getCamX, getCamY, screenToWorld, drawVoid, isVisible, setShake } from './systems/camera';
 import { initProps, getProps, updateProps, damageProp, detonateProp, getBlast, drawProps, clearProps, collapsesOnHit, Prop } from './systems/props';
 import { buildTerrain, drawTerrain, clearTerrain } from './systems/terrain';
@@ -34,30 +42,34 @@ import { initObjective, updateObjective, peekObjective, endsPhaseOnDone, vipDown
 import { updateBoss, isBossTelegraphing, getBossTelegraphLabel, clearBossState } from './systems/boss';
 
 import {
-  initRenderer, drawMenu, drawCutscene, drawGameOver, drawCoins as renderCoins,
+  initRenderer, drawMenu, drawCutscene, drawGameOver, drawCredits, drawCoins as renderCoins,
   drawPowerUps as renderPowerUps, drawParticles as renderParticles, drawBullets as renderBullets,
   drawEnemies as renderEnemies, drawPlayer as renderPlayer, drawDamageNumbers, drawPhaseTransition,
-  restoreCanvas, drawNPCs, drawBots, drawPause, menuIndexAt, getPauseIndex, movePause, PAUSE_OPTIONS,
+  restoreCanvas, drawNPCs, drawBots, drawPause, menuIndexAt, getPauseIndex, movePause, PAUSE_OPTIONS, setPauseIndex, pauseOptionAt, setUiMouse,
 } from './systems/renderer';
 
 // UI
 import { initHud, drawHud, HudData } from './ui/hud';
-import { drawShop, handleShopClick, setShopCoins, getShopCoins, addShopCoins, resetShop, updateShopAds, getPurchasedUpgrades, getPurchasedWeapons, attachShopWheelListener } from './ui/shop';
+import { drawShop, handleShopClick, setShopCoins, getShopCoins, addShopCoins, resetShop, updateShopAds, getPurchasedUpgrades, getPurchasedWeapons, attachShopWheelListener, addPurchasedWeapon, pushPendingReveal, consumeShopPowerups, restoreUpgrades } from './ui/shop';
 
 // Modules
-import { shoot, getCurrentWeapon, resetWeapons, canShoot, startReload, updateReload, getCurrentAmmo, getIsReloading, getReloadTimer } from './weapons';
+import { shoot, getCurrentWeapon, resetWeapons, canShoot, startReload, updateReload, getCurrentAmmo, getIsReloading, getReloadTimer, setWeapon, getEffectiveShootRate, setWeaponQuality, getCurrentWeaponIndex, getWeaponQuality, isJammed } from './weapons';
 import { getCurrentPhase, getCurrentWave, getGameState, setGameState, nextWave, nextPhase, resetPhases, resetWave, addScore, addScoreFlat, getScore, getCombo, getComboDecay, updateCombo, resetCombo, getKillStreak, wasGameCompleted } from './phases';
+import { rollLootDrop, spawnBossLoot, updateLoot, getLoot, clearLoot, drawLoot, powerupLabel, ELITE_TYPES } from './systems/loot';
+import { addPieceToInventory } from './systems/pieces';
 import { powerups, spawnPowerUp, updatePowerUps, hasPowerUp, activePowerups } from './powerups';
 
 import {
   initAudio, sfxPistol, sfxShotgun, sfxMachinegun, sfxSniper, sfxLaser, sfxRPG, sfxRaios, sfxGel,
   sfxGranade, sfxMina, sfxExplosion, sfxBossDeath, sfxPlayerHit, sfxCoin, sfxPowerup, sfxWaveStart,
-  sfxGameOver, sfxEnemyShoot, sfxDash, sfxShield, sfxFury, sfxMenuMove, sfxMenuSelect, sfxError,
+  sfxGameOver, sfxEnemyShoot, sfxDash, sfxShield, sfxFury, sfxMenuMove, sfxMenuSelect, sfxError, sfxJammed,
   startMusic, playMusic, setMusicEnabled, setSfxEnabled, isMusicEnabled, isSfxEnabled,
 } from './systems/audio';
 import { triggerScreenShake, triggerDamageFlash, triggerBossKillFlash, updateFlash, updateSlowMotion, triggerSlowMotion, triggerHitStop, updateHitStop, resetEffects, updateScreenShake, triggerBossZoom, updateBossZoom } from './systems/effects';
 
 import { useSkill, isSkillActive, updateSkills, resetSkills, getDamageMultiplier, getDamageTakenMultiplier, getSkillCooldown, getSkillMaxCooldown, setMoveDirection } from './systems/skills';
+import { toggleNpcFollow } from './systems/npcs';
+import { getCurrentClass, setCurrentClass, getClassDamageMult, getClassSpeedMult, getClassReloadMult, getClassHealthPerKill, loadClass, saveClass, resetClass, ClassId, CLASSES } from './systems/classes';
 import { updateEnvironmentEvents, resetEnvironmentEvents, getEnvironmentWarnings } from './systems/environment';
 import { updateCombos, getActiveCombos, getComboDamageBonus, getComboFireRateBonus, getComboHealthBonus, resetCombos } from './systems/combos';
 import { setComboHealthMultiplier } from './entities/player';
@@ -153,7 +165,25 @@ document.addEventListener('keydown', e => {
       if (selectedMode !== GAME_MODES[idx].mode) sfxMenuMove();
       selectedMode = GAME_MODES[idx].mode;
     }
+    // teclas 5-8 selecionam classe
+    const classIdx = ['5', '6', '7', '8'].indexOf(key);
+    if (classIdx >= 0 && classIdx < CLASSES.length) {
+      const newClass = CLASSES[classIdx].id;
+      if (newClass !== selectedClass) {
+        selectedClass = newClass;
+        setCurrentClass(newClass);
+        saveClass();
+        sfxMenuMove();
+      }
+    }
     if (k === 'c' && hasSave()) startFromSave();
+    if (k === 'v') setGameState('credits');
+    return;
+  }
+
+  if (state === 'credits') {
+    if (key === 'Escape' || key === 'Enter') setGameState('menu');
+    keys[k] = true;
     return;
   }
 
@@ -181,6 +211,29 @@ document.addEventListener('keydown', e => {
   if (k === 'f') { if (useSkill('shield')) sfxShield(); }
   if (k === 'e') { if (useSkill('fury')) sfxFury(); }
   if (k === 'r') startReload();
+  if (k === 'j') toggleNpcFollow();
+  if (k === 'h') {
+    if (player.getMedkits() > 0) {
+      player.useMedkit();
+      checkAchievements('medkit');
+    } else if (getShopCoins() >= 50) {
+      addShopCoins(-50);
+      player.healPlayer(25);
+      const pd = player.getPlayer();
+      damageNumbers.push({ x: pd.x, y: pd.y - 24, text: '+25 HP (-50)', color: PALETTE.moss, life: 1.4, vy: -70 });
+      checkAchievements('medkit');
+    }
+  }
+  // 1-9 equipam armas já compradas, sem abrir a loja
+  if (key >= '1' && key <= '9') {
+    const slot = parseInt(key, 10) - 1;
+    const owned = getPurchasedWeapons();
+    const weaponIdx = owned[slot];
+    if (weaponIdx !== undefined && WEAPONS[weaponIdx]) {
+      setWeapon(weaponIdx);
+      sfxMenuSelect();
+    }
+  }
   if (key === 'Escape') setGameState('paused');
 });
 
@@ -189,7 +242,12 @@ document.addEventListener('keyup', e => {
   keys[e.key.toLowerCase()] = false;
 });
 
-canvas.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+canvas.addEventListener('mousemove', e => {
+  mouse.x = e.clientX;
+  mouse.y = e.clientY;
+  const rect = canvas.getBoundingClientRect();
+  setUiMouse(e.clientX - rect.left, e.clientY - rect.top);
+});
 canvas.addEventListener('mousedown', e => {
   const state = getGameState();
   if (state === 'playing') mouse.down = true;
@@ -197,14 +255,40 @@ canvas.addEventListener('mousedown', e => {
   if (state === 'menu') {
     const rect = canvas.getBoundingClientRect();
     const idx = menuIndexAt(e.clientX - rect.left, e.clientY - rect.top, canvas.width, canvas.height);
-    if (idx >= 0 && GAME_MODES[idx].mode !== selectedMode) {
-      selectedMode = GAME_MODES[idx].mode;
-      sfxMenuMove();
+    if (idx >= 100) {
+      // seleção de classe
+      const classIdx = idx - 100;
+      const newClass = CLASSES[classIdx].id;
+      if (newClass !== selectedClass) {
+        selectedClass = newClass;
+        setCurrentClass(newClass);
+        saveClass();
+        sfxMenuMove();
+      }
+    } else if (idx >= 0) {
+      if (GAME_MODES[idx].mode === selectedMode) {
+        // segundo clique no modo já selecionado inicia
+        initAudio();
+        startMusic();
+        resetGame();
+        showCutscene();
+        sfxMenuSelect();
+      } else if (GAME_MODES[idx].mode !== selectedMode) {
+        selectedMode = GAME_MODES[idx].mode;
+        sfxMenuMove();
+      }
     }
   }
 
   if (state === 'shop') handleShopClick(e.clientX, e.clientY);
-  if (state === 'paused') { /* só ENTER confirma */ }
+  if (state === 'paused') {
+    const rect = canvas.getBoundingClientRect();
+    const idx = pauseOptionAt(e.clientX - rect.left, e.clientY - rect.top);
+    if (idx >= 0) {
+      setPauseIndex(idx);
+      applyPauseOption();
+    }
+  }
   e.preventDefault();
 });
 document.addEventListener('mouseup', () => { mouse.down = false; });
@@ -225,6 +309,7 @@ let currentBossZoom = 1;
 let currentFlash: string | null = null;
 let currentShake: { x: number; y: number } = { x: 0, y: 0 };
 let selectedMode: GameMode = 'campaign';
+let selectedClass: ClassId = 'soldado';
 let bossSpawned = false;
 /** Objetivos já contabilizados na partida, para o toast de conquista sair uma vez só. */
 const objectiveCounted = new Set<string>();
@@ -285,6 +370,8 @@ function loadPhaseEnvironment(): void {
   clearProps();
   initProps(map.cells);
   setPhaseDifficulty(phase.difficulty ?? 1);
+  setPhaseTime(0);
+  phaseElapsed = 0;
   clearTerrain();
   buildTerrain(biome, map.cells);
 
@@ -327,14 +414,17 @@ function resetGame() {
   resetAds();
   resetNPCs();
   resetStory();
+  resetClass();
   bossZoomTriggered = false;
   enemies.length = 0;
+  killTimes.length = 0;
   damageNumbers.length = 0;
   achievementNotifications.length = 0;
   clearBullets();
   clearCoins();
   clearParticles();
   clearExplosions();
+  clearLoot();
   resetInput();
 }
 
@@ -345,11 +435,20 @@ function startFromSave() {
   initAudio();
   startMusic();
   resetGame();
+  loadClass();
   setGameMode('campaign');
   for (let i = 0; i < save.phase; i++) nextPhase();
   loadPhaseEnvironment();
   setShopCoins(save.coins);
   addScoreFlat(save.score);
+  // arma equipada + inventário + upgrades precisam ser reatribuídos — antes o
+  // continue caía em resetShop() e o jogador voltava só com a pistola
+  for (const w of save.weapons) {
+    addPurchasedWeapon(w.index);
+    setWeaponQuality(w.index, w.quality);
+  }
+  if (save.weapons.length > 0) setWeapon(save.weaponIndex);
+  restoreUpgrades(save.upgrades);
   setGameState('playing');
   loadAchievements();
   loadDiary();
@@ -396,6 +495,13 @@ function update(dt: number) {
 
   if (state === 'shop') {
     updateShopAds(dt);
+    for (const t of consumeShopPowerups()) {
+      const pd = player.getPlayer();
+      if (t === 'health') player.healPlayer(30);
+      else if (t === 'shield') pd.shield += 2;
+      activePowerups[t] = POWERUP_TYPES[t]?.duration ?? 0;
+      damageNumbers.push({ x: pd.x, y: pd.y - 24, text: powerupLabel(t), color: POWERUP_TYPES[t]?.color ?? '#ccc', life: 1.4, vy: -70 });
+    }
     if (consumeEnter()) leaveShop();
     return;
   }
@@ -407,6 +513,12 @@ function update(dt: number) {
   const hard = getCurrentMode() === 'hardcore';
 
   if (phaseTransitionTimer > 0) phaseTransitionTimer -= dt;
+  phaseElapsed += dt;
+  setPhaseTime(phaseElapsed);
+
+  const biomasMods = biomeModifiers(phase);
+  const phaseDmgMult = biomasMods.dmgMult;
+  const phaseSpeedMult = biomasMods.speedMult;
 
   // ── movimento ──
   let mx = 0;
@@ -417,10 +529,11 @@ function update(dt: number) {
   if (keys['d'] || keys['arrowright']) mx += 1;
   setMoveDirection(mx, my);
 
-  const speedMult = hasPowerUp('speed') ? 1.5 : 1;
+  const speedMult = hasPowerUp('speed') ? 1.5 : hasPowerUp('botas') ? 1.3 : 1;
+  const classSpeedMult = getClassSpeedMult();
   // lama deixa o jogador lento — é o efeito mecânico do bioma Pântano
   const onMud = phase.hazard === 'mud' && charAt(colAt(p.x), rowAt(p.y)) === '^';
-  player.movePlayer(keys, dt, { w: worldW, h: worldH }, speedMult * (onMud ? 0.55 : 1));
+  player.movePlayer(keys, dt, { w: worldW, h: worldH }, speedMult * (onMud ? 0.55 : 1) * phaseSpeedMult * classSpeedMult);
 
   updateSkills(dt, p, { w: worldW, h: worldH });
   p.x = pushOutOfWalls(p.x, p.y, p.radius).x;
@@ -447,12 +560,12 @@ function update(dt: number) {
   }
 
   // ── eventos ambientais (agora com dimensões do mundo) ──
-  const envResult = updateEnvironmentEvents(dt, enemies, p.x, p.y, worldW, worldH);
+  const envResult = updateEnvironmentEvents(dt, enemies, p.x, p.y, worldW, worldH, phase.hazard);
   for (const d of envResult.enemyDamages) {
     damageNumbers.push({ x: d.x + (Math.random() - 0.5) * 16, y: d.y, text: String(Math.floor(d.damage)), color: d.color, life: 0.8, vy: -60 });
   }
   if (envResult.playerDamage > 0 && p.invincible <= 0) {
-    const dmg = Math.floor(envResult.playerDamage * getDamageTakenMultiplier());
+    const dmg = damageTaken(envResult.playerDamage);
     if (dmg > 0) {
       checkAchievements('damage_taken');
       player.enemyCollisionDamage(dmg);
@@ -469,9 +582,9 @@ function update(dt: number) {
   updateReload(dt);
   if (mouse.down && p.shootCooldown <= 0 && canShoot()) {
     const weapon = getCurrentWeapon();
-    p.shootCooldown = weapon.shootRate * getComboFireRateBonus();
+    p.shootCooldown = getEffectiveShootRate() * getComboFireRateBonus();
     const multiShot = hasPowerUp('multiShot');
-    const fired = shoot(p.x, p.y, p.angle, multiShot, getDamageMultiplier() * getComboDamageBonus());
+    const fired = shoot(p.x, p.y, p.angle, multiShot, getDamageMultiplier() * getComboDamageBonus() * phaseDmgMult * getClassDamageMult());
     for (const b of fired) {
       spawnBullet(b.x, b.y, b.vx, b.vy, b.damage, false, b.color, b.pierce, b.explosive, b.explosionRadius, b.isCrit);
     }
@@ -480,6 +593,9 @@ function update(dt: number) {
     spawnParticles(muzzleX, muzzleY, weapon.color, 4, 120);
     playWeaponSound(weapon.name);
     registerShot();
+    const jammedNow = isJammed();
+    if (jammedNow && !wasJammed) sfxJammed();
+    wasJammed = jammedNow;
     if (getCurrentAmmo() <= 0) startReload();
   }
 
@@ -549,10 +665,10 @@ function update(dt: number) {
   // O objetivo não encerra a fase: ele LIBERA o chefe. Cumprir o objetivo no
   // primeiro instante encerrava a fase (a `protect` morria na onda 0 de 7, sem
   // chefe), então o objetivo virou o pivot e o chefe o clímax: a fase só acaba
-  // quando o chefe cai. `reach` é a exceção e sai pelo return abaixo.
+  // quando o chefe cai. `reach` também devolve o chefe agora, não encerra direto.
   const objetivoLiberouChefe = phase.objective === 'clear' || objective.done;
-  if (!bossSpawned && phase.boss && objetivoLiberouChefe
-      && getCurrentWave() === phase.waves - 1 && enemies.length === 0) {
+  const isUltimasOndas = getCurrentWave() === phase.waves - 1 || phase.objective === 'reach';
+  if (!bossSpawned && phase.boss && objetivoLiberouChefe && isUltimasOndas && enemies.length === 0) {
     const cells = findAll('B');
     const pos = cells.length > 0 ? cellCenter(cells[0].col, cells[0].row) : { x: worldW / 2, y: worldH / 2 };
     const boss = spawnEnemy(phase.boss, worldW, worldH, 0, pos.x, pos.y);
@@ -566,7 +682,16 @@ function update(dt: number) {
     }
   }
 
-  if (phase.objective !== 'clear' && objective.done && getGameState() === 'playing'
+  if (phase.objective === 'reach' && objective.done && bossSpawned && getGameState() === 'playing'
+      && !enemies.some(e => ENEMY_TYPES[e.type]?.isBoss)) {
+    enemies.length = 0;
+    clearBullets();
+    triggerScreenShake(14, 0.5);
+    leaveShop();
+    return;
+  }
+
+  if (phase.objective !== 'clear' && phase.objective !== 'reach' && objective.done && getGameState() === 'playing'
       && endsPhaseOnDone(phase.objective)) {
     enemies.length = 0;
     clearBullets();
@@ -582,7 +707,6 @@ function update(dt: number) {
     addLeaderboardEntry('Jogador', getScore(), getCurrentWave());
     spawnParticles(p.x, p.y, PALETTE.moss, 30, 300);
     spawnParticles(p.x, p.y, PALETTE.title, 15, 200);
-    triggerSlowMotion(0.3, 1.0);
     triggerScreenShake(12, 0.6);
     sfxGameOver();
   }
@@ -623,7 +747,7 @@ function updateBiomeHazard(dt: number, p: ReturnType<typeof player.getPlayer>): 
 
   const dmg = phase.hazard === 'lava' ? 12 : phase.hazard === 'spikes' ? 8 : phase.hazard === 'electric' ? 14 : 0;
   if (dmg > 0 && p.invincible <= 0) {
-    const total = Math.floor(dmg * getDamageTakenMultiplier());
+    const total = damageTaken(dmg);
     if (total > 0) {
       player.enemyCollisionDamage(total);
       sfxPlayerHit();
@@ -662,7 +786,7 @@ function explodeProp(prop: Prop): void {
   }
   const p = player.getPlayer();
   if (Math.hypot(p.x - prop.x, p.y - prop.y) < radius && p.invincible <= 0) {
-    player.enemyCollisionDamage(Math.floor(damage * getDamageTakenMultiplier()));
+    player.enemyCollisionDamage(damageTaken(damage));
     sfxPlayerHit();
     triggerDamageFlash();
   }
@@ -773,10 +897,21 @@ function killEnemy(e: Enemy, award: boolean): void {
   if (idx >= 0) enemies.splice(idx, 1);
 
   if (award) {
+    // chacina: 3+ mortes em 2s abre pequena câmera lenta; não mais a cada crit
+    const now = performance.now();
+    killTimes.push(now);
+    while (killTimes.length && now - killTimes[0] > 2000) killTimes.shift();
+    if (killTimes.length >= 3) {
+      triggerSlowMotion(0.35, 0.4);
+      checkAchievements('chacina');
+      killTimes.length = 0;
+    }
     addScore(e.scoreValue);
-    if (def?.coinDrop) spawnCoins(e.x, e.y, def.coinDrop);
+    if (def?.coinDrop) spawnCoins(e.x, e.y, Math.max(1, Math.floor(def.coinDrop * 0.6)));
     spawnParticles(e.x, e.y, e.color, 20, 300);
     sfxExplosion();
+    const hpPerKill = getClassHealthPerKill();
+    if (hpPerKill > 0) player.healPlayer(hpPerKill);
     const killAch = checkAchievements('kill');
     if (killAch) pushToast(killAch.name, 3);
     const scoreAch = checkAchievements('score', getScore());
@@ -788,15 +923,27 @@ function killEnemy(e: Enemy, award: boolean): void {
     const bossAch = checkAchievements('boss_kill');
     if (bossAch) pushToast(bossAch.name, 3);
     spawnParticles(e.x, e.y, PALETTE.crit, 50, 400);
-    triggerSlowMotion(0.3, 0.8);
     triggerBossKillFlash();
     triggerScreenShake(18, 0.8);
     sfxBossDeath();
     spawnPowerUp(e.x, e.y);
     spawnPowerUp(e.x - 20, e.y + 20);
+    const bossLoot = spawnBossLoot(e.x, e.y - 20);
+    // caixa especial vai para a NOVIDADES: o jogador escolhe ativar/ventar,
+    // não recebe uma troca forçada de arma
+    pushPendingReveal(bossLoot.index, bossLoot.quality);
+    damageNumbers.push({ x: e.x, y: e.y - 30, text: 'CAIXA ESPECIAL', color: PALETTE.mustard, life: 2, vy: -50 });
     void playMusic('combat');
-  } else if (award && Math.random() < 0.15) {
-    spawnPowerUp(e.x, e.y);
+  } else if (award) {
+    rollLootDrop(e.x, e.y, e.type);
+    // elites têm 25% de chance de dropar peça de arma direto no inventário
+    if (ELITE_TYPES.has(e.type) && Math.random() < 0.25) {
+      const pieceTypes = ['dano', 'cadencia', 'capacidade', 'precisao'];
+      const pieceType = pieceTypes[Math.floor(Math.random() * pieceTypes.length)];
+      addPieceToInventory(pieceType);
+      damageNumbers.push({ x: e.x, y: e.y - 30, text: 'PEÇA: ' + pieceType.toUpperCase(), color: PALETTE.mustard, life: 1.6, vy: -50 });
+    }
+    if (Math.random() < 0.08) spawnPowerUp(e.x, e.y);
   }
 }
 
@@ -812,7 +959,7 @@ function updateBotsAndCompetitors(p: ReturnType<typeof player.getPlayer>): void 
   }
   for (const bot of botList) {
     if (Math.hypot(p.x - bot.x, p.y - bot.y) < p.radius + bot.radius && p.invincible <= 0) {
-      const dmg = Math.floor(bot.damage * getDamageTakenMultiplier());
+      const dmg = damageTaken(bot.damage);
       if (dmg > 0) {
         player.enemyCollisionDamage(dmg);
         sfxPlayerHit();
@@ -865,11 +1012,11 @@ function enterShop(): void {
   saveGame(
     phaseIdx,
     0,
-    0,
+    getCurrentWeaponIndex(),
     getShopCoins(),
     getScore(),
     getPurchasedUpgrades(),
-    getPurchasedWeapons(),
+    getPurchasedWeapons().map(idx => ({ index: idx, quality: getWeaponQuality(idx) })),
     getCurrentPhase()?.name || ''
   );
   void playMusic('shop');
@@ -888,6 +1035,11 @@ function spawnNpcAtEdge(): void {
 
 function leaveShop(): void {
   nextPhase();
+  // fase final → gameover: getCurrentPhase() seria undefined logo depois
+  if (getGameState() !== 'playing') {
+    resetShop();
+    return;
+  }
   loadPhaseEnvironment();
   enemies.length = 0;
   clearBullets();
@@ -950,7 +1102,7 @@ function draw() {
 
   if (state === 'menu') {
     if (isShowingCutscene()) drawCutscene();
-    else drawMenu(selectedMode);
+    else drawMenu(selectedMode, selectedClass);
     return;
   }
   if (state === 'shop') {
@@ -959,6 +1111,10 @@ function draw() {
   }
   if (state === 'gameover') {
     drawGameOver(getScore(), getKillStreak());
+    return;
+  }
+  if (state === 'credits') {
+    drawCredits();
     return;
   }
   if (state === 'paused') {
@@ -1004,6 +1160,7 @@ function drawWorld(): void {
   );
   renderCoins(getCoins());
   renderPowerUps(powerups);
+  drawLoot(getLoot(), ctx, (x, y, r) => isVisible(x, y, r, r));
   renderParticles(getParticles());
   renderEnemies(enemies, p.x, p.y, (e) => Math.atan2(p.y - e.y, p.x - e.x));
   drawNPCs(getNPCs());
@@ -1011,60 +1168,22 @@ function drawWorld(): void {
   renderBullets(getBullets());
   renderPlayer(p, getCurrentWeapon().weaponClass || 'pistol');
   drawDamageNumbers(damageNumbers);
-  if (phase.hazard === 'darkness') drawFlashlightOverlay(p);
-  else if (phase.hazard === 'fog') drawFogOverlay(p);
+  if (phase.hazard === 'darkness') {
+    // caverna oscura: overlay con agujero alrededor del jugador usando fill
+    // 'evenodd' para recortar la zona clara, no un rectángulo plano 85%
+    const camX = getCamX();
+    const camY = getCamY();
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(camX, camY, canvas.width, canvas.height);
+    ctx.arc(p.x, p.y, 190, 0, Math.PI * 2, true);
+        ctx.fillStyle = 'rgba(4,4,8,0.60)';
+    ctx.fill('evenodd');
+    ctx.restore();
+  }
+  // fog removido: era um radial verde escuro chapado que deixava tudo cafona
 
   restoreCanvas();
-}
-
-/**
- * Overlay de escuridão da Caverna com o cone da lanterna.
- *
- * Chamado de dentro do espaço que `drawWorld` já transladou pela câmera, então
- * as coordenadas são de mundo e não podem ser transladadas de novo: o bloco
- * fazia `translate(-camX, -camY)` sobre uma matriz que já tinha `-camX`, e o
- * furo do cone saía deslocado de (camX, camY) em relação à viewport. Como
- * `camX` é 0 só no canto do mapa, a Caverna ficava com a lanterna fora de
- * lugar no resto do mapa.
- */
-function drawFlashlightOverlay(p: ReturnType<typeof player.getPlayer>): void {
-  const camX = getCamX();
-  const camY = getCamY();
-  const shake = currentShake;
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(camX - shake.x, camY - shake.y, canvas.width, canvas.height);
-  ctx.arc(p.x, p.y, 240, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(0,0,0,0.001)';
-  ctx.fill();
-  ctx.restore();
-
-  const grad = ctx.createRadialGradient(p.x, p.y, 30, p.x, p.y, 240);
-  grad.addColorStop(0, 'rgba(0,0,0,0)');
-  grad.addColorStop(1, 'rgba(0,0,0,0.82)');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-}
-
-/**
- * Névoa da Floresta: vinheta macia centrada no jogador.
- *
- * Não é a lanterna da Caverna outro dia mais fraca. A escuridão tem cone e
- * corta o resto da tela de uma vez; a névoa é larga e gradual — você continua
- * lendo a forma das coisas, só não vê o que está longe. Verde morto do
- * bioma, sem o preto fechado da caverna.
- */
-function drawFogOverlay(p: ReturnType<typeof player.getPlayer>): void {
-  const camX = getCamX();
-  const camY = getCamY();
-  const cx = p.x - camX;
-  const cy = p.y - camY;
-  const grad = ctx.createRadialGradient(cx, cy, 130, cx, cy, 470);
-  grad.addColorStop(0, 'rgba(30, 40, 30, 0)');
-  grad.addColorStop(0.5, 'rgba(28, 38, 28, 0.44)');
-  grad.addColorStop(1, 'rgba(22, 32, 22, 0.82)');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
 
 /** Cena congelada durante a pausa. */
@@ -1170,9 +1289,36 @@ init();
  * Saiu de `update` para o orquestrador ler como uma lista de passos. A lógica é
  * a mesma; mudou o nome e o receiver explícito.
  */
+function biomeModifiers(phase: ReturnType<typeof getCurrentPhase>) {
+  const mods = { dmgMult: 1, takenMult: 1, speedMult: 1, enemySpeedMult: 1 };
+  switch (phase?.hazard) {
+    case 'electric': mods.dmgMult = 1.15; break;
+    case 'lowGravity': mods.speedMult = 1.25; mods.takenMult *= 1.1; break;
+    case 'mud': mods.speedMult *= 0.85; break;
+    case 'debris': mods.enemySpeedMult = 1.15; break;
+    case 'darkness': mods.takenMult *= 1.1; break;
+    case 'spikes': mods.dmgMult *= 1.1; mods.takenMult *= 1.1; break;
+    case 'lava': mods.dmgMult *= 1.2; break;
+    case 'fog': mods.enemySpeedMult = 1.15; break;
+    case 'none': break;
+  }
+  return mods;
+}
+
+/**
+ * Dano que o jogador realmente leva: habilidade (fúria, escudo, pele de
+ * pedra) e bioma. Fica num helper só porque os 6 call sites esqueceram o
+ * multiplicador do bioma — `lowGravity`, `darkness` e `spikes` anunciavam
+ * +10% de dano recebido no código, mas nada aplicava.
+ */
+function damageTaken(raw: number): number {
+  return Math.floor(raw * getDamageTakenMultiplier() * biomeModifiers(getCurrentPhase()).takenMult);
+}
+
 function updateEnemyAi(dt: number, p: ReturnType<typeof player.getPlayer>, phase: ReturnType<typeof getCurrentPhase>): void {
 // ── IA dos inimigos: flow field + separação ──
 const tendency = getPlayerTendency();
+const aiMods = biomeModifiers(phase);
 for (const e of enemies) {
   if (e.spawnDelay > 0) {
     e.spawnDelay -= dt;
@@ -1182,7 +1328,10 @@ for (const e of enemies) {
 
   const def = ENEMY_TYPES[e.type];
   if (def?.isBoss) {
-    for (const minion of updateBoss(e, p.x, p.y, worldW, worldH, dt)) enemies.push(minion);
+    for (const minion of updateBoss(e, p.x, p.y, worldW, worldH, dt)) {
+      // cap para não afogar a tela com minions quando o boss faz summons
+      if (enemies.length < 6) enemies.push(minion);
+    }
     // boss não entra no empilhamento
     if (e.hitFlash > 0) continue;
   } else {
@@ -1190,7 +1339,7 @@ for (const e of enemies) {
     // jogador, e vai direto no sobrevivente. Sem isso o objetivo protect é só
     // "não deixe o NPC morrer", e o NPC foge de todo mundo por igual — o
     // jogador não teria nada a fazer além de limpar a fase como sempre.
-    const prey = def?.huntsNpc ? getNPCs().find(n => n.alive) : undefined;
+    const prey = (def?.huntsNpc || phase.objective === 'protect') ? getNPCs().find(n => n.alive) : undefined;
     const flow = sampleFlowDir(e.x, e.y);
     // perto do jogador o flow field é ruidoso: aí vai o seek direto
     const distToPlayer = Math.hypot(p.x - e.x, p.y - e.y);
@@ -1227,7 +1376,7 @@ for (const e of enemies) {
       }
     }
 
-    const spd = e.type === 'mosquito' ? e.speed * 1.3 : e.speed;
+    const spd = (e.type === 'mosquito' ? e.speed * 1.3 : e.speed) * aiMods.enemySpeedMult;
     const gravityPush = phase.hazard === 'lowGravity' ? 1.35 : 1;
     const next = moveCircleBy(
       e.x, e.y,
@@ -1242,7 +1391,7 @@ for (const e of enemies) {
   if (e.canShoot && !ENEMY_TYPES[e.type]?.isBoss) {
     e.shootTimer -= dt;
     // o caçador atira no sobrevivente, não no jogador
-    const preyAlvo = def?.huntsNpc ? getNPCs().find(n => n.alive) : undefined;
+    const preyAlvo = (def?.huntsNpc || phase.objective === 'protect') ? getNPCs().find(n => n.alive) : undefined;
     if (e.shootTimer <= 0) shootEnemyAt(e, preyAlvo ? preyAlvo.x : p.x, preyAlvo ? preyAlvo.y : p.y);
   }
 
@@ -1267,24 +1416,31 @@ function resolveCollisions(p: ReturnType<typeof player.getPlayer>): void {
 const activeEnemies = enemies.filter(e => e.spawnDelay <= 0);
 checkEnemyPlayerCollision(activeEnemies, p.x, p.y, p.radius, p.invincible, (e) => {
   const baseDmg = hasPowerUp('invincible') ? 0 : e.damage;
-  const dmg = Math.floor(baseDmg * getDamageTakenMultiplier());
+  const dmg = damageTaken(baseDmg);
   if (dmg > 0) {
     checkAchievements('damage_taken');
     player.enemyCollisionDamage(dmg);
     sfxPlayerHit();
     triggerDamageFlash();
   }
-  // Encostar mata melee — investir num zumbi funciona e é uma decisão do
-  // jogador. Chefe não: VIGIA, ALPHA WOLF e REI MUTANTE abrem o padrão com
-  // investida, e se matariam sozinhos no contato, o que entregava a luta de
-  // graça para quem ficasse parado. O chefe leva o dano e continua.
-  if (!ENEMY_TYPES[e.type]?.isBoss) killEnemy(e, false);
+  // Encostar NÃO mata melee: quem não atira briga de perto. Inimigos de curto
+  // alcance apanham o mesmo dano que dão e continuam de pé — investing num
+  // zumbi funciona, mas encostar num melee é briga dos dois. Atiradores e
+  // chefes seguem morríveis por stomp: chefes nunca, porque VIGIA, ALPHA WOLF
+  // e REI MUTANTE abrem o padrão com investida e morreriam no contato.
+  let toughContact = false;
+  if (!ENEMY_TYPES[e.type]?.isBoss && !ENEMY_TYPES[e.type]?.canShoot) {
+    e.health -= Math.floor(e.damage / 2);
+    e.hitFlash = 0.1;
+    toughContact = true;
+  }
+  if (!toughContact && !ENEMY_TYPES[e.type]?.isBoss) killEnemy(e, false);
 });
 
 const bullets = getBullets();
 
 checkEnemyBulletPlayerCollision(bullets, p.x, p.y, p.radius, p.invincible, (b) => {
-  const dmg = Math.floor(b.damage * getDamageTakenMultiplier());
+  const dmg = damageTaken(b.damage);
   if (dmg > 0) {
     checkAchievements('damage_taken');
     player.enemyCollisionDamage(dmg);
@@ -1319,7 +1475,6 @@ checkBulletEnemyCollisions(bullets, enemies, (b, e) => {
     });
   }
   if (isCrit) {
-    triggerSlowMotion(0.15, 0.3);
     spawnParticles(b.x, b.y, PALETTE.crit, 8, 200);
   }
   if (!b.pierce) b.life = 0;
@@ -1362,6 +1517,14 @@ for (let i = enemies.length - 1; i >= 0; i--) {
 }
 
 updateBullets(dt, worldW, worldH);
+// bala não atravessa parede: morre no cruzamento com fagulha
+for (const b of getBullets()) {
+  if (b.life <= 0) continue;
+  if (segmentHitsWall(b.px, b.py, b.x, b.y)) {
+    b.life = 0;
+    spawnParticles(b.x, b.y, b.color, 3, 100);
+  }
+}
 updateParticles(dt);
 updateExplosions(dt);
 updateBarrels(dt);
@@ -1399,4 +1562,24 @@ updatePowerUps(dt, p.x, p.y, p.radius, (type) => {
 });
 
 updateNPCs(dt, p.x, p.y, enemies);
+
+const lootReward = updateLoot(dt, p.x, p.y, p.radius);
+if (lootReward) {
+  if (lootReward.kind === 'powerup') {
+    const t = lootReward.type;
+    if (t === 'health') player.healPlayer(30);
+    else if (t === 'shield') p.shield += 2;
+    activePowerups[t] = POWERUP_TYPES[t]?.duration ?? 0;
+    damageNumbers.push({ x: p.x, y: p.y - 24, text: powerupLabel(t), color: POWERUP_TYPES[t]?.color ?? '#ccc', life: 1.4, vy: -70 });
+    sfxCoin();
+  } else if (lootReward.kind === 'medkit') {
+    player.addMedkits(1);
+    damageNumbers.push({ x: p.x, y: p.y - 24, text: '+1 MEDKIT (H)', color: PALETTE.moss, life: 1.6, vy: -60 });
+    sfxCoin();
+  } else {
+    pushPendingReveal(lootReward.index, lootReward.quality);
+    damageNumbers.push({ x: p.x, y: p.y - 24, text: 'ITEM DESCONHECIDO', color: PALETTE.mustard, life: 1.6, vy: -60 });
+    sfxCoin();
+  }
+}
 }

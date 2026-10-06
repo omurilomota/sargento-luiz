@@ -18,7 +18,7 @@ interface SaveData {
   /** Upgrades comprados */
   upgrades: string[];
   /** Armas compradas */
-  weapons: number[];
+  weapons: { index: number; quality: string }[];
   /** Nome da fase para exibição */
   phaseName: string;
   /** Timestamp do save */
@@ -32,7 +32,7 @@ const SAVE_KEY = 'bubbleShooter_save';
  */
 export function saveGame(
   phase: number, wave: number, weaponIndex: number,
-  coins: number, score: number, upgrades: string[], weapons: number[], phaseName: string
+  coins: number, score: number, upgrades: string[], weapons: { index: number; quality: string }[], phaseName: string
 ): void {
   const data: SaveData = {
     phase, wave, weaponIndex, coins, score, upgrades, weapons, phaseName,
