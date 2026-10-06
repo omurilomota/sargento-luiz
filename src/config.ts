@@ -227,6 +227,43 @@ export const UPGRADES: Upgrade[] = [
   { name: 'Recarga Rápida', effect: 'reloadSpeed', value: 0.3, price: 160 },
 ];
 
+/** Qualidades sorteáveis de armas: modificam dano, cadência, spread, crítico e pierce. */
+export interface WeaponQualityDef {
+  label: string;
+  color: string;
+  damageMult: number;
+  cadenceMult: number;
+  spreadMult: number;
+  critBonus: number;
+  failChance: number;
+  pierce: boolean;
+  sellMult: number;
+  weight: number;
+}
+
+export const QUALITIES: Record<string, WeaponQualityDef> = {
+  quebrada:    { label: 'Quebrada',    color: '#8b4040', damageMult: 0.5,  cadenceMult: 1,   spreadMult: 1,   critBonus: 0,    failChance: 0.2, pierce: false, sellMult: 0.5, weight: 6 },
+  enferrujada: { label: 'Enferrujada', color: '#8a6a4a', damageMult: 0.75, cadenceMult: 1,   spreadMult: 1.5, critBonus: 0,    failChance: 0,   pierce: false, sellMult: 0.6, weight: 10 },
+  suja:        { label: 'Suja',        color: '#8a8a7a', damageMult: 0.9,  cadenceMult: 1,   spreadMult: 1.2, critBonus: 0,    failChance: 0,   pierce: false, sellMult: 0.7, weight: 12 },
+  normal:      { label: 'Normal',      color: '#cccccc', damageMult: 1,    cadenceMult: 1,   spreadMult: 1,   critBonus: 0,    failChance: 0,   pierce: false, sellMult: 1,   weight: 40 },
+  boa:         { label: 'Boa',         color: '#7a9a6a', damageMult: 1.1,  cadenceMult: 1,   spreadMult: 1,   critBonus: 0.05, failChance: 0,   pierce: false, sellMult: 1.3, weight: 18 },
+  ascendente:  { label: 'Ascendente',  color: '#608090', damageMult: 1.25, cadenceMult: 0.9, spreadMult: 1,   critBonus: 0,    failChance: 0,   pierce: false, sellMult: 1.8, weight: 9 },
+  lendaria:    { label: 'Lendária',    color: '#c8b890', damageMult: 1.5,  cadenceMult: 1,   spreadMult: 1,   critBonus: 0,    failChance: 0,   pierce: true,  sellMult: 2.5, weight: 5 },
+};
+
+/** Sorteia uma qualidade com peso. `boost` sobe as melhores (pra caixas raras). */
+export function rollQuality(boost = 0): string {
+  const entries = Object.entries(QUALITIES);
+  const total = entries.reduce((s, [, q]) => s + q.weight + (q.damageMult >= 1 ? boost * 6 : 0), 0);
+  let r = Math.random() * total;
+  for (const [key, q] of entries) {
+    const w = q.weight + (q.damageMult >= 1 ? boost * 6 : 0);
+    if (r < w) return key;
+    r -= w;
+  }
+  return 'normal';
+}
+
 /** Mapa de tipos de power-ups com suas propriedades visuais e de duração */
 export const POWERUP_TYPES: Record<string, { color: string; symbol: string; duration: number }> = {
   health: { color: '#7a9a6a', symbol: '+', duration: 0 },
@@ -236,4 +273,60 @@ export const POWERUP_TYPES: Record<string, { color: string; symbol: string; dura
   magnet: { color: '#8a8a9a', symbol: 'M', duration: 8 },
   multiShot: { color: '#a08050', symbol: 'x3', duration: 6 },
   invincible: { color: '#c8b890', symbol: '*', duration: 4 },
+  furia: { color: '#b07050', symbol: 'F', duration: 8 },
+  peleDePedra: { color: '#608090', symbol: 'P', duration: 8 },
+  botas: { color: '#c8b890', symbol: 'B', duration: 8 },
+  municaoInfinita: { color: '#a08050', symbol: 'M', duration: 8 },
+  reflexos: { color: '#c8b890', symbol: 'R', duration: 8 },
 };
+
+/** Descrição curta de uso por arma na loja */
+export const WEAPON_DESC: Record<string, string> = {
+  'Pistola': 'Padrão, cadência equilibrada',
+  'Shotgun': 'Cone curto, empurra os inimigos',
+  'Metralhadora': 'Tiro único rápido, dispersão leve',
+  'Sniper': 'Precisa, fura armadura longe',
+  'Laser': 'Laser rápido e frágil, muito ammo',
+  'RPG': 'Tiro pesado com explosão',
+  'Raios': '2 raios por tiro, atravessam',
+  'Gel': 'Cola os inimigos, cadência média',
+  'Granada': 'Arco com explosão média',
+  'Mina': 'Cobre uma área com explosão grande',
+  'BFG': 'Caos em 5 projéteis explosivos',
+  'M. Quebrada': 'Alta cadência, encasquilha após 35 tiros — Reparar conserta',
+};
+
+/** Descrição curta por power-up na loja */
+export const POWERUP_DESC: Record<string, string> = {
+  'health': 'Cura 30 HP',
+  'speed': '+50% velocidade por 5s',
+  'damage': '+50% dano por 5s',
+  'shield': '+2 escudo',
+  'magnet': 'Atrai moedas por 8s',
+  'multiShot': 'Dispara 2x por 6s',
+  'invincible': 'Intocável por 4s',
+  'furia': '+30% dano por 8s',
+  'peleDePedra': 'Reduz dano recebido em 50% por 8s',
+  'botas': '+30% velocidade por 8s',
+  'municaoInfinita': 'Munição infinita por 8s',
+  'reflexos': '+50% cadência por 8s',
+};
+
+/** Tipos de peça de arma (upgrades modulares) */
+export interface PieceType {
+  id: string;
+  name: string;
+  desc: string;
+  color: string;
+  damageMult: number;
+  reloadMult: number;
+  magazineMult: number;
+  spreadMult: number;
+}
+
+export const PIECE_TYPES: PieceType[] = [
+  { id: 'dano', name: 'DANO', desc: '+30% dano', color: '#b07050', damageMult: 1.3, reloadMult: 1, magazineMult: 1, spreadMult: 1 },
+  { id: 'cadencia', name: 'CADÊNCIA', desc: '-25% recarga', color: '#7a9a6a', damageMult: 1, reloadMult: 0.75, magazineMult: 1, spreadMult: 1 },
+  { id: 'capacidade', name: 'CAPACIDADE', desc: '+50% pente', color: '#608090', damageMult: 1, reloadMult: 1, magazineMult: 1.5, spreadMult: 1 },
+  { id: 'precisao', name: 'PRECISÃO', desc: '-40% dispersão', color: '#a08050', damageMult: 1, reloadMult: 1, magazineMult: 1, spreadMult: 0.6 },
+];
