@@ -25,8 +25,12 @@ let waveTimer = 0;
  * que já têm 7 e 8 parâmetros: é o mesmo idioma de `resetSpawner`/`initCamera`.
  */
 let difficulty = 1;
+/** Segundos desde o início da fase: inimigos ficam mais fortes com o tempo */
+let phaseTime = 0;
 /** Quantidade de inimigos já criados na onda atual */
 let enemiesSpawnedThisWave = 0;
+
+export function setPhaseTime(t: number): void { phaseTime = t; }
 
 /** Retorna o temporizador atual de spawn da onda. */
 export function getWaveTimer(): number { return waveTimer; }
@@ -47,6 +51,7 @@ export function resetSpawner(): void {
   waveTimer = 0;
   enemiesSpawnedThisWave = 0;
   difficulty = 1;
+  phaseTime = 0;
 }
 
 /** Distância mínima do jogador para spawnar (px) */
@@ -91,7 +96,14 @@ function pickSpawnPosition(rect: SpawnRect): { x: number; y: number } {
     if (Math.hypot(x - rect.px, y - rect.py) < MIN_SPAWN_DISTANCE) continue;
     return { x, y };
   }
-  // fallback: qualquer célula de chão
+  // fallback: primeira célula de chão, nunca parede (o centro do mapa pode ser prédio)
+  for (let row = 1; row < map.rows - 1; row++) {
+    for (let col = 1; col < map.cols - 1; col++) {
+      if (!isWall(col, row)) {
+        return { x: col * CELL_SIZE + CELL_SIZE / 2, y: row * CELL_SIZE + CELL_SIZE / 2 };
+      }
+    }
+  }
   return { x: map.width / 2, y: map.height / 2 };
 }
 
@@ -123,12 +135,14 @@ export function spawnEnemy(
 
   const waveScale = (1 + currentWave * WAVE_SCALE_PER_LEVEL) * difficulty;
   const speedScale = (1 + currentWave * WAVE_SPEED_SCALE_PER_LEVEL) * Math.sqrt(difficulty);
+  // escalada temporal: a cada 90s da fase o inimigo fica ~15% mais forte
+  const timeScale = 1 + Math.min(phaseTime / 90, 3) * 0.15;
   const variance = 0.9 + Math.random() * 0.2;
 
   return {
-    x: pos.x, y: pos.y, radius: def.radius, speed: Math.floor(def.speed * speedScale * variance),
-    health: Math.floor(def.health * waveScale * variance), maxHealth: Math.floor(def.health * waveScale * variance),
-    damage: Math.floor(def.damage * waveScale), color: def.color, scoreValue: def.scoreValue,
+    x: pos.x, y: pos.y, radius: def.radius, speed: Math.floor(def.speed * speedScale * variance * (0.8 + timeScale * 0.2)),
+    health: Math.floor(def.health * waveScale * variance * timeScale), maxHealth: Math.floor(def.health * waveScale * variance * timeScale),
+    damage: Math.floor(def.damage * waveScale * timeScale), color: def.color, scoreValue: def.scoreValue,
     shootTimer: rand(0, def.shootRate || 0), shootRate: def.shootRate || 0,
     canShoot: def.canShoot || false, type, angle: rand(0, Math.PI * 2),
     attackTimer: 0, summonTimer: 0, spawnDelay: 0.5, hitFlash: 0, bossPhase: 0,

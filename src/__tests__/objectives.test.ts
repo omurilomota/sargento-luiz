@@ -161,7 +161,7 @@ describe('npcs: o dano por contato é por segundo, não por frame', () => {
     updateNPCs(1 / 30, 0, 0, [{ x: 400, y: 400, radius: 40, health: 10 }]);
 
     // 30 DPS × 1/60 = 0.5 por frame contra 30 × 1/30 = 1.0: o dobro de dano no
-    // dobro de tempo. O que não pode é o、旧 comportamento de 10 por frame.
+    // dobro de tempo. O que não pode é o comportamento antigo de 10 por frame.
     const dano1 = alvo1 - npc1.health;
     const dano2 = alvo2 - npc2.health;
     expect(dano1).toBeCloseTo(0.5, 1);
@@ -176,7 +176,8 @@ describe('objectives: o objetivo não encerra mais a fase, ele libera o chefe', 
     // survive da Fábrica na onda 1 de 6, porque cumprir o objetivo cortava a fase
     // no primeiro instante. reach é a exceção: chegar na zona É fugir.
     const encerra = PHASES.filter(f => endsPhaseOnDone(f.objective)).map(f => f.objective);
-    expect(encerra).toEqual(['reach']);
+    // antes um bug: reach liberava a fase sem chefe; agora nada encerra direto
+    expect(encerra).toEqual([]);
   });
 
   it('toda fase com objetivo != clear tem chefe para fechar a fase', () => {

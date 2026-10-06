@@ -74,8 +74,10 @@ export function checkBulletEnemyCollisions(
     for (let ei = enemies.length - 1; ei >= 0; ei--) {
       const e = enemies[ei];
       if (e.health <= 0) continue;
+      if (b.hitBy && b.hitBy.has(e)) continue;
       if (bulletHitsCircle(b, e.x, e.y, e.radius + 5)) {
         onHit(b, e);
+        b.hitBy?.add(e);
         break;
       }
     }

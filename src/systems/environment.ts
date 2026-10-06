@@ -4,7 +4,7 @@
  * Eventos são disparados aleatoriamente durante o jogo.
  */
 
-import { Enemy } from '../types';
+import { Enemy, HazardKind } from '../types';
 import { rand } from '../utils';
 import { spawnParticles } from './particles';
 import { createExplosion } from './explosions';
@@ -113,14 +113,36 @@ export function updateEnvironmentEvents(
   playerX: number,
   playerY: number,
   worldWidth: number = 1000,
-  worldHeight: number = 700
+  worldHeight: number = 700,
+  hazard?: HazardKind
 ): EnvironmentResult {
   const enemyDamages: EnvironmentDamage[] = [];
   let playerDamage = 0;
 
+  // eventos por bioma — evita terremoto em floresta, tempestade no espaço etc.
+  const allowed: Record<HazardKind, EnvironmentEvent[]> = {
+    debris: ['earthquake'],
+    fog: ['storm'],
+    darkness: [],
+    electric: ['lightning'],
+    mud: ['storm'],
+    spikes: ['earthquake'],
+    lava: ['earthquake'],
+    lowGravity: [],
+    none: [],
+  };
+  const permitido = hazard ? allowed[hazard] : [];
+
   warnings = [];
   for (const type of Object.keys(events) as EnvironmentEvent[]) {
     const event = events[type];
+
+    // evento fora da lista do bioma não desperta nem emite aviso
+    if (hazard && !permitido.includes(type)) {
+      event.active = false;
+      event.duration = 0;
+      continue;
+    }
 
     // Timer para próximo evento
     if (!event.active) {

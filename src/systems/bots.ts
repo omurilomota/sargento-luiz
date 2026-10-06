@@ -7,6 +7,7 @@
  */
 
 import { normalize } from '../utils';
+import { moveCircleBy, sampleFlowDir } from './tilemap';
 
 /** Nível de dificuldade do bot */
 export type BotDifficulty = 'easy' | 'medium' | 'hard';
@@ -52,6 +53,8 @@ export interface Bot {
   coinDrop: number;
   /** Nome exibido do bot */
   name: string;
+  /** Tempo que o bot ficou preso na parede */
+  stuckTimer?: number;
 }
 
 /** Configurações de dificuldade */
@@ -145,8 +148,15 @@ export function updateBots(
         bot.moveDirX = -dir.x;
         bot.moveDirY = -dir.y;
       } else if (distToPlayer > 350) {
-        bot.moveDirX = dir.x;
-        bot.moveDirY = dir.y;
+        // usa o flow field: seek direto fazia o bot da IA esbarrar nos cantos
+        const flow = sampleFlowDir(bot.x, bot.y);
+        if (flow.x !== 0 || flow.y !== 0) {
+          bot.moveDirX = flow.x;
+          bot.moveDirY = flow.y;
+        } else {
+          bot.moveDirX = dir.x;
+          bot.moveDirY = dir.y;
+        }
       } else {
         // Strafe perpendicular
         bot.moveDirX = -dir.y * (Math.random() > 0.5 ? 1 : -1);
@@ -156,8 +166,29 @@ export function updateBots(
 
     // Aplica movimento
     const len = Math.hypot(bot.moveDirX, bot.moveDirY) || 1;
-    bot.x += (bot.moveDirX / len) * bot.speed * dt;
-    bot.y += (bot.moveDirY / len) * bot.speed * dt;
+    const ox = bot.x;
+    const oy = bot.y;
+    const moved = moveCircleBy(
+      bot.x, bot.y,
+      (bot.moveDirX / len) * bot.speed * dt,
+      (bot.moveDirY / len) * bot.speed * dt,
+      bot.radius,
+    );
+    bot.x = moved.x;
+    bot.y = moved.y;
+    const movido = Math.hypot(bot.x - ox, bot.y - oy);
+    if (movido < bot.speed * dt * 0.2) {
+      bot.stuckTimer = (bot.stuckTimer ?? 0) + dt;
+      if (bot.stuckTimer > 1) {
+        // muda pra uma direção ortogonal aleatória em vez de ficar esculpindo a parede
+        bot.moveDirX = Math.random() > 0.5 ? 1 : -1;
+        bot.moveDirY = Math.random() > 0.5 ? 1 : -1;
+        bot.moveTimer = 0.2;
+        bot.stuckTimer = 0;
+      }
+    } else {
+      bot.stuckTimer = 0;
+    }
 
     // Limites da tela
     bot.x = Math.max(bot.radius, Math.min(canvasWidth - bot.radius, bot.x));

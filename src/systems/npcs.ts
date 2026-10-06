@@ -13,6 +13,18 @@ export interface NPC {
 }
 
 import { markVipDown } from './objectives';
+import { moveCircleBy } from './tilemap';
+
+let npcFollow = true;
+
+export function toggleNpcFollow(): boolean {
+  npcFollow = !npcFollow;
+  return npcFollow;
+}
+
+export function isNpcFollowing(): boolean {
+  return npcFollow;
+}
 
 /** Dano por segundo do NPC enquanto um inimigo encosta nele. */
 const NPC_CONTACT_DPS = 30;
@@ -59,16 +71,18 @@ export function updateNPCs(dt: number, playerX: number, playerY: number, enemies
 
     if (nearestDist < 150) {
       const len = Math.hypot(nx, ny) || 1;
-      npc.x += (nx / len) * npc.speed * dt;
-      npc.y += (ny / len) * npc.speed * dt;
-    } else {
+      const moved = moveCircleBy(npc.x, npc.y, (nx / len) * npc.speed * dt, (ny / len) * npc.speed * dt, npc.radius);
+      npc.x = moved.x;
+      npc.y = moved.y;
+    } else if (npcFollow) {
       // Follow player loosely
       const dx = playerX - npc.x;
       const dy = playerY - npc.y;
       const d = Math.hypot(dx, dy);
       if (d > 120) {
-        npc.x += (dx / d) * npc.speed * 0.5 * dt;
-        npc.y += (dy / d) * npc.speed * 0.5 * dt;
+        const moved = moveCircleBy(npc.x, npc.y, (dx / d) * npc.speed * 0.5 * dt, (dy / d) * npc.speed * 0.5 * dt, npc.radius);
+        npc.x = moved.x;
+        npc.y = moved.y;
       }
     }
 

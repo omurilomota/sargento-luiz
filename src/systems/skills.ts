@@ -5,6 +5,7 @@
  */
 
 import { Player } from '../entities/player';
+import { hasPowerUp } from '../powerups';
 
 /** Tipos de habilidade disponíveis */
 export type SkillType = 'dash' | 'shield' | 'fury';
@@ -109,7 +110,9 @@ export function isSkillOnCooldown(type: SkillType): boolean {
  * @returns multiplicador de dano
  */
 export function getDamageMultiplier(): number {
-  return skills.fury.active ? FURY_DAMAGE_MULT : 1;
+  let mult = skills.fury.active ? FURY_DAMAGE_MULT : 1;
+  if (hasPowerUp('furia')) mult *= 1.3;
+  return mult;
 }
 
 /**
@@ -118,7 +121,9 @@ export function getDamageMultiplier(): number {
  */
 export function getDamageTakenMultiplier(): number {
   if (skills.shield.active) return 0;
-  return skills.fury.active ? FURY_DAMAGE_TAKEN_MULT : 1;
+  let mult = skills.fury.active ? FURY_DAMAGE_TAKEN_MULT : 1;
+  if (hasPowerUp('peleDePedra')) mult *= 0.5;
+  return mult;
 }
 
 /**

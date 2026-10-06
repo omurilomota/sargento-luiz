@@ -60,6 +60,7 @@ export function buySkin(index: number, coins: number): { success: boolean; cost:
   if (!skin || skin.unlocked) return { success: false, cost: 0 };
   if (coins < skin.price) return { success: false, cost: 0 };
   skin.unlocked = true;
+  persistUnlocked();
   return { success: true, cost: skin.price };
 }
 
@@ -75,12 +76,22 @@ export function equipSkin(index: number): boolean {
   return true;
 }
 
-/**
- * Reseta todas as skins (desbloqueia apenas a padrão).
- */
 export function resetSkins(): void {
-  skins.forEach((s, i) => {
-    s.unlocked = i === 0;
-    s.equipped = i === 0;
-  });
+  skins.forEach(s => s.equipped = false);
+  skins[0].equipped = true;
+  skins.forEach((s, i) => { s.unlocked = i === 0; });
+  try {
+    const raw = localStorage.getItem('bubbleShooter_skins_unlocked');
+    if (raw) {
+      const ids = JSON.parse(raw) as number[];
+      for (const idx of ids) if (idx in skins) skins[idx].unlocked = true;
+    }
+  } catch {}
+}
+
+function persistUnlocked(): void {
+  try {
+    const ids = skins.map((s, i) => (s.unlocked ? i : -1)).filter(i => i >= 0);
+    localStorage.setItem('bubbleShooter_skins_unlocked', JSON.stringify(ids));
+  } catch {}
 }

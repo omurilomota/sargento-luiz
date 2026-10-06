@@ -6,7 +6,7 @@
  * colisão swept — sem isso, o Laser (1200px/s) atravessa inimigos.
  */
 
-import { Bullet } from '../types';
+import { Bullet, Enemy } from '../types';
 import { BULLET_LIFE } from '../core/constants';
 
 /** Lista de projéteis ativos */
@@ -42,6 +42,7 @@ export function spawnBullet(
   bullets.push({
     x, y, px: x, py: y, vx, vy, life: BULLET_LIFE, damage, isEnemy, color, isCrit,
     pierce, explosive, explosionRadius,
+    hitBy: new Set<Enemy>(),
   });
 }
 

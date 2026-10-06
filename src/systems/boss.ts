@@ -15,10 +15,10 @@ import { spawnParticles } from './particles';
 import { PALETTE } from '../core/palette';
 import { spawnEnemy } from './spawner';
 import { detonateProp, getProps, igniteBarrel } from './props';
-import { moveCircleBy } from './tilemap';
+import { moveCircleBy, pushOutOfWalls, isWall, colAt, rowAt, sampleFlowDir } from './tilemap';
 
 /** Intervalo base entre ações do boss (segundos) */
-const ACTION_INTERVAL = 2.6;
+const ACTION_INTERVAL = 3.4;
 /** Tempo de recarga da investida (charge) em segundos */
 const CHARGE_SPEED = 620;
 const CHARGE_TIME = 0.75;
@@ -98,7 +98,8 @@ export function updateBoss(
   const step = currentStep(def.pattern, hpPct);
   if (step.index !== rt.step) {
     rt.step = step.index;
-    rt.telegraph = def.telegraph ?? DEFAULT_TELEGRAPH;
+    // telegrafia 0.2s menor: mantém a leitura mas cobra punho rápido
+    rt.telegraph = Math.max(0.4, (def.telegraph ?? DEFAULT_TELEGRAPH) - 0.2);
     rt.telegraphLabel = step.step.telegraph ?? '';
     rt.flashing = true;
     rt.timer = ACTION_INTERVAL;
@@ -106,10 +107,18 @@ export function updateBoss(
 
   if (rt.flashing) {
     rt.telegraph -= elapsed;
-    // durante a telegrafia o boss recua: dá espaço para o jogador ler a ação
+    // durante a telegrafia o boss recua: dá espaço para o jogador ler a ação.
+    // Precisa resolver contra o grid — recuar sem colisão enterrava o boss na
+    // parede e ele ficava congelado ali para sempre.
     const away = Math.atan2(e.y - ty, e.x - tx);
-    e.x += Math.cos(away) * def.speed * 0.5 * elapsed;
-    e.y += Math.sin(away) * def.speed * 0.5 * elapsed;
+    const moved = moveCircleBy(
+      e.x, e.y,
+      Math.cos(away) * def.speed * 0.5 * elapsed,
+      Math.sin(away) * def.speed * 0.5 * elapsed,
+      e.radius,
+    );
+    e.x = moved.x;
+    e.y = moved.y;
     if (rt.telegraph <= 0) {
       rt.flashing = false;
       rt.timer = ACTION_INTERVAL * 0.4;
@@ -131,8 +140,42 @@ export function updateBoss(
     );
     e.x = next.x;
     e.y = next.y;
-    if (rt.charge <= 0) rt.charge = 0;
+    if (rt.charge <= 0) {
+      rt.charge = 0;
+      const out = pushOutOfWalls(e.x, e.y, e.radius);
+      e.x = out.x;
+      e.y = out.y;
+    }
     return spawned;
+  }
+
+  // entre ações o boss persegue o jogador pelo flow field — antes ele ficava
+  // estático todo o intervalo do timer, como um espantalho
+  const flow = sampleFlowDir(e.x, e.y);
+  const distToPlayer = Math.hypot(tx - e.x, ty - e.y);
+  let seekX = 0;
+  let seekY = 0;
+  if (distToPlayer < 140) {
+    const len = distToPlayer || 1;
+    seekX = (tx - e.x) / len;
+    seekY = (ty - e.y) / len;
+  } else if (flow.x !== 0 || flow.y !== 0) {
+    seekX = flow.x;
+    seekY = flow.y;
+  } else {
+    const len = distToPlayer || 1;
+    seekX = (tx - e.x) / len;
+    seekY = (ty - e.y) / len;
+  }
+  if (seekX !== 0 || seekY !== 0) {
+    const next = moveCircleBy(
+      e.x, e.y,
+      seekX * def.speed * 0.6 * elapsed,
+      seekY * def.speed * 0.6 * elapsed,
+      e.radius,
+    );
+    e.x = next.x;
+    e.y = next.y;
   }
 
   rt.timer -= elapsed;
@@ -143,24 +186,24 @@ export function updateBoss(
   const angle = Math.atan2(ty - e.y, tx - e.x);
   const speed = def.bulletSpeed ?? 300;
   const color = def.projectileColor ?? PALETTE.terracotta;
-  const dmg = e.damage;
+  const dmg = e.damage * 1.3;
 
   switch (action) {
     case 'spread':
-      for (let s = -3; s <= 3; s++) {
+      for (let s = -2; s <= 2; s++) {
         const a = angle + s * 0.14;
         spawnBullet(e.x, e.y, Math.cos(a) * speed * 1.1, Math.sin(a) * speed * 1.1, dmg, true, color, false);
       }
       break;
     case 'ring':
-      for (let s = 0; s < 12; s++) {
+      for (let s = 0; s < 8; s++) {
         const a = (s * Math.PI * 2) / 12 + e.angle;
         spawnBullet(e.x, e.y, Math.cos(a) * speed, Math.sin(a) * speed, dmg * 0.7, true, color, false);
       }
       break;
     case 'sweep': {
       const dir = randFn() > 0.5 ? 1 : -1;
-      for (let s = 0; s < 14; s++) {
+      for (let s = 0; s < 9; s++) {
         const a = angle + s * 0.09 * dir;
         spawnBullet(e.x, e.y, Math.cos(a) * speed * 0.9, Math.sin(a) * speed * 0.9, dmg * 0.6, true, color, false);
       }
@@ -170,17 +213,32 @@ export function updateBoss(
       rt.charge = CHARGE_TIME;
       rt.chargeAngle = angle;
       break;
-    case 'summon':
-      for (let i = 0; i < 3; i++) {
+    case 'summon': {
+      for (let i = 0; i < 2; i++) {
+        // offset fixo caía dentro de prédio e o minion ficava preso: valida
+        // contra o grid e cai para a célula livre mais próxima do boss
+        let mx = e.x + (i - 1) * 40;
+        let my = e.y + 40;
+        if (isWall(colAt(mx), rowAt(my))) {
+          const out = pushOutOfWalls(mx, my, 16);
+          mx = out.x;
+          my = out.y;
+        }
         const minion = spawnEnemy(
           randFn() > 0.5 ? 'runner' : 'drone',
           worldW, worldH, 3,
-          e.x + (i - 1) * 40, e.y + 40
+          mx, my
         );
-        if (minion) spawned.push(minion);
+        if (minion) {
+          const out = pushOutOfWalls(minion.x, minion.y, minion.radius);
+          minion.x = out.x;
+          minion.y = out.y;
+          spawned.push(minion);
+        }
       }
       spawnParticles(e.x, e.y, color, 14, 180);
       break;
+    }
     case 'mines':
       for (let i = 0; i < 5; i++) {
         const a = (i * Math.PI * 2) / 5;
@@ -192,7 +250,7 @@ export function updateBoss(
       }
       break;
     case 'split':
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < 3; i++) {
         const a = angle + (i * Math.PI) / 2;
         spawnBullet(e.x, e.y, Math.cos(a) * speed * 0.8, Math.sin(a) * speed * 0.8, dmg * 0.8, true, color, false);
       }

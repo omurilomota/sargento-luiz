@@ -168,7 +168,9 @@ export function updateObjective(
  * @param kind - tipo do objetivo
  */
 export function endsPhaseOnDone(kind: ObjectiveKind): boolean {
-  return kind === 'reach';
+  // reach deixou de terminar a fase sozinho: chegou na zona, libera o boss como
+  // em todos os outros objetivos. Encerra só quando o boss cai.
+  return false;
 }
 
 /** Marca o sobrevivente como morto (usado pelo npcs.ts e pelo teste no browser). */

@@ -9,7 +9,7 @@ export const MAX_PARTICLES = 500;
 /** Número máximo de projéteis ativos na tela simultaneamente */
 export const MAX_BULLETS = 200;
 /** Número máximo de inimigos ativos na tela simultaneamente */
-export const MAX_ENEMIES = 30;
+export const MAX_ENEMIES = 16;
 /** Velocidade base de movimento do jogador em pixels/segundo */
 export const PLAYER_BASE_SPEED = 320;
 /** Pontos de vida iniciais do jogador */

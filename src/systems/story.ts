@@ -26,14 +26,17 @@ export interface Cutscene {
   lines: DialogueLine[];
 }
 
-/** Retratos dos personagens (desenhos Canvas2D) */
-const PORTRAITS: Record<Character, { name: string; color: string }> = {
-  narrador: { name: '', color: '#888' },
-  rios: { name: 'SARGENTO RIOS', color: '#7a9a6a' },
-  comandante: { name: 'COMANDANTE VALE', color: '#b07050' },
-  cientista: { name: 'DRA. FERREIRA', color: '#608090' },
-  mensagem: { name: 'MENSAGEM Interceptada', color: '#a08050' },
-  medico: { name: 'CABO FERNANDES', color: '#9b59b6' },
+/** Retratos dos personagens. `sprite` é a pose do pack Kenney usada no
+ * desenho da cutscene (Regra 15: visual vem de asset, nunca de código).
+ * Vazio (narrador/mensagem) é entidade sem forma física — o renderer cai no
+ * fallback procedural quando o asset não carregou. */
+const PORTRAITS: Record<Character, { name: string; color: string; sprite: string }> = {
+  narrador: { name: '', color: '#888', sprite: '' },
+  rios: { name: 'SARGENTO RIOS', color: '#7a9a6a', sprite: 'survivor_hold' },
+  comandante: { name: 'COMANDANTE VALE', color: '#b07050', sprite: 'soldier_hold' },
+  cientista: { name: 'DRA. FERREIRA', color: '#608090', sprite: 'woman_hold' },
+  mensagem: { name: 'MENSAGEM INTERCEPTADA', color: '#a08050', sprite: '' },
+  medico: { name: 'CABO FERNANDES', color: '#9b59b6', sprite: 'manBlue_hold' },
 };
 
 /** Cutscenes do jogo */
@@ -323,7 +326,7 @@ export function getCutsceneTimer(): number {
   return cutsceneTimer;
 }
 
-export function getPortraitInfo(speaker: Character): { name: string; color: string } {
+export function getPortraitInfo(speaker: Character): { name: string; color: string; sprite: string } {
   return PORTRAITS[speaker];
 }
 

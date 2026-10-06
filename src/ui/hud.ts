@@ -13,6 +13,7 @@
 import { PALETTE } from '../core/palette';
 import { ObjectiveProgress } from '../systems/objectives';
 import { EnvironmentWarning } from '../systems/environment';
+import { isJammed } from '../weapons';
 
 const INSET = 12;
 
@@ -87,10 +88,14 @@ export function drawHud(d: HudData): void {
   const H = ctx.canvas.height;
 
   drawTopLeft(d, W);
-  drawTopCenter(d, W);
+  const centerBottom = drawTopCenter(d, W);
   drawTopRight(d, W, H);
-  if (d.boss) drawBossBar(d, W);
-  drawWarningStrip(d, W);
+  let stackY = centerBottom + 10;
+  if (d.boss) {
+    drawBossBar(d, W, stackY);
+    stackY += 34;
+  }
+  drawWarningStrip(d, W, stackY);
   drawBottomLeft(d, H);
   drawComboChips(d, W, H);
   drawHint(d, W, H);
@@ -127,7 +132,7 @@ function drawTopLeft(d: HudData, _W: number): void {
 
   // número de vida + pips de escudo
   ctx!.fillStyle = PALETTE.text;
-  ctx!.font = 'bold 11px monospace';
+  ctx!.font = 'bold 13px monospace';
   ctx!.textAlign = 'left';
   ctx!.textBaseline = 'alphabetic';
   const hpText = `${Math.ceil(d.health)}/${Math.round(d.maxHealth)}`;
@@ -157,27 +162,33 @@ function drawTopLeft(d: HudData, _W: number): void {
     ctx!.strokeRect(sx + 0.5, skillY + 0.5, size - 1, size - 1);
 
     ctx!.fillStyle = s.active ? '#fff' : s.cooldown <= 0 ? PALETTE.moss : PALETTE.textOff;
-    ctx!.font = 'bold 9px monospace';
+    ctx!.font = 'bold 11px monospace';
     ctx!.textAlign = 'center';
     ctx!.textBaseline = 'middle';
     ctx!.fillText(s.key, sx + size / 2, skillY + size / 2);
 
     ctx!.textBaseline = 'alphabetic';
     ctx!.fillStyle = PALETTE.textOff;
-    ctx!.font = '8px monospace';
+    ctx!.font = '10px monospace';
     ctx!.fillText(s.name.toUpperCase(), sx + size / 2, skillY + size + 9);
   });
   ctx!.textAlign = 'left';
 }
 
 /** Coluna central: fase, barra de onda, score e chip de combo com decaimento. */
-function drawTopCenter(d: HudData, W: number): void {
+function drawTopCenter(d: HudData, W: number): number {
   const cx = W / 2;
   let y = INSET + 10;
 
+  // Contraste sutil para as labels da coluna central: sem bloco escuro
+  ctx!.save();
+  ctx!.shadowColor = 'rgba(0,0,0,0.85)';
+  ctx!.shadowBlur = 4;
+  ctx!.shadowOffsetY = 1;
+
   ctx!.textAlign = 'center';
   ctx!.fillStyle = PALETTE.title;
-  ctx!.font = 'bold 13px monospace';
+  ctx!.font = 'bold 14px monospace';
   ctx!.fillText(d.phase.toUpperCase(), cx, y);
 
   y += 12;
@@ -192,8 +203,8 @@ function drawTopCenter(d: HudData, W: number): void {
   ctx!.lineWidth = 1;
   ctx!.strokeRect(barX + 0.5, y + 0.5, barW - 1, 5);
   ctx!.fillStyle = PALETTE.textDim;
-  ctx!.font = '9px monospace';
-  ctx!.fillText(`ONDA ${d.wave + 1}/${d.maxWave}`, cx, y + 17);
+  ctx!.font = 'bold 13px monospace';
+  ctx!.fillText(`ONDA ${d.wave + 1}/${d.maxWave}`, cx, y + 18);
 
   y += 26;
   ctx!.fillStyle = PALETTE.mustard;
@@ -204,7 +215,7 @@ function drawTopCenter(d: HudData, W: number): void {
     y += 15;
     const decay = Math.max(0, Math.min(1, d.comboDecay));
     ctx!.fillStyle = PALETTE.terracotta;
-    ctx!.font = 'bold 11px monospace';
+    ctx!.font = 'bold 13px monospace';
     ctx!.fillText(`COMBO x${d.combo}`, cx, y);
     const cw = 60;
     ctx!.fillStyle = 'rgba(0,0,0,0.5)';
@@ -216,7 +227,7 @@ function drawTopCenter(d: HudData, W: number): void {
   // objetivo da fase
   y += 22;
   ctx!.fillStyle = PALETTE.textDim;
-  ctx!.font = '9px monospace';
+  ctx!.font = 'bold 13px monospace';
   ctx!.fillText(d.objective.label, cx, y);
   const ow = 160;
   ctx!.fillStyle = 'rgba(0,0,0,0.5)';
@@ -224,9 +235,11 @@ function drawTopCenter(d: HudData, W: number): void {
   ctx!.fillStyle = PALETTE.moss;
   ctx!.fillRect(cx - ow / 2, y + 4, ow * d.objective.progress, 4);
   ctx!.fillStyle = PALETTE.textOff;
-  ctx!.font = '8px monospace';
-  ctx!.fillText(d.objective.detail, cx, y + 17);
+  ctx!.font = '12px monospace';
+  ctx!.fillText(d.objective.detail, cx, y + 18);
   ctx!.textAlign = 'left';
+  ctx!.restore();
+  return y + 22;
 }
 
 /** Coluna direita: moedas, inimigos, minimapa e timers de power-up. */
@@ -238,11 +251,11 @@ function drawTopRight(d: HudData, W: number, _H: number): void {
 
   ctx!.textAlign = 'right';
   ctx!.fillStyle = PALETTE.mustard;
-  ctx!.font = 'bold 12px monospace';
+  ctx!.font = 'bold 15px monospace';
   ctx!.fillText(`${d.coins}$`, W - INSET, mmY + 11);
 
   ctx!.fillStyle = PALETTE.terracotta;
-  ctx!.font = '11px monospace';
+  ctx!.font = 'bold 14px monospace';
   ctx!.fillText(`HOSTIS ${d.enemies}`, W - INSET, mmY + 26);
 
   // minimapa: agora mapeia mundo → minimapa, então é informativo de verdade
@@ -288,7 +301,7 @@ function drawTopRight(d: HudData, W: number, _H: number): void {
     ctx!.arc(px, py, 8, 0, Math.PI * 2);
     ctx!.fill();
     ctx!.fillStyle = '#111';
-    ctx!.font = 'bold 8px monospace';
+    ctx!.font = 'bold 10px monospace';
     ctx!.textAlign = 'center';
     ctx!.textBaseline = 'middle';
     ctx!.fillText(meta.symbol, px, py);
@@ -300,11 +313,10 @@ function drawTopRight(d: HudData, W: number, _H: number): void {
 }
 
 /** Barra de boss, logo abaixo do topo-centro. */
-function drawBossBar(d: HudData, W: number): void {
+function drawBossBar(d: HudData, W: number, y: number): void {
   const b = d.boss!;
   const w = Math.min(460, W * 0.5);
   const x = W / 2 - w / 2;
-  const y = 128;
 
   ctx!.fillStyle = PALETTE.panel;
   ctx!.fillRect(x - 3, y - 3, w + 6, 16);
@@ -331,7 +343,7 @@ function drawBossBar(d: HudData, W: number): void {
 }
 
 /** Faixa de aviso ambiental (destrava o relâmpago invisível de 40 de dano). */
-function drawWarningStrip(d: HudData, W: number): void {
+function drawWarningStrip(d: HudData, W: number, y: number): void {
   if (d.warnings.length === 0) return;
   const labels: Record<string, string> = {
     earthquake: 'TERREMOTO',
@@ -339,7 +351,6 @@ function drawWarningStrip(d: HudData, W: number): void {
     storm: 'TEMPESTADE',
   };
   const stripH = 20;
-  const y = 60;
   ctx!.fillStyle = 'rgba(0,0,0,0.55)';
   ctx!.fillRect(0, y, W, stripH);
   ctx!.strokeStyle = 'rgba(176,112,80,0.4)';
@@ -356,7 +367,7 @@ function drawWarningStrip(d: HudData, W: number): void {
   const pulse = 0.6 + Math.sin(performance.now() / 140) * 0.4;
   ctx!.globalAlpha = pulse;
   ctx!.fillStyle = PALETTE.terracotta;
-  ctx!.font = 'bold 11px monospace';
+  ctx!.font = 'bold 13px monospace';
   ctx!.fillText(`${labels[warn.type] ?? warn.type} EM ${Math.ceil(warn.timeLeft)}s`, W / 2, y + 14);
   ctx!.globalAlpha = 1;
   ctx!.textAlign = 'left';
@@ -368,11 +379,11 @@ function drawBottomLeft(d: HudData, H: number): void {
   let y = H - INSET - 22;
 
   ctx!.fillStyle = PALETTE.text;
-  ctx!.font = 'bold 12px monospace';
+  ctx!.font = 'bold 15px monospace';
   ctx!.textAlign = 'left';
   ctx!.fillText(d.weapon, x, y);
   ctx!.fillStyle = PALETTE.textDim;
-  ctx!.font = '9px monospace';
+  ctx!.font = '13px monospace';
   ctx!.textAlign = 'right';
   ctx!.fillText(d.reloading ? 'RECARREGANDO' : `${d.ammo}/${d.maxAmmo}`, x + 200, y);
   ctx!.textAlign = 'left';
@@ -397,11 +408,16 @@ function drawBottomLeft(d: HudData, H: number): void {
     }
   }
 
+  if (isJammed()) {
+    ctx!.fillStyle = PALETTE.danger;
+    ctx!.font = 'bold 13px monospace';
+    ctx!.fillText('ENCASQUILHADA — CONSERTANDO', x, y + 26);
+  }
   if (d.reloading) {
     ctx!.fillStyle = PALETTE.mustard;
     ctx!.fillRect(x, y, barW * d.reloadProgress, 10);
     ctx!.fillStyle = PALETTE.mustard;
-    ctx!.font = '9px monospace';
+    ctx!.font = '11px monospace';
     ctx!.fillText('RECARGA', x, y + 22);
   }
 }
@@ -413,14 +429,14 @@ function drawComboChips(d: HudData, W: number, H: number): void {
   ctx!.textAlign = 'right';
   for (const c of d.combos) {
     ctx!.fillStyle = 'rgba(0,0,0,0.5)';
-    ctx!.font = 'bold 11px monospace';
+    ctx!.font = 'bold 13px monospace';
     const nameW = ctx!.measureText(c.name).width;
     ctx!.fillRect(W - INSET - nameW - 14, y - 11, nameW + 14, 15);
     ctx!.fillStyle = c.color;
     ctx!.fillRect(W - INSET - 8, y - 9, 4, 11);
     ctx!.fillText(c.name, W - INSET - 12, y);
     ctx!.fillStyle = PALETTE.textOff;
-    ctx!.font = '9px monospace';
+    ctx!.font = '11px monospace';
     ctx!.fillText(c.description, W - INSET - 12, y + 13);
     y -= 32;
   }
@@ -431,7 +447,7 @@ function drawComboChips(d: HudData, W: number, H: number): void {
 function drawHint(d: HudData, W: number, H: number): void {
   if (!d.hint) return;
   const text = d.hint.text;
-  ctx!.font = '11px monospace';
+  ctx!.font = '13px monospace';
   const w = ctx!.measureText(text).width + 24;
   const x = W / 2 - w / 2;
   const y = H - INSET - 30;
@@ -448,7 +464,9 @@ function drawHint(d: HudData, W: number, H: number): void {
 
 /** Toasts de conquista empilhados, no canto superior direito. */
 function drawToasts(d: HudData, W: number, H: number): void {
-  let y = INSET + 220;
+  // começa logo abaixo dos timers de power-up, não em y fixo que fura o minimapa
+  const mmH = Math.round(150 * (d.worldSize.h / Math.max(1, d.worldSize.w)));
+  let y = INSET + 36 + mmH + 34;
   ctx!.textAlign = 'right';
   for (let i = d.toasts.length - 1; i >= 0; i--) {
     const t = d.toasts[i];
@@ -456,7 +474,7 @@ function drawToasts(d: HudData, W: number, H: number): void {
     ctx!.globalAlpha = alpha;
     ctx!.fillStyle = PALETTE.panel;
     const text = `CONQUISTA: ${t.name}`;
-    ctx!.font = 'bold 10px monospace';
+    ctx!.font = 'bold 12px monospace';
     const w = ctx!.measureText(text).width + 16;
     ctx!.fillRect(W - INSET - w, y - 11, w, 16);
     ctx!.fillStyle = PALETTE.mustard;
