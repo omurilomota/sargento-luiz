@@ -124,7 +124,7 @@ ataca isso primeiro.
 
 ## Testes
 
-360 testes em 13 arquivos, cobrindo exatamente as regressões que já voltaram:
+420 testes em 17 arquivos, cobrindo exatamente as regressões que já voltaram:
 
 | Arquivo | Cobre |
 |---|---|
@@ -141,9 +141,14 @@ ataca isso primeiro.
 | `shopLayout.test.ts` | `getShopLayout`: sobreposição, colunas, hit-test bate com o draw |
 | `menuLayout.test.ts` | `getMenuLayout`: índice do clique, cabimento em 4 resoluções |
 | `mapValidation.test.ts` | 9 mapas: largura, borda, conectividade, contraste piso/parede, caminho de tile no disco |
+| `saveSystem.test.ts` | round-trip do save, restauração depois do `resetShop`, upgrades do mesmo efeito substituindo em vez de empilhar, todo `effect` do config reconhecido |
+| `weapons.test.ts` | teto de pierce e o custo de 25%, crítico ×1.5 com 60% de teto, qualidade/falha da Quebrada, jam + Reparo, medkit, armadura |
+| `loot.test.ts` | taxa de drop por tipo, coleta e expiração, validade de toda recompensa, raridade do medkit, caixa do boss |
+| `biome.test.ts` | todo hazard tem par na tabela de mods, os 3 de `takenMult` existem, DPS de Laser/Raios, inimigos de fase existem |
+| `terrain.test.ts` (extra) | 8 biomas com tile de parede, todo tile em `TILE_NUMBERS`, min 2 tiles por bioma |
 
 ```
-npm test            # 360 passando
+npm test            # 420 passando
 npx tsc --noEmit    # 0 erros
 npm run build       # ok
 ```

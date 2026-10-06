@@ -75,6 +75,31 @@
 // [x] main.ts: update() de 463 para 252 linhas; init() duplicado removido
 // [x] props.test.ts (26) e terrain.test.ts (98)
 
+// --- FEEDBACK DO JOGADOR (sessão 2026-10-05) ---
+// [x] Crash ao sair da loja na última fase (getCurrentPhase() undefined)
+// [x] Continuar o save devolvia só a pistola: inventário, qualidades e upgrades
+// [x] Upgrades do mesmo efeito empilhavam (Dano +25% e +50% davam 1.75)
+// [x] Balanceamento: crítico ×2 -> ×1.5 com teto de 60%, pierce com teto de 3
+//     e -25% de dano, Laser e Raios com DPS abaixo de 40
+// [x] Inimigo melee morria ao encostar; agora briga (bate e apanha no contato)
+// [x] NPC atravessava parede (J alterna seguir/parar; protect faz todos caçarem)
+// [x] Medkit como item de inventário, tecla H
+// [x] Inimigos escalam com o tempo da fase
+// [x] Névoa da Floresta removida
+// [x] Bioma dá pró e contra nos 9 (o de dano recebido estava inerte, corrigido)
+// [x] Serviço "Reparar Arma" na loja
+// [x] Cobertura de teste: saveSystem (15), weapons (18), loot (12), biome (7)
+// [x] Tela preta ao comprar skin: auditada, caminho correto, sem alteração
+// [x] Som de tiro: 10 armas com estalo+corpo distintos e variação de pitch
+// [x] Parede vem de tile do pack nos 8 biomas (Floresta usa a copa de 181/209)
+// [x] Regra gravada no AGENTS.md: visual vem de asset, nunca de código
+// [ ] Procedural restante (viola a nova regra):
+//     drawHazard — 14 chamadas de desenho, 0 sprites, os 9 biomas
+//     drawDecor  — 5 dos 9 biomas ainda desenham elipse em vez de usar tile
+//     renderer   — 42 chamadas (só as bordas/auras são legitimamente código)
+// [x] Música real (Soundimage/Eric Matyas, livre com atribuição) no lugar da síntese do genmusic.py
+// [x] Retrato das cutscenes já usam sprites do personagem quando carregado (fallback só se faltar sprite)
+
 // --- BOSS ---
 // [x] VIGIA na Cidade em Ruínas (fase 1) — primeira luta ensina o mapa
 // [x] NÚCLEO no Bunker Central (fase 9) — chefe final, sem investida
@@ -184,3 +209,8 @@
 - [x] Sombras dos personagens no chão
 - [x] Efeito de zoom lento no boss quando aparece
 - [x] Performance: limitar partículas por frame (80/frame + 500 global)
+// [x] Skins agora persistem via localStorage ('bubbleShooter_skins_unlocked'); resetSkins
+//     carrega as salvas em vez de zerar
+// [x] Serviços/Upgrades/Ads agora têm chips (inicial + cor) nas cartas da loja
+// [x] HUD: painel sólido do topo-centro removido -> só sombra de texto no black
+// [x] Boss: summon capado em 12 inimigos vivos; MAX_ENEMIES 30 -> 16 (não afoga mais a fase)
