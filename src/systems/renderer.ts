@@ -515,12 +515,14 @@ export function drawCredits(): void {
 
   const linhas: { texto: string; cor: string; tamanho: string; peso: string }[] = [
     { texto: 'MÚSICA', cor: PALETTE.mustard, tamanho: '13px', peso: 'bold ' },
-    { texto: 'Eric Matyas (soundimage.org) — Mystical Ocean, Automation, Darkness Below, Puzzle Dreams', cor: PALETTE.text, tamanho: '12px', peso: '' },
+    { texto: 'Juhani Junkala / SubspaceAudio (CC0) — Post Apocalyptic Wastelands (menu)', cor: PALETTE.text, tamanho: '12px', peso: '' },
+    { texto: 'Eric Matyas (soundimage.org) — Automation, Darkness Below, Puzzle Dreams', cor: PALETTE.text, tamanho: '12px', peso: '' },
     { texto: 'Uso gratuito com atribuição desta tela e do CREDITS.md', cor: PALETTE.textDim, tamanho: '11px', peso: '' },
     { texto: '', cor: PALETTE.textDim, tamanho: '11px', peso: '' },
     { texto: 'SFX', cor: PALETTE.mustard, tamanho: '13px', peso: 'bold ' },
-    { texto: 'freesound.org — CC0 / CC-BY (curadoria incremental)', cor: PALETTE.text, tamanho: '12px', peso: '' },
-    { texto: 'Enquanto o arquivo não chega, o efeito é procedural (audio.ts)', cor: PALETTE.textDim, tamanho: '11px', peso: '' },
+    { texto: 'Kenney.nl + OpenGameArt — CC0 (25 efeitos)', cor: PALETTE.text, tamanho: '12px', peso: '' },
+    { texto: 'Tiros: Vincent Sevedge (opengameart.org) — CC-BY 3.0', cor: PALETTE.text, tamanho: '12px', peso: '' },
+    { texto: '29 efeitos reais em assets/sfx/ (fallback procedural em audio.ts)', cor: PALETTE.textDim, tamanho: '11px', peso: '' },
     { texto: 'Autores por arquivo: assets/CREDITS.md', cor: PALETTE.textDim, tamanho: '11px', peso: '' },
     { texto: '', cor: PALETTE.textDim, tamanho: '11px', peso: '' },
     { texto: 'SPRITES', cor: PALETTE.mustard, tamanho: '13px', peso: 'bold ' },
