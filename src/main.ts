@@ -740,10 +740,12 @@ function update(dt: number) {
   // chefe), então o objetivo virou o pivot e o chefe o clímax: a fase só acaba
   // quando o chefe cai. `reach` também devolve o chefe agora, não encerra direto.
   const objetivoLiberouChefe = phase.objective === 'clear' || objective.done;
-  const isUltimasOndas = getCurrentWave() === phase.waves - 1 || phase.objective === 'reach';
+  // reach nao forca ultima onda: sem o `||`, vale a regra comum (ultima onda +
+  // objetivo cumprido + campo vazio). O spawn e no centro do mundo, nao no `B`
+  // (extracao no topo do Vulcao = "boss pulou pro espaco").
+  const isUltimasOndas = getCurrentWave() === phase.waves - 1;
   if (!bossSpawned && phase.boss && objetivoLiberouChefe && isUltimasOndas && enemies.length === 0) {
-    const cells = findAll('B');
-    const pos = cells.length > 0 ? cellCenter(cells[0].col, cells[0].row) : { x: worldW / 2, y: worldH / 2 };
+    const pos = { x: worldW / 2, y: worldH / 2 };
     const boss = spawnEnemy(phase.boss, worldW, worldH, 0, pos.x, pos.y);
     if (boss) {
       boss.spawnDelay = 0;
