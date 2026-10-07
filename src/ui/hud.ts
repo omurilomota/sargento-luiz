@@ -414,11 +414,15 @@ function drawBottomLeft(d: HudData, H: number): void {
     ctx!.fillText('ENCASQUILHADA — CONSERTANDO', x, y + 26);
   }
   if (d.reloading) {
+    // empilhada ABAIXO da munição (y+14): antes desenhava no mesmo y e cobria a barra
+    const ry = y + 14;
+    ctx!.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx!.fillRect(x - 2, ry - 2, barW + 4, 14);
     ctx!.fillStyle = PALETTE.mustard;
-    ctx!.fillRect(x, y, barW * d.reloadProgress, 10);
+    ctx!.fillRect(x, ry, barW * d.reloadProgress, 10);
     ctx!.fillStyle = PALETTE.mustard;
     ctx!.font = '11px monospace';
-    ctx!.fillText('RECARGA', x, y + 22);
+    ctx!.fillText('RECARGA', x, ry + 24);
   }
 }
 
