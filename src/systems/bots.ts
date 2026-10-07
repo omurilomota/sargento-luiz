@@ -7,7 +7,7 @@
  */
 
 import { normalize } from '../utils';
-import { moveCircleBy, sampleFlowDir } from './tilemap';
+import { moveCircleBy, sampleFlowDir, getMapWidth, getMapHeight } from './tilemap';
 import { PALETTE } from '../core/palette';
 
 /** Nível de dificuldade do bot */
@@ -181,19 +181,34 @@ export function updateBots(
     if (movido < bot.speed * dt * 0.2) {
       bot.stuckTimer = (bot.stuckTimer ?? 0) + dt;
       if (bot.stuckTimer > 1) {
-        // muda pra uma direção ortogonal aleatória em vez de ficar esculpindo a parede
-        bot.moveDirX = Math.random() > 0.5 ? 1 : -1;
-        bot.moveDirY = Math.random() > 0.5 ? 1 : -1;
-        bot.moveTimer = 0.2;
+        // escape validado: testa 4 direcoes via moveCircleBy e fica com a que
+        // mais andou. Sortear 1 direcao cega podia mandar pra mesma parede.
+        const step = bot.speed * dt * 4;
+        const cands: [number, number][] = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+        let best: [number, number] = cands[Math.floor(Math.random() * 4)];
+        let bestDist = -1;
+        for (const [cx, cy] of cands) {
+          const t = moveCircleBy(bot.x, bot.y, cx * step, cy * step, bot.radius);
+          const dd = Math.hypot(t.x - bot.x, t.y - bot.y);
+          if (dd > bestDist) { bestDist = dd; best = [cx, cy]; }
+        }
+        bot.moveDirX = best[0];
+        bot.moveDirY = best[1];
+        bot.moveTimer = 0.4;
         bot.stuckTimer = 0;
       }
     } else {
       bot.stuckTimer = 0;
     }
 
-    // Limites da tela
-    bot.x = Math.max(bot.radius, Math.min(canvasWidth - bot.radius, bot.x));
-    bot.y = Math.max(bot.radius, Math.min(canvasHeight - bot.radius, bot.y));
+    // limites do MUNDO (tilemap ja da clamp), nao da tela: o mundo e maior
+    // que o canvas e o clamp de tela prendia o bot na borda visivel
+    const mw = getMapWidth();
+    const mh = getMapHeight();
+    if (mw > 0) bot.x = Math.max(bot.radius, Math.min(mw - bot.radius, bot.x));
+    else bot.x = Math.max(bot.radius, Math.min(canvasWidth - bot.radius, bot.x));
+    if (mh > 0) bot.y = Math.max(bot.radius, Math.min(mh - bot.radius, bot.y));
+    else bot.y = Math.max(bot.radius, Math.min(canvasHeight - bot.radius, bot.y));
 
     // --- Dodge AI ---
     bot.dodgeTimer -= dt;

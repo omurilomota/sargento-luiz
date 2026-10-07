@@ -69,6 +69,8 @@ export function updateNPCs(dt: number, playerX: number, playerY: number, enemies
       }
     }
 
+    const ox = npc.x;
+    const oy = npc.y;
     if (nearestDist < 150) {
       const len = Math.hypot(nx, ny) || 1;
       const moved = moveCircleBy(npc.x, npc.y, (nx / len) * npc.speed * dt, (ny / len) * npc.speed * dt, npc.radius);
@@ -84,6 +86,21 @@ export function updateNPCs(dt: number, playerX: number, playerY: number, enemies
         npc.x = moved.x;
         npc.y = moved.y;
       }
+    }
+    // escape validado igual ao bot: se o vetor direto nao andou (parede),
+    // testa 4 direcoes e fica com a que mais andou em vez de moer a parede
+    if (Math.hypot(npc.x - ox, npc.y - oy) < npc.speed * dt * 0.2 && (nearestDist < 150 || npcFollow)) {
+      const step = npc.speed * dt * 4;
+      const cands: [number, number][] = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+      let bx = npc.x;
+      let by = npc.y;
+      let bestDist = -1;
+      for (const [cx, cy] of cands) {
+        const t = moveCircleBy(npc.x, npc.y, cx * step, cy * step, npc.radius);
+        const dd = Math.hypot(t.x - npc.x, t.y - npc.y);
+        if (dd > bestDist) { bestDist = dd; bx = t.x; by = t.y; }
+      }
+      if (bestDist > 0) { npc.x = bx; npc.y = by; }
     }
 
     // Enemy collision damage
