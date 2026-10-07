@@ -48,44 +48,54 @@ no histórico do git como fallback.
 
 ## Áudio de efeito (SFX)
 
-Origem: **freesound.org** — só licenças **CC0** ou **CC-BY**
-(CC-BY-NC é proibido pelo projeto). Critérios de curadoria:
-evento único, 0.1–1.5s, sem música. Formato OGG
-(`ffmpeg -i in.wav -c:a libvorbis -q:a 4 out.ogg`).
+Origem: **Kenney.nl** (CC0), **OpenGameArt** (CC0) e
+**OpenGameArt** (CC-BY 3.0 — os 4 tiros reais de
+Vincent Sevedge, única fonte com atribuição obrigatória).
+Critérios de curadoria: evento único, 0.1–2.0s, sem música,
+tom pós-apocalíptico (sem neon, sem cartoon). Conversão:
+mono, OGG Vorbis (`ffmpeg -i in -ac 1 -c:a libvorbis -q:a 4 out.ogg`),
+nível normalizado por hierarquia (bossDeath mais alto,
+UI mais suave). O fallback procedural em `audio.ts` é
+mantido por design (regra 15): só entra se um arquivo
+sumir — hoje ele nunca dispara.
 
 O manifesto das 29 chaves vive em `src/systems/audio.ts`
-(`SFX_FILES`). Enquanto o arquivo não existir em
-`assets/sfx/`, o jogo toca o SFX procedural equivalente —
-a curadoria é incremental, por batch, e o jogo nunca fica mudo.
+(`SFX_FILES`), e `src/__tests__/sfxAssets.test.ts` trava
+a existência de cada arquivo no disco.
 
 | chave | arquivo | autor | URL | licença |
 |---|---|---|---|---|
-| pistol | `assets/sfx/pistol.ogg` | pendente | | |
-| shotgun | `assets/sfx/shotgun.ogg` | pendente | | |
-| machinegun | `assets/sfx/machinegun.ogg` | pendente | | |
-| sniper | `assets/sfx/sniper.ogg` | pendente | | |
-| laser | `assets/sfx/laser.ogg` | pendente | | |
-| rpg | `assets/sfx/rpg.ogg` | pendente | | |
-| raios | `assets/sfx/raios.ogg` | pendente | | |
-| gel | `assets/sfx/gel.ogg` | pendente | | |
-| granade | `assets/sfx/granade.ogg` | pendente | | |
-| mina | `assets/sfx/mina.ogg` | pendente | | |
-| enemyShoot | `assets/sfx/enemyShoot.ogg` | pendente | | |
-| explosion | `assets/sfx/explosion.ogg` | pendente | | |
-| bossDeath | `assets/sfx/bossDeath.ogg` | pendente | | |
-| playerHit | `assets/sfx/playerHit.ogg` | pendente | | |
-| coin | `assets/sfx/coin.ogg` | pendente | | |
-| powerup | `assets/sfx/powerup.ogg` | pendente | | |
-| achievement | `assets/sfx/achievement.ogg` | pendente | | |
-| levelUp | `assets/sfx/levelUp.ogg` | pendente | | |
-| waveStart | `assets/sfx/waveStart.ogg` | pendente | | |
-| buy | `assets/sfx/buy.ogg` | pendente | | |
-| error | `assets/sfx/error.ogg` | pendente | | |
-| jammed | `assets/sfx/jammed.ogg` | pendente | | |
-| gameOver | `assets/sfx/gameOver.ogg` | pendente | | |
-| hitStop | `assets/sfx/hitStop.ogg` | pendente | | |
-| dash | `assets/sfx/dash.ogg` | pendente | | |
-| shield | `assets/sfx/shield.ogg` | pendente | | |
-| fury | `assets/sfx/fury.ogg` | pendente | | |
-| menuMove | `assets/sfx/menuMove.ogg` | pendente | | |
-| menuSelect | `assets/sfx/menuSelect.ogg` | pendente | | |
+| pistol | `assets/sfx/pistol.ogg` | Vincent Sevedge | opengameart.org/content/gunshot-sounds | CC-BY 3.0 |
+| shotgun | `assets/sfx/shotgun.ogg` | Vincent Sevedge | opengameart.org/content/gunshot-sounds | CC-BY 3.0 |
+| machinegun | `assets/sfx/machinegun.ogg` | Ben Jaszczak, Brian Nelson, Kevin Heras, Matthew Nanney | opengameart.org/content/the-free-firearm-sound-library | CC0 |
+| sniper | `assets/sfx/sniper.ogg` | Vincent Sevedge | opengameart.org/content/gunshot-sounds | CC-BY 3.0 |
+| laser | `assets/sfx/laser.ogg` | Kenney Vleugels | kenney.nl/assets/sci-fi-sounds | CC0 |
+| rpg | `assets/sfx/rpg.ogg` | Kenney Vleugels | kenney.nl/assets/sci-fi-sounds | CC0 |
+| raios | `assets/sfx/raios.ogg` | Kenney Vleugels (`laserLarge_000`, mais grosso que o `laserRetro_000` 8-bit anterior) | kenney.nl/assets/sci-fi-sounds | CC0 |
+| gel | `assets/sfx/gel.ogg` | Kenney Vleugels | kenney.nl/assets/sci-fi-sounds | CC0 |
+| granade | `assets/sfx/granade.ogg` | rubberduck (Thomas Deisz) | opengameart.org/content/25-cc0-bang-firework-sfx | CC0 |
+| mina | `assets/sfx/mina.ogg` | Kenney Vleugels | kenney.nl/assets/rpg-audio | CC0 |
+| enemyShoot | `assets/sfx/enemyShoot.ogg` | Vincent Sevedge | opengameart.org/content/gunshot-sounds | CC-BY 3.0 |
+| explosion | `assets/sfx/explosion.ogg` | rubberduck (Thomas Deisz) | opengameart.org/content/25-cc0-bang-firework-sfx | CC0 |
+| bossDeath | `assets/sfx/bossDeath.ogg` | Kenney Vleugels | kenney.nl/assets/sci-fi-sounds | CC0 |
+| playerHit | `assets/sfx/playerHit.ogg` | Kenney Vleugels | kenney.nl/assets/impact-sounds | CC0 |
+| coin | `assets/sfx/coin.ogg` | Kenney Vleugels | kenney.nl/assets/rpg-audio | CC0 |
+| powerup | `assets/sfx/powerup.ogg` | Kenney Vleugels | kenney.nl/assets/interface-sounds | CC0 |
+| achievement | `assets/sfx/achievement.ogg` | Kenney Vleugels | kenney.nl/assets/interface-sounds | CC0 |
+| levelUp | `assets/sfx/levelUp.ogg` | Kenney Vleugels | kenney.nl/assets/interface-sounds | CC0 |
+| waveStart | `assets/sfx/waveStart.ogg` | Kenney Vleugels | kenney.nl/assets/interface-sounds | CC0 |
+| buy | `assets/sfx/buy.ogg` | Kenney Vleugels | kenney.nl/assets/interface-sounds | CC0 |
+| error | `assets/sfx/error.ogg` | Kenney Vleugels | kenney.nl/assets/interface-sounds | CC0 |
+| jammed | `assets/sfx/jammed.ogg` | Kenney Vleugels | kenney.nl/assets/interface-sounds | CC0 |
+| gameOver | `assets/sfx/gameOver.ogg` | Kenney Vleugels | kenney.nl/assets/impact-sounds | CC0 |
+| hitStop | `assets/sfx/hitStop.ogg` | Kenney Vleugels | kenney.nl/assets/impact-sounds | CC0 |
+| dash | `assets/sfx/dash.ogg` | Kenney Vleugels | kenney.nl/assets/rpg-audio | CC0 |
+| shield | `assets/sfx/shield.ogg` | Kenney Vleugels | kenney.nl/assets/sci-fi-sounds | CC0 |
+| fury | `assets/sfx/fury.ogg` | Kenney Vleugels | kenney.nl/assets/sci-fi-sounds | CC0 |
+| menuMove | `assets/sfx/menuMove.ogg` | Kenney Vleugels | kenney.nl/assets/interface-sounds | CC0 |
+| menuSelect | `assets/sfx/menuSelect.ogg` | Kenney Vleugels | kenney.nl/assets/interface-sounds | CC0 |
+
+Atribuição exigida pela licença CC-BY 3.0 dos 4 tiros
+(pistol, shotgun, sniper, enemyShoot):
+"Gunshot Sounds by Vincent Sevedge —
+opengameart.org/content/gunshot-sounds — CC-BY 3.0".

@@ -1,8 +1,9 @@
 /**
  * src/systems/audio.ts
  *
- * SFX: arquivo real primeiro (`SFX_FILES` → `assets/sfx/*.ogg`, freesound
- * CC0/CC-BY), procedural como fallback quando o arquivo não existe — o
+ * SFX: arquivo real primeiro (`SFX_FILES` → `assets/sfx/*.ogg`,
+ * Kenney CC0 + OpenGameArt CC0/CC-BY), procedural como fallback
+ * quando o arquivo não existe — o
  * mesmo padrão de `sprites.ts`. A curadoria é incremental: com o diretório
  * vazio o jogo toca 100% procedural, sem silêncio e sem erro no console.
  *
@@ -166,8 +167,10 @@ interface SfxDef {
 /**
  * Uma chave por `sfxX()` abaixo. Arquivo ausente não é erro: o jogo
  * toca o procedural equivalente (fallback, mesmo padrão de sprites.ts).
+ * Exportado para o teste de existência (`sfxAssets.test.ts`) iterar
+ * as chaves sem duplicar a lista.
  */
-const SFX_FILES: Record<string, SfxDef> = {
+export const SFX_FILES: Record<string, SfxDef> = {
   pistol:      { file: 'assets/sfx/pistol.ogg',      vary: 0.06 },
   shotgun:     { file: 'assets/sfx/shotgun.ogg' },
   machinegun:  { file: 'assets/sfx/machinegun.ogg',  vary: 0.12 },
