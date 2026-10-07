@@ -8,6 +8,7 @@
 
 import { normalize } from '../utils';
 import { moveCircleBy, sampleFlowDir } from './tilemap';
+import { PALETTE } from '../core/palette';
 
 /** Nível de dificuldade do bot */
 export type BotDifficulty = 'easy' | 'medium' | 'hard';
@@ -105,7 +106,7 @@ export function createBot(difficulty: BotDifficulty, canvasWidth: number, canvas
   return {
     x, y, radius: 16, speed: config.speed,
     health: config.health, maxHealth: config.health,
-    damage: config.damage, color: difficulty === 'hard' ? '#e74c3c' : difficulty === 'medium' ? '#f39c12' : '#3498db',
+    damage: config.damage, color: difficulty === 'hard' ? PALETTE.danger : difficulty === 'medium' ? PALETTE.mustard : PALETTE.stone,
     angle: 0, shootTimer: 0, shootRate: config.shootRate,
     difficulty, moveTimer: 0, moveDirX: 0, moveDirY: 0,
     dodgeTimer: 0, isDodging: false,

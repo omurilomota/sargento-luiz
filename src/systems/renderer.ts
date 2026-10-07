@@ -897,7 +897,7 @@ export function drawPlayer(player: Player, weaponClass: 'pistol' | 'machine' | '
     else if (isSkillActive('fury')) bodyColor = PALETTE.terracotta;
     ctx.fillStyle = bodyColor;
     ctx.shadowColor = skin.borderColor;
-    ctx.shadowBlur = 15;
+    ctx.shadowBlur = 8;
     ctx.beginPath();
     ctx.arc(0, 0, player.radius, 0, Math.PI * 2);
     ctx.fill();

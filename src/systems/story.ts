@@ -3,6 +3,8 @@
  * Narração com diálogos, retratos de personagens e efeito de máquina de escrever.
  */
 
+import { PALETTE } from '../core/palette';
+
 /** Personagens da história */
 export type Character = 'narrador' | 'rios' | 'comandante' | 'cientista' | 'mensagem' | 'medico';
 
@@ -36,7 +38,7 @@ const PORTRAITS: Record<Character, { name: string; color: string; sprite: string
   comandante: { name: 'COMANDANTE VALE', color: '#b07050', sprite: 'soldier_hold' },
   cientista: { name: 'DRA. FERREIRA', color: '#608090', sprite: 'woman_hold' },
   mensagem: { name: 'MENSAGEM INTERCEPTADA', color: '#a08050', sprite: '' },
-  medico: { name: 'CABO FERNANDES', color: '#9b59b6', sprite: 'manBlue_hold' },
+  medico: { name: 'CABO FERNANDES', color: PALETTE.stone, sprite: 'manBlue_hold' },
 };
 
 /** Cutscenes do jogo */

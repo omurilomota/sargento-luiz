@@ -6,6 +6,7 @@
 
 import { getCurrentWeapon } from '../weapons';
 import { getPurchasedUpgrades } from '../ui/shop';
+import { PALETTE } from '../core/palette';
 
 /** Representa um combo ativo */
 export interface ActiveCombo {
@@ -36,7 +37,7 @@ const COMBO_DEFINITIONS: {
   {
     name: 'Atirador de Elite',
     description: 'Sniper + Crítico: +50% dano crítico',
-    color: '#3498db',
+    color: PALETTE.stone,
     damageBonus: 1.5,
     fireRateBonus: 1,
     healthBonus: 1,
@@ -45,7 +46,7 @@ const COMBO_DEFINITIONS: {
   {
     name: 'Tempestade de Aço',
     description: 'Metralhadora + Dano: +30% velocidade de tiro',
-    color: '#e74c3c',
+    color: PALETTE.danger,
     damageBonus: 1,
     fireRateBonus: 0.7,
     healthBonus: 1,
@@ -54,7 +55,7 @@ const COMBO_DEFINITIONS: {
   {
     name: 'Guardião',
     description: 'Escudo + Vida: +25% vida máxima',
-    color: '#2ecc71',
+    color: PALETTE.moss,
     damageBonus: 1,
     fireRateBonus: 1,
     healthBonus: 1.25,
@@ -63,7 +64,7 @@ const COMBO_DEFINITIONS: {
   {
     name: 'Devastador',
     description: 'RPG/Granada + Dano: +40% dano explosivo',
-    color: '#e67e22',
+    color: PALETTE.terracotta,
     damageBonus: 1.4,
     fireRateBonus: 1,
     healthBonus: 1,
@@ -72,7 +73,7 @@ const COMBO_DEFINITIONS: {
   {
     name: 'Raio Mortal',
     description: 'Raios + Pierce: +25% dano',
-    color: '#9b59b6',
+    color: PALETTE.stone,
     damageBonus: 1.25,
     fireRateBonus: 1,
     healthBonus: 1,
@@ -81,7 +82,7 @@ const COMBO_DEFINITIONS: {
   {
     name: 'Gélido',
     description: 'Gel + Velocidade: +20% dano',
-    color: '#3498db',
+    color: PALETTE.mustard,
     damageBonus: 1.2,
     fireRateBonus: 1,
     healthBonus: 1,
@@ -90,7 +91,7 @@ const COMBO_DEFINITIONS: {
   {
     name: 'Sobrevivente',
     description: 'Vida + Magnetismo: +30% vida máxima',
-    color: '#f39c12',
+    color: PALETTE.mustard,
     damageBonus: 1,
     fireRateBonus: 1,
     healthBonus: 1.3,
@@ -99,7 +100,7 @@ const COMBO_DEFINITIONS: {
   {
     name: 'Frenesi',
     description: 'Shotgun + Crítico: +35% dano',
-    color: '#f1c40f',
+    color: PALETTE.mustard,
     damageBonus: 1.35,
     fireRateBonus: 1,
     healthBonus: 1,

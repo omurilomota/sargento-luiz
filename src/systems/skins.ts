@@ -3,6 +3,8 @@
  * Permite comprar e equipar visuais diferentes para o personagem.
  */
 
+import { PALETTE } from '../core/palette';
+
 /** Define uma skin disponível */
 export interface Skin {
   /** Nome da skin */
@@ -25,16 +27,16 @@ export interface Skin {
 
 /** Lista de skins disponíveis */
 const skins: Skin[] = [
-  { name: 'Padrão', bodyColor: '#2ecc71', borderColor: '#27ae60', aimColor: '#fff', symbol: '', price: 0, unlocked: true, equipped: true },
-  { name: 'Fogo', bodyColor: '#e74c3c', borderColor: '#c0392b', aimColor: '#f39c12', symbol: '', price: 50, unlocked: false, equipped: false },
-  { name: 'Gelo', bodyColor: '#3498db', borderColor: '#2980b9', aimColor: '#ecf0f1', symbol: '', price: 50, unlocked: false, equipped: false },
-  { name: 'Sombra', bodyColor: '#2c3e50', borderColor: '#1a252f', aimColor: '#9b59b6', symbol: '', price: 80, unlocked: false, equipped: false },
-  { name: 'Dourado', bodyColor: '#f1c40f', borderColor: '#f39c12', aimColor: '#fff', symbol: '', price: 120, unlocked: false, equipped: false },
-  { name: 'Neon', bodyColor: '#1abc9c', borderColor: '#16a085', aimColor: '#2ecc71', symbol: '', price: 100, unlocked: false, equipped: false },
-  { name: 'Sangue', bodyColor: '#8e44ad', borderColor: '#6c3483', aimColor: '#e74c3c', symbol: '', price: 90, unlocked: false, equipped: false },
-  { name: 'Raio', bodyColor: '#f39c12', borderColor: '#e67e22', aimColor: '#f1c40f', symbol: '', price: 110, unlocked: false, equipped: false },
-  { name: 'Fantasma', bodyColor: 'rgba(255,255,255,0.4)', borderColor: 'rgba(255,255,255,0.6)', aimColor: '#fff', symbol: '', price: 200, unlocked: false, equipped: false },
-  { name: 'Robô', bodyColor: '#7f8c8d', borderColor: '#95a5a6', aimColor: '#3498db', symbol: '', price: 150, unlocked: false, equipped: false },
+  { name: 'Padrão', bodyColor: PALETTE.moss, borderColor: '#5a7a4a', aimColor: PALETTE.text, symbol: '', price: 0, unlocked: true, equipped: true },
+  { name: 'Fogo', bodyColor: PALETTE.danger, borderColor: '#6b3030', aimColor: PALETTE.terracotta, symbol: '', price: 50, unlocked: false, equipped: false },
+  { name: 'Gelo', bodyColor: PALETTE.stone, borderColor: '#4a6270', aimColor: '#ccc', symbol: '', price: 50, unlocked: false, equipped: false },
+  { name: 'Sombra', bodyColor: '#2a2a2c', borderColor: '#1a1a1c', aimColor: PALETTE.moss, symbol: '', price: 80, unlocked: false, equipped: false },
+  { name: 'Dourado', bodyColor: PALETTE.mustard, borderColor: '#8a6a4a', aimColor: PALETTE.text, symbol: '', price: 120, unlocked: false, equipped: false },
+  { name: 'Neon', bodyColor: '#5a7a4a', borderColor: '#4a5a3a', aimColor: PALETTE.moss, symbol: '', price: 100, unlocked: false, equipped: false },
+  { name: 'Sangue', bodyColor: PALETTE.danger, borderColor: '#5a3030', aimColor: PALETTE.terracotta, symbol: '', price: 90, unlocked: false, equipped: false },
+  { name: 'Raio', bodyColor: PALETTE.terracotta, borderColor: '#7a4a3a', aimColor: PALETTE.mustard, symbol: '', price: 110, unlocked: false, equipped: false },
+  { name: 'Fantasma', bodyColor: 'rgba(200,184,144,0.4)', borderColor: 'rgba(200,184,144,0.6)', aimColor: PALETTE.text, symbol: '', price: 200, unlocked: false, equipped: false },
+  { name: 'Robô', bodyColor: '#5a5a5a', borderColor: '#6a6a6a', aimColor: PALETTE.stone, symbol: '', price: 150, unlocked: false, equipped: false },
 ];
 
 /**

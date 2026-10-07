@@ -6,6 +6,7 @@
 import { Enemy } from '../types';
 import { dist } from '../utils';
 import { spawnParticles } from './particles';
+import { PALETTE } from '../core/palette';
 
 /** Lista de explosões ativas (para renderização) */
 const explosions: { x: number; y: number; radius: number; maxRadius: number; life: number }[] = [];
@@ -29,7 +30,7 @@ export function getExplosions(): typeof explosions {
  */
 export function createExplosion(
   x: number, y: number, radius: number, damage: number,
-  enemies: Enemy[], color = '#f39c12'
+  enemies: Enemy[], color: string = PALETTE.terracotta
 ): void {
   // Dano em área
   for (const e of enemies) {

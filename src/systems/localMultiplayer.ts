@@ -6,6 +6,7 @@
  */
 
 import { PLAYER_RADIUS, PLAYER_BASE_SPEED, PLAYER_BASE_HEALTH } from '../core/constants';
+import { PALETTE } from '../core/palette';
 
 /** Estado do segundo jogador */
 export interface LocalPlayer {
@@ -76,7 +77,7 @@ export function initLocalMultiplayer(canvasWidth: number, canvasHeight: number):
     angle: Math.PI,
     shootCooldown: 0,
     invincible: 0,
-    color: '#3498db',
+    color: PALETTE.stone,
     name: 'P2',
     alive: true,
   };
@@ -137,7 +138,7 @@ export function shootPlayer2(): { x: number; y: number; vx: number; vy: number; 
     vx: Math.cos(player2.angle) * speed,
     vy: Math.sin(player2.angle) * speed,
     damage: 12,
-    color: '#3498db',
+    color: PALETTE.stone,
     isEnemy: false,
   };
 }
