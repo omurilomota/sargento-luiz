@@ -478,6 +478,12 @@ export function sfxMenuSelect(): void {
   setTimeout(() => playTone(840, 0.07, 'square', 0.09), 55);
 }
 
+/** Coleta de peça (Faixa C §8): clique metálico + sino — distinto do coin/powerup. */
+export function sfxPiece(): void {
+  playBurst(0.04, 0.2, 'highpass', 3000, 1.4);
+  setTimeout(() => playTone(1180, 0.09, 'triangle', 0.12), 40);
+}
+
 // ─── Música de fundo (arquivos reais, crossfade) ────────────────
 
 let currentTrack: MusicTrack | null = null;

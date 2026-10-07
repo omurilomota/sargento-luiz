@@ -329,4 +329,8 @@ export const PIECE_TYPES: PieceType[] = [
   { id: 'cadencia', name: 'CADÊNCIA', desc: '-25% recarga', color: '#7a9a6a', damageMult: 1, reloadMult: 0.75, magazineMult: 1, spreadMult: 1 },
   { id: 'capacidade', name: 'CAPACIDADE', desc: '+50% pente', color: '#608090', damageMult: 1, reloadMult: 1, magazineMult: 1.5, spreadMult: 1 },
   { id: 'precisao', name: 'PRECISÃO', desc: '-40% dispersão', color: '#a08050', damageMult: 1, reloadMult: 1, magazineMult: 1, spreadMult: 0.6 },
+  // acessórios (Faixa C §8): mesma forma de PieceType, série própria para a sinergia
+  { id: 'otica', name: 'ÓTICA', desc: '+15% dano, -20% dispersão', color: '#8a8a9a', damageMult: 1.15, reloadMult: 1, magazineMult: 1, spreadMult: 0.8 },
+  { id: 'supressor', name: 'SUPRESSOR', desc: '-30% dispersão, -10% recarga', color: '#6a6a6a', damageMult: 1, reloadMult: 0.9, magazineMult: 1, spreadMult: 0.7 },
+  { id: 'carregador', name: 'CARREGADOR', desc: '+40% pente, -10% recarga', color: '#c8b890', damageMult: 1, reloadMult: 0.9, magazineMult: 1.4, spreadMult: 1 },
 ];

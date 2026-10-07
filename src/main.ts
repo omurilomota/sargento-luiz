@@ -12,7 +12,7 @@
  */
 
 import { normalize } from './utils';
-import { PHASES, ENEMY_TYPES, POWERUP_TYPES, WEAPONS } from './config';
+import { PHASES, ENEMY_TYPES, POWERUP_TYPES, WEAPONS, QUALITIES, PIECE_TYPES } from './config';
 import { PALETTE } from './core/palette';
 
 // Entities
@@ -58,13 +58,13 @@ import { drawShop, handleShopClick, setShopCoins, getShopCoins, addShopCoins, re
 import { shoot, getCurrentWeapon, resetWeapons, canShoot, startReload, updateReload, getCurrentAmmo, getIsReloading, getReloadTimer, setWeapon, getEffectiveShootRate, setWeaponQuality, getCurrentWeaponIndex, getWeaponQuality, isJammed } from './weapons';
 import { getCurrentPhase, getCurrentWave, getGameState, setGameState, nextWave, nextPhase, resetPhases, resetWave, addScore, addScoreFlat, getScore, getCombo, getComboDecay, updateCombo, resetCombo, getKillStreak, wasGameCompleted } from './phases';
 import { rollLootDrop, spawnBossLoot, updateLoot, getLoot, clearLoot, drawLoot, powerupLabel, ELITE_TYPES } from './systems/loot';
-import { addPieceToInventory } from './systems/pieces';
+import { addPieceToInventory, getPieceType } from './systems/pieces';
 import { powerups, spawnPowerUp, updatePowerUps, hasPowerUp, activePowerups } from './powerups';
 
 import {
   initAudio, sfxPistol, sfxShotgun, sfxMachinegun, sfxSniper, sfxLaser, sfxRPG, sfxRaios, sfxGel,
   sfxGranade, sfxMina, sfxExplosion, sfxBossDeath, sfxPlayerHit, sfxCoin, sfxPowerup, sfxWaveStart,
-  sfxGameOver, sfxEnemyShoot, sfxDash, sfxShield, sfxFury, sfxMenuMove, sfxMenuSelect, sfxError, sfxJammed,
+  sfxGameOver, sfxEnemyShoot, sfxDash, sfxShield, sfxFury, sfxMenuMove, sfxMenuSelect, sfxError, sfxJammed, sfxPiece,
   startMusic, playMusic, setMusicEnabled, setSfxEnabled, isMusicEnabled, isSfxEnabled, unlockAudio,
   getMasterVolume, getMusicVolume, getSfxVolume,
 } from './systems/audio';
@@ -81,10 +81,10 @@ import { resetAds } from './systems/ads';
 import { saveGame, loadGame, hasSave, markGameCompleted, isGameCompleted } from './systems/saveSystem';
 import { addLeaderboardEntry } from './systems/leaderboard';
 import { loadAchievements, checkAchievements, checkObjectiveAchievement, resetRunCounters } from './systems/achievements';
-import { loadDiary, unlockDiaryEntry } from './systems/diary';
+import { loadDiary, unlockDiaryEntry, unlockDiaryEvent } from './systems/diary';
 import { startTutorial, isTutorialActive, getCurrentHint, updateTutorial } from './systems/tutorial';
 import { updateBehavior, registerShot, registerHit, getPlayerTendency, resetBehavior } from './systems/dynamicDifficulty';
-import { spawnNPC, updateNPCs, getNPCs, resetNPCs } from './systems/npcs';
+import { spawnNPC, updateNPCs, getNPCs, resetNPCs, npcBark } from './systems/npcs';
 import { getBots, createBot, updateBots, removeDeadBots, resetBots, addBot, BotDifficulty } from './systems/bots';
 import { isEnabled as isLocalEnabled, initLocalMultiplayer, movePlayer2, shootPlayer2, getPlayer2, resetLocalMultiplayer, checkPlayer2EnemyCollision } from './systems/localMultiplayer';
 import { showCutscene, advanceCutscene, skipCutsceneText, isShowingCutscene, updateCutscene, resetStory } from './systems/story';
@@ -263,6 +263,7 @@ document.addEventListener('keydown', e => {
     const weaponIdx = owned[slot];
     if (weaponIdx !== undefined && WEAPONS[weaponIdx]) {
       setWeapon(weaponIdx);
+      announceWeapon(weaponIdx);
       sfxMenuSelect();
     }
   }
@@ -517,7 +518,10 @@ function startFromSave() {
   // arma equipada + inventário + upgrades precisam ser reatribuídos — antes o
   // continue caía em resetShop() e o jogador voltava só com a pistola
   restoreSavedWeapons(save.weapons);
-  if (save.weapons.length > 0) setWeapon(save.weaponIndex);
+  if (save.weapons.length > 0) {
+    setWeapon(save.weaponIndex);
+    announceWeapon(save.weaponIndex);
+  }
   restoreUpgrades(save.upgrades);
   setGameState('playing');
   loadAchievements();
@@ -692,6 +696,7 @@ function update(dt: number) {
     nextWave();
     if (!hard) player.healOnWaveComplete();
     sfxWaveStart();
+    npcBark();
     const waveAch = checkAchievements('wave', getCurrentWave());
     if (waveAch) pushToast(waveAch.name, 3);
     if (getGameState() === 'shop') enterShop();
@@ -743,6 +748,10 @@ function update(dt: number) {
     objectiveCounted.add(phase.objective);
     const objAch = checkObjectiveAchievement(phase.objective);
     if (objAch) pushToast(objAch.name, 3);
+    // sobrevivente escoltado até o fim → entrada reativa do diário
+    if (phase.objective === 'protect' && unlockDiaryEvent('npc_saved')) {
+      pushToast('NOVA ENTRADA NO DIÁRIO', 3);
+    }
   }
 
   // ── chefe da fase: campo vazio da última onda, e só depois do objetivo ──
@@ -1008,6 +1017,7 @@ function killEnemy(e: Enemy, award: boolean): void {
     clearBossState(e);
     const bossAch = checkAchievements('boss_kill');
     if (bossAch) pushToast(bossAch.name, 3);
+    if (unlockDiaryEvent('boss_kill')) pushToast('NOVA ENTRADA NO DIÁRIO', 3);
     spawnParticles(e.x, e.y, PALETTE.crit, 50, 400);
     triggerBossKillFlash();
     triggerScreenShake(18, 0.8);
@@ -1020,16 +1030,23 @@ function killEnemy(e: Enemy, award: boolean): void {
     pushPendingReveal(bossLoot.index, bossLoot.quality);
     damageNumbers.push({ x: e.x, y: e.y - 30, text: 'CAIXA ESPECIAL', color: PALETTE.mustard, life: 2, vy: -50 });
     // respiro pós-boss: arma o timer que segura a ida à loja (lido no update).
+    // Sem isso, matar o chefe completa a onda no mesmo frame e a loja abre
+    // antes da caixa ser vista.
     bossKillTimer = 2.5;
     void playMusic('combat');
   } else if (award) {
     rollLootDrop(e.x, e.y, e.type);
-    // elites têm 25% de chance de dropar peça de arma direto no inventário
+    // elites têm 25% de chance de dropar peça/acessório direto no inventário
     if (ELITE_TYPES.has(e.type) && Math.random() < 0.25) {
-      const pieceTypes = ['dano', 'cadencia', 'capacidade', 'precisao'];
-      const pieceType = pieceTypes[Math.floor(Math.random() * pieceTypes.length)];
-      addPieceToInventory(pieceType);
-      damageNumbers.push({ x: e.x, y: e.y - 30, text: 'PEÇA: ' + pieceType.toUpperCase(), color: PALETTE.mustard, life: 1.6, vy: -50 });
+      const dropPool = PIECE_TYPES.map(t => t.id);
+      const pieceType = dropPool[Math.floor(Math.random() * dropPool.length)];
+      const def = getPieceType(pieceType);
+      if (addPieceToInventory(pieceType)) {
+        sfxPiece();
+        damageNumbers.push({ x: e.x, y: e.y - 30, text: 'PEÇA: ' + (def?.name ?? pieceType.toUpperCase()), color: PALETTE.mustard, life: 1.6, vy: -50 });
+      } else {
+        damageNumbers.push({ x: e.x, y: e.y - 30, text: 'MOCHILA CHEIA', color: PALETTE.stone, life: 1.4, vy: -50 });
+      }
     }
     if (Math.random() < 0.08) spawnPowerUp(e.x, e.y);
   }
@@ -1086,6 +1103,18 @@ function pushToast(name: string, time: number): void {
   // empilha no máximo 3: mais que isso vira parede de texto no canto
   achievementNotifications.push({ name, time });
   while (achievementNotifications.length > 3) achievementNotifications.shift();
+}
+
+/**
+ * Anuncia a arma equipada: `ARMANDO: <NOME> · <QUALIDADE>` na cor da raridade.
+ * Antes trocar de arma era silencioso — o HUD só mostrava o nome no rodapé.
+ * Chamado nos 3 call sites (tecla 1-9, keepPendingReveal, resume do save).
+ */
+function announceWeapon(index: number): void {
+  const w = WEAPONS[index];
+  if (!w) return;
+  const q = QUALITIES[getWeaponQuality(index)] ?? QUALITIES.normal;
+  pushToast(`ARMANDO: ${w.name.toUpperCase()} · ${q.label.toUpperCase()}`, 2);
 }
 
 /** Entra na loja: salva, inventa NPC e troca a música. */

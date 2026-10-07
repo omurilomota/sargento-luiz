@@ -6,8 +6,10 @@
 
 /** Entrada do diário */
 interface DiaryEntry {
-  /** Fase em que foi desbloqueada */
+  /** Fase em que foi desbloqueada (-1 nas entradas reativas, que usam `event`) */
   phase: number;
+  /** Chave de evento para entradas reativas (morto de boss, NPC salvo, escolha na loja) */
+  event?: string;
   /** Título da entrada */
   title: string;
   /** Texto do diário */
@@ -66,6 +68,28 @@ const DIARY_ENTRIES: DiaryEntry[] = [
     text: 'Estou na órbita. Não sei como cheguei aqui. A estação Erebus é a última barreira. A Mãe-Nave me espera. Se eu destruí-la, a cura se espalha. Se eu falhar... bem, pelo menos tentei.',
     unlocked: false,
   },
+  // ── entradas reativas (desbloqueadas por evento, não por fase) ──
+  {
+    phase: -1,
+    event: 'boss_kill',
+    title: 'Sempre tem um maior',
+    text: 'Matei o que mandava aqui. Enquanto ele caía, percebi: era só o guarda-costas de algo pior. Cada chefe que cai é uma porta — e porta abre nos dois sentidos.',
+    unlocked: false,
+  },
+  {
+    phase: -1,
+    event: 'npc_saved',
+    title: 'Um a um',
+    text: 'Levei um sobrevivente até o fim da zona. Ele não disse obrigado, só respirou. É assim que se conta se ainda somos gente: um de cada vez.',
+    unlocked: false,
+  },
+  {
+    phase: -1,
+    event: 'shop_choice',
+    title: 'Troca justa',
+    text: 'Comprei o que precisava e joguei fora o que não servia mais. Neste mundo a escolha é a única moeda que não enferruja.',
+    unlocked: false,
+  },
 ];
 
 const STORAGE_KEY = 'bubbleShooter_diary';
@@ -77,9 +101,9 @@ export function loadDiary(): void {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      const saved = JSON.parse(raw) as number[];
+      const saved = JSON.parse(raw) as (number | string)[];
       for (const entry of DIARY_ENTRIES) {
-        entry.unlocked = saved.includes(entry.phase);
+        entry.unlocked = entry.event ? saved.includes(entry.event) : saved.includes(entry.phase);
       }
     }
   } catch {}
@@ -87,10 +111,13 @@ export function loadDiary(): void {
 
 /**
  * Salva entradas do diário no localStorage.
+ * Fase vira número, evento vira a chave string — formato misto no mesmo array.
  */
 function saveDiary(): void {
   try {
-    const unlocked = DIARY_ENTRIES.filter(e => e.unlocked).map(e => e.phase);
+    const unlocked: (number | string)[] = DIARY_ENTRIES
+      .filter(e => e.unlocked)
+      .map(e => e.event ?? e.phase);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(unlocked));
   } catch {}
 }
@@ -100,11 +127,23 @@ function saveDiary(): void {
  * @param phase - número da fase completada
  */
 export function unlockDiaryEntry(phase: number): void {
-  const entry = DIARY_ENTRIES.find(e => e.phase === phase);
+  const entry = DIARY_ENTRIES.find(e => e.event === undefined && e.phase === phase);
   if (entry && !entry.unlocked) {
     entry.unlocked = true;
     saveDiary();
   }
+}
+
+/**
+ * Desbloqueia uma entrada reativa (boss morto, NPC salvo, escolha na loja).
+ * @returns true se uma entrada nova foi desbloqueada (para o caller dar feedback)
+ */
+export function unlockDiaryEvent(event: string): boolean {
+  const entry = DIARY_ENTRIES.find(e => e.event === event);
+  if (!entry || entry.unlocked) return false;
+  entry.unlocked = true;
+  saveDiary();
+  return true;
 }
 
 /**

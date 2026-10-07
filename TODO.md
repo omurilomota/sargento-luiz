@@ -190,8 +190,14 @@
 
 // --- AUDIO ---
 // [x] 4 faixas OGG reais com crossfade no lugar do piano procedural
+// [x] 29 SFX reais em assets/sfx/ (campanha CC0: Kenney + OpenGameArt; tiros CC-BY 3.0 Vincent Sevedge)
 // [x] Som distinto por habilidade (dash, escudo, fúria)
 // [x] Toggle de música/SFX no pause, com persistência
+
+// --- VISUAL / PALETA ---
+// [x] Cores Flat UI saturadas removidas de combos, bots, multiplayer, explosões, story e skins (22 locais)
+// [x] Skins reescritas como tons temáticos desaturados (Fogo/Gelo/Neon/Sangue/Robô em terracota/musgo/stone)
+// [x] shadowBlur do body do jogador 15 -> 8 (uniforme com o título)
 
 // --- ASSETS ---
 // [x] assets/ movido para public/ (build de produção não copiava sprite nenhum)

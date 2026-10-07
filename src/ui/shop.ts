@@ -11,7 +11,7 @@ import { WEAPONS, UPGRADES, QUALITIES, POWERUP_TYPES, rollQuality, WEAPON_DESC, 
 import { isGameCompleted } from '../systems/saveSystem';
 import { setWeapon, addDamageMultiplier, addPierce, addCrit, addReloadSpeed, getCurrentWeapon, getCurrentWeaponIndex, setWeaponQuality, rerollWeaponQuality, getWeaponQuality, repairCurrentWeapon } from '../weapons';
 import { addMaxHealth, addSpeed, addShield, enableRegen, addArmor } from '../entities/player';
-import { getUnlockedDiary } from '../systems/diary';
+import { getUnlockedDiary, unlockDiaryEvent } from '../systems/diary';
 import { enablePermanentMagnet } from '../entities/coin';
 import { getAllSkins, buySkin, equipSkin, Skin } from '../systems/skins';
 import { canWatchAd, startWatchingAd, getIsWatchingAd, getAdProgress, getAdCooldown, getNextAdReward, getAdsWatched, updateAd } from '../systems/ads';
@@ -19,7 +19,7 @@ import { getGameState, getCurrentPhase } from '../phases';
 import { sfxBuy, sfxError } from '../systems/audio';
 import { PALETTE } from '../core/palette';
 import { getSprite } from '../systems/sprites';
-import { getInventory, getEquipped, equipPiece, unequipPiece, getPieceType } from '../systems/pieces';
+import { getInventory, getEquipped, equipPiece, unequipPiece, getPieceType, hasPieceSynergy, PIECE_INVENTORY_LIMIT } from '../systems/pieces';
 
 /** Saldo atual de moedas do jogador */
 let shopCoins = 0;
@@ -80,9 +80,23 @@ export function keepPendingReveal(i: number): boolean {
   addPurchasedWeapon(r.index);
   setWeapon(r.index);
   pendingReveals.splice(i, 1);
-  flashNotice('ADICIONADA AO ARSENAL', PALETTE.moss);
+  // escolha sobre a caixa (manter/vender) → entrada reativa do diário
+  unlockDiaryEvent('shop_choice');
+  weaponToast(r.index, r.quality);
   sfxBuy();
   return true;
+}
+
+/**
+ * Toast de arma para a loja: `keepPendingReveal`/`buyStockWeapon` moram na
+ * loja e não enxergam o pushToast do orquestrador. A loja anuncia pelo
+ * flashNotice com a cor da raridade — mesmo texto do announceWeapon.
+ */
+export function weaponToast(index: number, quality: string): void {
+  const w = WEAPONS[index];
+  if (!w) return;
+  const q = QUALITIES[quality] ?? QUALITIES.normal;
+  flashNotice(`ARMANDO: ${w.name.toUpperCase()} · ${q.label.toUpperCase()}`, q.color);
 }
 
 export function sellPendingReveal(i: number): void {
@@ -92,6 +106,7 @@ export function sellPendingReveal(i: number): void {
   const price = Math.round(WEAPONS[r.index].price * 0.5 * q.sellMult);
   shopCoins += price;
   pendingReveals.splice(i, 1);
+  unlockDiaryEvent('shop_choice');
   flashNotice(`VENDIDA POR ${price}`, PALETTE.mustard);
   sfxBuy();
 }
@@ -167,7 +182,7 @@ export function buyStockWeapon(i: number): boolean {
   setWeaponQuality(s.index, s.quality);
   addPurchasedWeapon(s.index);
   setWeapon(s.index);
-  flashNotice(`${WEAPONS[s.index].name.toUpperCase()} · ${QUALITIES[s.quality].label.toUpperCase()}`, QUALITIES[s.quality].color);
+  weaponToast(s.index, s.quality);
   sfxBuy();
   return true;
 }
@@ -827,7 +842,8 @@ export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: n
     const wIdx = getCurrentWeaponIndex();
     const equippedPieces = getEquipped(wIdx);
     const wName = WEAPONS[wIdx]?.name ?? '—';
-    sectionLabel(ctx, `PEÇAS · ${wName.toUpperCase()}`, L.equippedPieces[0].x, L.sections.equippedPieces, PALETTE.stone);
+    const syn = hasPieceSynergy(wIdx) ? ' · SINERGIA +10%' : '';
+    sectionLabel(ctx, `PEÇAS · ${wName.toUpperCase()}${syn}`, L.equippedPieces[0].x, L.sections.equippedPieces, hasPieceSynergy(wIdx) ? PALETTE.moss : PALETTE.stone);
     L.equippedPieces.forEach((r, i) => {
       const piece = equippedPieces[i];
       const hover = hit(r, mouseX, scrollY);
@@ -864,7 +880,7 @@ export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: n
 
   // ── PEÇAS NA MOCHILA ──
   if (L.pieces.length > 0) {
-    sectionLabel(ctx, 'PEÇAS NA MOCHILA', L.pieces[0].x, L.sections.pieces, PALETTE.stone);
+    sectionLabel(ctx, `PEÇAS NA MOCHILA (${L.pieces.length}/${PIECE_INVENTORY_LIMIT})`, L.pieces[0].x, L.sections.pieces, PALETTE.stone);
     const inv = getInventory();
     L.pieces.forEach((r, i) => {
       const piece = inv[i];

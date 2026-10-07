@@ -37,6 +37,32 @@ const NPC_DEFS = [
   { name: 'Civil', color: '#a08050', health: 15, radius: 12, speed: 50, message: 'Me ajuda!' },
 ];
 
+/** Falas curtas soltas entre ondas — o NPC não é decoração muda. */
+const NPC_BARKS = [
+  'Ouviu isso também?',
+  'Não gosto desse silêncio.',
+  'Recarrega, eu seguro.',
+  'Fica perto de mim.',
+  'Aquele barulho vem do subsolo.',
+  'Já faz dias que não durmo.',
+  'Se cair, eu não te levanto. Não!',
+  'Aquele último quase me pegou.',
+  'Ainda tem mais vindo.',
+  'Cheiro de fumaça... de novo.',
+];
+
+/**
+ * Sorteia uma fala para um NPC vivo. Chamado no fim de cada onda.
+ * Se não há NPC vivo, não faz nada (a fala é detalhe, não sistema).
+ */
+export function npcBark(): void {
+  const alive = npcs.filter(n => n.alive);
+  if (alive.length === 0) return;
+  const npc = alive[Math.floor(Math.random() * alive.length)];
+  npc.message = NPC_BARKS[Math.floor(Math.random() * NPC_BARKS.length)];
+  npc.messageTimer = 3;
+}
+
 export function spawnNPC(x: number, y: number, defIndex: number): void {
   const def = NPC_DEFS[defIndex % NPC_DEFS.length];
   npcs.push({
