@@ -24,6 +24,10 @@ import { getLeaderboard } from './leaderboard';
 import { PALETTE } from '../core/palette';
 import { GAME_MODES } from './gameModes';
 import { CLASSES, ClassId } from './classes';
+import {
+  getMasterVolume, getMusicVolume, getSfxVolume,
+  setMasterVolume, setMusicVolume, setSfxVolume,
+} from './audio';
 
 /** Contexto 2D do canvas */
 let ctx: CanvasRenderingContext2D;
@@ -52,13 +56,20 @@ export interface MenuItemLayout {
  * @param w - largura do canvas
  * @param h - altura do canvas
  */
-export function getMenuLayout(w: number, h: number): { titleY: number; items: MenuItemLayout[]; classItems: MenuItemLayout[] } {
+export function getMenuLayout(w: number, h: number): { titleY: number; items: MenuItemLayout[]; classItems: MenuItemLayout[]; settingsRow: MenuItemLayout | null } {
   const startY = h * 0.3;
   const spacing = Math.min(46, (h * 0.5) / GAME_MODES.length);
   const boxW = Math.min(340, w * 0.7);
   const boxH = Math.min(32, spacing - 6);
   const classStartY = startY + GAME_MODES.length * spacing + 30;
   const classSpacing = Math.min(36, (h * 0.3) / 4);
+  // row de configurações: só quando cabe acima do rodapé (h*0.88).
+  // Em 800x480 não cabe — a tecla O continua funcionando.
+  const settingsY = classStartY + 4 * classSpacing + 22;
+  const settingsRow: MenuItemLayout | null =
+    settingsY + (classSpacing - 4) <= h * 0.88
+      ? { x: w / 2 - boxW / 2, y: settingsY, w: boxW, h: classSpacing - 4 }
+      : null;
   return {
     titleY: h * 0.12,
     items: GAME_MODES.map((_, i) => ({
@@ -73,12 +84,14 @@ export function getMenuLayout(w: number, h: number): { titleY: number; items: Me
       w: boxW,
       h: classSpacing - 4,
     })),
+    settingsRow,
   };
 }
 
 /**
  * Retorna o índice do modo sob o clique, ou -1.
- * Também verifica seleção de classe (retorna 100 + índice da classe).
+ * Também verifica seleção de classe (retorna 100 + índice da classe)
+ * e a row de configurações (retorna 200).
  */
 export function menuIndexAt(x: number, y: number, w: number, h: number): number {
   const L = getMenuLayout(w, h);
@@ -89,6 +102,10 @@ export function menuIndexAt(x: number, y: number, w: number, h: number): number 
   for (let i = 0; i < L.classItems.length; i++) {
     const r = L.classItems[i];
     if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) return 100 + i;
+  }
+  if (L.settingsRow) {
+    const r = L.settingsRow;
+    if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) return 200;
   }
   return -1;
 }
@@ -279,11 +296,32 @@ export function drawMenu(selectedMode: string = 'campaign', selectedClass: Class
     ctx.textAlign = 'center';
   });
 
+  // ── CONFIGURAÇÕES (row, quando cabe na tela) ──
+  if (L.settingsRow) {
+    const r = L.settingsRow;
+    const isHovered = hoveredMode === 200;
+
+    ctx.fillStyle = isHovered ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.02)';
+    ctx.beginPath();
+    ctx.roundRect(r.x, r.y, r.w, r.h, 3);
+    ctx.fill();
+
+    ctx.strokeStyle = isHovered ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.06)';
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+
+    const midY = r.y + r.h / 2 + 4;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = isHovered ? PALETTE.text : PALETTE.textDim;
+    ctx.font = '12px monospace';
+    ctx.fillText('CONFIGURAÇÕES (O)', W / 2, midY);
+  }
+
   ctx.fillStyle = PALETTE.textOff;
   ctx.font = '10px monospace';
   ctx.fillText('WASD: Mover | Mouse: Mirar | Click: Atirar', W / 2, H * 0.88);
   ctx.fillText('Espaco: Dash | F: Escudo | E: Furia | R: Recarregar', W / 2, H * 0.88 + 14);
-  ctx.fillText('M: Musica | S: Efeitos', W / 2, H * 0.88 + 28);
+  ctx.fillText('M: Musica | S: Efeitos | O: Configurações', W / 2, H * 0.88 + 28);
   ctx.fillText('V: Créditos', W / 2, H * 0.88 + 42);
 
   if (hasSave()) {
@@ -983,6 +1021,7 @@ export const PAUSE_OPTIONS = [
   { id: 'resume', label: 'CONTINUAR' },
   { id: 'music', label: 'MÚSICA' },
   { id: 'sfx', label: 'EFEITOS' },
+  { id: 'config', label: 'CONFIGURAÇÕES' },
   { id: 'menu', label: 'VOLTAR AO MENU' },
 ] as const;
 
@@ -1068,6 +1107,246 @@ export function drawPause(musicOn: boolean, sfxOn: boolean): void {
   ctx.textAlign = 'center';
   ctx.fillText('W/S escolher · ENTER confirmar · ESC continuar', W / 2, y + boxH - 14);
   ctx.textAlign = 'left';
+}
+
+// ─── Configurações (volume + música) ──────────────────────
+
+/** Identificador das linhas do painel de configurações. */
+export type SettingsRowId = 'master' | 'music' | 'sfx' | 'musicOn' | 'sfxOn';
+
+/** Linhas do painel: 3 volumes + 2 toggles. */
+export const SETTINGS_ROWS: { id: SettingsRowId; label: string; kind: 'volume' | 'toggle' }[] = [
+  { id: 'master', label: 'VOLUME GERAL', kind: 'volume' },
+  { id: 'music', label: 'VOLUME MÚSICA', kind: 'volume' },
+  { id: 'sfx', label: 'VOLUME EFEITOS', kind: 'volume' },
+  { id: 'musicOn', label: 'MÚSICA', kind: 'toggle' },
+  { id: 'sfxOn', label: 'EFEITOS', kind: 'toggle' },
+];
+
+/** Overlay (flag), sem novo estado de jogo: o estado subjacente
+ * (`menu`/`paused`) é preservado e ESC só limpa a flag. */
+let settingsOpen = false;
+let settingsIndex = 0;
+
+export function isSettingsOpen(): boolean { return settingsOpen; }
+export function openSettings(): void {
+  settingsOpen = true;
+  settingsIndex = 0;
+}
+export function closeSettings(): void { settingsOpen = false; }
+export function getSettingsIndex(): number { return settingsIndex; }
+export function moveSettings(delta: number): void {
+  settingsIndex = (settingsIndex + delta + SETTINGS_ROWS.length) % SETTINGS_ROWS.length;
+}
+export function setSettingsIndex(i: number): void {
+  if (i >= 0 && i < SETTINGS_ROWS.length) settingsIndex = i;
+}
+
+export interface SettingsRowLayout extends MenuItemLayout {
+  id: SettingsRowId;
+  kind: 'volume' | 'toggle';
+  /** Botões [-]/[+] das linhas de volume (null nas de toggle). */
+  minus: MenuItemLayout | null;
+  plus: MenuItemLayout | null;
+}
+
+export interface SettingsLayout {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  rows: SettingsRowLayout[];
+}
+
+const SETTINGS_BOX_W = 360;
+const SETTINGS_ROW_H = 44;
+const SETTINGS_BTN = 30;
+
+/**
+ * Geometria única do painel: draw e hit-test consomem a MESMA função.
+ * @param W - largura do canvas
+ * @param H - altura do canvas
+ */
+export function getSettingsLayout(W: number, H: number): SettingsLayout {
+  const boxW = Math.min(SETTINGS_BOX_W, W * 0.9);
+  const boxH = 70 + SETTINGS_ROWS.length * SETTINGS_ROW_H + 30;
+  const x = W / 2 - boxW / 2;
+  const y = H / 2 - boxH / 2;
+  const rows: SettingsRowLayout[] = SETTINGS_ROWS.map((row, i) => {
+    const ry = y + 70 + i * SETTINGS_ROW_H;
+    const r: SettingsRowLayout = {
+      id: row.id,
+      kind: row.kind,
+      x: x + 10,
+      y: ry - 18,
+      w: boxW - 20,
+      h: SETTINGS_ROW_H - 8,
+      minus: null,
+      plus: null,
+    };
+    if (row.kind === 'volume') {
+      r.plus = { x: x + boxW - 12 - SETTINGS_BTN, y: ry - 14, w: SETTINGS_BTN, h: 28 };
+      r.minus = { x: r.plus.x - 8 - SETTINGS_BTN, y: ry - 14, w: SETTINGS_BTN, h: 28 };
+    }
+    return r;
+  });
+  return { x, y, w: boxW, h: boxH, rows };
+}
+
+/** Linha do painel sob o mouse, ou -1. */
+export function settingsRowAt(mx: number, my: number, W: number, H: number): number {
+  const L = getSettingsLayout(W, H);
+  for (let i = 0; i < L.rows.length; i++) {
+    const r = L.rows[i];
+    if (mx >= r.x && mx <= r.x + r.w && my >= r.y && my <= r.y + r.h) return i;
+  }
+  return -1;
+}
+
+/** Botão [-]/[+] sob o mouse, ou null. */
+export function settingsButtonAt(mx: number, my: number, W: number, H: number): { row: number; dir: -1 | 1 } | null {
+  const L = getSettingsLayout(W, H);
+  for (let i = 0; i < L.rows.length; i++) {
+    const r = L.rows[i];
+    if (r.minus && mx >= r.minus.x && mx <= r.minus.x + r.minus.w && my >= r.minus.y && my <= r.minus.y + r.minus.h) {
+      return { row: i, dir: -1 };
+    }
+    if (r.plus && mx >= r.plus.x && mx <= r.plus.x + r.plus.w && my >= r.plus.y && my <= r.plus.y + r.plus.h) {
+      return { row: i, dir: 1 };
+    }
+  }
+  return null;
+}
+
+/** Passo de ajuste de volume (A/D, roda do mouse e botões [-]/[+]). */
+const VOLUME_STEP = 0.05;
+
+/** Ajusta o volume da linha em um passo, com clamp e persistência. */
+export function adjustSettingsVolume(row: number, dir: -1 | 1): void {
+  const id = SETTINGS_ROWS[row].id;
+  if (id === 'master') setMasterVolume(getMasterVolume() + dir * VOLUME_STEP);
+  else if (id === 'music') setMusicVolume(getMusicVolume() + dir * VOLUME_STEP);
+  else if (id === 'sfx') setSfxVolume(getSfxVolume() + dir * VOLUME_STEP);
+}
+
+function drawSettingsButton(r: MenuItemLayout, label: string, rowHovered: boolean): void {
+  const hovered = rowHovered
+    && uiMouse.x >= r.x && uiMouse.x <= r.x + r.w
+    && uiMouse.y >= r.y && uiMouse.y <= r.y + r.h;
+  ctx.fillStyle = hovered ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.05)';
+  ctx.beginPath();
+  ctx.roundRect(r.x, r.y, r.w, r.h, 3);
+  ctx.fill();
+  ctx.strokeStyle = hovered ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.1)';
+  ctx.lineWidth = 0.5;
+  ctx.stroke();
+  ctx.fillStyle = hovered ? PALETTE.text : PALETTE.textDim;
+  ctx.font = 'bold 13px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText(label, r.x + r.w / 2, r.y + r.h / 2 + 4);
+  ctx.textAlign = 'left';
+}
+
+/**
+ * Desenha o painel de configurações (overlay centralizado).
+ * @param master - volume geral (0–1)
+ * @param music - volume da música (0–1)
+ * @param sfx - volume dos efeitos (0–1)
+ * @param musicOn - música ligada
+ * @param sfxOn - efeitos ligados
+ */
+export function drawSettings(master: number, music: number, sfx: number, musicOn: boolean, sfxOn: boolean): void {
+  const W = canvas.width;
+  const H = canvas.height;
+  const L = getSettingsLayout(W, H);
+
+  ctx.fillStyle = 'rgba(0,0,0,0.65)';
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.fillStyle = PALETTE.panel;
+  ctx.fillRect(L.x, L.y, L.w, L.h);
+  ctx.strokeStyle = PALETTE.panelEdge;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(L.x + 0.5, L.y + 0.5, L.w - 1, L.h - 1);
+
+  ctx.fillStyle = PALETTE.title;
+  ctx.font = 'bold 22px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('CONFIGURAÇÕES', W / 2, L.y + 40);
+
+  const hoveredRow = settingsRowAt(uiMouse.x, uiMouse.y, W, H);
+  const volumeOf = (id: SettingsRowId): number =>
+    id === 'master' ? master : id === 'music' ? music : sfx;
+  const toggleOf = (id: SettingsRowId): boolean =>
+    id === 'musicOn' ? musicOn : sfxOn;
+
+  SETTINGS_ROWS.forEach((row, i) => {
+    const r = L.rows[i];
+    const hovered = hoveredRow === i;
+    const selected = i === settingsIndex || hovered;
+
+    if (hovered) {
+      ctx.fillStyle = 'rgba(255,255,255,0.05)';
+      ctx.fillRect(r.x, r.y, r.w, r.h);
+    }
+
+    const midY = r.y + r.h / 2 + 4;
+    ctx.textAlign = 'left';
+    ctx.fillStyle = selected ? PALETTE.moss : PALETTE.textDim;
+    ctx.font = selected ? 'bold 13px monospace' : '13px monospace';
+    if (selected) ctx.fillText('>', r.x + 4, midY);
+    ctx.fillText(row.label, r.x + 20, midY);
+
+    if (row.kind === 'volume' && r.minus && r.plus) {
+      const v = volumeOf(row.id);
+      const barX = r.x + 130;
+      const barW = 100;
+      const barH = 10;
+      const barY = r.y + r.h / 2 - barH / 2;
+      ctx.fillStyle = 'rgba(255,255,255,0.08)';
+      ctx.fillRect(barX, barY, barW, barH);
+      ctx.fillStyle = PALETTE.moss;
+      ctx.fillRect(barX, barY, barW * v, barH);
+
+      ctx.fillStyle = PALETTE.text;
+      ctx.font = '11px monospace';
+      ctx.textAlign = 'right';
+      ctx.fillText(`${Math.round(v * 100)}%`, r.minus.x - 8, midY);
+
+      drawSettingsButton(r.minus, '-', hovered);
+      drawSettingsButton(r.plus, '+', hovered);
+    } else {
+      const on = toggleOf(row.id);
+      ctx.fillStyle = on ? PALETTE.moss : PALETTE.textOff;
+      ctx.font = 'bold 12px monospace';
+      ctx.textAlign = 'right';
+      ctx.fillText(
+        on ? (row.id === 'musicOn' ? 'LIGADA' : 'LIGADOS') : (row.id === 'musicOn' ? 'DESLIGADA' : 'DESLIGADOS'),
+        r.x + r.w, midY,
+      );
+    }
+  });
+
+  ctx.fillStyle = PALETTE.textOff;
+  ctx.font = '10px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('W/S escolher · A/D ajustar · ENTER alternar · ESC voltar', W / 2, L.y + L.h - 14);
+  ctx.textAlign = 'left';
+}
+
+function onSettingsWheel(e: WheelEvent): void {
+  if (!isSettingsOpen()) return;
+  const row = settingsRowAt(uiMouse.x, uiMouse.y, canvas.width, canvas.height);
+  if (row < 0 || SETTINGS_ROWS[row].kind !== 'volume') return;
+  adjustSettingsVolume(row, e.deltaY > 0 ? -1 : 1);
+}
+
+/**
+ * Registra o scroll do painel. Chamado pelo `main.ts` (e não no topo
+ * do módulo) para o estado UI continuar testável fora do navegador.
+ */
+export function attachSettingsWheelListener(): void {
+  document.addEventListener('wheel', onSettingsWheel);
 }
 
 /** Restaura o estado do canvas após a translação do mundo. */

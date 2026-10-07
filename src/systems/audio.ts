@@ -35,20 +35,41 @@ const TRACKS: Record<MusicTrack, TrackDef> = {
 
 const CROSSFADE = 0.8;
 
+/**
+ * Tenta desbloquear um contexto suspenso. Firefox/Chrome suspendem o
+ * AudioContext por política de autoplay (e ao ocultar a aba); só é
+ * possível retomar DENTRO de um gesto do usuário — por isso isto
+ * deve ser chamado no topo dos handlers de teclado/mouse, em
+ * QUALQUER estado do jogo.
+ */
+export function unlockAudio(): void {
+  if (ctx && ctx.state === 'suspended') void ctx.resume();
+}
+
 /** Inicializa o sistema de áudio (deve ser chamado após interação do usuário) */
 export function initAudio(): void {
-  if (ctx) return;
+  if (ctx) {
+    // contexto já existe: se estiver suspenso (política de autoplay,
+    // aba em segundo plano ou código antigo), desbloqueia no gesto atual
+    if (ctx.state === 'suspended') void ctx.resume();
+    return;
+  }
   ctx = new AudioContext();
+  // política de autoplay: o contexto nasce suspenso e fica silencioso
+  // sem erro — resume() o desbloqueia (chamado após interação do usuário)
+  void ctx.resume();
   masterGain = ctx.createGain();
-  masterGain.gain.value = 0.3;
+  masterGain.gain.value = masterVolume;
   masterGain.connect(ctx.destination);
 
   musicGain = ctx.createGain();
-  musicGain.gain.value = 0.28;
+  // respeita o toggle persistido: antes o ganho nascia não-zero
+  // mesmo com a música desligada na pref
+  musicGain.gain.value = musicEnabled ? musicVolume : 0;
   musicGain.connect(masterGain);
 
   sfxGain = ctx.createGain();
-  sfxGain.gain.value = 0.72;
+  sfxGain.gain.value = sfxEnabled ? sfxVolume : 0;
   sfxGain.connect(masterGain);
 
   preloadSfx();
@@ -468,9 +489,21 @@ const loading = new Set<MusicTrack>();
 /** Chave de persistência das preferências de áudio */
 const MUSIC_KEY = 'bubble.musicOn';
 const SFX_KEY = 'bubble.sfxOn';
+const VOL_MASTER_KEY = 'bubble.volMaster';
+const VOL_MUSIC_KEY = 'bubble.volMusic';
+const VOL_SFX_KEY = 'bubble.volSfx';
 
 let musicEnabled = readPref(MUSIC_KEY, true);
 let sfxEnabled = readPref(SFX_KEY, true);
+
+/**
+ * Volumes persistidos. Os defaults são os ganhos hardcoded antigos
+ * (0.3/0.28/0.72) para não alterar o balanço de som de quem já
+ * jogava: o som só muda quando o usuário ajusta.
+ */
+let masterVolume = readPrefNum(VOL_MASTER_KEY, 0.3);
+let musicVolume = readPrefNum(VOL_MUSIC_KEY, 0.28);
+let sfxVolume = readPrefNum(VOL_SFX_KEY, 0.72);
 
 function readPref(key: string, fallback: boolean): boolean {
   try {
@@ -489,12 +522,29 @@ function writePref(key: string, value: boolean) {
   }
 }
 
+function readPrefNum(key: string, fallback: number): number {
+  try {
+    const v = parseFloat(localStorage.getItem(key) ?? '');
+    return Number.isNaN(v) ? fallback : v;
+  } catch {
+    return fallback;
+  }
+}
+
+function writePrefNum(key: string, value: number): void {
+  try {
+    localStorage.setItem(key, String(value));
+  } catch {
+    /* localStorage indisponível (modo privado): segue sem persistir */
+  }
+}
+
 /** Liga ou desliga a música, persistindo a escolha. */
 export function setMusicEnabled(on: boolean): void {
   musicEnabled = on;
   writePref(MUSIC_KEY, on);
   if (!musicGain) return;
-  musicGain.gain.value = on ? 0.28 : 0;
+  musicGain.gain.value = on ? musicVolume : 0;
   if (!on) stopMusic();
   else if (currentTrack) void playMusic(currentTrack);
 }
@@ -503,7 +553,7 @@ export function setMusicEnabled(on: boolean): void {
 export function setSfxEnabled(on: boolean): void {
   sfxEnabled = on;
   writePref(SFX_KEY, on);
-  if (sfxGain) sfxGain.gain.value = on ? 0.72 : 0;
+  if (sfxGain) sfxGain.gain.value = on ? sfxVolume : 0;
 }
 
 export function isMusicEnabled(): boolean { return musicEnabled; }
@@ -600,14 +650,28 @@ export function stopMusic(): void {
   currentTrack = null;
 }
 
+export function getMasterVolume(): number { return masterVolume; }
+export function getMusicVolume(): number { return musicVolume; }
+export function getSfxVolume(): number { return sfxVolume; }
+
+function clampVolume(v: number): number {
+  return Math.max(0, Math.min(1, v));
+}
+
 export function setMasterVolume(vol: number): void {
-  if (masterGain) masterGain.gain.value = Math.max(0, Math.min(1, vol));
+  masterVolume = clampVolume(vol);
+  writePrefNum(VOL_MASTER_KEY, masterVolume);
+  if (masterGain) masterGain.gain.value = masterVolume;
 }
 
 export function setSfxVolume(vol: number): void {
-  if (sfxGain) sfxGain.gain.value = Math.max(0, Math.min(1, vol));
+  sfxVolume = clampVolume(vol);
+  writePrefNum(VOL_SFX_KEY, sfxVolume);
+  if (sfxGain) sfxGain.gain.value = sfxEnabled ? sfxVolume : 0;
 }
 
 export function setMusicVolume(vol: number): void {
-  if (musicGain) musicGain.gain.value = Math.max(0, Math.min(1, vol));
+  musicVolume = clampVolume(vol);
+  writePrefNum(VOL_MUSIC_KEY, musicVolume);
+  if (musicGain) musicGain.gain.value = musicEnabled ? musicVolume : 0;
 }

@@ -46,6 +46,8 @@ import {
   drawPowerUps as renderPowerUps, drawParticles as renderParticles, drawBullets as renderBullets,
   drawEnemies as renderEnemies, drawPlayer as renderPlayer, drawDamageNumbers, drawPhaseTransition,
   restoreCanvas, drawNPCs, drawBots, drawPause, menuIndexAt, getPauseIndex, movePause, PAUSE_OPTIONS, setPauseIndex, pauseOptionAt, setUiMouse,
+  drawSettings, settingsRowAt, settingsButtonAt, isSettingsOpen, openSettings, closeSettings,
+  moveSettings, setSettingsIndex, getSettingsIndex, attachSettingsWheelListener, adjustSettingsVolume, SETTINGS_ROWS,
 } from './systems/renderer';
 
 // UI
@@ -63,7 +65,8 @@ import {
   initAudio, sfxPistol, sfxShotgun, sfxMachinegun, sfxSniper, sfxLaser, sfxRPG, sfxRaios, sfxGel,
   sfxGranade, sfxMina, sfxExplosion, sfxBossDeath, sfxPlayerHit, sfxCoin, sfxPowerup, sfxWaveStart,
   sfxGameOver, sfxEnemyShoot, sfxDash, sfxShield, sfxFury, sfxMenuMove, sfxMenuSelect, sfxError, sfxJammed,
-  startMusic, playMusic, setMusicEnabled, setSfxEnabled, isMusicEnabled, isSfxEnabled,
+  startMusic, playMusic, setMusicEnabled, setSfxEnabled, isMusicEnabled, isSfxEnabled, unlockAudio,
+  getMasterVolume, getMusicVolume, getSfxVolume,
 } from './systems/audio';
 import { triggerScreenShake, triggerDamageFlash, triggerBossKillFlash, updateFlash, updateSlowMotion, triggerSlowMotion, triggerHitStop, updateHitStop, resetEffects, updateScreenShake, triggerBossZoom, updateBossZoom } from './systems/effects';
 
@@ -104,6 +107,7 @@ window.addEventListener('resize', resizeCanvas);
 initRenderer(canvas, ctx);
 initHud(ctx);
 attachShopWheelListener();
+attachSettingsWheelListener();
 
 // ─── Input ─────────────────────────────────────────────────────
 
@@ -145,6 +149,9 @@ document.addEventListener('keydown', e => {
   const k = key.toLowerCase();
   const state = getGameState();
   if (!keysPressed.has(k)) keysPressed.add(k);
+  // desbloqueia o AudioContext suspenso (autoplay/aba oculta)
+  // em qualquer gesto, independente do estado do jogo
+  unlockAudio();
 
   // cutscene: escolhas e avanço
   if (isShowingCutscene()) {
@@ -159,7 +166,28 @@ document.addEventListener('keydown', e => {
     return;
   }
 
+  // painel de configurações (overlay): o estado subjacente
+  // (menu/paused) continua preservado por baixo
+  if (isSettingsOpen()) {
+    if (key === 'Escape') {
+      closeSettings();
+      return;
+    }
+    const nav = consumeNav();
+    if (nav !== 0) {
+      moveSettings(nav);
+      sfxMenuMove();
+    }
+    if (k === 'a' || k === 'arrowleft') adjustSettingsVolume(getSettingsIndex(), -1);
+    if (k === 'd' || k === 'arrowright') adjustSettingsVolume(getSettingsIndex(), 1);
+    return;
+  }
+
   if (state === 'menu') {
+    // qualquer interação no menu inicializa o áudio e toca a
+    // faixa do menu (antes só tocava na cutscene de abertura)
+    initAudio();
+    startMusic();
     const idx = GAME_MODES.findIndex(m => m.key === key);
     if (idx >= 0) {
       if (selectedMode !== GAME_MODES[idx].mode) sfxMenuMove();
@@ -178,6 +206,10 @@ document.addEventListener('keydown', e => {
     }
     if (k === 'c' && hasSave()) startFromSave();
     if (k === 'v') setGameState('credits');
+    // teclas anunciadas no rodapé do menu
+    if (k === 'm') setMusicEnabled(!isMusicEnabled());
+    if (k === 's') setSfxEnabled(!isSfxEnabled());
+    if (k === 'o') openSettings();
     return;
   }
 
@@ -249,13 +281,48 @@ canvas.addEventListener('mousemove', e => {
   setUiMouse(e.clientX - rect.left, e.clientY - rect.top);
 });
 canvas.addEventListener('mousedown', e => {
+  unlockAudio();
   const state = getGameState();
   if (state === 'playing') mouse.down = true;
 
+  // painel de configurações: botões [-]/[+] ajustam volume,
+  // linha de toggle alterna — antes dos branches menu/pause
+  if (isSettingsOpen()) {
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const btn = settingsButtonAt(mx, my, canvas.width, canvas.height);
+    if (btn) {
+      adjustSettingsVolume(btn.row, btn.dir);
+      sfxMenuMove();
+    } else {
+      const row = settingsRowAt(mx, my, canvas.width, canvas.height);
+      if (row >= 0) {
+        setSettingsIndex(row);
+        const id = SETTINGS_ROWS[row].id;
+        if (id === 'musicOn') {
+          setMusicEnabled(!isMusicEnabled());
+          sfxMenuSelect();
+        } else if (id === 'sfxOn') {
+          setSfxEnabled(!isSfxEnabled());
+          sfxMenuSelect();
+        }
+      }
+    }
+    e.preventDefault();
+    return;
+  }
+
   if (state === 'menu') {
+    initAudio();
+    startMusic();
     const rect = canvas.getBoundingClientRect();
     const idx = menuIndexAt(e.clientX - rect.left, e.clientY - rect.top, canvas.width, canvas.height);
-    if (idx >= 100) {
+    // o sentinela 200 (configurações) quebra os branches
+    // antigos: GAME_MODES[200] e CLASSES[100] dão throw
+    if (idx === 200) {
+      openSettings();
+    } else if (idx >= 100 && idx < 200) {
       // seleção de classe
       const classIdx = idx - 100;
       const newClass = CLASSES[classIdx].id;
@@ -265,7 +332,7 @@ canvas.addEventListener('mousedown', e => {
         saveClass();
         sfxMenuMove();
       }
-    } else if (idx >= 0) {
+    } else if (idx >= 0 && idx < 100) {
       if (GAME_MODES[idx].mode === selectedMode) {
         // segundo clique no modo já selecionado inicia
         initAudio();
@@ -273,7 +340,7 @@ canvas.addEventListener('mousedown', e => {
         resetGame();
         showCutscene();
         sfxMenuSelect();
-      } else if (GAME_MODES[idx].mode !== selectedMode) {
+      } else {
         selectedMode = GAME_MODES[idx].mode;
         sfxMenuMove();
       }
@@ -462,6 +529,12 @@ function startFromSave() {
 function update(dt: number) {
   const state = getGameState();
 
+  // painel de configurações congela o estado subjacente
+  if (isSettingsOpen()) {
+    if (consumeEnter()) applySettingsSelection();
+    return;
+  }
+
   if (state === 'menu') {
     if (isShowingCutscene()) {
       updateCutscene(dt);
@@ -488,6 +561,9 @@ function update(dt: number) {
     if (consumeEnter()) {
       resetGame();
       setGameState('menu');
+      // volta do gameover: sem isto a música de combate loopa
+      // para sempre no menu (stopMusic nunca era chamado aqui)
+      startMusic();
       resetInput();
     }
     return;
@@ -1086,19 +1162,51 @@ function applyPauseOption(): void {
     case 'sfx':
       setSfxEnabled(!isSfxEnabled());
       break;
+    case 'config':
+      // estado continua 'paused' por baixo do overlay
+      openSettings();
+      break;
     case 'menu':
       resetGame();
       setGameState('menu');
+      // crossfade combat→menu ao sair da pause para o menu
+      startMusic();
       break;
   }
   sfxMenuSelect();
   resetInput();
 }
 
+/** ENTER no painel: alterna o toggle da linha selecionada
+ * (linha de volume não faz nada — ajuste é A/D, roda e botões). */
+function applySettingsSelection(): void {
+  const id = SETTINGS_ROWS[getSettingsIndex()].id;
+  if (id === 'musicOn') {
+    setMusicEnabled(!isMusicEnabled());
+    sfxMenuSelect();
+  } else if (id === 'sfxOn') {
+    setSfxEnabled(!isSfxEnabled());
+    sfxMenuSelect();
+  }
+}
+
 // ─── Draw ──────────────────────────────────────────────────────
 
 function draw() {
   const state = getGameState();
+
+  // overlay de configurações: frame subjacente + painel
+  // (pause desenha o mundo congelado, sem o drawPause)
+  if (isSettingsOpen()) {
+    if (state === 'menu') {
+      if (isShowingCutscene()) drawCutscene();
+      else drawMenu(selectedMode, selectedClass);
+    } else if (state === 'paused') {
+      drawFrozenWorld();
+    }
+    drawSettings(getMasterVolume(), getMusicVolume(), getSfxVolume(), isMusicEnabled(), isSfxEnabled());
+    return;
+  }
 
   if (state === 'menu') {
     if (isShowingCutscene()) drawCutscene();
