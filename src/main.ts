@@ -52,7 +52,7 @@ import {
 
 // UI
 import { initHud, drawHud, HudData } from './ui/hud';
-import { drawShop, handleShopClick, setShopCoins, getShopCoins, addShopCoins, resetShop, updateShopAds, getPurchasedUpgrades, getPurchasedWeapons, attachShopWheelListener, addPurchasedWeapon, pushPendingReveal, consumeShopPowerups, restoreUpgrades } from './ui/shop';
+import { drawShop, handleShopClick, setShopCoins, getShopCoins, addShopCoins, resetShop, updateShopAds, getPurchasedUpgrades, getPurchasedWeapons, getPurchasedWeaponPairs, attachShopWheelListener, addPurchasedWeapon, pushPendingReveal, consumeShopPowerups, restoreUpgrades } from './ui/shop';
 
 // Modules
 import { shoot, getCurrentWeapon, resetWeapons, canShoot, startReload, updateReload, getCurrentAmmo, getIsReloading, getReloadTimer, setWeapon, getEffectiveShootRate, setWeaponQuality, getCurrentWeaponIndex, getWeaponQuality, isJammed } from './weapons';
@@ -510,10 +510,7 @@ function startFromSave() {
   addScoreFlat(save.score);
   // arma equipada + inventário + upgrades precisam ser reatribuídos — antes o
   // continue caía em resetShop() e o jogador voltava só com a pistola
-  for (const w of save.weapons) {
-    addPurchasedWeapon(w.index);
-    setWeaponQuality(w.index, w.quality);
-  }
+  restoreSavedWeapons(save.weapons);
   if (save.weapons.length > 0) setWeapon(save.weaponIndex);
   restoreUpgrades(save.upgrades);
   setGameState('playing');
@@ -1092,10 +1089,21 @@ function enterShop(): void {
     getShopCoins(),
     getScore(),
     getPurchasedUpgrades(),
-    getPurchasedWeapons().map(idx => ({ index: idx, quality: getWeaponQuality(idx) })),
+    getPurchasedWeaponPairs(),
     getCurrentPhase()?.name || ''
   );
   void playMusic('shop');
+}
+
+/**
+ * Inventário salvo como pares (index, quality) → pares da loja. Antes o
+ * `map` reconstruía só índices e a qualidade salva se perdia no continue.
+ */
+function restoreSavedWeapons(weapons: { index: number; quality: string }[]): void {
+  for (const w of weapons) {
+    setWeaponQuality(w.index, w.quality);
+    addPurchasedWeapon(w.index);
+  }
 }
 
 function spawnNpcAtEdge(): void {

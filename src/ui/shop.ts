@@ -23,8 +23,12 @@ import { getInventory, getEquipped, equipPiece, unequipPiece, getPieceType } fro
 
 /** Saldo atual de moedas do jogador */
 let shopCoins = 0;
-/** Índices das armas já compradas (começa com a arma padrão) */
-let purchasedWeapons: number[] = [0];
+/**
+ * Armas possuídas como pares (índice, qualidade). Antes era só `number[]`, e
+ * receber a Pistola Quebrada da NOVIDADE marcava a Pistola Lendária do estoque
+ * como ADQUIRIDA — qualidade conta na posse.
+ */
+let purchasedWeapons: { index: number; quality: string }[] = [{ index: 0, quality: 'normal' }];
 /** Nomes dos upgrades já comprados */
 let purchasedUpgrades: string[] = [];
 /** Aviso temporário (ex: SEM MOEDAS) exibido sobre o conteúdo */
@@ -33,11 +37,18 @@ let notice: { text: string; time: number; color: string } | null = null;
 export function setShopCoins(amount: number) { shopCoins = amount; }
 export function getShopCoins(): number { return shopCoins; }
 export function addShopCoins(amount: number) { shopCoins += amount; }
-export function getPurchasedWeapons(): number[] { return purchasedWeapons; }
+export function getPurchasedWeapons(): number[] { return purchasedWeapons.map(w => w.index); }
+/** Pares (índice, qualidade) possuídos — a loja distingue arma por qualidade. */
+export function getPurchasedWeaponPairs(): { index: number; quality: string }[] { return purchasedWeapons.slice(); }
+/** true se o par exato (arma + qualidade) já está no inventário. */
+export function hasWeaponPair(index: number, quality: string): boolean {
+  return purchasedWeapons.some(w => w.index === index && w.quality === quality);
+}
 export function addPurchasedWeapon(index: number): boolean {
-  if (purchasedWeapons.includes(index)) return false;
+  const quality = getWeaponQuality(index);
+  if (hasWeaponPair(index, quality)) return false;
   if (purchasedWeapons.length >= INVENTORY_LIMIT) return false;
-  purchasedWeapons.push(index);
+  purchasedWeapons.push({ index, quality });
   return true;
 }
 export function getPurchasedUpgrades(): string[] { return purchasedUpgrades; }
@@ -139,7 +150,7 @@ export function buyStockWeapon(i: number): boolean {
   getShopStock();
   const s = stockWeapons[i];
   if (!s || s.sold) return false;
-  if (purchasedWeapons.length >= INVENTORY_LIMIT && !purchasedWeapons.includes(s.index)) {
+  if (purchasedWeapons.length >= INVENTORY_LIMIT && !hasWeaponPair(s.index, s.quality)) {
     flashNotice('INVENTÁRIO CHEIO — VENDA OU USE', PALETTE.danger);
     sfxError();
     return false;
@@ -153,8 +164,8 @@ export function buyStockWeapon(i: number): boolean {
   shopCoins -= price;
   nextDiscount = false;
   s.sold = true;
-  addPurchasedWeapon(s.index);
   setWeaponQuality(s.index, s.quality);
+  addPurchasedWeapon(s.index);
   setWeapon(s.index);
   flashNotice(`${WEAPONS[s.index].name.toUpperCase()} · ${QUALITIES[s.quality].label.toUpperCase()}`, QUALITIES[s.quality].color);
   sfxBuy();
@@ -181,25 +192,26 @@ export function buyStockPowerup(i: number): boolean {
 }
 
 export function equipInventoryWeapon(i: number): void {
-  const idx = purchasedWeapons[i];
-  if (idx === undefined) return;
-  setWeapon(idx);
+  const slot = purchasedWeapons[i];
+  if (slot === undefined) return;
+  setWeapon(slot.index);
   sfxBuy();
 }
 
 export function sellInventoryWeapon(i: number): boolean {
-  const idx = purchasedWeapons[i];
-  if (idx === undefined) return false;
+  const slot = purchasedWeapons[i];
+  if (slot === undefined) return false;
   if (purchasedWeapons.length <= 1) {
     flashNotice('NÃO VENDE A ÚLTIMA ARMA', PALETTE.danger);
     sfxError();
     return false;
   }
+  const idx = slot.index;
   const q = QUALITIES[getWeaponQuality(idx)] ?? QUALITIES.normal;
   const price = Math.round(WEAPONS[idx].price * 0.5 * q.sellMult);
   shopCoins += price;
   purchasedWeapons.splice(i, 1);
-  if (getCurrentWeaponIndex() === idx && purchasedWeapons.length > 0) setWeapon(purchasedWeapons[0]);
+  if (getCurrentWeaponIndex() === idx && purchasedWeapons.length > 0) setWeapon(purchasedWeapons[0].index);
   flashNotice(`VENDIDA POR ${price}`, PALETTE.mustard);
   sfxBuy();
   return true;
@@ -274,7 +286,8 @@ export function buyService(id: string): void {
 export function buyWeapon(index: number): boolean {
   const w = WEAPONS[index];
   if (!w) return false;
-  if (purchasedWeapons.includes(index)) {
+  const quality = getWeaponQuality(index);
+  if (hasWeaponPair(index, quality)) {
     setWeapon(index);
     flashNotice('EQUIPADA', PALETTE.moss);
     sfxBuy();
@@ -286,7 +299,7 @@ export function buyWeapon(index: number): boolean {
     return false;
   }
   shopCoins -= w.price;
-  purchasedWeapons.push(index);
+  purchasedWeapons.push({ index, quality: getWeaponQuality(index) });
   setWeapon(index);
   flashNotice(`${w.name} ADQUIRIDA`, PALETTE.moss);
   sfxBuy();
@@ -355,7 +368,7 @@ function applyUpgrade(effect: string, value: number) {
 }
 
 export function resetShop() {
-  purchasedWeapons = [0];
+  purchasedWeapons = [{ index: 0, quality: 'normal' }];
   purchasedUpgrades = [];
   purchasedEffectValues.clear();
   pendingReveals = [];
@@ -611,7 +624,7 @@ export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: n
       if (!s) return;
       const w = WEAPONS[s.index];
       const q = QUALITIES[s.quality];
-      const owned = purchasedWeapons.includes(s.index);
+      const owned = hasWeaponPair(s.index, s.quality);
       const isEquipped = equipped === w.name;
       const canBuy = !s.sold && !owned && shopCoins >= priceOf(w.price);
       const hover = hit(r, mouseX, scrollY);
@@ -774,8 +787,9 @@ export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: n
   if (L.inventory.length > 0) {
     sectionLabel(ctx, 'MEU INVENTÁRIO', L.inventory[0].x, L.sections.inventory, PALETTE.stone);
     L.inventory.forEach((r, i) => {
-      const idx = purchasedWeapons[i];
-      if (idx === undefined) return;
+      const slot = purchasedWeapons[i];
+      if (slot === undefined) return;
+      const idx = slot.index;
       const w = WEAPONS[idx];
       const q = QUALITIES[getWeaponQuality(idx)] ?? QUALITIES.normal;
       const isEquipped = getCurrentWeaponIndex() === idx;

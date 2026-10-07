@@ -1,6 +1,13 @@
-import { describe, it, expect, beforeAll } from 'vitest';
-import { getShopLayout, rowActionButtons, Rect, pushPendingReveal, addPurchasedWeapon } from '../ui/shop';
+import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
+
+// shop toca sfx a cada compra e não há AudioContext no node — mesmo mock do saveSystem.test.ts
+vi.mock('../systems/audio', () => {
+  const noop = () => {};
+  return { sfxBuy: noop, sfxError: noop };
+});
+import { getShopLayout, rowActionButtons, Rect, pushPendingReveal, addPurchasedWeapon, resetShop, getPurchasedWeaponPairs, hasWeaponPair, keepPendingReveal, getPendingReveals } from '../ui/shop';
 import { WEAPONS, UPGRADES } from '../config';
+import { setWeaponQuality } from '../weapons';
 
 const W = 1280;
 const H = 720;
@@ -173,5 +180,37 @@ describe('rowActionButtons: vender só no botão VENDER', () => {
         expect(overlaps(prev.sell, cur.primary)).toBe(false);
       }
     }
+  });
+});
+
+/**
+ * Posse por par (arma + qualidade): receber a Pistola Quebrada da NOVIDADE
+ * não pode marcar a Pistola Lendária do estoque como ADQUIRIDA.
+ */
+describe('posse por par (arma + qualidade)', () => {
+  beforeEach(() => {
+    resetShop();
+    setWeaponQuality(1, 'normal');
+  });
+
+  it('mesma arma com qualidade diferente não conta como possuída', () => {
+    setWeaponQuality(1, 'quebrada');
+    expect(addPurchasedWeapon(1)).toBe(true);
+    expect(hasWeaponPair(1, 'quebrada')).toBe(true);
+    expect(hasWeaponPair(1, 'lendaria')).toBe(false);
+  });
+
+  it('keepPendingReveal guarda o par exato da caixa', () => {
+    pushPendingReveal(2, 'lendaria');
+    expect(keepPendingReveal(getPendingReveals().length - 1)).toBe(true);
+    expect(hasWeaponPair(2, 'lendaria')).toBe(true);
+    expect(hasWeaponPair(2, 'quebrada')).toBe(false);
+  });
+
+  it('getPurchasedWeaponPairs devolve os pares para o save', () => {
+    setWeaponQuality(3, 'boa');
+    addPurchasedWeapon(3);
+    const pairs = getPurchasedWeaponPairs();
+    expect(pairs).toContainEqual({ index: 3, quality: 'boa' });
   });
 });
