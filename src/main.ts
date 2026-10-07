@@ -42,7 +42,7 @@ import { initObjective, updateObjective, peekObjective, endsPhaseOnDone, vipDown
 import { updateBoss, isBossTelegraphing, getBossTelegraphLabel, clearBossState } from './systems/boss';
 
 import {
-  initRenderer, drawMenu, drawCutscene, drawGameOver, drawCredits, drawCoins as renderCoins,
+  initRenderer, drawMenu, drawCutscene, drawGameOver, drawVictory, drawCredits, drawCoins as renderCoins,
   drawPowerUps as renderPowerUps, drawParticles as renderParticles, drawBullets as renderBullets,
   drawEnemies as renderEnemies, drawPlayer as renderPlayer, drawDamageNumbers, drawPhaseTransition,
   restoreCanvas, drawNPCs, drawBots, drawPause, menuIndexAt, getPauseIndex, movePause, PAUSE_OPTIONS, setPauseIndex, pauseOptionAt, setUiMouse,
@@ -78,7 +78,7 @@ import { updateCombos, getActiveCombos, getComboDamageBonus, getComboFireRateBon
 import { setComboHealthMultiplier } from './entities/player';
 import { resetSkins } from './systems/skins';
 import { resetAds } from './systems/ads';
-import { saveGame, loadGame, hasSave, markGameCompleted } from './systems/saveSystem';
+import { saveGame, loadGame, hasSave, markGameCompleted, isGameCompleted } from './systems/saveSystem';
 import { addLeaderboardEntry } from './systems/leaderboard';
 import { loadAchievements, checkAchievements, checkObjectiveAchievement, resetRunCounters } from './systems/achievements';
 import { loadDiary, unlockDiaryEntry } from './systems/diary';
@@ -378,6 +378,12 @@ let currentShake: { x: number; y: number } = { x: 0, y: 0 };
 let selectedMode: GameMode = 'campaign';
 let selectedClass: ClassId = 'soldado';
 let bossSpawned = false;
+/**
+ * Respiro pos-boss: armado com 2.5s na morte do chefe (killEnemy), contado no
+ * topo do update. As saidas de fase (waveComplete, reach) so leem: enquanto
+ * > 0, seguram a ida a loja para a caixa da NOVIDADES nao sumir sem ser vista.
+ */
+let bossKillTimer = 0;
 /** Objetivos já contabilizados na partida, para o toast de conquista sair uma vez só. */
 const objectiveCounted = new Set<string>();
 let worldW = 1280;
@@ -586,6 +592,9 @@ function update(dt: number) {
   const hard = getCurrentMode() === 'hardcore';
 
   if (phaseTransitionTimer > 0) phaseTransitionTimer -= dt;
+  // respiro pós-boss: conta aqui no topo, antes de qualquer saída de fase.
+  // Armado no killEnemy; enquanto > 0 as transições abaixo seguram a loja.
+  if (bossKillTimer > 0) bossKillTimer = Math.max(0, bossKillTimer - dt);
   phaseElapsed += dt;
   setPhaseTime(phaseElapsed);
 
@@ -677,7 +686,9 @@ function update(dt: number) {
   // ── ondas ──
   const rect = { w: worldW, h: worldH, px: getCamX(), py: getCamY(), viewW: canvas.width, viewH: canvas.height };
   const waveComplete = spawnWaveEnemies(dt, enemies, getCurrentWave(), phase.enemyTypes, worldW, worldH, rect);
-  if (waveComplete) {
+  // respiro pós-boss: matar o chefe completa a onda no mesmo frame, e sem a
+  // guarda a loja abriria antes da caixa ser vista
+  if (waveComplete && bossKillTimer <= 0) {
     nextWave();
     if (!hard) player.healOnWaveComplete();
     sfxWaveStart();
@@ -758,7 +769,7 @@ function update(dt: number) {
   }
 
   if (phase.objective === 'reach' && objective.done && bossSpawned && getGameState() === 'playing'
-      && !enemies.some(e => ENEMY_TYPES[e.type]?.isBoss)) {
+      && bossKillTimer <= 0 && !enemies.some(e => ENEMY_TYPES[e.type]?.isBoss)) {
     enemies.length = 0;
     clearBullets();
     triggerScreenShake(14, 0.5);
@@ -1008,6 +1019,8 @@ function killEnemy(e: Enemy, award: boolean): void {
     // não recebe uma troca forçada de arma
     pushPendingReveal(bossLoot.index, bossLoot.quality);
     damageNumbers.push({ x: e.x, y: e.y - 30, text: 'CAIXA ESPECIAL', color: PALETTE.mustard, life: 2, vy: -50 });
+    // respiro pós-boss: arma o timer que segura a ida à loja (lido no update).
+    bossKillTimer = 2.5;
     void playMusic('combat');
   } else if (award) {
     rollLootDrop(e.x, e.y, e.type);
@@ -1228,7 +1241,9 @@ function draw() {
     return;
   }
   if (state === 'gameover') {
-    drawGameOver(getScore(), getKillStreak());
+    // vitoria e derrota leem diferente: zerar o jogo nao e GAME OVER
+    if (isGameCompleted()) drawVictory(getScore(), getKillStreak());
+    else drawGameOver(getScore(), getKillStreak());
     return;
   }
   if (state === 'credits') {

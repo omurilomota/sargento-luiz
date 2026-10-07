@@ -496,16 +496,27 @@ function wrapText(context: CanvasRenderingContext2D, text: string, x: number, y:
 // ─── Game Over ──────────────────────────────────────────────────
 
 export function drawGameOver(score: number, killStreak: number): void {
+  drawEndScreen('GAME OVER', PALETTE.terracotta, score, killStreak);
+}
+
+// ─── Vitória ────────────────────────────────────────────────────
+// Antes a última fase caía no mesmo drawGameOver: zerar o jogo lia como derrota.
+// Vitória usa o verde-musgo do jogador e texto próprio; morte continua terracota.
+export function drawVictory(score: number, killStreak: number): void {
+  drawEndScreen('VITÓRIA — AS CINZAS ASSENTAM', PALETTE.moss, score, killStreak);
+}
+
+function drawEndScreen(title: string, titleColor: string, score: number, killStreak: number): void {
   const W = canvas.width;
   const H = canvas.height;
 
   ctx.fillStyle = PALETTE.bg;
   ctx.fillRect(0, 0, W, H);
 
-  ctx.fillStyle = PALETTE.terracotta;
+  ctx.fillStyle = titleColor;
   ctx.font = 'bold 36px monospace';
   ctx.textAlign = 'center';
-  ctx.fillText('GAME OVER', W / 2, H * 0.12);
+  ctx.fillText(title, W / 2, H * 0.12);
 
   ctx.fillStyle = PALETTE.text;
   ctx.font = '18px monospace';
