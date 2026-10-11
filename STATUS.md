@@ -1,14 +1,14 @@
 # SARGENTO RIOS — Status Geral do Projeto
 
 > Atualizado: 2026-11 · branch `develop` (v2 mesclada) ·
-> 856 testes em 47 arquivos · `tsc` limpo · build ok.
+> 874 testes em 49 arquivos · `tsc` limpo · build ok.
 > Este arquivo estava parado na v1.3 (420 testes, nome ASHFALL) e foi
 > reconciliado com o código.
 
 ## Verificação atual
 
 ```
-npm test           # 856 passando em 47 arquivos
+npm test           # 874 passando em 49 arquivos
 npx tsc --noEmit   # 0 erros
 npm run build      # ok
 npm run visual     # 8 screenshots, sem 404/pageerror
@@ -16,9 +16,31 @@ npm run perks      # 13/13 — escada de perks na loja
 npm run hud        # 4 resoluções, texto cabe na caixa
 npm run loja       # 3 scrolls, texto e seções sem sobreposição
 npm run variedade  # personagem de inimigo muda por fase (57% entre vizinhas)
-npm run espaco     # REPRODUZIDO — o Espaço derruba na onda 1 (FUTURO §1.4)
-npm run sessao     # INCONCLUSIVO — o bot morre na onda 1, nunca chega à loja
+npm run fases      # MEDE as 9 fases — número por fase (FUTURO §1.4 ✅)
+npm run diagnostico# nenhum inimigo dentro de parede, dodge afasta em 360°
+npm run espaco     # reproduz, MAS só contra jogador que não desvia (ver §1.4)
+npm run sessao     # sessão longa com telemetria de dano por fonte
 ```
+
+### O que o `npm run fases` mede
+
+O bot desvia de inimigo e de barril, atira, e não usa dash, escudo nem fúria.
+É o **piso**: fase onde ele morre é fase onde jogador casual também morre.
+
+| fase | sobrevive | onda | principal dano |
+|---|---|---|---|
+| Cidade em Ruínas | 45s+ | 1 | evento (grunt) |
+| Floresta | 45s+ | 2 | contato (spitter) |
+| Caverna | 45s+ | 2 | — |
+| Fábrica | 45s+ | 2 | — |
+| Pântano | 45s+ | 2 | contato (mosquito) |
+| **Castelo** | **32s** | 2 | **bioma (espinho)** |
+| Vulcão | 45s+ | 2 | projétil (inferno) |
+| Espaço | 45s+ | 2 | projétil (alien) |
+| Bunker Central | 45s+ | 2 | contato (runner) |
+
+Números crus em `tools/fases-medidas.json`. O único que mata o bot é o
+Castelo, e é o **hazard de espinho**: não é inimigo, é o chão.
 
 ## Portão Anti-IA — 5 testes
 
@@ -149,10 +171,15 @@ ataca isso primeiro.
 - `tools/genmaps.py` — gera e valida os 9 mapas (largura, borda fechada, P
   único, BFS até todo E/B/N)
 - `tools/genmusic.py` — sintetiza as 4 faixas OGG a partir de uma semente fixa
+- `tools/bot.mjs` — o bot de medição, compartilhado pelos dois harnesses
+- `tools/dodge.mjs` — a direção do dodge, função pura com porta própria
+- `tools/session.mjs` — sessão longa com telemetria (`--fase N` abre a fase)
+- `tools/fases-todas.mjs` — varre as 9 fases e grava `fases-medidas.json`
+- `tools/sessao-diagnostico.mjs` — o dodge afasta? algum inimigo travou?
 
 ## Testes
 
-**856 em 47 arquivos.** A lista completa por arquivo está em
+**874 em 49 arquivos.** A lista completa por arquivo está em
 `src/__tests__/`; o que este status registra é a cobertura que não é óbvia pelo
 nome:
 
@@ -160,6 +187,8 @@ nome:
 |---|---|
 | `semIA` · `semDesenho` · `semProcedural` · `semAssetQuebrado` · `semOrfao` | os 5 portões anti-IA (ver tabela acima) |
 | `balance.test.ts` | a primeira fase é sobrevivível com a pistola e só a pistola; a armadura cobre projétil |
+| `dodgeBot.test.ts` | a direção do dodge afasta em TODOS os 360°, e o que o `movePlayer` faz com as teclas também |
+| `presoNaParede.test.ts` | nenhum corpo que invade parede fica sem saída, para todo raio de inimigo, nos 9 mapas |
 | `variedade.test.ts` | o personagem de inimigo muda por fase (57% entre vizinhas, zero estagnação) |
 | `perkLadder.test.ts` | a run nova não herda especial, dano, degrau nem oferta |
 | `weaponAmmo.test.ts` | `refillAmmo` enche sem estourar a build nem consertar a quebrada |

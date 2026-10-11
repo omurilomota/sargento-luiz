@@ -80,17 +80,51 @@ campo limpa." Resolvido pelo respiro pós-boss genérico e por
 `deveFecharFase` (que consome `ondaCompleta = waveComplete || (bossSpawned &&
 !chefeVivo)`). Prova em `tools/fase-proof.mjs` e `tools/onda-proof.mjs`.
 
-### 1.4 A telemetria não alcança o fim da campanha — ⚠️ **O MAIOR BLOQUEIO**
-O bot do `session.mjs` não desvia e morre na Cidade, onda 1 — a sessão longa
-nunca mede Espaço/Castelo/Bunker. Precisa de: dodge simples (mover
-perpendicular ao inimigo mais próximo a menos de N px) + telemetria de dano
-recebido por fonte.
+### 1.4 A telemetria não alcança o fim da campanha — ✅ RESOLVIDO
+**Entregue.** O item pedia duas coisas — dodge simples e telemetria de dano por
+fonte — e as duas estão, mais uma terceira que ninguém tinha pedido e que era a
+que resolvia o bloqueio: **medir uma fase não exige chegar nela.**
 
-**Reforçado 2026-11:** enquanto isso existir, **nenhuma mudança de HP, onda ou
-economia nas fases finais tem medição**. Foi o que deixou o `lowGravity` do
-Espaço (que mata na onda 1, reproduzido por `npm run espaco`) sem correção
-medida, e o ajuste I5+I6 da armadura sem calibração por jogo. É a dívida que
-mais bloqueia as outras.
+`npm run fases` abre as 9 fases uma a uma com `irParaFase`, roda o mesmo bot em
+todas e imprime a tabela. Antes disso:
+
+- O bot andava em ciclo WASD fixo. Agora desvia de inimigo **e de barril**, com
+  a direção em `tools/dodge.mjs` e trava em `dodgeBot.test.ts` (a primeira
+  versão aproximava o jogador do inimigo em metade dos ângulos).
+- O dano é registrado no gargalo (`player.ts`), não em cada chamador: com 6
+  caminhos que tiram HP e registro na ponta, a régua media 20 de 130.
+- `ambiente` foi quebrado em `bioma` / `barril` / `evento`, porque as três têm
+  conserto oposto.
+
+O bot deixou de morrer na onda 1 em 15s para sobreviver 130s e chegar na onda
+2 sozinho. As 9 fases têm número em `tools/fases-medidas.json`.
+
+**O que destravou e o que não:** destravou a medição. Não tornará o balanceamento
+certo sozinho — o bot não usa dash, escudo nem fúria, então ele é o **piso**, e
+uma fase onde ele morre é uma fase onde um jogador casual também morre.
+
+### 1.9 Chefe de raio 46 numa passagem de 64px — ⚠️ NOVO, achado por esta sprint
+Enquanto media o Bunker, apareceu um segundo caso da mesma família do item 1.4.
+
+Os chefes têm raio de 40 a 54 (`sentinel` e `infernoPrime` 48, `mothership` 54).
+Uma célula do mapa tem 64px. **O diâmetro do chefe é maior que a célula**, então
+ele não cabe em corredor de 1 célula. E o Bunker Central tem exatamente isso: a
+fileira 17 é quase toda parede e a 19 é parede inteira, então a passagem entre o
+mapa de cima e o de baixo é de 1 célula.
+
+Não há arena limpa para o chefe (`boss.ts:125` só resolve colisão contra o grid,
+não abre espaço), e a fase do Bunker é a do `nucleo` (raio 46).
+
+**A pergunta a responder:** o `nucleo` consegue alcançar o jogador se ele estiver
+no corredor de baixo? Se não, a luta final tem um caso em que o chefe simplesmente
+não chega — e, pelo mesmo mecanismo do item 1.4, o jogador não consegue matar
+quem não chega.
+
+**Como medir:** `diagnosticoInimigos` já devolve a posição de todos os inimigos.
+Falta a prova de que o chefe não atravessa a passagem. Não é para resolver agora:
+é decisão de design (abrir arena, afinar raio, ou trocar a fase inteira por uma
+sem parede de 1 célula) e o número sai em minutos com `npm run diagnostico`
+depois de escolher a hipótese.
 
 ### 1.5 `t=undefined` no log do `session.mjs` — [x] FEITO em 2026-10-10
 O log imprimia `t=undefined` porque pedia o relógio à telemetria, que devolve

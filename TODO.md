@@ -1106,3 +1106,49 @@
 // [ ] Variar tilesets por zona (Bloco 4): mais material por bioma em
 //     `terrain.ts` + `npm run visual`.
 
+// ─── SPRINT 7 — TELEMETRIA QUE CHEGA ATÉ O FIM (FUTURO §1.4) ───
+// O bloqueio era "o bot morre na Cidade, onda 1, então Espaço/Castelo/Bunker
+// nunca são medidos". Entregue: o bot desvia e a medição não depende de
+// sobreviver até lá.
+//
+// [x] Telemetria de dano por fonte, registrada no GARGALO (`player.ts`).
+//     São 6 caminhos que tiram HP e, registrado na ponta, 3 entravam por baixo
+//     da régua: a sessão media 20 de 130 de dano. DECISIONS #149.
+// [x] `FonteDano` em 7: `contato`, `projetil`, `bioma`, `barril`, `evento`,
+//     `boss`, `bot`. `ambiente` respondia "110" numa fase em que o bot morria
+//     na onda 1, e as 3 causas que dividiam esse nome têm conserto oposto.
+//     DECISIONS #150.
+// [x] `tools/dodge.mjs` + `dodgeBot.test.ts`: a primeira versão (perpendicular
+//     pura, 1 tecla) APROXIMAVA o jogador do inimigo em 179 dos 360 ângulos.
+//     Agora é kite e afasta nos 360. DECISIONS #151 e #152.
+// [x] O dodge olha BARRIL também: sem isso o bot morria dos próprios caixotes
+//     (90 de 115 de dano) achando que era dificuldade. DECISIONS #153.
+// [x] `irParaFase` limpa o mundo ao trocar de fase. Sem isso as 9 fases
+//     mediram igual, cada uma com o `mutante` da Cidade ainda caçando.
+//     DECISIONS #155.
+// [x] `session.mjs --fase N` e `tools/fases-todas.mjs` (npm run fases):
+//     medir uma fase não exige chegar nela. DECISIONS #154.
+// [x] `tools/bot.mjs` extraído (dois consumidores, uma implementação).
+// [x] `kills` da telemetria é `getTotalKills()`, não `getKillStreak()`: a
+//     sequência zera e o log mostrava o número congelado.
+//
+// [x] BUG DE JOGO: inimigo preso dentro de parede. `pushOutOfWalls` era
+//     chamado por jogador, chefe, loot, moeda e powerup — e não pelo inimigo
+//     comum. Um inimigo sobreposto à parede fica com `flowDist === -1`, o
+//     `sampleFlowDir` devolve 0,0 e `moveCircleBy` recusa todo passo: congelado
+//     para sempre, invencível, fora da tela. No Bunker a fase não acabava —
+//     4 hostis, 0 abates, HP cheio. DECISIONS #156.
+// [x] `pushOutOfWalls` ganhou PISO: a busca em anel (8 pontos, 3 células)
+//     falhava em 26 posições com raio 26, e um resgate que pode falhar é a
+//     origem da classe de bug acima. DECISIONS #157.
+// [x] `presoNaParede.test.ts` (11) + `tools/sessao-diagnostico.mjs`.
+//
+// [ ] Chefe de raio 46 numa passagem de 64px (FUTURO §1.9). O Bunker tem
+//     parede de 1 célula e o NÚCLEO tem diâmetro maior que a célula. Medir se
+//     o chefe alcança o jogador no corredor de baixo ANTES de mexer: pode ser
+//     arena, raio ou mapa.
+// [ ] Barril: 45 de dano e 96px de raio contra um jogador de 100 HP. Um
+//     `grunt` (20 HP) morre com um; o jogador perde quase metade da vida. E
+//     `explosivos.test` diz que explosivo de ARMA não fere o jogador — o
+//     barril fere. Medir a taxa em que um jogador humano toma dano de barril
+//     antes de decidir entre nerf, aviso visual ou aceitar assim.
