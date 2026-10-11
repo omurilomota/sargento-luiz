@@ -77,34 +77,26 @@ queda do P2 — que não muda o estado do jogo — nunca alcançava a revanche. 
 tela anunciava uma tecla que não fazia nada.
 
 **O que a prova destravou e o que não:** destravou o fim de partida. Não
-consertou o resto do modo — ver o item 1.10, o P2 invisível.
+consertou o resto do modo — que a mesma prova destravou a seguir, no item 1.10.
 
-### 1.10 O P2 do versus local não é desenhado — ⚠️ NOVO, achado pela prova do 1.2
-A tela de fim entrou e passou a nomear um vencedor. Abrindo o PNG da partida
-para conferir (regra 16), apareceu o que nenhum teste pega: **só o P1 está em
-tela**.
+### 1.10 O P2 do versus local não é desenhado — ✅ RESOLVIDO
+**Entregue em 2026-11, decisão do jogador: nascer ao lado do P1.** O estado do
+P2 existia inteiro (nasce, anda com as setas, atira com L, leva dano, ganha) e
+não havia caminho de render — a `renderer.ts` não importava `localMultiplayer`
+em nenhum lugar. Some também o spawn: `initLocalMultiplayer(worldW, worldH)`
+recebia o tamanho do MUNDO e posicionava o P2 em `worldW * 0.75`, longe da
+câmera, que segue o P1.
 
-O estado do P2 existe inteiro — nasce, anda com as setas, atira com L, leva
-dano de inimigo e de projétil, e ganha. O que não existe é caminho de render: a
-`renderer.ts` não importa `localMultiplayer` em nenhum lugar, então não há
-`drawPlayer2`. Some também o spawn: `initLocalMultiplayer(worldW, worldH)`
-recebe o tamanho do MUNDO e posiciona o P2 em `worldW * 0.75` — a célula 'P' do
-jogador é (15, 14) na Cidade, e 75% da largura do mundo é outro ponto do mapa,
-não ao lado dele.
+Entraram `drawPlayer2` (mesmo caminho de sprite do `drawPlayer`, com o rótulo
+"P2" para separar os dois corpos — o pack tem um personagem só de jogador) e o
+spawn relativo ao P1: 70px de deslocamento, com `pushOutOfWalls` para o caso
+de o ponto cair dentro de parede. A revanche renasce o P2 no mesmo lugar, ao
+lado de onde o P1 está.
 
-**A pergunta a responder:** onde o P2 tem que nascer? Duas leituras defensáveis:
-
-- **Ao lado do P1**, alguns pixels de distância: os dois dividem a mesma tela e
-  a mesma câmera, que é o que "mesmo teclado" promete. Custo: os dois corpos
-  disputam o mesmo espaço na hora do tiro.
-- **Do outro lado do mapa**, como estão hoje: dá distância, mas a câmera segue o
-  P1 e o P2 sai da tela — que é exatamente o estado atual, com o agravante de
-  nem ser desenhado.
-
-Enquanto isso, "LOCAL 2P" na página do itch continua prometendo um versus de um
-jogador visível. **Como medir:** `npm run local2p` já monta a partida; falta
-uma checagem de "o P2 está dentro da viewport da câmera" e um PNG com os dois
-corpos. Não é para resolver sem a decisão de onde ele nasce.
+A prova `npm run local2p` ganhou a checagem que faltava — "o P2 nasce na mesma
+tela que o P1" (distância e se está na viewport) — e o PNG da partida agora
+mostra os dois corpos. Sem o PNG, a medição passaria e o jogador continuaria
+invisível: é exatamente o defeito que a regra 16 existe para pegar.
 
 ### 1.3 O fim de fase depois do chefe (relato do `bugs.md`) — ✅ RESOLVIDO
 "O chefe morre, o countdown acaba e a partida não acaba; só fecha quando o

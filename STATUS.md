@@ -15,7 +15,7 @@ npm run visual     # 8 screenshots, sem 404/pageerror
 npm run perks      # 13/13 — escada de perks na loja
 npm run hud        # 4 resoluções, texto cabe na caixa
 npm run loja       # 3 scrolls, texto e seções sem sobreposição
-npm run local2p    # 7 checagens — tela de fim, revanche, vencedor nos 2 sentidos
+npm run local2p    # 8 checagens — tela de fim, revanche, P2 na MESMA tela
 npm run variedade  # personagem de inimigo muda por fase (57% entre vizinhas)
 npm run fases      # MEDE as 9 fases — número por fase (FUTURO §1.4 ✅)
 npm run diagnostico# nenhum inimigo dentro de parede, dodge afasta em 360°
@@ -208,11 +208,6 @@ npm run build       # ok
 ## ⏳ NÃO ENTREGUE (está no `TODO.md`)
 
 - Modo competitivo online (adiado por decisão de 2026-10-10)
-- **O P2 do versus local não é desenhado** (`FUTURO §1.10`, novo): o estado dele
-  funciona inteiro (vida, dano, tiro, vitória) e não há caminho de render — a
-  `renderer.ts` não importa `localMultiplayer`. O spawn é `worldW * 0.75`,
-  longe da célula 'P' do jogador. Anunciar "versus" no itch ainda não é honesto
-  enquanto o segundo jogador não aparece em tela
 - **Sem touch** — nenhum `pointerdown`/`touch` no código. Fecha a porta de
   CrazyGames/Poki, onde jogo indie vive
 - **Sem preset de loadout** (`FUTURO §1.8`) — com 24 degraus + 12 armas + peças,

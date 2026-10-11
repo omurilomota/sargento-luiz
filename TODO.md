@@ -410,12 +410,13 @@
 //     [x] `setPlayer2Health` (setter público sem chamador) era a porta aberta
 //         para o P2 virar invencível por engano; virou `matarPlayer2`, que o
 //         harness de 2P usa para fechar a partida.
-//     [ ] NOVO, achado fechando o item acima: o P2 NÃO É DESENHADO. Existe
-//         estado (vida, dano, tiro, vitória) e nenhum caminho de render — a
-//         `renderer.ts` não importa `localMultiplayer`, e o spawn dele é
-//         `worldW*0.75` (não a célula 'P' do mapa). O modo anuncia "mesmo
-//         teclado" com um jogador invisível, e a tela de fim nova passou a
-//         nomear um vencedor que ninguém viu em campo.
+//     [x] P2 desenhado em 2026-11 (`drawPlayer2` + spawn ao lado do P1,
+//         decisão do jogador): o módulo dá estado, sprite e rótulo "P2", e o
+//         P2 nasce a 70px do P1 com `pushOutOfWalls` — antes era `worldW*0.75`,
+//         fora da câmera, que segue o P1. Prova: `npm run local2p` mede
+//         distância e viewport, e o PNG da partida mostra os dois corpos. O
+//         achado nasceu de abrir esse PNG (regra 16): a tela de fim nova
+//         nomeava um vencedor que ninguém tinha visto em campo.
 
 // ═══════════════════════════════════════════════════════════════
 // v2 — REBALANCEAMENTO E SISTEMAS NOVOS (2026-10-09)
