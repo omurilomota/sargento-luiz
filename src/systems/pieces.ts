@@ -63,6 +63,72 @@ export function unequipPiece(weaponIndex: number, slot: number): boolean {
   return true;
 }
 
+/**
+ * Desequipa tudo e devolve à mochila. Chamado na venda da arma.
+ *
+ * Sem isto, `sellInventoryWeapon` deixava as peças num `Map` por arma que
+ * nenhuma tela lê de novo — o jogador perdia as peças e não tinha como
+ * recupera-las.
+ *
+ * @returns o que não coube na mochila (mochila cheia)
+ */
+export function returnEquippedPieces(weaponIndex: number): Piece[] {
+  const atual = equipped.get(weaponIndex);
+  if (!atual || atual.length === 0) return [];
+  equipped.delete(weaponIndex);
+  const perdido: Piece[] = [];
+  for (const p of atual) {
+    if (inventory.length >= PIECE_INVENTORY_LIMIT) perdido.push(p);
+    else inventory.push(p);
+  }
+  return perdido;
+}
+
+/**
+ * Preço de venda de uma peça. Peça só equipa e nunca vendia: acumulava na
+ * mochila sem utilidade, e a mochila é limitada a 8.
+ */
+export function pieceSellPrice(typeId: string): number {
+  const def = PIECE_TYPES.find(t => t.id === typeId);
+  if (!def) return 0;
+  const bonus = (def.damageMult * def.magazineMult * def.reloadMult * def.spreadMult) - 1;
+  return Math.max(8, Math.round(40 + bonus * 90));
+}
+
+/** Remove uma peça da mochila e credita sua venda. */
+export function sellPieceFromInventory(index: number): number {
+  const piece = removePieceFromInventory(index);
+  if (!piece) return 0;
+  return pieceSellPrice(piece.typeId);
+}
+
+/** Snapshot das peças equipadas, para o save. */
+export function getEquippedSnapshot(): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
+  equipped.forEach((list, idx) => { out[String(idx)] = list.map(p => p.typeId); });
+  return out;
+}
+
+/** Restaura as peças equipadas vindas do save. */
+export function restoreEquipped(snapshot: Record<string, string[]>): void {
+  equipped = new Map();
+  for (const key of Object.keys(snapshot)) {
+    const idx = Number(key);
+    if (!Number.isInteger(idx)) continue;
+    equipped.set(idx, snapshot[key].map(typeId => ({ typeId })));
+  }
+}
+
+/** Snapshot da mochila, para o save. */
+export function getInventorySnapshot(): string[] {
+  return inventory.map(p => p.typeId);
+}
+
+/** Restaura a mochila do save. */
+export function restoreInventory(ids: string[]): void {
+  inventory = ids.slice(0, PIECE_INVENTORY_LIMIT).map(typeId => ({ typeId }));
+}
+
 export function resetPieces(): void {
   inventory = [];
   equipped = new Map();

@@ -2,24 +2,27 @@
  * Tela de loja.
  *
  * A geometria vem de UMA função (`getShopLayout`) consumida tanto pelo draw
- * quanto pelo hit-test. Antes o draw usava `leftX=40, colW=w/2-60` e o clique
- * usava `leftX=20, colW=w/2-40` — o bug que o histórico diz ter "corrigido"
- * e que continuou aberto: os cliques batiam em outra coluna.
+ * quanto pelo hit-test — as duas metades precisam concordar no pixel, senão o
+ * clique compra a linha de cima.
  */
 
-import { WEAPONS, UPGRADES, QUALITIES, POWERUP_TYPES, rollQuality, WEAPON_DESC, POWERUP_DESC } from '../config';
+import { WEAPONS, QUALITIES, POWERUP_TYPES, rollQuality, WEAPON_DESC, POWERUP_DESC, SUPPORT_LABEL, conditionLabel, conditionTrait } from '../config';
 import { isGameCompleted } from '../systems/saveSystem';
-import { setWeapon, addDamageMultiplier, addPierce, addCrit, addReloadSpeed, getCurrentWeapon, getCurrentWeaponIndex, setWeaponQuality, rerollWeaponQuality, getWeaponQuality, repairCurrentWeapon } from '../weapons';
+import { getEffectiveDps, getCapacityOf, setWeapon, addDamageMultiplier, addPierce, addCrit, addReloadSpeed, getCurrentWeapon, getCurrentWeaponIndex, setWeaponQuality, rerollWeaponQuality, getWeaponQuality, repairCurrentWeapon } from '../weapons';
 import { addMaxHealth, addSpeed, addShield, enableRegen, addArmor } from '../entities/player';
+import { PERK_LADDER, PERK_LEGADO, ofertaDePerks, ativarEspecialPerk, degrausCompraveis, type PerkTier } from '../systems/perks';
+import { applyStat, getStat } from '../core/stats';
 import { getUnlockedDiary, unlockDiaryEvent } from '../systems/diary';
+import { TALENTOS, buyTalento as gastarPontoTalento, getTalentos as getTalentosComprados, getPontosLivres, getNivel, progressoNoNivel, getXp, restoreTalentos } from '../systems/progress';
 import { enablePermanentMagnet } from '../entities/coin';
 import { getAllSkins, buySkin, equipSkin, Skin } from '../systems/skins';
-import { canWatchAd, startWatchingAd, getIsWatchingAd, getAdProgress, getAdCooldown, getNextAdReward, getAdsWatched, updateAd } from '../systems/ads';
+import { canWatchAd, startWatchingAd, getIsWatchingAd, getAdProgress, getAdCooldown, getNextAdReward, getAdsWatched, getAdsRemaining, updateAd } from '../systems/ads';
+import { openSupportLink } from '../systems/support';
 import { getGameState, getCurrentPhase } from '../phases';
 import { sfxBuy, sfxError } from '../systems/audio';
 import { PALETTE } from '../core/palette';
 import { getSprite } from '../systems/sprites';
-import { getInventory, getEquipped, equipPiece, unequipPiece, getPieceType, hasPieceSynergy, PIECE_INVENTORY_LIMIT } from '../systems/pieces';
+import { getInventory, getEquipped, equipPiece, unequipPiece, getPieceType, hasPieceSynergy, PIECE_INVENTORY_LIMIT, returnEquippedPieces, sellPieceFromInventory, pieceSellPrice } from '../systems/pieces';
 
 /** Saldo atual de moedas do jogador */
 let shopCoins = 0;
@@ -44,14 +47,16 @@ export function getPurchasedWeaponPairs(): { index: number; quality: string }[] 
 export function hasWeaponPair(index: number, quality: string): boolean {
   return purchasedWeapons.some(w => w.index === index && w.quality === quality);
 }
-export function addPurchasedWeapon(index: number): boolean {
-  const quality = getWeaponQuality(index);
+export function addPurchasedWeapon(index: number, quality: string): boolean {
   if (hasWeaponPair(index, quality)) return false;
   if (purchasedWeapons.length >= INVENTORY_LIMIT) return false;
   purchasedWeapons.push({ index, quality });
   return true;
 }
 export function getPurchasedUpgrades(): string[] { return purchasedUpgrades; }
+
+/** Ids de upgrade comprados, para os combos (nunca o nome de exibição). */
+export function getPurchasedUpgradeIds(): string[] { return purchasedUpgrades; }
 
 // ─── Revelação de caixas (NOVIDADES) ───────────────────────────
 
@@ -76,9 +81,8 @@ export function keepPendingReveal(i: number): boolean {
     sfxError();
     return false;
   }
-  setWeaponQuality(r.index, r.quality);
-  addPurchasedWeapon(r.index);
-  setWeapon(r.index);
+  addPurchasedWeapon(r.index, r.quality);
+  equiparSeMelhor(r.index, r.quality);
   pendingReveals.splice(i, 1);
   // escolha sobre a caixa (manter/vender) → entrada reativa do diário
   unlockDiaryEvent('shop_choice');
@@ -121,15 +125,19 @@ let stockKey = '';
 let stockSeed = 0;
 let stockWeapons: StockWeapon[] = [];
 let stockPowerups: { type: string; sold: boolean }[] = [];
+/** Ids dos 3 perks ofertados nesta visita (sorteados no restock). */
+let stockPerks: string[] = [];
 let rerolledThisVisit = false;
 let nextDiscount = false;
 
 function restock(): void {
   const pool = WEAPONS.map((_, i) => i).filter(i => !WEAPONS[i].secret || isGameCompleted());
+  const sorte = Math.round(getStat('luck'));
   stockWeapons = [];
   while (stockWeapons.length < 3 && pool.length > 0) {
     const idx = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
-    stockWeapons.push({ index: idx, quality: rollQuality(), sold: false });
+    // a sorte empurra a qualidade do estoque: um ponto vale um passo de boost
+    stockWeapons.push({ index: idx, quality: rollQuality(0, sorte), sold: false });
   }
   const keys = Object.keys(POWERUP_TYPES).filter(k => k !== 'health' && k !== 'shield');
   stockPowerups = [];
@@ -137,6 +145,9 @@ function restock(): void {
     const k = keys.splice(Math.floor(Math.random() * keys.length), 1)[0];
     stockPowerups.push({ type: k, sold: false });
   }
+  // 3 perks por visita: a oferta congela no restock, não no draw — senão cada
+  // frame sorteava de novo e o clique comprava outra linha.
+  stockPerks = ofertaDePerks(getPurchasedUpgradeIds()).map(t => t.id);
 }
 
 export function getShopStock(): { weapons: StockWeapon[]; powerups: { type: string; sold: boolean }[]; rerolled: boolean } {
@@ -179,11 +190,32 @@ export function buyStockWeapon(i: number): boolean {
   shopCoins -= price;
   nextDiscount = false;
   s.sold = true;
-  setWeaponQuality(s.index, s.quality);
-  addPurchasedWeapon(s.index);
-  setWeapon(s.index);
-  weaponToast(s.index, s.quality);
+  addPurchasedWeapon(s.index, s.quality);
+  equiparSeMelhor(s.index, s.quality);
   sfxBuy();
+  return true;
+}
+
+/**
+ * Equipa o par se ele for melhor do que o que está na mão.
+ *
+ * Antes, toda compra trocava a arma na mão sem comparar: comprar uma Pistola
+ * Quebrada do estoque sobrescrevia uma RPG Lendária. O jogador não escolhia
+ * trocar, e a troca podia ser pior.
+ *
+ * @returns true se equipou
+ */
+function equiparSeMelhor(index: number, quality: string): boolean {
+  const dpsNovo = getEffectiveDps(index, quality);
+  const dpsAtual = getEffectiveDps(getCurrentWeaponIndex(), getWeaponQuality());
+  if (dpsNovo <= dpsAtual) {
+    const ganho = dpsAtual - dpsNovo;
+    flashNotice(`EQUIPADA: ${WEAPONS[index].name} · ${QUALITIES[quality].label} (DPS ${Math.round(dpsNovo)})`, QUALITIES[quality].color);
+    flashNotice(`NA MÃO: DPS ${Math.round(dpsAtual)} — ${Math.round(ganho)} MELHOR`, PALETTE.moss);
+    return false;
+  }
+  setWeapon(index, quality);
+  weaponToast(index, quality);
   return true;
 }
 
@@ -209,8 +241,20 @@ export function buyStockPowerup(i: number): boolean {
 export function equipInventoryWeapon(i: number): void {
   const slot = purchasedWeapons[i];
   if (slot === undefined) return;
-  setWeapon(slot.index);
+  setWeapon(slot.index, slot.quality);
   sfxBuy();
+}
+
+/** Vende uma peça da mochila e credita as moedas. */
+export function sellPiece(i: number): boolean {
+  const peca = getInventory()[i];
+  if (!peca) return false;
+  const preco = sellPieceFromInventory(i);
+  if (preco <= 0) return false;
+  shopCoins += preco;
+  flashNotice(`PEÇA VENDIDA POR ${preco}`, PALETTE.mustard);
+  sfxBuy();
+  return true;
 }
 
 export function sellInventoryWeapon(i: number): boolean {
@@ -222,11 +266,20 @@ export function sellInventoryWeapon(i: number): boolean {
     return false;
   }
   const idx = slot.index;
-  const q = QUALITIES[getWeaponQuality(idx)] ?? QUALITIES.normal;
+  // A raridade vem do PAR possuído, não de um mapa por índice: com a mesma
+  // arma em duas raridades, a última escrita vencia e as duas linhas vendiam
+  // pelo preço errado.
+  const q = QUALITIES[slot.quality] ?? QUALITIES.normal;
   const price = Math.round(WEAPONS[idx].price * 0.5 * q.sellMult);
   shopCoins += price;
+  // Peças equipadas voltam para a mochila. Sem isso elas ficavam presas num
+  // mapa que nenhuma tela lê de novo: o jogador perdia a peça na venda.
+  returnEquippedPieces(idx);
   purchasedWeapons.splice(i, 1);
-  if (getCurrentWeaponIndex() === idx && purchasedWeapons.length > 0) setWeapon(purchasedWeapons[0].index);
+  if (getCurrentWeaponIndex() === idx && purchasedWeapons.length > 0) {
+    const prox = purchasedWeapons[0];
+    setWeapon(prox.index, prox.quality);
+  }
   flashNotice(`VENDIDA POR ${price}`, PALETTE.mustard);
   sfxBuy();
   return true;
@@ -277,14 +330,14 @@ export function buyService(id: string): void {
     if (Math.random() < 0.5) {
       const pool = WEAPONS.map((_, i) => i).filter(i => !WEAPONS[i].secret || isGameCompleted());
       const idx = pool[Math.floor(Math.random() * pool.length)];
-      pushPendingReveal(idx, rollQuality(1));
+      pushPendingReveal(idx, rollQuality(1, Math.round(getStat('luck'))));
       flashNotice('ITEM NO NOVIDADES', PALETTE.mustard);
     } else {
       shopCoins += 70;
       flashNotice('+70 MOEDAS', PALETTE.mustard);
     }
   } else if (id === 'transmute') {
-    const q = rerollWeaponQuality(getCurrentWeaponIndex());
+    const q = rerollWeaponQuality();
     flashNotice(`QUALIDADE: ${QUALITIES[q].label.toUpperCase()}`, QUALITIES[q].color);
   } else if (id === 'repair') {
     repairCurrentWeapon();
@@ -294,78 +347,122 @@ export function buyService(id: string): void {
 }
 
 /**
- * Tenta comprar uma arma pelo índice. Se já foi comprada, apenas equipa.
- * @param index - índice da arma no array WEAPONS
- * @returns true se a compra/equipamento foi bem-sucedido
+ * Efeito de um degrau da escada, em UM lugar só.
+ *
+ * `buyPerk` e `restoreUpgrades` passam por aqui. Se cada um tivesse o seu
+ * corpo, o continue devolveria o jogador sem os 4 especiais — que vivem em flag
+ * (`ativarEspecialPerk`), não em stat, e uma flag que o restore não liga é um
+ * perk que o jogador pagou e não tem.
  */
-export function buyWeapon(index: number): boolean {
-  const w = WEAPONS[index];
-  if (!w) return false;
-  const quality = getWeaponQuality(index);
-  if (hasWeaponPair(index, quality)) {
-    setWeapon(index);
-    flashNotice('EQUIPADA', PALETTE.moss);
-    sfxBuy();
-    return true;
+function aplicarPerk(t: PerkTier): void {
+  if (t.special) {
+    ativarEspecialPerk(t.id);
+    // Sortudo entra no bolso na hora: sorte alta puxa o melhor evento
+    if (t.statId === 'luck') applyStat('luck', t.value);
+    return;
   }
-  if (shopCoins < w.price) {
+  if (t.statId === 'health') addMaxHealth(t.value);
+  else if (t.statId === 'speed') addSpeed(t.value);
+  else if (t.statId === 'shield') addShield(t.value);
+  else applyStat(t.statId, t.value);
+}
+
+/**
+ * Tenta comprar um degrau da escada de perks. Bloqueia o degrau N se o N-1
+ * não foi comprado, e aplica especial via `ativarEspecialPerk`.
+ */
+export function buyPerk(perkId: string): boolean {
+  const perk = PERK_LADDER.find(t => t.id === perkId);
+  if (!perk) return false;
+  if (purchasedUpgrades.includes(perkId)) return false;
+  if (perk.requires && !purchasedUpgrades.includes(perk.requires)) {
+    flashNotice('COMPRE O DEGRAU ANTERIOR', PALETTE.danger);
+    sfxError();
+    return false;
+  }
+  if (shopCoins < perk.price) {
     flashNotice('SEM MOEDAS', PALETTE.danger);
     sfxError();
     return false;
   }
-  shopCoins -= w.price;
-  purchasedWeapons.push({ index, quality: getWeaponQuality(index) });
-  setWeapon(index);
-  flashNotice(`${w.name} ADQUIRIDA`, PALETTE.moss);
+  shopCoins -= perk.price;
+  purchasedUpgrades.push(perkId);
+  aplicarPerk(perk);
+  // a oferta da visita perde o comprado e puxa o próximo degrau do ramo
+  stockPerks = stockPerks.filter(id => id !== perkId);
+  for (const proximo of degrausCompraveis(purchasedUpgrades)) {
+    if (!stockPerks.includes(proximo.id) && stockPerks.length < 3) stockPerks.push(proximo.id);
+  }
+  flashNotice(`${perk.name.toUpperCase()} ATIVO`, PALETTE.moss);
+  sfxBuy();
+  return true;
+}
+
+/** Perks ofertados nesta visita (os 3 sorteados no restock). */
+export function getStockPerks(): string[] { return stockPerks.slice(); }
+
+/**
+ * Compra um talento da árvore de progressão. Gasta 1 ponto de nível (não moeda)
+ * e aplica o efeito. O ponto vem do XP acumulado em `progress.ts`.
+ */
+export function buyTalento(id: string): boolean {
+  const t = TALENTOS.find(x => x.id === id);
+  if (!t) return false;
+  if (getPontosLivres() <= 0) {
+    flashNotice('SEM PONTO DE TALENTO', PALETTE.danger);
+    sfxError();
+    return false;
+  }
+  if (!gastarPontoTalento(id)) {
+    flashNotice('JÁ POSSUI ESTE TALENTO', PALETTE.danger);
+    sfxError();
+    return false;
+  }
+  applyUpgrade(t.effect, t.value);
+  flashNotice(`${t.name.toUpperCase()} ATIVO`, PALETTE.moss);
   sfxBuy();
   return true;
 }
 
 /**
- * Tenta comprar um upgrade pelo nome.
+ * Reaplica os efeitos de talentos já comprados (continue do save), sem gastar
+ * ponto. `restoreTalentos` marca quais existem; aqui só o efeito entra no jogador.
  */
+export function applySavedTalentos(ids: string[]): void {
+  restoreTalentos(ids);
+  for (const id of ids) {
+    const t = TALENTOS.find(x => x.id === id);
+    if (t) applyUpgrade(t.effect, t.value);
+  }
+}
 
-/** Valor já contratado por efeito (evita "quem fica é o último") */
-const purchasedEffectValues = new Map<string, number>();
-
-export function buyUpgrade(name: string): boolean {
-  if (purchasedUpgrades.includes(name)) return false;
-  const upgrade = UPGRADES.find(u => u.name === name);
-  if (!upgrade) return false;
-  const existing = purchasedEffectValues.get(upgrade.effect);
-  if (existing !== undefined) {
-    if (upgrade.value <= existing) {
-      flashNotice('JÁ POSSUI BÔNUS DESTE TIPO', PALETTE.danger);
-      sfxError();
-      return false;
+/**
+ * Re-aplica o que o save gravou, sem cobrar nada (continue da partida).
+ *
+ * Dois caminhos, nesta ordem:
+ *  1. id de degrau da escada → `aplicarPerk`, a mesma porta da compra;
+ *  2. id OU nome de compra antiga → `PERK_LEGADO`, efeito aplicado direto.
+ *
+ * Dentro do legado vale a mesma regra da compra: dois upgrades do mesmo efeito
+ * não empilham, o maior vence. `vida25` + `vida50` no save antigo valem +50,
+ * não +75. O histórico do "quem fica é o último" morava num Map do módulo que
+ * só o caminho morto de `buyUpgrade` escrevia; aqui é estado local do restore.
+ */
+export function restoreUpgrades(ids: string[]): void {
+  const maiorPorEfeito = new Map<string, number>();
+  for (const id of ids) {
+    const perk = PERK_LADDER.find(t => t.id === id);
+    if (perk) {
+      purchasedUpgrades.push(perk.id);
+      aplicarPerk(perk);
+      continue;
     }
-  }
-  if (shopCoins < upgrade.price) {
-    flashNotice('SEM MOEDAS', PALETTE.danger);
-    sfxError();
-    return false;
-  }
-  shopCoins -= upgrade.price;
-  purchasedUpgrades.push(name);
-  purchasedEffectValues.set(upgrade.effect, upgrade.value);
-  applyUpgrade(upgrade.effect, upgrade.value - (existing ?? 0));
-  flashNotice(`${upgrade.name} ATIVO`, PALETTE.moss);
-  sfxBuy();
-  return true;
-}
-
-/**
- * Re-aplica upgrades salvos (delta contra um eventual valor menor do mesmo
- * efeito). Usado ao continuar o jogo salvo.
- */
-export function restoreUpgrades(upgrades: string[]): void {
-  for (const name of upgrades) {
-    const u = UPGRADES.find(up => up.name === name);
-    if (!u) continue;
-    purchasedUpgrades.push(name);
-    const existing = purchasedEffectValues.get(u.effect);
-    purchasedEffectValues.set(u.effect, Math.max(existing ?? 0, u.value));
-    applyUpgrade(u.effect, u.value - (existing ?? 0));
+    const legado = PERK_LEGADO[id];
+    if (!legado) continue;
+    purchasedUpgrades.push(legado.id);
+    const anterior = maiorPorEfeito.get(legado.effect);
+    maiorPorEfeito.set(legado.effect, Math.max(anterior ?? 0, legado.value));
+    applyUpgrade(legado.effect, legado.value - (anterior ?? 0));
   }
 }
 
@@ -385,11 +482,12 @@ function applyUpgrade(effect: string, value: number) {
 export function resetShop() {
   purchasedWeapons = [{ index: 0, quality: 'normal' }];
   purchasedUpgrades = [];
-  purchasedEffectValues.clear();
   pendingReveals = [];
   boughtPowerups = [];
   stockSeed = 0;
   stockKey = '';
+  // sem isto a run seguinte abre a loja com a oferta da partida anterior
+  stockPerks = [];
   rerolledThisVisit = false;
   nextDiscount = false;
   shopScrollOffset = 0;
@@ -418,13 +516,14 @@ export interface ShopLayout {
   upgrades: Rect[];
   skins: Rect[];
   ad: Rect;
+  support: Rect;
   /** Área visível do conteúdo scrolável (define a região de clip) */
   clip: Rect;
   /** Y do topo de cada seção (rótulos) */
   sections: {
     weapons: number; upgrades: number; skins: number; ads: number; diary: number;
     powerups: number; novidades: number; services: number; inventory: number;
-    equippedPieces: number; pieces: number;
+    equippedPieces: number; pieces: number; talentos: number;
   };
   contentHeight: number;
   maxScroll: number;
@@ -438,6 +537,8 @@ export interface ShopLayout {
   equippedPieces: Rect[];
   /** Linhas de peças não equipadas na mochila */
   pieces: Rect[];
+  /** Linhas da árvore de talentos (6 = 3 galhos × 2) */
+  talentos: Rect[];
 }
 
 const ROW_H = 48;
@@ -446,13 +547,15 @@ const SECTION_GAP = 20;
 const SKIN_COLS = 5;
 const SKIN_SIZE = 44;
 const SKIN_GAP = 6;
-const SKIN_ROW_H = SKIN_SIZE + SKIN_GAP + 12;
+// 74 e não 62: cada linha carrega o card (44) + o nome (11px em +11) + o preço
+// (11px em +20), ou seja 64px de conteúdo. Com 62 a 2ª linha invadia a seção
+// MOEDAS — visível no PNG do `loja-proof.mjs`, onde "Fita Isolante" ficou
+// atrás de "RESGATE DE MOEDAS". Os 10px de folga são a folga entre linhas.
+const SKIN_ROW_H = SKIN_SIZE + 30;
 
 /**
  * Calcula todos os retângulos da loja para uma largura de tela.
  * Única fonte de verdade: o draw e o hit-test consomem exatamente isto.
- * @param width - largura do canvas
- * @param height - altura do canvas
  */
 export function getShopLayout(width: number, height: number): ShopLayout {
   const completed = isGameCompleted();
@@ -482,15 +585,23 @@ export function getShopLayout(width: number, height: number): ShopLayout {
     powerups.push({ x: leftX, y: powerupsY + 20 + i * ROW_H, w: colW, h: 44 });
   }
 
-  const upgrades: Rect[] = UPGRADES.map((_, i) => ({
+  // 3 perks por visita — a seção encolheu dos 19 upgrades para 3 linhas, e os
+  // serviços sobem junto (servicesY deriva daqui).
+  const upgrades: Rect[] = [0, 1, 2].map((_, i) => ({
     x: rightX, y: ROW_TOP + i * ROW_H, w: colW, h: 44,
   }));
 
-  const servicesY = ROW_TOP + UPGRADES.length * ROW_H + SECTION_GAP;
+  const servicesY = ROW_TOP + 3 * ROW_H + SECTION_GAP;
   const services: Rect[] = [];
   for (let i = 0; i < SHOP_SERVICES.length; i++) {
     services.push({ x: rightX, y: servicesY + 20 + i * ROW_H, w: colW, h: 44 });
   }
+
+  // ── árvore de talentos: 3 galhos × 2 nós, coluna direita, abaixo dos serviços ──
+  const talentosY = servicesY + 20 + SHOP_SERVICES.length * ROW_H + SECTION_GAP;
+  const talentos: Rect[] = TALENTOS.map((_, i) => ({
+    x: rightX, y: talentosY + 20 + i * ROW_H, w: colW, h: 44,
+  }));
 
   // inventário do jogador: linhas para equipar/vender
   const inventoryY = powerupsY + (3 > 0 ? 20 + 3 * ROW_H : 0) + SECTION_GAP;
@@ -525,7 +636,7 @@ export function getShopLayout(width: number, height: number): ShopLayout {
     equippedPiecesBottom,
     piecesBottom,
   );
-  const skinsY = Math.max(leftColumnBottom, servicesY + 20 + SHOP_SERVICES.length * ROW_H) + SECTION_GAP;
+  const skinsY = Math.max(leftColumnBottom, servicesY + 20 + SHOP_SERVICES.length * ROW_H, talentosY + 20 + TALENTOS.length * ROW_H) + SECTION_GAP;
   const skins: Rect[] = [];
   for (let i = 0; i < skinsCount; i++) {
     const col = i % SKIN_COLS;
@@ -540,23 +651,25 @@ export function getShopLayout(width: number, height: number): ShopLayout {
 
   const adsY = skinsY + 20 + skinRows * SKIN_ROW_H + 15;
   const ad: Rect = { x: leftX, y: adsY + 25, w: 280, h: 60 };
+  const supportY = ad.y + ad.h + 10;
+  const support: Rect = { x: leftX, y: supportY, w: 280, h: 44 };
 
-  const diaryY = ad.y + ad.h + 45;
+  const diaryY = support.y + support.h + 30;
   const contentHeight = diaryY + 120 - contentStart;
   const maxScroll = Math.max(0, contentHeight - (height - contentStart - 40));
 
   return {
-    weapons, upgrades, skins, ad,
+    weapons, upgrades, skins, ad, support,
     clip: { x: 0, y: contentStart, w: width, h: height - contentStart - 40 },
     sections: {
       weapons: ROW_TOP - 25, upgrades: ROW_TOP - 25, skins: skinsY, ads: adsY, diary: diaryY,
       powerups: powerupsY, novidades: novidadesY, services: servicesY, inventory: inventoryY,
-      equippedPieces: equippedPiecesY, pieces: piecesY,
+      equippedPieces: equippedPiecesY, pieces: piecesY, talentos: talentosY,
     },
     contentHeight,
     maxScroll,
     powerups, novidades, services, inventory,
-    equippedPieces, pieces,
+    equippedPieces, pieces, talentos,
   };
 }
 
@@ -580,6 +693,11 @@ export function rowActionButtons(r: Rect): { primary: Rect; sell: Rect } {
 // ─── Desenho ───────────────────────────────────────────────────
 
 let shopScrollOffset = 0;
+
+/** Rola a loja para uma posição absoluta. Usado pelo `loja-proof.mjs`. */
+export function setShopScroll(y: number): void {
+  shopScrollOffset = Math.max(0, y);
+}
 
 function onShopWheel(e: WheelEvent) {
   if (getGameState() !== 'shop') return;
@@ -678,9 +796,20 @@ export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: n
       }
 
       ctx.textAlign = 'left';
+      // DPS real, com o delta contra a arma na mão. O número antigo era
+      // `damage × qualidade`: ignorava upgrade, combo, classe e peça, então
+      // imprimia "DANO 6" numa build que fazia ~11 e não dizia se valia trocar.
+      const dpsNovo = getEffectiveDps(s.index, s.quality);
+      const dpsNaMao = getEffectiveDps(getCurrentWeaponIndex(), getWeaponQuality());
+      const delta = dpsNovo - dpsNaMao;
+      const sinal = delta > 0.5 ? `+${Math.round(delta)}` : `${Math.round(delta)}`;
       ctx.fillStyle = PALETTE.textOff;
-      ctx.font = '10px monospace';
-      ctx.fillText(`${q.label.toUpperCase()} · DANO ${Math.round(w.damage * q.damageMult)} · ${Math.round(w.shootRate * q.cadenceMult * 100) / 100}s · ${w.magazineSize} tiros`, r.x + 40, r.y + 30);
+      ctx.font = '11px monospace';
+      ctx.fillText(
+        `${q.label.toUpperCase()} · DPS ${Math.round(dpsNovo)} (${sinal}) · ${Math.round(w.shootRate * q.cadenceMult * 100) / 100}s · ${getCapacityOf(s.index)} tiros`,
+        r.x + 40, r.y + 30,
+      );
+      ctx.fillStyle = delta > 0.5 ? PALETTE.moss : delta < -0.5 ? PALETTE.danger : PALETTE.textDim;
       ctx.fillText(WEAPON_DESC[w.name] ?? '', r.x + 40, r.y + 42);
     });
   }
@@ -702,7 +831,7 @@ export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: n
       ctx.textAlign = 'left';
       ctx.fillStyle = q.color;
       ctx.font = 'bold 13px monospace';
-      ctx.fillText(`${w.name} · ${q.label}`, r.x + 40, r.y + 16);
+      ctx.fillText(`${w.name} · ${conditionLabel(w.name, p.quality)}`, r.x + 40, r.y + 16);
       {
         ctx.fillStyle = q.color;
         ctx.fillRect(r.x + 6, r.y + 6, 30, 30);
@@ -714,9 +843,13 @@ export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: n
       }
       const { primary, sell } = rowActionButtons(r);
       const sellPrice = Math.round(WEAPONS[p.index].price * 0.5 * q.sellMult);
+      // condição com adjetivo por arma: "Metralhadora · Corroída" diz mais que
+      // "Metralhadora · Enferrujada", e o traço explica o que o som faz
+      const traco = conditionTrait(w.name, p.quality);
+      const descricao = traco ? `${traco} ${WEAPON_DESC[w.name] ?? ''}`.trim() : (WEAPON_DESC[w.name] ?? '');
       ctx.fillStyle = PALETTE.textOff;
-      ctx.font = '10px monospace';
-      ctx.fillText(truncateText(WEAPON_DESC[w.name] ?? '', primary.x - 8 - (r.x + 40), 10), r.x + 40, r.y + 30);
+      ctx.font = '11px monospace';
+      ctx.fillText(truncateText(descricao, primary.x - 8 - (r.x + 40), 10), r.x + 40, r.y + 30);
       drawRowActionButton(ctx, primary, hit(primary, mouseX, scrollY), 'MANTER', 'primary', canKeepPending() ? PALETTE.moss : PALETTE.textOff);
       drawRowActionButton(ctx, sell, hit(sell, mouseX, scrollY), `VENDER +${sellPrice}`, 'sell', PALETTE.mustard);
     });
@@ -755,9 +888,14 @@ export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: n
       ctx.fillText(s.sold ? 'VENDIDO' : `${price}`, r.x + r.w - 10, r.y + 16);
       ctx.textAlign = 'left';
       ctx.fillStyle = PALETTE.textOff;
-      ctx.font = '10px monospace';
-      ctx.fillText(`${POWERUP_DESC[s.type] ?? ''} · Duração ${POWERUP_TYPES[s.type]?.duration ?? 0}s na próxima fase`, r.x + 40, r.y + 30);
-      ctx.fillText(POWERUP_TYPES[s.type] ? '' : '', r.x + 40, r.y + 42);
+      ctx.font = '11px monospace';
+      // A descrição era desenhada inteira numa linha de 44px de altura: o
+      // `trajeNucleo` tem 93 caracteres e vazava para fora do card, por cima
+      // da seção seguinte. A linha tem `r.w - 50` de largura útil (40 do
+      // recuo + 10 da margem) — truncar aqui é o mesmo `truncateText` que as
+      // skins usam, e o nome inteiro continua no tooltip do clique.
+      const desc = `${POWERUP_DESC[s.type] ?? ''} · ${POWERUP_TYPES[s.type]?.duration ?? 0}s na próxima fase`;
+      ctx.fillText(truncateText(desc, r.w - 50), r.x + 40, r.y + 30);
     });
   }
 
@@ -794,9 +932,49 @@ export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: n
     ctx.fillText(`${price}`, r.x + r.w - 10, r.y + 16);
     ctx.textAlign = 'left';
     ctx.fillStyle = PALETTE.textOff;
-    ctx.font = '10px monospace';
+    ctx.font = '11px monospace';
     ctx.fillText(def.desc, r.x + 40, r.y + 30);
   });
+
+  // ── ÁRVORE DE TALENTOS ──
+  // Gasta ponto de nível (do XP acumulado), não moeda. Mostra nível, XP e os
+  // pontos livres no rótulo; o nó comprado fica verde e some da lista de compra.
+  {
+    const prog = progressoNoNivel(getXp());
+    sectionLabel(
+      ctx,
+      `ÁRVORE DE TALENTOS · NÍVEL ${getNivel()} · ${prog.atual}/${prog.necessario} XP · ${getPontosLivres()} PONTO(S)`,
+      L.talentos[0].x, L.sections.talentos, PALETTE.moss,
+    );
+    const comprados = getTalentosComprados();
+    const corGalho: Record<string, string> = { mente: '#608090', armas: '#b07050', movimento: '#7a9a6a' };
+    L.talentos.forEach((r, i) => {
+      const t = TALENTOS[i];
+      if (!t) return;
+      const comprado = comprados.includes(t.id);
+      const disponivel = !comprado && getPontosLivres() > 0;
+      const hover = hit(r, mouseX, scrollY) && disponivel;
+      ctx.fillStyle = hover ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.02)';
+      ctx.fillRect(r.x, r.y, r.w, r.h);
+      ctx.strokeStyle = comprado ? PALETTE.moss : (disponivel ? 'rgba(160,128,80,0.5)' : 'rgba(255,255,255,0.05)');
+      ctx.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1);
+      ctx.fillStyle = comprado ? PALETTE.moss : corGalho[t.galho];
+      ctx.fillRect(r.x + 6, r.y + 6, 30, 30);
+      ctx.fillStyle = '#111';
+      ctx.font = 'bold 14px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(t.galho.charAt(0).toUpperCase(), r.x + 6 + 15, r.y + 6 + 20);
+      ctx.textAlign = 'left';
+      ctx.fillStyle = comprado ? PALETTE.moss : (disponivel ? PALETTE.text : PALETTE.textOff);
+      ctx.font = 'bold 13px monospace';
+      ctx.fillText(t.name, r.x + 40, r.y + 16);
+      ctx.textAlign = 'right';
+      ctx.font = '11px monospace';
+      ctx.fillStyle = comprado ? PALETTE.moss : (disponivel ? PALETTE.mustard : PALETTE.textOff);
+      ctx.fillText(comprado ? 'ATIVO' : '1 PT', r.x + r.w - 10, r.y + 16);
+      ctx.textAlign = 'left';
+    });
+  }
 
   // ── INVENTÁRIO ──
   if (L.inventory.length > 0) {
@@ -806,8 +984,8 @@ export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: n
       if (slot === undefined) return;
       const idx = slot.index;
       const w = WEAPONS[idx];
-      const q = QUALITIES[getWeaponQuality(idx)] ?? QUALITIES.normal;
-      const isEquipped = getCurrentWeaponIndex() === idx;
+      const q = QUALITIES[slot.quality] ?? QUALITIES.normal;
+      const isEquipped = getCurrentWeaponIndex() === idx && getWeaponQuality() === slot.quality;
       const hover = hit(r, mouseX, scrollY);
       ctx.fillStyle = hover ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.02)';
       ctx.fillRect(r.x, r.y, r.w, r.h);
@@ -825,12 +1003,12 @@ export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: n
       ctx.textAlign = 'left';
       ctx.fillStyle = isEquipped ? PALETTE.moss : q.color;
       ctx.font = 'bold 13px monospace';
-      ctx.fillText(`${w.name} · ${q.label}`, r.x + 40, r.y + 16);
+      ctx.fillText(`${w.name} · ${conditionLabel(w.name, slot.quality)}`, r.x + 40, r.y + 16);
       const { primary, sell } = rowActionButtons(r);
       const sellPrice = Math.round(w.price * 0.5 * q.sellMult);
       const desc = isEquipped ? `${WEAPON_DESC[w.name] ?? ''} — EQUIPADA` : (WEAPON_DESC[w.name] ?? '');
       ctx.fillStyle = PALETTE.textOff;
-      ctx.font = '10px monospace';
+      ctx.font = '11px monospace';
       ctx.fillText(truncateText(desc, primary.x - 8 - (r.x + 40), 10), r.x + 40, r.y + 30);
       drawRowActionButton(ctx, primary, hit(primary, mouseX, scrollY), 'EQUIPAR', 'primary', PALETTE.moss);
       drawRowActionButton(ctx, sell, hit(sell, mouseX, scrollY), `VENDER +${sellPrice}`, 'sell', PALETTE.mustard);
@@ -873,7 +1051,7 @@ export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: n
       ctx.font = 'bold 13px monospace';
       ctx.fillText(def.name, r.x + 40, r.y + 16);
       ctx.fillStyle = PALETTE.textOff;
-      ctx.font = '10px monospace';
+      ctx.font = '11px monospace';
       ctx.fillText(`${def.desc} — clique p/ remover`, r.x + 40, r.y + 30);
     });
   }
@@ -904,17 +1082,20 @@ export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: n
       ctx.font = 'bold 13px monospace';
       ctx.fillText(def.name, r.x + 40, r.y + 16);
       ctx.fillStyle = PALETTE.textOff;
-      ctx.font = '10px monospace';
-      ctx.fillText(`${def.desc} — clique p/ equipar na arma atual`, r.x + 40, r.y + 30);
+      ctx.font = '11px monospace';
+      ctx.fillText(`${def.desc} — clique p/ equipar`, r.x + 40, r.y + 30);
+      const { sell } = rowActionButtons(r);
+      drawRowActionButton(ctx, sell, hit(sell, mouseX, scrollY), `VENDER +${pieceSellPrice(piece.typeId)}`, 'sell', PALETTE.mustard);
     });
   }
 
-  // ── UPGRADES ──
-  sectionLabel(ctx, 'UPGRADES', L.upgrades[0].x, L.sections.upgrades, '#8a7a9a');
+  // ── PERKS (3 por visita, do restock) ──
+  sectionLabel(ctx, 'PERKS', L.upgrades[0].x, L.sections.upgrades, '#8a7a9a');
   L.upgrades.forEach((r, i) => {
-    const u = UPGRADES[i];
-    const owned = purchasedUpgrades.includes(u.name);
-    const canBuy = !owned && shopCoins >= u.price;
+    const t = PERK_LADDER.find(p => p.id === stockPerks[i]);
+    if (!t) return;
+    const owned = purchasedUpgrades.includes(t.id);
+    const canBuy = !owned && shopCoins >= t.price;
     const hover = hit(r, mouseX, scrollY);
 
     ctx.fillStyle = hover ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.02)';
@@ -923,29 +1104,29 @@ export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: n
     ctx.lineWidth = 1;
     ctx.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1);
     {
-      const hueMap: Record<string, string> = { health: PALETTE.moss, speed: '#c8b890', damage: PALETTE.terracotta, shield: PALETTE.stone, magnet: '#8a8a9a', crit: '#b07050', pierce: PALETTE.title, regen: '#7a9a6a', reloadSpeed: '#a08050', armor: '#608090' };
-      ctx.fillStyle = hueMap[u.effect] ?? PALETTE.textOff;
+      const hueMap: Record<string, string> = { dano: PALETTE.terracotta, corpo: PALETTE.moss, pernas: '#c8b890', mente: PALETTE.stone };
+      ctx.fillStyle = hueMap[t.ram] ?? PALETTE.textOff;
       ctx.fillRect(r.x + 6, r.y + 6, 30, 30);
       ctx.fillStyle = '#111';
       ctx.font = 'bold 14px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText(u.name.charAt(0), r.x + 6 + 15, r.y + 6 + 20);
+      ctx.fillText(t.name.charAt(0), r.x + 6 + 15, r.y + 6 + 20);
       ctx.textAlign = 'left';
     }
     ctx.fillStyle = owned ? PALETTE.moss : canBuy ? PALETTE.text : PALETTE.textOff;
     ctx.font = '13px monospace';
     ctx.textAlign = 'left';
-    ctx.fillText(u.name, r.x + 40, r.y + 16);
+    ctx.fillText(t.name, r.x + 40, r.y + 16);
 
     ctx.textAlign = 'right';
     ctx.font = '11px monospace';
     ctx.fillStyle = owned ? PALETTE.moss : canBuy ? PALETTE.mustard : PALETTE.textOff;
-    ctx.fillText(owned ? 'ATIVO' : `${u.price}`, r.x + r.w - 10, r.y + 16);
+    ctx.fillText(owned ? 'ATIVO' : `${t.price}`, r.x + r.w - 10, r.y + 16);
 
     ctx.fillStyle = PALETTE.textOff;
-    ctx.font = '10px monospace';
+    ctx.font = '11px monospace';
     ctx.textAlign = 'left';
-    ctx.fillText(effectText(u.effect, u.value), r.x + 40, r.y + 30);
+    ctx.fillText(`RAMO ${t.ram.toUpperCase()} T${t.tier}`, r.x + 40, r.y + 30);
   });
 
   // ── SKINS ──
@@ -978,9 +1159,12 @@ export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: n
     }
 
     ctx.fillStyle = skin.unlocked ? PALETTE.textDim : PALETTE.textOff;
-    ctx.font = '9px monospace';
+    ctx.font = '11px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText(skin.name, r.x + SKIN_SIZE / 2, r.y + SKIN_SIZE + 11);
+    // "Fita Isolante" (12) e "Sangue Seco" (11) medem ~79px numa coluna de
+    // 44px: vazavam por cima da linha seguinte (visível no PNG). O nome cheio
+    // continua no tooltip do clique; aqui cabe o que cabe.
+    ctx.fillText(truncateText(skin.name, SKIN_SIZE), r.x + SKIN_SIZE / 2, r.y + SKIN_SIZE + 11);
     if (!skin.unlocked) {
       ctx.fillStyle = canBuy ? PALETTE.mustard : PALETTE.textOff;
       ctx.fillText(`${skin.price}`, r.x + SKIN_SIZE / 2, r.y + SKIN_SIZE + 20);
@@ -988,8 +1172,9 @@ export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: n
   });
 
   // ── ANÚNCIOS ──
-  sectionLabel(ctx, 'ANÚNCIOS', L.ad.x, L.sections.ads, PALETTE.terracotta);
+  sectionLabel(ctx, 'MOEDAS', L.ad.x, L.sections.ads, PALETTE.terracotta);
   drawAdButton(ctx, L.ad, hit(L.ad, mouseX, scrollY));
+  drawSupportButton(ctx, L.support, hit(L.support, mouseX, scrollY));
 
   // ── DIÁRIO ──
   const diaryEntries = getUnlockedDiary();
@@ -1002,7 +1187,7 @@ export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: n
       ctx.font = 'bold 11px monospace';
       ctx.fillText(entry.title, L.ad.x, entryY);
       ctx.fillStyle = PALETTE.textOff;
-      ctx.font = '10px monospace';
+      ctx.font = '11px monospace';
       ctx.fillText(entry.text.substring(0, 80) + '...', L.ad.x, entryY + 14);
       entryY += 32;
     }
@@ -1062,7 +1247,7 @@ function drawAdButton(ctx: CanvasRenderingContext2D, r: Rect, hover: boolean) {
     ctx.fillStyle = '#111';
     ctx.font = 'bold 14px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('A', r.x + 6 + 15, r.y + 6 + 20);
+    ctx.fillText('M', r.x + 6 + 15, r.y + 6 + 20);
   }
   ctx.textAlign = 'center';
 
@@ -1072,25 +1257,59 @@ function drawAdButton(ctx: CanvasRenderingContext2D, r: Rect, hover: boolean) {
     ctx.fillRect(r.x + 8, r.y + 26, (r.w - 16) * progress, 8);
     ctx.fillStyle = PALETTE.text;
     ctx.font = '12px monospace';
-    ctx.fillText(`Assistindo... ${Math.floor(progress * 100)}%`, r.x + r.w / 2, r.y + 18);
+    ctx.fillText(`Resgatando... ${Math.floor(progress * 100)}%`, r.x + r.w / 2, r.y + 18);
   } else if (canWatchAd()) {
     ctx.fillStyle = PALETTE.text;
     ctx.font = '13px monospace';
-    ctx.fillText('ASSISTIR ANÚNCIO', r.x + r.w / 2, r.y + 20);
+    ctx.fillText('RESGATE DE MOEDAS', r.x + r.w / 2, r.y + 20);
     ctx.fillStyle = PALETTE.mustard;
     ctx.font = '11px monospace';
     ctx.fillText(`+${getNextAdReward()}`, r.x + r.w / 2, r.y + 38);
     ctx.fillStyle = PALETTE.textOff;
-    ctx.font = '10px monospace';
-    ctx.fillText(`Assistidos: ${getAdsWatched()}`, r.x + r.w / 2, r.y + 52);
+    ctx.font = '11px monospace';
+    ctx.fillText(`Resgatados: ${getAdsWatched()}`, r.x + r.w / 2, r.y + 52);
+  } else if (getAdsRemaining() === 0) {
+    // Cota da fase esgotada. Sem este ramo o botão mostrava "Volta em 0s"
+    // para sempre, que parece bug — e era, porque o cooldown já tinha zerado.
+    ctx.fillStyle = PALETTE.textOff;
+    ctx.font = '12px monospace';
+    ctx.fillText('COTA ESGOTADA NESTA FASE', r.x + r.w / 2, r.y + 22);
+    ctx.fillStyle = PALETTE.textOff;
+    ctx.font = '11px monospace';
+    ctx.fillText(`Resgatados: ${getAdsWatched()}`, r.x + r.w / 2, r.y + 40);
   } else {
     ctx.fillStyle = PALETTE.textOff;
     ctx.font = '12px monospace';
-    ctx.fillText(`Cooldown: ${Math.ceil(getAdCooldown())}s`, r.x + r.w / 2, r.y + 22);
+    ctx.fillText(`Volta em ${Math.ceil(getAdCooldown())}s`, r.x + r.w / 2, r.y + 22);
     ctx.fillStyle = PALETTE.textOff;
-    ctx.font = '10px monospace';
+    ctx.font = '11px monospace';
     ctx.fillText(`+${getNextAdReward()}`, r.x + r.w / 2, r.y + 40);
   }
+}
+
+/** Botão de apoio: abre a página de doação. Sem recompensa, sem cooldown. */
+function drawSupportButton(ctx: CanvasRenderingContext2D, r: Rect, hover: boolean): void {
+  ctx.fillStyle = hover ? 'rgba(160,128,80,0.18)' : 'rgba(255,255,255,0.03)';
+  ctx.fillRect(r.x, r.y, r.w, r.h);
+  ctx.strokeStyle = 'rgba(160,128,80,0.4)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1);
+
+  ctx.fillStyle = PALETTE.mustard;
+  ctx.fillRect(r.x + 6, r.y + 7, 30, 30);
+  ctx.fillStyle = '#111';
+  ctx.font = 'bold 14px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('A', r.x + 6 + 15, r.y + 7 + 20);
+
+  ctx.textAlign = 'left';
+  ctx.fillStyle = PALETTE.text;
+  ctx.font = 'bold 12px monospace';
+  ctx.fillText(SUPPORT_LABEL, r.x + 46, r.y + 20);
+  ctx.fillStyle = PALETTE.textDim;
+  ctx.font = '11px monospace';
+  ctx.fillText('o jogo é gratuito e continua assim', r.x + 46, r.y + 35);
+  ctx.textAlign = 'left';
 }
 
 /** Desenha uma caixa de ação de linha (EQUIPAR/MANTER ou VENDER) com rótulo centralizado. */
@@ -1109,33 +1328,85 @@ function drawRowActionButton(ctx: CanvasRenderingContext2D, r: Rect, hover: bool
   ctx.textAlign = 'left';
 }
 
+/**
+ * Lista o texto que a loja desenha com a caixa que ele precisa caber.
+ *
+ * Existe para o `loja-proof.mjs` (regra 16). As duas seções que reclamaram de
+ * estouro — nome de skin na coluna de 44px e a descrição do traje no card —
+ * ficavam abaixo da dobra: nenhum dos dois harness pegava, e `tsc` nunca pega.
+ * A medição é feita com o `measureText` do canvas do jogo, na fonte real.
+ */
+export function medirTextosDaLoja(ctx: CanvasRenderingContext2D): { textos: { texto: string; largura: number; caixa: number; caixaNome: string; categoria: string }[]; secoes: { esquerda: [string, number, number][]; direita: [string, number, number][] } } {
+  const L = getShopLayout(ctx.canvas.width, ctx.canvas.height);
+  const textos: { texto: string; largura: number; caixa: number; caixaNome: string; categoria: string }[] = [];
+  const medir = (texto: string, fonte: string): number => {
+    const anterior = ctx.font;
+    ctx.font = fonte;
+    const w = ctx.measureText(texto).width;
+    ctx.font = anterior;
+    return w;
+  };
+
+  for (const [i, r] of L.powerups.entries()) {
+    const tipo = stockPowerups[i]?.type;
+    if (!tipo) continue;
+    // mede o que é DESENHADO (o truncado), não o original: medir o original
+    // reprovaria toda descrição longa mesmo com o truncado funcionando
+    const linha = truncateText(`${POWERUP_DESC[tipo] ?? ''} · ${POWERUP_TYPES[tipo]?.duration ?? 0}s na próxima fase`, r.w - 50);
+    textos.push({ texto: linha, largura: medir(linha, '11px monospace'), caixa: r.w - 50, caixaNome: 'card de power-up', categoria: 'powerup' });
+  }
+
+  for (const [i, r] of L.skins.entries()) {
+    const nome = truncateText(getAllSkins()[i]?.name ?? '', r.w);
+    textos.push({ texto: nome, largura: medir(nome, '11px monospace'), caixa: r.w, caixaNome: 'coluna de skin', categoria: 'skin' });
+  }
+
+  for (const [i, r] of L.weapons.entries()) {
+    const par = purchasedWeapons[i];
+    const nome = par ? WEAPONS[par.index]?.name ?? '' : '';
+    textos.push({ texto: nome, largura: medir(nome, '13px monospace'), caixa: r.w - 50, caixaNome: 'card de arma', categoria: 'arma' });
+  }
+
+  // As seções em Y, por COLUNA. A loja tem duas colunas que andam na mesma
+  // altura de propósito (ARMAS à esquerda, PERKS à direita), então comparar Y
+  // entre colunas dá falso positivo em metade das seções. Só se compara quem
+  // está na mesma coluna.
+  const linha = (y: number, n: number) => [y, 20 + n * ROW_H] as const;
+  const esq: [string, number, number][] = [
+    ['ARMAS', ...linha(L.sections.weapons, 3)],
+    ['POWER-UPS', ...linha(L.sections.powerups, 3)],
+    ['MEU INVENTARIO', ...linha(L.sections.inventory, purchasedWeapons.length)],
+    ['PECAS', ...linha(L.sections.equippedPieces, 2)],
+    ['SKINS', L.sections.skins, 20 + Math.ceil(getAllSkins().length / SKIN_COLS) * SKIN_ROW_H],
+    ['MOEDAS', L.sections.ads, 60 + 44 + 30],
+  ];
+  const dir: [string, number, number][] = [
+    ['PERKS', ...linha(L.sections.upgrades, 3)],
+    ['SERVICOS', ...linha(L.sections.services, SHOP_SERVICES.length)],
+    ['TALENTOS', ...linha(L.sections.talentos, TALENTOS.length)],
+  ];
+  return { textos, secoes: { esquerda: esq, direita: dir } };
+}
+
+/**
+ * Largura por caractere da fonte 11px monospace do jogo.
+ *
+ * A conta anterior de todo truncado era 6.6px e errava por ~9%: `Lanterna` (8
+ * caracteres) mede **53px** com `measureText` do navegador, ou seja 6.6px de
+ * sobra só depois de 8 — e a coluna da skin tem 44px. O nome vazava. Medido
+ * pelo `loja-proof.mjs`, que usa o canvas real em vez de constante.
+ */
+const CHAR_W_11PX = 6.63;
+
 /** Trunca com … para caber em `maxPx` (monospace: `charW` px por caractere). */
-function truncateText(text: string, maxPx: number, charW: number): string {
+function truncateText(text: string, maxPx: number, charW: number = CHAR_W_11PX): string {
   const maxChars = Math.floor(maxPx / charW);
   if (text.length <= maxChars) return text;
   return text.slice(0, Math.max(0, maxChars - 1)) + '…';
 }
 
-function effectText(effect: string, value: number): string {
-  switch (effect) {
-    case 'health': return `+${value} de vida`;
-    case 'speed': return `+${Math.round(value * 100)}% velocidade`;
-    case 'damage': return `+${Math.round(value * 100)}% dano`;
-    case 'shield': return `+${value} escudo`;
-    case 'magnet': return 'atrai moedas';
-    case 'crit': return `+${Math.round(value * 100)}% crítico`;
-    case 'pierce': return `+${value} pierce`;
-    case 'regen': return `+${value} vida/s`;
-    case 'reloadSpeed': return `+${Math.round(value * 100)}% recarga rápida`;
-    case 'armor': return `+${Math.round(value * 100)}% resistência`;
-    default: return effect;
-  }
-}
-
 /**
  * Processa cliques na loja usando exatamente o mesmo layout do draw.
- * @param mouseX - X do clique na tela
- * @param mouseY - Y do clique na tela
  */
 export function handleShopClick(mouseX: number, mouseY: number) {
   const width = window.innerWidth;
@@ -1155,7 +1426,8 @@ export function handleShopClick(mouseX: number, mouseY: number) {
 
   for (let i = 0; i < L.upgrades.length; i++) {
     if (hit(L.upgrades[i], mouseX, y)) {
-      buyUpgrade(UPGRADES[i].name);
+      const t = PERK_LADDER.find(p => p.id === stockPerks[i]);
+      if (t) buyPerk(t.id);
       return;
     }
   }
@@ -1183,6 +1455,14 @@ export function handleShopClick(mouseX: number, mouseY: number) {
     }
   }
 
+  // árvore de talentos: gasta ponto de nível, não moeda
+  for (let i = 0; i < L.talentos.length; i++) {
+    if (hit(L.talentos[i], mouseX, y)) {
+      buyTalento(TALENTOS[i].id);
+      return;
+    }
+  }
+
   for (let i = 0; i < L.inventory.length; i++) {
     if (hit(L.inventory[i], mouseX, y)) {
       const { sell } = rowActionButtons(L.inventory[i]);
@@ -1203,10 +1483,15 @@ export function handleShopClick(mouseX: number, mouseY: number) {
     }
   }
 
-  // peças na mochila: clique = equipar na arma atual
+  // peças na mochila: botão VENDER à direita, resto da linha = equipar
   // (se os 2 slots estiverem cheios, equipPiece devolve a mais antiga pra mochila)
   for (let i = 0; i < L.pieces.length; i++) {
     if (hit(L.pieces[i], mouseX, y)) {
+      const { sell } = rowActionButtons(L.pieces[i]);
+      if (hit(sell, mouseX, y)) {
+        sellPiece(i);
+        return;
+      }
       if (equipPiece(getCurrentWeaponIndex(), i)) {
         flashNotice('PEÇA EQUIPADA', PALETTE.moss);
         sfxBuy();
@@ -1237,6 +1522,11 @@ export function handleShopClick(mouseX: number, mouseY: number) {
       }
       return;
     }
+  }
+
+  if (hit(L.support, mouseX, y)) {
+    openSupportLink();
+    return;
   }
 
   if (hit(L.ad, mouseX, y) && canWatchAd()) {

@@ -1,13 +1,9 @@
 /**
  * src/ui/hud.ts — HUD inteiro em canvas.
  *
- * Antes isso era metade HTML (`#hud-top`, `#hud-bottom`) e metade desenhada
- * no `main.ts`, e as duas se sobrepunham: score no DOM em y≈16 colidindo com o
- * minimapa em y=12..92, barra de rodapé de 28px em cima do nome da arma em
- * `height-20`, combo em `height-100` colidindo com a dica em `height-80`.
- *
- * Aqui o layout é uma grade de três colunas com inset de 12px e cada elemento
- * tem uma casa só.
+ * Layout em grade de três colunas com inset de 12px: cada elemento tem uma casa
+ * só, e a geometria de cada coluna sai de uma função pura (`getHudCenterLayout`
+ * no centro) para que o teste possa garantir que nada invade o vizinho.
  */
 
 import { PALETTE } from '../core/palette';
@@ -16,6 +12,30 @@ import { EnvironmentWarning } from '../systems/environment';
 import { isJammed } from '../weapons';
 
 const INSET = 12;
+
+export type ToastKind = 'achievement' | 'equip';
+
+/** Ficha da arma, mostrada na tela TAB. */
+export interface WeaponSheet {
+  name: string;
+  quality: string;
+  qualityColor: string;
+  damage: number;
+  shootRate: number;
+  magazine: number;
+  reloadTime: number;
+  dps: number;
+  pierce: boolean;
+  explosive: boolean;
+  bulletCount: number;
+  spread: number;
+}
+
+export interface Toast {
+  name: string;
+  time: number;
+  kind: ToastKind;
+}
 
 export interface HudSkill {
   key: string;
@@ -42,6 +62,8 @@ export interface HudMinimap {
 }
 
 export interface HudData {
+  /** Ficha da arma equipada, null se ausente. */
+  weaponStats: WeaponSheet | null;
   phase: string;
   health: number;
   maxHealth: number;
@@ -52,10 +74,19 @@ export interface HudData {
   maxWave: number;
   enemies: number;
   weapon: string;
+  /** Adjetivo da condição da arma, ex.: 'CORROÍDA'. Vazio se estiver boa. */
+  weaponCondition: string;
+  /** Cor do rótulo da condição. */
+  weaponConditionColor: string;
   ammo: number;
   maxAmmo: number;
   reloading: boolean;
   reloadProgress: number;
+  /** Nível da progressão (XP é o score acumulado). */
+  nivel: number;
+  /** XP dentro do nível atual e o que o nível exige. */
+  xpAtual: number;
+  xpNecessario: number;
   combo: number;
   comboDecay: number;
   skills: HudSkill[];
@@ -71,7 +102,12 @@ export interface HudData {
   warnings: EnvironmentWarning[];
   combos: { name: string; description: string; color: string }[];
   hint: { key: string; text: string } | null;
-  toasts: { name: string; time: number }[];
+  toasts: Toast[];
+  /** Segundos restantes antes da loja abrir (0 = sem contagem) */
+  phaseEndSeconds: number;
+  medkits: number;
+  hasNpc: boolean;
+  npcFollowing: boolean;
 }
 
 let ctx: CanvasRenderingContext2D | null = null;
@@ -88,6 +124,7 @@ export function drawHud(d: HudData): void {
   const H = ctx.canvas.height;
 
   drawTopLeft(d, W);
+  drawKeyHints(d);
   const centerBottom = drawTopCenter(d, W);
   drawTopRight(d, W, H);
   let stackY = centerBottom + 10;
@@ -99,11 +136,154 @@ export function drawHud(d: HudData): void {
   drawBottomLeft(d, H);
   drawComboChips(d, W, H);
   drawHint(d, W, H);
-  drawToasts(d, W, H);
+  drawPhaseEndCountdown(d, W, H);
+  drawToasts(d, W);
 }
 
 /** Retorna a largura usada pelas colunas laterais, para o centro não colidir. */
 const SIDE_W = 260;
+
+export interface HudCenterLayout {
+  phaseY: number;
+  waveBarY: number;
+  waveLabelY: number;
+  scoreY: number;
+  comboY: number | null;
+  comboBarY: number | null;
+  objectiveY: number;
+  objectiveDetailY: number;
+  /** Y a partir de onde a barra de boss e a faixa de aviso podem ser desenhadas. */
+  nextY: number;
+}
+
+/**
+ * Geometria da coluna central do HUD.
+ *
+ * O score usava `waveBarY + 26` e o rótulo de onda fica em `waveBarY + 18`: o
+ * topo dos dígitos do score (16px) invadia o `ONDA x/y` (13px) em ~3px. Como as
+ * duas posições são absolutas e não relativas, o overlap era constante — não
+ * dependia da resolução.
+ */
+export function getHudCenterLayout(hasCombo: boolean): HudCenterLayout {
+  const phaseY = INSET + 10;
+  const waveBarY = phaseY + 12;
+  const waveLabelY = waveBarY + 18;
+  // 38 e não 26: o topo do score precisa de ~13px acima do baseline da onda.
+  const scoreY = waveBarY + 38;
+  const comboY = hasCombo ? scoreY + 15 : null;
+  const objectiveY = (comboY ?? scoreY) + 22;
+  return {
+    phaseY,
+    waveBarY,
+    waveLabelY,
+    scoreY,
+    comboY,
+    comboBarY: comboY === null ? null : comboY + 4,
+    objectiveY,
+    objectiveDetailY: objectiveY + 18,
+    nextY: objectiveY + 22,
+  };
+}
+
+/** Coluna central: fase, barra de onda, score e chip de combo com decaimento. */
+function drawTopCenter(d: HudData, W: number): number {
+  const cx = W / 2;
+  const L = getHudCenterLayout(d.combo > 1);
+
+  // Contraste sutil para as labels da coluna central: sem bloco escuro
+  ctx!.save();
+  ctx!.shadowColor = 'rgba(0,0,0,0.85)';
+  ctx!.shadowBlur = 4;
+  ctx!.shadowOffsetY = 1;
+
+  ctx!.textAlign = 'center';
+  ctx!.fillStyle = PALETTE.title;
+  ctx!.font = 'bold 14px monospace';
+  ctx!.fillText(d.phase.toUpperCase(), cx, L.phaseY);
+
+  const barW = Math.min(240, SIDE_W);
+  const barX = cx - barW / 2;
+  ctx!.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx!.fillRect(barX, L.waveBarY, barW, 6);
+  const wavePct = d.maxWave > 0 ? d.wave / d.maxWave : 0;
+  ctx!.fillStyle = PALETTE.stone;
+  ctx!.fillRect(barX, L.waveBarY, barW * Math.min(1, wavePct), 6);
+  ctx!.strokeStyle = 'rgba(200,184,144,0.25)';
+  ctx!.lineWidth = 1;
+  ctx!.strokeRect(barX + 0.5, L.waveBarY + 0.5, barW - 1, 5);
+  ctx!.fillStyle = PALETTE.textDim;
+  ctx!.font = 'bold 13px monospace';
+  ctx!.fillText(`ONDA ${d.wave + 1}/${d.maxWave}`, cx, L.waveLabelY);
+
+  ctx!.fillStyle = PALETTE.mustard;
+  ctx!.font = 'bold 16px monospace';
+  ctx!.fillText(String(d.score), cx, L.scoreY);
+
+  if (L.comboY !== null) {
+    const decay = Math.max(0, Math.min(1, d.comboDecay));
+    ctx!.fillStyle = PALETTE.terracotta;
+    ctx!.font = 'bold 13px monospace';
+    ctx!.fillText(`COMBO x${d.combo}`, cx, L.comboY);
+    const cw = 60;
+    ctx!.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx!.fillRect(cx - cw / 2, L.comboBarY!, cw, 3);
+    ctx!.fillStyle = PALETTE.terracotta;
+    ctx!.fillRect(cx - cw / 2, L.comboBarY!, cw * decay, 3);
+  }
+
+  // objetivo da fase
+  ctx!.fillStyle = PALETTE.textDim;
+  ctx!.font = 'bold 13px monospace';
+  ctx!.fillText(d.objective.label, cx, L.objectiveY);
+  const ow = 160;
+  ctx!.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx!.fillRect(cx - ow / 2, L.objectiveY + 4, ow, 4);
+  ctx!.fillStyle = PALETTE.moss;
+  ctx!.fillRect(cx - ow / 2, L.objectiveY + 4, ow * d.objective.progress, 4);
+  ctx!.fillStyle = PALETTE.textOff;
+  ctx!.font = '12px monospace';
+  ctx!.fillText(d.objective.detail, cx, L.objectiveDetailY);
+  ctx!.textAlign = 'left';
+  ctx!.restore();
+  return L.nextY;
+}
+
+export interface HudHintsLayout {
+  /** Topo da barra de XP (4px, entre o número de vida e as skills). */
+  xpBarY: number;
+  /** Baseline do rótulo "NV x" da barra de XP. */
+  xpLabelY: number;
+  /** Topo da linha de skills. */
+  skillY: number;
+  /** Baseline do nome da skill (abaixo da caixa). */
+  skillLabelY: number;
+  /** Baseline das dicas de tecla. */
+  hintsY: number;
+}
+
+/**
+ * Geometria da coluna esquerda, abaixo da barra de vida.
+ *
+ * Antes, as skills e as dicas de tecla usavam cada uma sua conta solta
+ * (`INSET + 12 + 30 + 22 + 12` e `y + segH + 22 + 9`), e as duas davam 85 e
+ * 88: 3px de distância para uma fonte de 11px, então "DASH / ESC: Config" e
+ * "SPC F E" saíam impressos um sobre o outro no topo esquerdo.
+ *
+ * A barra de XP entrou no meio e empurrou as skills 10px para baixo — o
+ * bloco de vida (segmentos + número) termina em INSET+28 e as skills não
+ * podiam simplesmente ficar onde estavam.
+ */
+export function getHudHintsLayout(): HudHintsLayout {
+  const xpBarY = INSET + 34;
+  const xpLabelY = xpBarY + 5;
+  const skillY = xpBarY + 18;
+  const skillLabelY = skillY + 22 + 9;
+  // 21 e não 14: entre dois baselines de fonte 11px, 14px deixa 3px de folga
+  // real (o topo do glifo fica ~9px acima do baseline). Era o que o jogador
+  // viu — `DASH` impresso em cima de `1-9: trocar arma` — e nenhuma resolução
+  // escapava, porque as posições são absolutas. Medido pelo `hud-proof.mjs`.
+  return { xpBarY, xpLabelY, skillY, skillLabelY, hintsY: skillLabelY + 21 };
+}
 
 /** Coluna esquerda: vida segmentada + escudo + linha de skills. */
 function drawTopLeft(d: HudData, _W: number): void {
@@ -145,8 +325,23 @@ function drawTopLeft(d: HudData, _W: number): void {
     ctx!.fill();
   }
 
+  // nível + barra de XP: 4px, entre o número de vida e as skills
+  const L = getHudHintsLayout();
+  ctx!.fillStyle = PALETTE.stone;
+  ctx!.font = 'bold 11px monospace';
+  ctx!.fillText(`NV ${d.nivel}`, x, L.xpLabelY);
+  const xpW = 110;
+  ctx!.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx!.fillRect(x + 40, L.xpBarY, xpW, 4);
+  ctx!.fillStyle = PALETTE.moss;
+  ctx!.fillRect(x + 40, L.xpBarY, xpW * Math.min(1, d.xpAtual / Math.max(1, d.xpNecessario)), 4);
+  // sem o contorno a barra vazia (0 XP) some no chão escuro do dungeon
+  ctx!.strokeStyle = 'rgba(200,184,144,0.25)';
+  ctx!.lineWidth = 1;
+  ctx!.strokeRect(x + 40.5, L.xpBarY + 0.5, xpW - 1, 3);
+
   // linha única com as 3 skills (antes empilhadas para y negativo, fora da tela)
-  const skillY = y + segH + 30;
+  const skillY = L.skillY;
   d.skills.forEach((s, i) => {
     const sx = x + i * 46;
     const size = 22;
@@ -169,80 +364,183 @@ function drawTopLeft(d: HudData, _W: number): void {
 
     ctx!.textBaseline = 'alphabetic';
     ctx!.fillStyle = PALETTE.textOff;
-    ctx!.font = '10px monospace';
+    ctx!.font = '11px monospace';
     ctx!.fillText(s.name.toUpperCase(), sx + size / 2, skillY + size + 9);
   });
   ctx!.textAlign = 'left';
 }
 
-/** Coluna central: fase, barra de onda, score e chip de combo com decaimento. */
-function drawTopCenter(d: HudData, W: number): number {
-  const cx = W / 2;
-  let y = INSET + 10;
-
-  // Contraste sutil para as labels da coluna central: sem bloco escuro
-  ctx!.save();
-  ctx!.shadowColor = 'rgba(0,0,0,0.85)';
-  ctx!.shadowBlur = 4;
-  ctx!.shadowOffsetY = 1;
-
-  ctx!.textAlign = 'center';
-  ctx!.fillStyle = PALETTE.title;
-  ctx!.font = 'bold 14px monospace';
-  ctx!.fillText(d.phase.toUpperCase(), cx, y);
-
-  y += 12;
-  const barW = Math.min(240, SIDE_W);
-  const barX = cx - barW / 2;
-  ctx!.fillStyle = 'rgba(0,0,0,0.5)';
-  ctx!.fillRect(barX, y, barW, 6);
-  const wavePct = d.maxWave > 0 ? d.wave / d.maxWave : 0;
-  ctx!.fillStyle = PALETTE.stone;
-  ctx!.fillRect(barX, y, barW * Math.min(1, wavePct), 6);
-  ctx!.strokeStyle = 'rgba(200,184,144,0.25)';
-  ctx!.lineWidth = 1;
-  ctx!.strokeRect(barX + 0.5, y + 0.5, barW - 1, 5);
-  ctx!.fillStyle = PALETTE.textDim;
-  ctx!.font = 'bold 13px monospace';
-  ctx!.fillText(`ONDA ${d.wave + 1}/${d.maxWave}`, cx, y + 18);
-
-  y += 26;
-  ctx!.fillStyle = PALETTE.mustard;
-  ctx!.font = 'bold 16px monospace';
-  ctx!.fillText(String(d.score), cx, y);
-
-  if (d.combo > 1) {
-    y += 15;
-    const decay = Math.max(0, Math.min(1, d.comboDecay));
-    ctx!.fillStyle = PALETTE.terracotta;
-    ctx!.font = 'bold 13px monospace';
-    ctx!.fillText(`COMBO x${d.combo}`, cx, y);
-    const cw = 60;
-    ctx!.fillStyle = 'rgba(0,0,0,0.5)';
-    ctx!.fillRect(cx - cw / 2, y + 4, cw, 3);
-    ctx!.fillStyle = PALETTE.terracotta;
-    ctx!.fillRect(cx - cw / 2, y + 4, cw * decay, 3);
-  }
-
-  // objetivo da fase
-  y += 22;
-  ctx!.fillStyle = PALETTE.textDim;
-  ctx!.font = 'bold 13px monospace';
-  ctx!.fillText(d.objective.label, cx, y);
-  const ow = 160;
-  ctx!.fillStyle = 'rgba(0,0,0,0.5)';
-  ctx!.fillRect(cx - ow / 2, y + 4, ow, 4);
-  ctx!.fillStyle = PALETTE.moss;
-  ctx!.fillRect(cx - ow / 2, y + 4, ow * d.objective.progress, 4);
-  ctx!.fillStyle = PALETTE.textOff;
-  ctx!.font = '12px monospace';
-  ctx!.fillText(d.objective.detail, cx, y + 18);
-  ctx!.textAlign = 'left';
-  ctx!.restore();
-  return y + 22;
+export interface HudMedida {
+  texto: string;
+  /** Largura real em pixels (measureText). */
+  largura: number;
+  /** Largura disponível na caixa que a contém. */
+  caixa: number;
+  caixaNome: string;
+  /** Camada da coluna esquerda, para a prova checar a folga vertical. */
+  camada?: string;
+  camadaY?: number;
+  camadaFim?: number;
+  alturaFonte?: number;
 }
 
-/** Coluna direita: moedas, inimigos, minimapa e timers de power-up. */
+/**
+ * Mede o HUD em pixels, para o `hud-proof.mjs` (regra 16).
+ *
+ * `getHudHintsLayout` prova que as caixas não se sobrepõem ENTRE SI; não prova
+ * que o texto CABE dentro delas. Monospace de 11px mede ~6.6px por caractere, e
+ * um rótulo 3px mais largo que a coluna invade a layer vizinha sem nenhum
+ * `expect` accusing — foi o que o jogador viu: a barra de vida colada na de XP e
+ * o `DASH` encostando em `1-9: trocar arma`.
+ *
+ * A medição usa o próprio `measureText` do canvas, na resolução real.
+ */
+export function medirHud(d: HudData): HudMedida[] {
+  if (!ctx) return [];
+  const L = getHudHintsLayout();
+  const c = ctx;
+  const medir = (texto: string, fonte: string): number => {
+    const anterior = c.font;
+    c.font = fonte;
+    const w = c.measureText(texto).width;
+    c.font = anterior;
+    return w;
+  };
+  const partes: HudMedida[] = [];
+  const push = (texto: string, fonte: string, caixa: number, caixaNome: string, camada?: string, camadaY?: number, camadaFim?: number) => {
+    const px = parseInt(fonte.match(/(\d+)px/)?.[1] ?? '11', 10);
+    partes.push({ texto, largura: medir(texto, fonte), caixa, caixaNome, camada, camadaY, camadaFim, alturaFonte: px });
+  };
+
+  // a coluna esquerda tem SIDE_W; a barra de vida cresce com a vida máxima
+  const segmentos = Math.min(20, Math.max(4, Math.ceil(d.maxHealth / 25)));
+  const larguraVida = segmentos * 18 + 4;
+  const col = Math.min(SIDE_W, larguraVida + 62 + Math.min(6, d.shield) * 10);
+
+  push(`${Math.ceil(d.health)}/${Math.round(d.maxHealth)}`, 'bold 13px monospace', col, 'coluna esquerda', 'vidaFim', 12, 12 + 12);
+  push(`NV ${d.nivel}`, 'bold 11px monospace', 34, 'antes da barra de XP', 'xpRotuloY', L.xpLabelY - 9, L.xpLabelY + 2);
+  push(d.skills.map(s => s.name.toUpperCase()).join(' '), '11px monospace', SIDE_W, 'coluna esquerda', 'skillRotuloY', L.skillLabelY - 9, L.skillLabelY + 2);
+  push('1-9: trocar arma · TAB: ficha', '11px monospace', SIDE_W, 'coluna esquerda', 'hintsY', L.hintsY - 9, L.hintsY + 2);
+  return partes;
+}
+
+/**
+ * Minimapa: mundo → retângulo na tela.
+ *
+ * Extraído do canto do HUD porque a tela TAB usa o mesmo desenho em escala
+ * grande, e duplicar a projection dava dois lugares para o mapa divergir.
+ */
+export function drawMinimap(d: HudData, x: number, y: number, w: number, h: number): void {
+  const sx = w / Math.max(1, d.worldSize.w);
+  const sy = h / Math.max(1, d.worldSize.h);
+  ctx!.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx!.fillRect(x - 2, y - 2, w + 4, h + 4);
+  ctx!.fillStyle = `rgba(122,154,106,${0.06 + d.minimap.density * 0.06})`;
+  ctx!.fillRect(x, y, w, h);
+
+  for (const wall of d.minimap.walls) {
+    ctx!.fillStyle = 'rgba(120,120,120,0.5)';
+    ctx!.fillRect(x + wall.x * sx, y + wall.y * sy, Math.max(1, wall.w * sx), Math.max(1, wall.h * sy));
+  }
+  for (const p of d.propDots) {
+    ctx!.fillStyle = p.barrel ? PALETTE.terracotta : PALETTE.mustard;
+    ctx!.fillRect(x + p.x * sx - 0.5, y + p.y * sy - 0.5, 1.5, 1.5);
+  }
+  for (const e of d.enemyDots) {
+    ctx!.fillStyle = e.boss ? PALETTE.crit : PALETTE.danger;
+    ctx!.beginPath();
+    ctx!.arc(x + e.x * sx, y + e.y * sy, e.boss ? 2.5 : 1.2, 0, Math.PI * 2);
+    ctx!.fill();
+  }
+  ctx!.fillStyle = PALETTE.moss;
+  ctx!.beginPath();
+  ctx!.arc(x + d.player.x * sx, y + d.player.y * sy, 2.2, 0, Math.PI * 2);
+  ctx!.fill();
+
+  ctx!.strokeStyle = PALETTE.panelEdge;
+  ctx!.lineWidth = 1;
+  ctx!.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+}
+
+/**
+ * Tela TAB: minimapa grande à esquerda, ficha da arma à direita.
+ *
+ * TAB não estava ligado em lugar nenhum. O minimapa do canto é pequeno demais
+ * para ler a sala, e nenhum lugar do jogo mostrava dano, cadência ou DPS real —
+ * a loja imprimia `damage × qualidade` e ignorava upgrade, combo, classe e
+ * peça, então o número mostrado não era o número do tiro.
+ */
+export function drawTabScreen(d: HudData, W: number, H: number): void {
+  ctx!.save();
+  // 0.94 e não 0.8: com o mundo aparecendo, a barra de boss, as skills e o
+  // rodapé de munição atravessavam o painel e viravam ruído atrás do texto.
+  ctx!.fillStyle = 'rgba(0,0,0,0.94)';
+  ctx!.fillRect(0, 0, W, H);
+
+  const pad = 40;
+  const gap = 24;
+  const panelW = Math.min(520, (W - pad * 3 - gap) / 2);
+  const mapW = panelW;
+  const mapH = Math.round(mapW * (d.worldSize.h / Math.max(1, d.worldSize.w)));
+  const top = Math.max(pad, (H - Math.max(mapH, 300)) / 2);
+
+  ctx!.fillStyle = PALETTE.textOff;
+  ctx!.font = '11px monospace';
+  ctx!.textAlign = 'left';
+  ctx!.fillText('TAB · MAPA', pad, top - 10);
+  drawMinimap(d, pad, top, mapW, mapH);
+
+  const x2 = pad + mapW + gap;
+  const s = d.weaponStats;
+  ctx!.fillText('FICHA DA ARMA', x2, top - 10);
+
+  if (!s) {
+    ctx!.font = '13px monospace';
+    ctx!.fillStyle = PALETTE.textDim;
+    ctx!.fillText('NENHUMA ARMA', x2, top + 20);
+    ctx!.restore();
+    return;
+  }
+
+  ctx!.font = 'bold 20px monospace';
+  ctx!.fillStyle = s.qualityColor;
+  ctx!.fillText(s.name.toUpperCase(), x2, top + 24);
+
+  ctx!.font = '12px monospace';
+  ctx!.fillStyle = PALETTE.textOff;
+  ctx!.fillText(s.quality.toUpperCase(), x2, top + 42);
+
+  const linhas: [string, string][] = [
+    ['DANO', `${s.damage}${s.bulletCount > 1 ? ` ×${s.bulletCount}` : ''}`],
+    ['INTERVALO', `${s.shootRate}s`],
+    ['PENTE', `${s.magazine}`],
+    ['RECARGA', `${s.reloadTime}s`],
+    ['DPS EFETIVO', `${s.dps}`],
+    ['DISPERSÃO', `${s.spread}`],
+    ['PERFURA', s.pierce ? 'SIM (-25% DANO)' : 'NÃO'],
+    ['EXPLOSIVA', s.explosive ? 'SIM' : 'NÃO'],
+  ];
+  ctx!.font = '13px monospace';
+  linhas.forEach(([rotulo, valor], i) => {
+    const y = top + 72 + i * 22;
+    ctx!.fillStyle = PALETTE.textDim;
+    ctx!.textAlign = 'left';
+    ctx!.fillText(rotulo, x2, y);
+    ctx!.fillStyle = PALETTE.text;
+    ctx!.textAlign = 'right';
+    ctx!.fillText(valor, x2 + panelW, y);
+  });
+
+  ctx!.textAlign = 'left';
+  ctx!.font = '11px monospace';
+  ctx!.fillStyle = PALETTE.textOff;
+  // Dentro da área do mapa, não no rodapé da tela: embaixo colidia com o
+  // nome da arma e a barra de munição.
+  ctx!.fillText('SOLTE TAB PARA VOLTAR', pad, top + mapH + 22);
+  ctx!.restore();
+  ctx!.textAlign = 'left';
+}
+
 function drawTopRight(d: HudData, W: number, _H: number): void {
   const mmW = 150;
   const mmH = Math.round(mmW * (d.worldSize.h / Math.max(1, d.worldSize.w)));
@@ -259,40 +557,11 @@ function drawTopRight(d: HudData, W: number, _H: number): void {
   ctx!.fillText(`HOSTIS ${d.enemies}`, W - INSET, mmY + 26);
 
   // minimapa: agora mapeia mundo → minimapa, então é informativo de verdade
-  const sx = mmW / Math.max(1, d.worldSize.w);
-  const sy = mmH / Math.max(1, d.worldSize.h);
-  ctx!.fillStyle = 'rgba(0,0,0,0.55)';
-  ctx!.fillRect(mmX - 2, mmY + 34, mmW + 4, mmH + 4);
-  ctx!.fillStyle = `rgba(122,154,106,${0.06 + d.minimap.density * 0.06})`;
-  ctx!.fillRect(mmX, mmY + 36, mmW, mmH);
-
-  const oy = mmY + 36;
-  ctx!.fillStyle = 'rgba(120,120,120,0.5)';
-  for (const w of d.minimap.walls) {
-    ctx!.fillRect(mmX + w.x * sx, oy + w.y * sy, Math.max(1, w.w * sx), Math.max(1, w.h * sy));
-  }
-  for (const p of d.propDots) {
-    ctx!.fillStyle = p.barrel ? PALETTE.terracotta : PALETTE.mustard;
-    ctx!.fillRect(mmX + p.x * sx - 0.5, oy + p.y * sy - 0.5, 1.5, 1.5);
-  }
-  for (const e of d.enemyDots) {
-    ctx!.fillStyle = e.boss ? PALETTE.crit : PALETTE.danger;
-    ctx!.beginPath();
-    ctx!.arc(mmX + e.x * sx, oy + e.y * sy, e.boss ? 2.5 : 1.2, 0, Math.PI * 2);
-    ctx!.fill();
-  }
-  ctx!.fillStyle = PALETTE.moss;
-  ctx!.beginPath();
-  ctx!.arc(mmX + d.player.x * sx, oy + d.player.y * sy, 2.2, 0, Math.PI * 2);
-  ctx!.fill();
-
-  ctx!.strokeStyle = PALETTE.panelEdge;
-  ctx!.lineWidth = 1;
-  ctx!.strokeRect(mmX + 0.5, oy + 0.5, mmW - 1, mmH - 1);
+  drawMinimap(d, mmX, mmY + 36, mmW, mmH);
 
   // timers de power-up ativo, logo abaixo do minimapa
   let px = W - INSET - 10;
-  const py = oy + mmH + 14;
+  const py = mmY + 36 + mmH + 14;
   for (const key of Object.keys(d.activePowerups)) {
     const meta = d.powerupMeta[key];
     if (!meta) continue;
@@ -332,7 +601,7 @@ function drawBossBar(d: HudData, W: number, y: number): void {
 
   ctx!.textAlign = 'center';
   ctx!.fillStyle = b.telegraphing ? PALETTE.crit : PALETTE.text;
-  ctx!.font = b.telegraphing ? 'bold 11px monospace' : '10px monospace';
+  ctx!.font = b.telegraphing ? 'bold 11px monospace' : '11px monospace';
   // During a telegraph the label says WHICH action is coming. It was hardcoded
   // "PREPARANDO..." before: the 9 bosses each declare a telegraph text in
   // EnemyType.pattern and none of it reached the screen — the VIGIA's whole
@@ -382,11 +651,33 @@ function drawBottomLeft(d: HudData, H: number): void {
   ctx!.font = 'bold 15px monospace';
   ctx!.textAlign = 'left';
   ctx!.fillText(d.weapon, x, y);
-  ctx!.fillStyle = PALETTE.textDim;
+
   ctx!.font = '13px monospace';
+  ctx!.fillStyle = PALETTE.textDim;
   ctx!.textAlign = 'right';
-  ctx!.fillText(d.reloading ? 'RECARREGANDO' : `${d.ammo}/${d.maxAmmo}`, x + 200, y);
+  const textoDireita = d.reloading ? 'RECARREGANDO' : `${d.ammo}/${d.maxAmmo}`;
+  // largura da coluna direita: "RECARREGANDO" tem ~108px, a munição ~52. O
+  // maior dos dois é que define o limite, senão um nome com condição longa
+  // (Metralhadora CORROÍDA) atropela o contador.
+  const larguraDireita = Math.max(
+    ctx!.measureText('RECARREGANDO').width,
+    ctx!.measureText(`${d.ammo}/${d.maxAmmo}`).width,
+  );
+  ctx!.fillText(textoDireita, x + 200, y);
   ctx!.textAlign = 'left';
+
+  // A condição da arma fica sempre visível. Antes só existia num toast de 2s
+  // no ato de equipar: durante a fase inteira o jogador não tinha como saber
+  // que estava com uma enferrujada. Quando não cabe ao lado do nome, sobe uma
+  // linha em vez de invadir a coluna da munição.
+  if (d.weaponCondition) {
+    const nomeLargura = ctx!.measureText(d.weapon).width;
+    const condLargura = ctx!.measureText(d.weaponCondition).width;
+    const cabeAoLado = x + nomeLargura + 8 + condLargura <= x + 200 - larguraDireita - 8;
+    ctx!.fillStyle = d.weaponConditionColor;
+    ctx!.font = '11px monospace';
+    ctx!.fillText(d.weaponCondition, cabeAoLado ? x + nomeLargura + 8 : x, cabeAoLado ? y : y - 15);
+  }
 
   y += 8;
   const barW = 200;
@@ -447,6 +738,28 @@ function drawComboChips(d: HudData, W: number, H: number): void {
   ctx!.textAlign = 'left';
 }
 
+/**
+ * Teclas que existem no jogo e não apareciam em lugar nenhum.
+ *
+ * `H` (medkit), `J` (NPC parar de seguir) e `1-9` (equipar arma) só saíam num
+ * damage number temporário depois de acontecer. Agora ficam sempre visíveis.
+ *
+ * Fica sob as skills, no topo esquerdo: embaixo colidiria com a dica do
+ * tutorial, que é centralizada e cresce para os dois lados.
+ */
+function drawKeyHints(d: HudData): void {
+  const partes: string[] = [];
+  if (d.medkits > 0) partes.push(`H: medkit (${d.medkits})`);
+  if (d.hasNpc) partes.push(d.npcFollowing ? 'J: seguindo' : 'J: parado');
+  partes.push('1-9: trocar arma');
+  partes.push('TAB: ficha');
+
+  ctx!.fillStyle = PALETTE.textOff;
+  ctx!.font = '11px monospace';
+  ctx!.textAlign = 'left';
+  ctx!.fillText(partes.join('  ·  '), INSET, getHudHintsLayout().hintsY);
+}
+
 /** Rodapé central: dica do tutorial (o texto já traz a tecla). */
 function drawHint(d: HudData, W: number, H: number): void {
   if (!d.hint) return;
@@ -467,7 +780,34 @@ function drawHint(d: HudData, W: number, H: number): void {
 }
 
 /** Toasts de conquista empilhados, no canto superior direito. */
-function drawToasts(d: HudData, W: number, H: number): void {
+/**
+ * Contagem regressiva do fim de fase.
+ *
+ * A pausa antes da loja é para o loot do último abate ser visto. Sem o número
+ * na tela ela vira tempo morto: o jogador lê como travamento.
+ */
+function drawPhaseEndCountdown(d: HudData, W: number, H: number): void {
+  if (d.phaseEndSeconds <= 0) return;
+  const restante = Math.ceil(d.phaseEndSeconds);
+  const fade = Math.min(1, d.phaseEndSeconds);
+  ctx!.save();
+  ctx!.textAlign = 'center';
+  ctx!.globalAlpha = fade;
+  ctx!.font = 'bold 64px monospace';
+  ctx!.fillStyle = PALETTE.title;
+  ctx!.shadowColor = 'rgba(0,0,0,0.8)';
+  ctx!.shadowBlur = 10;
+  ctx!.fillText(String(restante), W / 2, H * 0.42);
+  ctx!.shadowBlur = 0;
+  ctx!.font = '13px monospace';
+  ctx!.fillStyle = PALETTE.textDim;
+  ctx!.fillText('COLETANDO O QUE SOBROU', W / 2, H * 0.42 + 24);
+  ctx!.restore();
+  ctx!.globalAlpha = 1;
+  ctx!.textAlign = 'left';
+}
+
+function drawToasts(d: HudData, W: number): void {
   // começa logo abaixo dos timers de power-up, não em y fixo que fura o minimapa
   const mmH = Math.round(150 * (d.worldSize.h / Math.max(1, d.worldSize.w)));
   let y = INSET + 36 + mmH + 34;
@@ -477,15 +817,16 @@ function drawToasts(d: HudData, W: number, H: number): void {
     const alpha = Math.min(1, t.time);
     ctx!.globalAlpha = alpha;
     ctx!.fillStyle = PALETTE.panel;
-    const text = `CONQUISTA: ${t.name}`;
+    // O rótulo distingue conquista de troca de arma. Sem isso, anunciar a arma
+    // empilhava no mesmo canal e o HUD imprimia "CONQUISTA: ARMANDO: ...".
+    const texto = t.kind === 'achievement' ? `CONQUISTA: ${t.name}` : `EQUIPADA: ${t.name}`;
     ctx!.font = 'bold 12px monospace';
-    const w = ctx!.measureText(text).width + 16;
+    const w = ctx!.measureText(texto).width + 16;
     ctx!.fillRect(W - INSET - w, y - 11, w, 16);
-    ctx!.fillStyle = PALETTE.mustard;
-    ctx!.fillText(text, W - INSET - 8, y);
+    ctx!.fillStyle = t.kind === 'achievement' ? PALETTE.mustard : PALETTE.stone;
+    ctx!.fillText(texto, W - INSET - 8, y);
     y += 20;
   }
   ctx!.globalAlpha = 1;
   ctx!.textAlign = 'left';
-  void H;
 }

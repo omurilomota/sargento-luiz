@@ -13,13 +13,6 @@ import { dist } from '../utils';
  * Calcula o quadrado da distância entre um ponto e um segmento.
  * É o que faz a colisão swept funcionar: o segmento é o caminho do
  * projétil neste frame, o ponto é o centro do alvo.
- * @param pxp - X do ponto
- * @param pyp - Y do ponto
- * @param ax - X inicial do segmento
- * @param ay - Y inicial do segmento
- * @param bx - X final do segmento
- * @param by - Y final do segmento
- * @returns distância² entre ponto e segmento
  */
 export function pointSegmentDistSq(pxp: number, pyp: number, ax: number, ay: number, bx: number, by: number): number {
   const dx = bx - ax;
@@ -46,10 +39,6 @@ function prevY(b: Bullet): number { return b.py ?? b.y; }
 
 /**
  * Verifica se o trajeto do projétil neste frame encosta num alvo circular.
- * @param b - projétil
- * @param targetX - X do centro do alvo
- * @param targetY - Y do centro do alvo
- * @param radius - soma dos raios de hit
  */
 export function bulletHitsCircle(b: Bullet, targetX: number, targetY: number, radius: number): boolean {
   return pointSegmentDistSq(targetX, targetY, prevX(b), prevY(b), b.x, b.y) < radius * radius;
@@ -59,8 +48,6 @@ export function bulletHitsCircle(b: Bullet, targetX: number, targetY: number, ra
  * Verifica colisões entre projéteis do jogador e inimigos.
  * Para cada colisão detectada, chama o callback onHit.
  * Projéteis inimigos são ignorados.
- * @param bullets - lista de projéteis ativos
- * @param enemies - lista de inimigos ativos
  * @param onHit - callback chamado quando um projétil atinge um inimigo
  */
 export function checkBulletEnemyCollisions(
@@ -85,13 +72,9 @@ export function checkBulletEnemyCollisions(
 }
 
 /**
- * Verifica colisões entre projéteis inimigos e o jogador.
- * Ignora colisões durante período de invincibilidade.
- * @param bullets - lista de projéteis ativos
- * @param playerX - posição horizontal do jogador
- * @param playerY - posição vertical do jogador
- * @param playerRadius - raio de colisão do jogador
- * @param invincible - tempo restante de invincibilidade (0 = vulnerável)
+ * Verifica se projéteis inimigos acertam o jogador.
+ * Ignora colisões durante período de invencibilidade.
+ * @param invincible - tempo restante de invencibilidade (0 = vulnerável)
  * @param onHit - callback chamado quando um projétil inimigo atinge o jogador
  */
 export function checkEnemyBulletPlayerCollision(
@@ -114,10 +97,6 @@ export function checkEnemyBulletPlayerCollision(
 /**
  * Verifica colisões entre inimigos e o jogador.
  * Ignora colisões durante período de invincibilidade.
- * @param enemies - lista de inimigos ativos
- * @param playerX - posição horizontal do jogador
- * @param playerY - posição vertical do jogador
- * @param playerRadius - raio de colisão do jogador
  * @param invincible - tempo restante de invencibilidade (0 = vulnerável)
  * @param onHit - callback chamado quando um inimigo colide com o jogador
  */

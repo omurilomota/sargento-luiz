@@ -5,6 +5,7 @@
  */
 
 import { PLAYER_BASE_SPEED, PLAYER_BASE_HEALTH, PLAYER_RADIUS, INVINCIBLE_DURATION, BULLET_INVINCIBLE_DURATION, WAVE_HEAL_ON_COMPLETE } from '../core/constants';
+import { getStat, applyStat, resetStat } from '../core/stats';
 import { getHardcore } from '../systems/gameModes';
 import { moveCircleBy } from '../systems/tilemap';
 
@@ -30,8 +31,7 @@ let player: Player;
 
 /**
  * Inicializa o jogador com stats base na posição central do canvas.
- * @param canvasWidth - largura do canvas
- * @param canvasHeight - altura do canvas
+ * Só no boot e em partida nova — ver `resetPlayerProgress`.
  */
 export function initPlayer(canvasWidth: number, canvasHeight: number): void {
   player = {
@@ -44,35 +44,50 @@ export function initPlayer(canvasWidth: number, canvasHeight: number): void {
 }
 
 /**
+ * Coloca o jogador no ponto de entrada de uma fase nova, curado.
+ *
+ * Não toca em `maxHealth`, armadura nem medkits: comprar "Vida +100" e chegar
+ * na fase seguinte com 100 era o bug de `initPlayer` rodando aqui.
+ */
+export function placePlayer(x: number, y: number): void {
+  if (!player) {
+    initPlayer(x, y);
+    return;
+  }
+  player.x = x;
+  player.y = y;
+  player.health = player.maxHealth;
+  player.angle = 0;
+  player.shootCooldown = 0;
+  player.invincible = 0;
+  player.shield = 0;
+  player.hitFlash = 0;
+  player.deathTimer = 0;
+  player.deathAngle = 0;
+}
+
+/** Zera a progressão acumulada. Só na partida nova, nunca na troca de fase. */
+export function resetPlayerProgress(): void {
+  if (player) {
+    player.maxHealth = PLAYER_BASE_HEALTH;
+    player.health = PLAYER_BASE_HEALTH;
+  }
+  resetStat('armor');
+  medkits = 0;
+  comboHealthMultiplier = 1;
+}
+
+/**
  * Retorna a referência ao objeto do jogador.
- * @returns objeto Player atual
  */
 export function getPlayer(): Player {
   return player;
 }
 
 /**
- * Reseta o jogador para a posição central, vida cheia e sem buffs.
- * Usado ao iniciar nova fase.
- * @param canvasWidth - largura do canvas
- * @param canvasHeight - altura do canvas
- */
-export function resetPlayer(canvasWidth: number, canvasHeight: number): void {
-  player.x = canvasWidth / 2;
-  player.y = canvasHeight / 2;
-  player.health = player.maxHealth;
-  player.invincible = 0;
-  player.shield = 0;
-  player.hitFlash = 0;
-  medkits = 0;
-}
-
-/**
  * Move o jogador com base nas teclas pressionadas.
  * Normaliza a diagonal e resolve a colisão contra o grid (deslize por eixo),
  * em coordenadas de mundo — não mais contra as bordas do canvas.
- * @param keys - mapa de teclas pressionadas
- * @param dt - delta time em segundos
  * @param bounds - limites do mundo em pixels
  * @param speedMultiplier - multiplicador de velocidade (ex: power-up de velocidade)
  */
@@ -101,28 +116,32 @@ export function movePlayer(
 
 /**
  * Aplica dano ao jogador causado por projéteis inimigos.
- * Escudo absorve o dano se disponível.
- * @param amount - quantidade de dano
+ *
+ * A armadura passa a valer aqui também. Antes ela era só placa contra corpo a
+ * corpo — declaro isso no próprio código, e o jogador lia "Armadura +5%" como
+ * se fosse defesa geral. 17 dos 31 tipos de inimigo atiram, então mais da metade
+ * do dano que chega ao jogador ignorava o eixo CORPO inteiro.
  */
 export function damagePlayer(amount: number): void {
   if (player.shield > 0) {
     player.shield--;
   } else {
-    player.health -= amount;
+    const reduced = Math.floor(amount * (1 - getStat('armor')));
+    player.health -= Math.max(1, reduced);
   }
+  player.hitFlash = 0.2;
   player.invincible = BULLET_INVINCIBLE_DURATION;
 }
 
 /**
  * Aplica dano ao jogador causado por colisão direta com inimigos.
- * Escudo absorve o dano se disponível. Invincibilidade mais longa que projéteis.
- * @param enemyDamage - quantidade de dano do inimigo
+ * Escudo absorve o dano se disponível. Invencibilidade mais longa que projéteis.
  */
 export function enemyCollisionDamage(enemyDamage: number): void {
   if (player.shield > 0) {
     player.shield--;
   } else {
-    const reduced = Math.floor(enemyDamage * (1 - armorLevel));
+    const reduced = Math.floor(enemyDamage * (1 - getStat('armor')));
     player.health -= Math.max(1, reduced);
   }
   player.hitFlash = 0.2;
@@ -131,7 +150,6 @@ export function enemyCollisionDamage(enemyDamage: number): void {
 
 /**
  * Cura o jogador, limitado ao máximo de vida.
- * @param amount - quantidade de vida a restaurar
  */
 export function useMedkit(): void {
   if (medkits <= 0 || player.health >= player.maxHealth) return;
@@ -203,56 +221,19 @@ export function addSpeed(multiplier: number): void {
 
 /**
  * Adiciona cargas de escudo ao jogador.
- * @param amount - quantidade de cargas a adicionar
  */
 export function addShield(amount: number): void {
   player.shield += amount;
 }
 
-/** Nível de regeneração (0 = inativo, 1+ = HP/s) */
-let regenLevel = 0;
-/** Nível de armadura (0-1, reduz dano recebido) */
-let armorLevel = 0;
-
-/**
- * Ativa/regeneração permanente. Stacking: cada compra aumenta o nível.
- * @param value - HP por segundo a adicionar (ex: 1 para Regeneração, 2 para Regen Avançada)
- */
-export function enableRegen(value: number = 1): void {
-  regenLevel += value;
-}
-
-/**
- * Adiciona armadura ao jogador.
- * @param value - nível de armadura (0-1, ex: 0.15 = 15% redução)
- */
-export function addArmor(value: number): void {
-  armorLevel = Math.min(0.5, armorLevel + value);
-}
-
-/**
- * Retorna o nível de armadura.
- * @returns valor entre 0 e 0.5
- */
-export function getArmorLevel(): number {
-  return armorLevel;
-}
-
-/**
- * Retorna se a regeneração está ativa.
- */
-export function isRegenActive(): boolean {
-  return regenLevel > 0;
-}
-
 /**
  * Aplica regeneração se ativa.
- * @param dt - delta time em segundos
  */
 export function applyRegen(dt: number): void {
   if (getHardcore()) return;
-  if (player.health < player.maxHealth && regenLevel > 0) {
-    player.health = Math.min(player.maxHealth, player.health + regenLevel * dt);
+  const regen = getStat('regen');
+  if (player.health < player.maxHealth && regen > 0) {
+    player.health = Math.min(player.maxHealth, player.health + regen * dt);
   }
 }
 
@@ -260,5 +241,28 @@ export function applyRegen(dt: number): void {
  * Reseta a regeneração.
  */
 export function resetRegen(): void {
-  regenLevel = 0;
+  resetStat('regen');
+}
+
+/**
+ * Ativa/regeneração permanente. Stacking: cada compra aumenta o nível.
+ * @param value - HP por segundo a adicionar (ex: 1 para Regeneração, 2 para Regen Avançada)
+ */
+export function enableRegen(value: number = 1): void {
+  applyStat('regen', value);
+}
+
+/**
+ * Adiciona armadura ao jogador.
+ * @param value - nível de armadura (0-1, ex: 0.15 = 15% redução)
+ */
+export function addArmor(value: number): void {
+  applyStat('armor', value);
+}
+
+/**
+ * Retorna o nível de armadura.
+ */
+export function getArmorLevel(): number {
+  return getStat('armor');
 }

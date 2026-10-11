@@ -38,8 +38,18 @@ export interface Bullet {
   explosive?: boolean;
   /** Raio da explosão em pixels */
   explosionRadius?: number;
+  /**
+   * Família da sprite de projétil (`small_bullet` | `medium_bullet` |
+   * `large_bullet`). Vem da classe da arma que disparou; o renderer usa para
+   * escolher o asset, e cai no `arc` procedural se a sprite não carregar.
+   */
+  bulletSprite?: string;
   /** Inimigos já atingidos por esta bala (perfurante não re-hitta o mesmo alvo) */
   hitBy?: Set<Enemy>;
+  /** Já explodiu — o flag que impede a dupla detonação (pavio × parede × impacto) */
+  detonated?: boolean;
+  /** Fuse da mina plantada: segundos acumulados desde que o inimigo entrou no raio */
+  fuse?: number;
 }
 
 /** Representa um inimigo no campo de batalha */
@@ -102,6 +112,12 @@ export interface Particle {
   radius: number;
   /** Cor da partícula */
   color: string;
+  /**
+   * Sprite do Kenney Particle Pack (CC0). Ausente = usa o círculo de fallback.
+   * Escolhido na criação conforme o evento: muzzle flash, fumaça ou faísca não
+   * são a mesma coisa.
+   */
+  sprite?: string;
 }
 
 /** Representa uma moeda coletável dropada por inimigos */
@@ -160,24 +176,10 @@ export interface Weapon {
   secret?: boolean;
   /** Armas 'quebradas' encasquilham após N disparos e exigem conserto */
   broken?: boolean;
-  /** Classe visual da arma — define qual sprite de cano é desenhado */
-  weaponClass?: 'pistol' | 'machine' | 'silencer';
   /** Tamanho do pente */
   magazineSize: number;
   /** Tempo de recarga em segundos */
   reloadTime: number;
-}
-
-/** Define um upgrade permanente disponível na loja */
-export interface Upgrade {
-  /** Nome do upgrade exibido na interface */
-  name: string;
-  /** Identificador do efeito aplicado (health, speed, damage, etc.) */
-  effect: string;
-  /** Valor do efeito (absoluto para vida, percentual para dano/velocidade) */
-  value: number;
-  /** Preço em moedas para comprar */
-  price: number;
 }
 
 /** Ações possíveis de um boss data-driven */
@@ -233,6 +235,12 @@ export interface Phase {
   gridColor: string;
   /** Tipos de inimigos que aparecem nesta fase */
   enemyTypes: string[];
+  /**
+   * Quantos mutantes entram na onda, quando `mutant` faz parte de `enemyTypes`.
+   * A cota é separada do total: o mutante não é "mais um inimigo", ele
+   * substitui vários. Sem este campo a fase mostraria 4 inimigos comuns.
+   */
+  mutantsPerWave?: number;
   /** Número total de ondas na fase */
   waves: number;
   /** Chave do mapa em `maps.ts` */
@@ -286,6 +294,12 @@ export interface EnemyType {
    * mundo por igual e o jogador não tem agência nenhuma no objetivo.
    */
   huntsNpc?: boolean;
+  /**
+   * Mutante: lento, muita vida, dano alto. Aparece em número baixo no lugar de
+   * encher a onda de inimigos comuns. O spawner usa a flag para reservar a cota
+   * mutantsPerWave em vez de contar no total da onda.
+   */
+  isMutant?: boolean;
   /** Indica se dispara múltiplos projéteis em leque */
   spreadShot?: boolean;
   /** Indica se o projétil se divide em 4 direções */

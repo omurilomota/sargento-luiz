@@ -75,6 +75,11 @@ export function initAudio(): void {
   preloadSfx();
 }
 
+/** Dispara o carregamento de todos os SFX (fire-and-forget, cacheado). */
+function preloadSfx(): void {
+  for (const key of Object.keys(SFX_FILES)) void loadSfx(key);
+}
+
 function ensureCtx(): AudioContext {
   if (!ctx) initAudio();
   return ctx!;
@@ -221,6 +226,20 @@ export const SFX_FILES: Record<string, SfxDef> = {
   fury:        { file: 'assets/sfx/fury.ogg' },
   menuMove:    { file: 'assets/sfx/menuMove.ogg' },
   menuSelect:  { file: 'assets/sfx/menuSelect.ogg' },
+  // Recarga por família. O pack de recargas do OpenGameArt (CC0) tem pente de
+  // pistola, fuzil de assalto, shotgun e rifle — então cada família continua
+  // com o seu timbre, que era o que a síntese fazia e o que um arquivo único
+  // perderia.
+  reload_pistola:      { file: 'assets/sfx/reload_pistola.ogg',      vary: 0.05 },
+  reload_escopeta:     { file: 'assets/sfx/reload_escopeta.ogg',     vary: 0.05 },
+  reload_metralhadora: { file: 'assets/sfx/reload_metralhadora.ogg', vary: 0.08 },
+  reload_precisao:     { file: 'assets/sfx/reload_precisao.ogg',     vary: 0.05 },
+  reload_energia:      { file: 'assets/sfx/reload_energia.ogg',      vary: 0.05 },
+  reload_lancador:     { file: 'assets/sfx/reload_lancador.ogg',     vary: 0.04 },
+  reload_mina:         { file: 'assets/sfx/reload_mina.ogg',         vary: 0.1 },
+  // Estado da arma (qualidade) e peça equipável
+  ferrugem:            { file: 'assets/sfx/ferrugem.ogg',            vary: 0.12 },
+  piece:               { file: 'assets/sfx/piece.ogg' },
 };
 
 const sfxBuffers = new Map<string, AudioBuffer>();
@@ -268,11 +287,6 @@ function playSfxFile(key: string): boolean {
   gain.connect(sfxGain);
   source.start();
   return true;
-}
-
-/** Dispara o carregamento de todos os SFX (fire-and-forget, cacheado). */
-export function preloadSfx(): void {
-  for (const key of Object.keys(SFX_FILES)) void loadSfx(key);
 }
 
 // ─── Sons do Jogo ───────────────────────────────────────────────
@@ -428,6 +442,102 @@ export function sfxJammed(): void {
   setTimeout(() => playBurst(0.04, 0.25, 'highpass', 4000, 2), 70);
 }
 
+/**
+ * Recarga, variando por família de arma.
+ *
+ * Não havia som de recarga nenhum: `startReload` era mudo, e o jogador ficava
+ * olhando a barra crescer sem nenhum feedback auditivo de "agora estou armado
+ * de novo". A variação por família é o que impede o mesmo clique em 12 armas
+ * soar como um único som de UI.
+ *
+ * Mecânica do som real: magazine cai (clique seco), puxa (varredura grave),
+ * encaixa (clique agudo). O intervalo entre as três etapas é maior na Metralhadora
+ * (pente de 25) e menor na Pistola (pente de 10).
+ */
+export type WeaponFamily = 'pistol' | 'shotgun' | 'machine' | 'precision' | 'energy' | 'launcher' | 'mine';
+
+const RECHARGE_TIMING: Record<WeaponFamily, [number, number, number]> = {
+  pistol:    [0, 120, 300],
+  shotgun:   [0, 200, 460],
+  machine:   [0, 240, 620],
+  precision: [0, 320, 780],
+  energy:    [0, 180, 420],
+  launcher:  [0, 340, 840],
+  mine:      [0, 160, 380],
+};
+
+/** Corpo do som por família: a metralhadora tem mais chiado, a sniper é seca. */
+const RECHARGE_BODY: Record<WeaponFamily, { freq: number; q: number; drop: number }> = {
+  pistol:    { freq: 2600, q: 3, drop: 0.05 },
+  shotgun:   { freq: 1500, q: 2, drop: 0.07 },
+  machine:   { freq: 3200, q: 2, drop: 0.08 },
+  precision: { freq: 1900, q: 5, drop: 0.05 },
+  energy:    { freq: 4200, q: 6, drop: 0.04 },
+  launcher:  { freq: 1200, q: 2, drop: 0.09 },
+  mine:      { freq: 1700, q: 3, drop: 0.06 },
+};
+
+export function sfxReload(familia: WeaponFamily = 'pistol'): void {
+  // Arquivo CC0 por família (pente, bomba de shotgun, fuzil, rifle): a
+  // síntese de baixo é o fallback de quem não carregou.
+  if (playSfxFile(`reload_${familia}`)) return;
+  const [t0, t1, t2] = RECHARGE_TIMING[familia];
+  const corpo = RECHARGE_BODY[familia];
+  // 1. magazine soltando: clique de bandwidth estreito, quase sem grave
+  playBurst(corpo.drop, 0.2, 'bandpass', corpo.freq * 1.6, corpo.q);
+  // 2. puxando: varredura pra baixo, que é o que o ouvido lê como "recarregando"
+  setTimeout(() => playSweep(corpo.freq * 0.9, corpo.freq * 0.28, 0.16, 'sawtooth', 0.1), t1);
+  // 3. encaixando: clique mais agudo e curto que o primeiro
+  setTimeout(() => playBurst(0.035, 0.26, 'bandpass', corpo.freq * 2.1, corpo.q), t2);
+  void t0;
+}
+
+/**
+ * Arma enferrujada: o primeiro disparo depois de pegar uma enferrujada range.
+ *
+ * A qualidade `enferrujada` já existia (0.75 de dano, dispersão 1.5) desde o
+ * começo, mas era invisível: o tiro saía igual ao de uma arma nova. Aqui o
+ * grunhido metálico roça o disparo na primeira vez e some depois — ferrugem é
+ * um estado, não um efeito permanente que cansa.
+ */
+let ferrugemJaOuvida = new Set<string>();
+
+export function sfxFerrugem(familia: WeaponFamily = 'pistol', arma: string = ''): void {
+  // só uma vez por arma por partida: repetir todo tiro vira ruído
+  if (arma && ferrugemJaOuvida.has(arma)) return;
+  if (arma) ferrugemJaOuvida.add(arma);
+  // arquivo CC0 (rangido do RPG Audio do Kenney): a síntese é o fallback
+  if (playSfxFile('ferrugem')) return;
+  // metal raspando: banda média estreita com Q alta = o "rangido"
+  playBurst(0.18, 0.13, 'bandpass', 1400 + RECHARGE_BODY[familia].q * 180, 8);
+  setTimeout(() => playBurst(0.11, 0.09, 'bandpass', 900, 10), 55);
+}
+
+export function resetFerrugem(): void {
+  ferrugemJaOuvida = new Set();
+}
+
+/**
+ * Condição da arma no disparo: enferrujada range, quebrada falha mais alto,
+ * suja só encarece o ruído de fundo.
+ *
+ * `quebrada` tem 20% de falha (o tiro some) — o som precisa concordar com o
+ * que aconteceu, senão o jogador ouve um tiro normal e não entende por que a
+ * bala não saiu.
+ */
+export function sfxCondicao(qualidade: string, familia: WeaponFamily = 'pistol'): void {
+  if (qualidade === 'enferrujada') {
+    sfxFerrugem(familia);
+  } else if (qualidade === 'quebrada') {
+    // o encasquilho já tem som próprio no banco (jammed, do Kenney)
+    if (playSfxFile('jammed')) return;
+    playBurst(0.05, 0.3, 'highpass', 3200, 1.5);
+    setTimeout(() => playTone(vary(140, 0.12), 0.05, 'square', 0.1), 40);
+  } else if (qualidade === 'suja') {
+    playBurst(0.035, 0.1, 'lowpass', 900, 1);
+  }
+}
+
 export function sfxGameOver(): void {
   if (playSfxFile('gameOver')) return;
   const notes = [440, 370, 330, 262];
@@ -436,11 +546,10 @@ export function sfxGameOver(): void {
   });
 }
 
-export function sfxHitStop(): void {
-  if (playSfxFile('hitStop')) return;
-  playNoise(0.03, 0.3);
-  playTone(100, 0.05, 'sine', 0.25);
-}
+// O hit stop não tem som: o congelamento de 15ms é sentindo, não ouvido, e um
+// estalo por abate somava ruído no meio do combate. `triggerHitStop`
+// (`effects.ts`) é o que roda; este `sfx*` órfão só ocupava espaço na lista de
+// débitos do `semProcedural`.
 
 // ─── Habilidades (antes as três usavam o mesmo sfxPowerup) ───────
 
@@ -480,6 +589,7 @@ export function sfxMenuSelect(): void {
 
 /** Coleta de peça (Faixa C §8): clique metálico + sino — distinto do coin/powerup. */
 export function sfxPiece(): void {
+  if (playSfxFile('piece')) return;
   playBurst(0.04, 0.2, 'highpass', 3000, 1.4);
   setTimeout(() => playTone(1180, 0.09, 'triangle', 0.12), 40);
 }
@@ -493,23 +603,23 @@ const buffers = new Map<MusicTrack, AudioBuffer>();
 const loading = new Set<MusicTrack>();
 
 /** Chave de persistência das preferências de áudio */
-const MUSIC_KEY = 'bubble.musicOn';
-const SFX_KEY = 'bubble.sfxOn';
-const VOL_MASTER_KEY = 'bubble.volMaster';
-const VOL_MUSIC_KEY = 'bubble.volMusic';
-const VOL_SFX_KEY = 'bubble.volSfx';
+const MUSIC_KEY = 'rios.musicOn';
+const SFX_KEY = 'rios.sfxOn';
+const VOL_MASTER_KEY = 'rios.volMaster';
+const VOL_MUSIC_KEY = 'rios.volMusic';
+const VOL_SFX_KEY = 'rios.volSfx';
 
 let musicEnabled = readPref(MUSIC_KEY, true);
 let sfxEnabled = readPref(SFX_KEY, true);
 
 /**
- * Volumes persistidos. Os defaults são os ganhos hardcoded antigos
- * (0.3/0.28/0.72) para não alterar o balanço de som de quem já
- * jogava: o som só muda quando o usuário ajusta.
+ * Volumes padrão. Subiram de 0.3/0.28/0.72 porque o jogo estava baixo demais
+ * no padrão — o jogador tinha de mexer nas configurações para ouvir o tiro da
+ * própria arma. Só o default mudou: quem já ajustou mantém o valor salvo.
  */
-let masterVolume = readPrefNum(VOL_MASTER_KEY, 0.3);
-let musicVolume = readPrefNum(VOL_MUSIC_KEY, 0.28);
-let sfxVolume = readPrefNum(VOL_SFX_KEY, 0.72);
+let masterVolume = readPrefNum(VOL_MASTER_KEY, 0.5);
+let musicVolume = readPrefNum(VOL_MUSIC_KEY, 0.4);
+let sfxVolume = readPrefNum(VOL_SFX_KEY, 0.85);
 
 function readPref(key: string, fallback: boolean): boolean {
   try {
@@ -565,9 +675,6 @@ export function setSfxEnabled(on: boolean): void {
 export function isMusicEnabled(): boolean { return musicEnabled; }
 export function isSfxEnabled(): boolean { return sfxEnabled; }
 
-/** Faixa atualmente tocando. */
-export function getCurrentTrack(): MusicTrack | null { return currentTrack; }
-
 async function loadTrack(track: MusicTrack): Promise<AudioBuffer | null> {
   const cached = buffers.get(track);
   if (cached) return cached;
@@ -591,7 +698,6 @@ async function loadTrack(track: MusicTrack): Promise<AudioBuffer | null> {
 
 /**
  * Troca a faixa de música com crossfade de 0.8s.
- * @param track - faixa destino
  */
 export async function playMusic(track: MusicTrack): Promise<void> {
   if (!musicEnabled) return;
@@ -641,7 +747,6 @@ export function startMusic(): void {
   void playMusic('menu');
 }
 
-/** Para a música de fundo. */
 export function stopMusic(): void {
   const ac = ctx;
   if (currentSource && ac) {
@@ -681,3 +786,27 @@ export function setMusicVolume(vol: number): void {
   writePrefNum(VOL_MUSIC_KEY, musicVolume);
   if (musicGain) musicGain.gain.value = musicEnabled ? musicVolume : 0;
 }
+
+/**
+ * Qual som cada arma toca.
+ *
+ * Fica aqui, e não no `main.ts`, porque é dado de áudio e precisa ser testável:
+ * a BFG estava ausente e caía num fallback silencioso para `sfxPistol` — uma
+ * explosão de 5 projéteis com som de pistola. `weaponSound.test.ts` trava que
+ * toda arma de `WEAPONS` tem entrada aqui.
+ */
+export const WEAPON_SOUNDS: Record<string, () => void> = {
+  'Pistola': sfxPistol,
+  'Shotgun': sfxShotgun,
+  'Metralhadora': sfxMachinegun,
+  'Sniper': sfxSniper,
+  'Laser': sfxLaser,
+  'RPG': sfxRPG,
+  'Raios': sfxRaios,
+  'Gel': sfxGel,
+  'Granada': sfxGranade,
+  'Mina': sfxMina,
+  'BFG': sfxRPG,
+  'M. Quebrada': sfxMachinegun,
+  'Destruidor': sfxRPG,
+};

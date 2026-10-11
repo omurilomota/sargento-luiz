@@ -16,8 +16,10 @@ import { ENEMY_TYPES, POWERUP_TYPES } from '../config';
 import { hasPowerUp } from '../powerups';
 import { isSkillActive } from './skills';
 import { getSprite, getEnemyCharacter, poseKey, drawSpriteFit, Pose, isSpritesEnabled } from './sprites';
-import { getIsReloading } from '../weapons';
-import { getCurrentCutscene, getCurrentLine, isLineComplete, getTextProgress, getPortraitInfo, isWaitingForChoice } from './story';
+import { buildCutsceneBackdrop, cutsceneVeil } from './terrain';
+import { getIsReloading, getWeaponFamily, WeaponFamily } from '../weapons';
+import { getCurrentCutscene, getCurrentLine, isLineComplete, getTextProgress, getPortraitInfo, isWaitingForChoice, getBeatRestante } from './story';
+import { estaEmTelaCheia } from './fullscreen';
 import { getEquippedSkin } from './skins';
 import { hasSave } from './saveSystem';
 import { getLeaderboard } from './leaderboard';
@@ -53,9 +55,60 @@ export interface MenuItemLayout {
  * Calcula o layout do menu. Draw e hit-test consomem a MESMA função — antes o
  * clique usava `height/2 + i*50` e o draw usava `H*0.28 + i*modeSpacing`, então
  * clicar num modo selecionava outro.
- * @param w - largura do canvas
- * @param h - altura do canvas
  */
+export interface MenuFooterLine {
+  texto: string;
+  cor: string;
+  fonte: string;
+  /** Baseline da linha, em pixels de tela. */
+  y: number;
+  /** Y do topo do bloco inteiro — usado para não colidir com o menu. */
+  pulso: boolean;
+}
+
+/** Vão entre baselines no rodapé. O último valor é o espaço após a 5ª linha. */
+const RODAPE_ESPACO = [12, 12, 12, 16, 18];
+
+/**
+ * Geometria do rodapé do menu: as linhas de controle, o aviso de save
+ * existente e o "ENTER para jogar".
+ *
+ * Isso não pode ser âncora em percentual: o bloco de controle avançava 14px a
+ * partir de `h*0.88` enquanto o aviso de save era desenhado em `h*0.94 - 18`,
+ * e o vão real entre os dois é `h*0.06`. Em tela baixa o "V: Créditos" caía
+ * abaixo do "C: Continuar jogo salvo" e os dois se sobrepunham.
+ *
+ * O rodapé é ancorado pela BASE (última linha acima do crédito de licença) e
+ * cresce para cima, então a distância para o crédito é constante em qualquer
+ * altura.
+ */
+export function getMenuFooterLayout(h: number, temSave: boolean): MenuFooterLine[] {
+  const linhas: { texto: string; cor: string; fonte: string; pulso: boolean }[] = [
+    { texto: 'WASD: Mover | Mouse: Mirar | Click: Atirar', cor: PALETTE.textOff, fonte: '11px monospace', pulso: false },
+    { texto: 'Espaco: Dash | F: Escudo | E: Furia | R: Recarregar', cor: PALETTE.textOff, fonte: '11px monospace', pulso: false },
+    { texto: 'M: Musica | S: Efeitos | O: Configurações', cor: PALETTE.textOff, fonte: '11px monospace', pulso: false },
+    { texto: 'V: Créditos', cor: PALETTE.textOff, fonte: '11px monospace', pulso: false },
+  ];
+  if (temSave) {
+    linhas.push({ texto: 'C: Continuar jogo salvo', cor: PALETTE.mustard, fonte: '12px monospace', pulso: false });
+  }
+  linhas.push({ texto: 'ENTER para jogar', cor: PALETTE.textDim, fonte: '13px monospace', pulso: true });
+
+  const out: MenuFooterLine[] = new Array(linhas.length);
+  out[linhas.length - 1] = { ...linhas[linhas.length - 1], y: h - 22 };
+  for (let i = linhas.length - 2; i >= 0; i--) {
+    const abaixo = RODAPE_ESPACO[i] ?? 14;
+    out[i] = { ...linhas[i], y: out[i + 1].y - abaixo };
+  }
+  return out;
+}
+
+/** Y do topo do rodapé — abaixo disso o menu não pode desenhar. */
+export function getMenuFooterTop(h: number, temSave: boolean): number {
+  const linhas = getMenuFooterLayout(h, temSave);
+  return linhas[0].y - 9;
+}
+
 export function getMenuLayout(w: number, h: number): { titleY: number; items: MenuItemLayout[]; classItems: MenuItemLayout[]; settingsRow: MenuItemLayout | null } {
   const startY = h * 0.3;
   const spacing = Math.min(46, (h * 0.5) / GAME_MODES.length);
@@ -63,11 +116,10 @@ export function getMenuLayout(w: number, h: number): { titleY: number; items: Me
   const boxH = Math.min(32, spacing - 6);
   const classStartY = startY + GAME_MODES.length * spacing + 30;
   const classSpacing = Math.min(36, (h * 0.3) / 4);
-  // row de configurações: só quando cabe acima do rodapé (h*0.88).
-  // Em 800x480 não cabe — a tecla O continua funcionando.
+  const footerTop = getMenuFooterTop(h, hasSave());
   const settingsY = classStartY + 4 * classSpacing + 22;
   const settingsRow: MenuItemLayout | null =
-    settingsY + (classSpacing - 4) <= h * 0.88
+    settingsY + (classSpacing - 4) <= footerTop
       ? { x: w / 2 - boxW / 2, y: settingsY, w: boxW, h: classSpacing - 4 }
       : null;
   return {
@@ -115,7 +167,14 @@ export function menuIndexAt(x: number, y: number, w: number, h: number): number 
  * contraste (piso de caverna — média 75/255 e desvio 11, a mais
  * escura com textura entre os tiles do `TILE_NUMBERS`).
  */
-const MENU_TILE = 'tile_31';
+/**
+ * Tile de fundo do menu: concreto do pack Top Down Dungeon (CC0).
+ *
+ * Era `tile_31` do Kenney — 95% cinza com um tracinho amarelo, o pior caso de
+ * "cara de IA" do projeto. Este tem rejunte e mancha, e a passada escura por
+ * cima o deixa só como superfície.
+ */
+const MENU_TILE = 'dngeon_parede_concreto_0';
 
 /** Fundo prerenderizado do menu (null antes do primeiro draw). */
 let menuBg: HTMLCanvasElement | null = null;
@@ -123,10 +182,16 @@ let menuBg: HTMLCanvasElement | null = null;
 let menuBgKey = '';
 
 /**
- * Fundo do menu: tile do pack desenhado 1× num offscreen por resolução,
- * coberto de quase-preto e vinheta radial (o único gradiente permitido).
- * Sem tile carregado o fundo é o quase-preto liso — fallback silencioso,
- * sem desenho procedural (regra 15).
+ * Fundo do menu.
+ *
+ * Antes era o `tile_31` do Kenney repetido numa grade de 64px sob 72% de
+ * preto: o tile é 95% cinza com um tracinho amarelo, então o que aparecia na
+ * tela não era o desenho — era a treliça das emendas. Agora usa um tile de
+ * concreto com rejunte do pack Top Down Dungeon (que tem textura real), em
+ * uma passada escura, com vinheta por cima.
+ *
+ * O tile é asset: sem ele carregado o fundo é o quase-preto liso, que é
+ * fallback e não um desenho feito com código (regra 15).
  */
 function drawMenuBackground(W: number, H: number): void {
   const key = `${W}x${H}`;
@@ -139,14 +204,16 @@ function drawMenuBackground(W: number, H: number): void {
     c.fillRect(0, 0, W, H);
     const tile = getSprite(MENU_TILE);
     if (tile) {
-      const S = 64;
+      // 128px em vez de 64: a grade fica 11x6 em vez de 20x11, e a costura
+      // some atrás da vinheta
+      const S = 128;
       for (let y = 0; y < H; y += S) {
         for (let x = 0; x < W; x += S) {
           c.drawImage(tile, x, y, S, S);
         }
       }
     }
-    c.fillStyle = 'rgba(8,8,10,0.72)';
+    c.fillStyle = 'rgba(8,8,10,0.86)';
     c.fillRect(0, 0, W, H);
     const g = c.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.75);
     g.addColorStop(0, 'rgba(0,0,0,0)');
@@ -195,12 +262,12 @@ export function drawMenu(selectedMode: string = 'campaign', selectedClass: Class
   ctx.font = 'bold 48px monospace';
   ctx.shadowColor = 'rgba(0,0,0,0.6)';
   ctx.shadowBlur = 8;
-  ctx.fillText('ASHFALL', W / 2, L.titleY);
+  ctx.fillText('SARGENTO RIOS', W / 2, L.titleY);
   ctx.shadowBlur = 0;
 
   ctx.fillStyle = PALETTE.textOff;
   ctx.font = '12px monospace';
-  ctx.fillText('PÓS-APOCALÍPTICO', W / 2, L.titleY + 24);
+  ctx.fillText('12/03/2087 — ESQUADRÃO RIOS', W / 2, L.titleY + 24);
 
   ctx.strokeStyle = 'rgba(255,255,255,0.06)';
   ctx.lineWidth = 1;
@@ -248,7 +315,7 @@ export function drawMenu(selectedMode: string = 'campaign', selectedClass: Class
     ctx.font = '12px monospace';
     ctx.fillText(mode.name, r.x + 42, midY);
     ctx.fillStyle = isSelected ? PALETTE.textDim : PALETTE.textOff;
-    ctx.font = '10px monospace';
+    ctx.font = '11px monospace';
     ctx.textAlign = 'right';
     ctx.fillText(mode.desc, r.x + r.w - 10, midY);
     ctx.textAlign = 'center';
@@ -290,7 +357,7 @@ export function drawMenu(selectedMode: string = 'campaign', selectedClass: Class
     ctx.font = 'bold 13px monospace';
     ctx.fillText(clsDef.name, r.x + 22, midY);
     ctx.fillStyle = isSelected ? PALETTE.textDim : PALETTE.textOff;
-    ctx.font = '10px monospace';
+    ctx.font = '11px monospace';
     ctx.textAlign = 'right';
     ctx.fillText(clsDef.desc, r.x + r.w - 10, midY);
     ctx.textAlign = 'center';
@@ -317,29 +384,17 @@ export function drawMenu(selectedMode: string = 'campaign', selectedClass: Class
     ctx.fillText('CONFIGURAÇÕES (O)', W / 2, midY);
   }
 
-  ctx.fillStyle = PALETTE.textOff;
-  ctx.font = '10px monospace';
-  ctx.fillText('WASD: Mover | Mouse: Mirar | Click: Atirar', W / 2, H * 0.88);
-  ctx.fillText('Espaco: Dash | F: Escudo | E: Furia | R: Recarregar', W / 2, H * 0.88 + 14);
-  ctx.fillText('M: Musica | S: Efeitos | O: Configurações', W / 2, H * 0.88 + 28);
-  ctx.fillText('V: Créditos', W / 2, H * 0.88 + 42);
-
-  if (hasSave()) {
-    ctx.fillStyle = PALETTE.mustard;
-    ctx.font = '12px monospace';
-    ctx.fillText('C: Continuar jogo salvo', W / 2, H * 0.94 - 18);
+  for (const linha of getMenuFooterLayout(H, hasSave())) {
+    if (linha.pulso) ctx.globalAlpha = 0.3 + Math.sin(Date.now() / 600) * 0.3;
+    ctx.fillStyle = linha.cor;
+    ctx.font = linha.fonte;
+    ctx.fillText(linha.texto, W / 2, linha.y);
+    if (linha.pulso) ctx.globalAlpha = 1;
   }
 
-  ctx.fillStyle = PALETTE.textDim;
-  ctx.font = '13px monospace';
-  const pulse = 0.3 + Math.sin(Date.now() / 600) * 0.3;
-  ctx.globalAlpha = pulse;
-  ctx.fillText('ENTER para jogar', W / 2, H * 0.94);
-  ctx.globalAlpha = 1;
-
   // crédito das faixas — obrigatório por licença
-  ctx.fillStyle = '#333';
-  ctx.font = '9px monospace';
+  ctx.fillStyle = PALETTE.textOff;
+  ctx.font = '11px monospace';
   ctx.fillText('Música: faixas originais do projeto (CC0) — assets/music/CREDITS.md', W / 2, H - 12);
 }
 
@@ -399,10 +454,16 @@ export function drawCutscene(): void {
   ctx.textAlign = 'left';
   ctx.fillText(portrait.name, portraitX + portraitR + 16, portraitY - 10);
 
-  const displayedText = line.text.substring(0, Math.floor(progress));
-  ctx.fillStyle = '#bbb';
-  ctx.font = '16px monospace';
-  wrapText(ctx, displayedText, portraitX + portraitR + 16, portraitY + 10, canvas.width * 0.6, 22);
+  // Beat de silêncio: a linha "---" não desenha texto nenhum, e o retrato
+  // some. É o silêncio depois da morte do Fernandes — a tela fica com o
+  // cenário e nada mais. Sem isso a morte passava como mais uma fala.
+  const emSilencio = getBeatRestante() > 0;
+  const displayedText = emSilencio ? '' : line.text.substring(0, Math.floor(progress));
+  if (!emSilencio) {
+    ctx.fillStyle = '#bbb';
+    ctx.font = '16px monospace';
+    wrapText(ctx, displayedText, portraitX + portraitR + 16, portraitY + 10, canvas.width * 0.6, 22);
+  }
 
   if (isWaitingForChoice() && line.choices) {
     ctx.fillStyle = 'rgba(0,0,0,0.7)';
@@ -420,12 +481,14 @@ export function drawCutscene(): void {
     ctx.fillText('Pressione 1, 2 ou 3', canvas.width / 2, canvas.height / 2 + 50 + line.choices.length * 40 + 10);
   }
 
-  if (complete && !isWaitingForChoice()) {
+  if (!isWaitingForChoice()) {
+    // Sempre visível: antes o prompt só aparecia DEPOIS de a linha terminar,
+    // então quem não sabia o truque ficava preso vendo o texto digitar.
     ctx.fillStyle = PALETTE.textOff;
     ctx.font = '12px monospace';
     ctx.textAlign = 'right';
-    ctx.globalAlpha = 0.3 + Math.sin(Date.now() / 500) * 0.3;
-    ctx.fillText('BACKSPACE ou Ç >>', canvas.width - 30, canvas.height - 30);
+    ctx.globalAlpha = complete ? 0.3 + Math.sin(Date.now() / 500) * 0.3 : 0.55;
+    ctx.fillText('ENTER: avançar  ·  BACKSPACE: pular', canvas.width - 30, canvas.height - 30);
     ctx.globalAlpha = 1;
   }
 
@@ -436,45 +499,23 @@ export function drawCutscene(): void {
   ctx.stroke();
 }
 
+/**
+ * Cena da cutscene: fundo montado por `buildCutsceneBackdrop` (terrain.ts),
+ * com o piso e os objetos do próprio bioma.
+ *
+ * Antes esta função desenhava a cena toda com `arc`/`fillRect` — árvore em
+ * círculo, estalactite em triângulo, estrela em ponto. Era o último lugar do
+ * jogo em que a arte era código (Regra 15). Agora a cena vem do pack; daqui
+ * sai só o véu de alpha (a cena fica atrás do texto) e a deriva lenta.
+ */
 function drawCutsceneScene(title: string): void {
-  const t = Date.now() / 1000;
-  ctx.globalAlpha = 0.15;
-  if (title === 'FLORESTA') {
-    for (let i = 0; i < 8; i++) {
-      const tx = (i * 130 + 40) % canvas.width;
-      const ty = canvas.height * 0.85 + Math.sin(t + i) * 3;
-      ctx.fillStyle = '#2a4a2a';
-      ctx.fillRect(tx - 4, ty - 60, 8, 60);
-      ctx.beginPath();
-      ctx.arc(tx, ty - 70, 25, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  } else if (title === 'CAVERNA') {
-    for (let i = 0; i < 10; i++) {
-      const sx = (i * 100 + 20) % canvas.width;
-      ctx.fillStyle = '#3a3a5a';
-      ctx.beginPath();
-      ctx.moveTo(sx - 8, 0);
-      ctx.lineTo(sx, 40 + Math.sin(t + i) * 5);
-      ctx.lineTo(sx + 8, 0);
-      ctx.fill();
-    }
-  } else if (title === 'ESPAÇO' || title === 'ESPAÇO'.toUpperCase()) {
-    for (let i = 0; i < 20; i++) {
-      const sx = (i * 97 + 13) % canvas.width;
-      const sy = (i * 73 + 7) % canvas.height;
-      ctx.fillStyle = '#ccc';
-      ctx.beginPath();
-      ctx.arc(sx, sy, 1 + Math.sin(t * 2 + i) * 0.5, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  } else if (title === 'VULCÃO') {
-    const g = ctx.createRadialGradient(canvas.width / 2, canvas.height, 0, canvas.width / 2, canvas.height, canvas.height * 0.6);
-    g.addColorStop(0, '#6b2010');
-    g.addColorStop(1, 'transparent');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-  }
+  const fundo = buildCutsceneBackdrop(title, canvas.width, canvas.height);
+  if (!fundo) return;
+  // 2px de deriva vertical custam um `drawImage` por frame.
+  const deriva = Math.sin(Date.now() / 1500) * 2;
+  ctx.globalAlpha = cutsceneVeil(title);
+  ctx.drawImage(fundo, 0, deriva);
+  ctx.globalAlpha = 1;
 }
 
 function wrapText(context: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, lineHeight: number): void {
@@ -500,10 +541,10 @@ export function drawGameOver(score: number, killStreak: number): void {
 }
 
 // ─── Vitória ────────────────────────────────────────────────────
-// Antes a última fase caía no mesmo drawGameOver: zerar o jogo lia como derrota.
-// Vitória usa o verde-musgo do jogador e texto próprio; morte continua terracota.
+// Tela separada da derrota: zerar o jogo caindo no mesmo desenho lia como
+// derrota. Vitória usa o verde-musgo do jogador, morte continua terracota.
 export function drawVictory(score: number, killStreak: number): void {
-  drawEndScreen('VITÓRIA — AS CINZAS ASSENTAM', PALETTE.moss, score, killStreak);
+  drawEndScreen('NÚCLEO DESTRUIDO', PALETTE.moss, score, killStreak);
 }
 
 function drawEndScreen(title: string, titleColor: string, score: number, killStreak: number): void {
@@ -569,7 +610,7 @@ export function drawCredits(): void {
     { texto: 'Uso gratuito com atribuição desta tela e do CREDITS.md', cor: PALETTE.textDim, tamanho: '11px', peso: '' },
     { texto: '', cor: PALETTE.textDim, tamanho: '11px', peso: '' },
     { texto: 'SFX', cor: PALETTE.mustard, tamanho: '13px', peso: 'bold ' },
-    { texto: 'Kenney.nl + OpenGameArt — CC0 (25 efeitos)', cor: PALETTE.text, tamanho: '12px', peso: '' },
+    { texto: 'Kenney.nl + OpenGameArt — CC0 e CC-BY (29 efeitos)', cor: PALETTE.text, tamanho: '12px', peso: '' },
     { texto: 'Tiros: Vincent Sevedge (opengameart.org) — CC-BY 3.0', cor: PALETTE.text, tamanho: '12px', peso: '' },
     { texto: '29 efeitos reais em assets/sfx/ (fallback procedural em audio.ts)', cor: PALETTE.textDim, tamanho: '11px', peso: '' },
     { texto: 'Autores por arquivo: assets/CREDITS.md', cor: PALETTE.textDim, tamanho: '11px', peso: '' },
@@ -579,7 +620,7 @@ export function drawCredits(): void {
     { texto: 'Personagens, armas e tiles (PNG/Tiles)', cor: PALETTE.textDim, tamanho: '11px', peso: '' },
     { texto: '', cor: PALETTE.textDim, tamanho: '11px', peso: '' },
     { texto: 'CÓDIGO E DESIGN', cor: PALETTE.mustard, tamanho: '13px', peso: 'bold ' },
-    { texto: 'ASHFALL — projeto original', cor: PALETTE.text, tamanho: '12px', peso: '' },
+    { texto: 'SARGENTO RIOS — projeto original', cor: PALETTE.text, tamanho: '12px', peso: '' },
   ];
 
   let y = H * 0.2;
@@ -600,14 +641,6 @@ export function drawCredits(): void {
 // ─── Mundo ──────────────────────────────────────────────────────
 
 /**
- * Desenha o terreno tintado do bioma atual.
- * O deslocamento da câmera é feito pela translação do `main.ts`.
- */
-export function drawGameBackground(_bg: string, _grid: string, _shake: { x: number; y: number }, _phaseName?: string): void {
-  // o terreno é desenhado por `drawTerrain` a partir do canvas offscreen
-}
-
-/**
  * Desenha a transição visual entre ondas.
  */
 export function drawPhaseTransition(phaseTransition: number, currentWave: number, phaseName: string | undefined): void {
@@ -625,12 +658,26 @@ export function drawPhaseTransition(phaseTransition: number, currentWave: number
   }
 }
 
-/** Moedas: sem `shadowBlur` por moeda (eram 10 por moeda por frame). */
+/**
+ * Moedas: sprite da Kenney "Platformer Art Deluxe" (CC0).
+ *
+ * Era um `ctx.arc()` mostarda com um "$" desenhado por cima — o objeto mais
+ * visto do jogo e o último círculo de arte no renderer. O pulso (escala) e o
+ * fade por `life` continuam: eles são movimento, não desenho.
+ */
 export function drawCoins(coins: Coin[]): void {
+  const img = getSprite('item_coinGold');
   for (const c of coins) {
     const pulse = 1 + Math.sin(Date.now() / 300 + c.x) * 0.12;
     const alpha = Math.max(0, Math.min(1, c.life / 3));
     ctx.globalAlpha = alpha;
+    if (img) {
+      const lado = 18 * pulse;
+      ctx.drawImage(img, c.x - lado / 2, c.y - lado / 2, lado, lado);
+      continue;
+    }
+    // fallback: asset não carregou — o círculo de antes, declarado como
+    // exceção de fallback no `semDesenho` (Regra 15)
     ctx.fillStyle = PALETTE.mustard;
     ctx.beginPath();
     ctx.arc(c.x, c.y, 7 * pulse, 0, Math.PI * 2);
@@ -650,33 +697,81 @@ export function drawCoins(coins: Coin[]): void {
   ctx.textAlign = 'left';
 }
 
+/**
+ * Gema por cor do power-up.
+ *
+ * As 12 cores do `POWERUP_TYPES` são da paleta do jogo, e o pack tem 4 gemas —
+ * o pareamento é por tom. O símbolo continua na frente: ele é texto de UI (é
+ * o que distingue `botas` de `reflexos`), não desenho.
+ */
+const GEMA_POR_COR: Record<string, string> = {
+  '#7a9a6a': 'item_gemGreen',   // health
+  '#608090': 'item_gemBlue',    // shield, peleDePedra
+  '#b07050': 'item_gemRed',     // damage, furia
+  '#c8b890': 'item_gemYellow',  // speed, invincible, botas, reflexos
+  '#a08050': 'item_gemYellow',  // multiShot, municaoInfinita
+  '#8a8a9a': 'item_gemBlue',    // magnet
+};
+
 export function drawPowerUps(powerups: PowerUp[]): void {
   for (const p of powerups) {
     const def = POWERUP_TYPES[p.type];
     const bob = Math.sin(Date.now() / 200 + p.x) * 3;
+    const py = p.y + bob;
     ctx.globalAlpha = Math.min(1, p.life / 2);
-    ctx.fillStyle = def.color;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y + bob, 12, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(0,0,0,0.5)';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    ctx.fillStyle = '#111';
-    ctx.font = 'bold 11px monospace';
+    const gema = getSprite(GEMA_POR_COR[def.color] ?? 'item_gemYellow');
+    if (gema) {
+      // 28px e o símbolo EMBAIXO, não em cima: sobre a faceta o glifo cobria
+      // o desenho e a gema virava "ponto colorido com letra" (medido no
+      // harness de composição).
+      const lado = 28;
+      ctx.drawImage(gema, p.x - lado / 2, py - lado / 2, lado, lado);
+    } else {
+      // fallback: asset não carregou — o círculo de antes (Regra 15)
+      ctx.fillStyle = def.color;
+      ctx.beginPath();
+      ctx.arc(p.x, py, 12, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+    // o símbolo é legenda de UI: continua texto, com contorno escuro para
+    // ficar legível em cima da gema
+    ctx.font = 'bold 10px monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(def.symbol, p.x, p.y + bob);
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(8,8,10,0.85)';
+    ctx.strokeText(def.symbol, p.x, py + 20);
+    ctx.fillStyle = '#e8dcc0';
+    ctx.fillText(def.symbol, p.x, py + 20);
     ctx.textBaseline = 'alphabetic';
     ctx.textAlign = 'left';
   }
   ctx.globalAlpha = 1;
 }
 
+/**
+ * Partículas.
+ *
+ * Antes, toda partícula era um `ctx.arc()` — 80 por frame, mais as explosões
+ * e os rastros. Numa tela cheia de tiro isso são centenas de arcos por frame,
+ * e o resultado lê como "bolinha de programa", não como fumaça ou faísca.
+ * Agora usa o Kenney Particle Pack (CC0); o `arc` fica só como fallback de
+ * asset que não carregou.
+ */
 export function drawParticles(particles: Particle[]): void {
   for (const p of particles) {
     const alpha = Math.max(0, p.life / p.maxLife);
     ctx.globalAlpha = alpha;
+    const sprite = getSprite(`fx_${p.sprite ?? 'spark_02'}`);
+    if (sprite && sprite.complete && sprite.naturalWidth > 0) {
+      // encolhe junto com a vida: a partícula morre sumindo, não cortando
+      const lado = p.radius * 2.6 * (0.45 + alpha * 0.55);
+      ctx.drawImage(sprite, p.x - lado / 2, p.y - lado / 2, lado, lado);
+      continue;
+    }
     ctx.fillStyle = p.color;
     ctx.beginPath();
     ctx.arc(p.x, p.y, Math.max(0.1, p.radius * alpha), 0, Math.PI * 2);
@@ -688,21 +783,58 @@ export function drawParticles(particles: Particle[]): void {
 export function drawBullets(bullets: Bullet[]): void {
   for (const b of bullets) {
     const speed = Math.hypot(b.vx, b.vy) || 1;
-    const tx = b.x - (b.vx / speed) * 14;
-    const ty = b.y - (b.vy / speed) * 14;
-    const grad = ctx.createLinearGradient(tx, ty, b.x, b.y);
-    grad.addColorStop(0, 'transparent');
-    grad.addColorStop(1, b.color);
-    ctx.strokeStyle = grad;
-    ctx.lineWidth = b.isEnemy ? 4 : 3;
-    ctx.beginPath();
-    ctx.moveTo(tx, ty);
-    ctx.lineTo(b.x, b.y);
-    ctx.stroke();
-    ctx.fillStyle = b.color;
-    ctx.beginPath();
-    ctx.arc(b.x, b.y, b.isEnemy ? 4.5 : 3.5, 0, Math.PI * 2);
-    ctx.fill();
+    const ang = Math.atan2(b.vy, b.vx);
+    // Família da bala: o sprite vem do pack de armas (Kay Lousberg, CC0).
+    // `bullet_*` no cache = asset carregou; o `arc` abaixo é o fallback de
+    // asset ausente, que é a única função dele.
+    const sprite = b.bulletSprite ? getSprite(`bullet_${b.bulletSprite}`) : null;
+    if (sprite && sprite.complete && sprite.naturalWidth > 0) {
+      // A bala do pack é um cartucho vertical: ponta em -y, base chata em +y.
+      // O perfil confirma (small_bullet 16x40): as linhas de y=0 a y=2 têm 6px
+      // de largura e a base chega a 16px.
+      //
+      // `rotate(ang)` alinharia o EIXO do sprite com a velocidade, deixando a
+      // ponta de lado — foi o bug: a bala atravessava o inimigo deitada.
+      // Como o eixo do sprite é +y, precisa de +90° para a ponta ir para frente.
+      const altura = b.isEnemy ? 16 : 20;
+      // aspecto nativo (small 16x40, medium 20x58, large 14x74): forçar uma
+      // proporção fixa deformava o cartucho e o deixava enorme
+      const larg = altura * (sprite.naturalWidth / sprite.naturalHeight);
+      ctx.save();
+      ctx.translate(b.x, b.y);
+      ctx.rotate(ang + Math.PI / 2);
+      ctx.drawImage(sprite, -larg / 2, -altura / 2, larg, altura);
+      ctx.restore();
+      // rastro na cor da arma, saindo da BASE do cartucho
+      const tx = b.x - Math.cos(ang) * altura * 0.5;
+      const ty = b.y - Math.sin(ang) * altura * 0.5;
+      const grad = ctx.createLinearGradient(tx, ty, b.x, b.y);
+      grad.addColorStop(0, 'transparent');
+      grad.addColorStop(1, b.color);
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = b.isEnemy ? 4 : 3;
+      ctx.beginPath();
+      ctx.moveTo(tx, ty);
+      ctx.lineTo(b.x, b.y);
+      ctx.stroke();
+    } else {
+      // fallback: asset não carregou
+      const tx = b.x - (b.vx / speed) * 14;
+      const ty = b.y - (b.vy / speed) * 14;
+      const grad = ctx.createLinearGradient(tx, ty, b.x, b.y);
+      grad.addColorStop(0, 'transparent');
+      grad.addColorStop(1, b.color);
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = b.isEnemy ? 4 : 3;
+      ctx.beginPath();
+      ctx.moveTo(tx, ty);
+      ctx.lineTo(b.x, b.y);
+      ctx.stroke();
+      ctx.fillStyle = b.color;
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.isEnemy ? 4.5 : 3.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
 }
 
@@ -719,7 +851,6 @@ export function drawBullets(bullets: Bullet[]): void {
  * `Enemy` não guarda `vx`/`vy` (a direção vem do flow field, recalculada por
  * frame), então não há como derivar "andando" aqui sem guardar estado extra
  * só para isso — e as duas poses são a mesma coisa sem arma.
- * @param e - inimigo
  */
 function enemyPose(e: Enemy): Pose {
   if (e.hitFlash > 0) return 'reload';
@@ -735,7 +866,9 @@ export function drawEnemies(
   enemies: Enemy[],
   playerX: number,
   playerY: number,
-  facing: (e: Enemy) => number
+  facing: (e: Enemy) => number,
+  /** Índice da fase (0..8). Escolhe o personagem do bioma; -1 usa o mapa geral. */
+  faseIndex = -1
 ): void {
   const spritesOn = isSpritesEnabled();
 
@@ -770,7 +903,10 @@ export function drawEnemies(
       ctx.globalAlpha = 1;
     }
 
-    const char = getEnemyCharacter(e.type);
+    // o personagem depende da FASE: o mesmo tipo de inimigo sai com um corpo
+    // diferente em cada bioma (a "9 silhuetas para 33 inimigos" do Sprint 1).
+    // Sem o índice da fase, a variação existia na tabela e nunca chegava na tela.
+    const char = getEnemyCharacter(e.type, faseIndex);
     const pose = enemyPose(e);
     const img = spritesOn ? getSprite(poseKey(char, pose)) : null;
 
@@ -869,7 +1005,7 @@ export function drawBots(bots: BotLike[]): void {
     ctx.fillStyle = bot.color;
     ctx.fillRect(barX, barY, barW * (bot.health / bot.maxHealth), 4);
     ctx.fillStyle = PALETTE.textDim;
-    ctx.font = '10px monospace';
+    ctx.font = '11px monospace';
     ctx.textAlign = 'center';
     ctx.fillText(bot.name, bot.x, barY - 4);
     ctx.textAlign = 'left';
@@ -877,37 +1013,50 @@ export function drawBots(bots: BotLike[]): void {
 }
 
 /**
- * Pose do jogador por classe de arma.
+ * Pose do jogador por FAMÍLIA de arma.
  *
- * As poses `gun`/`machine`/`silencer` do pack já desenham o personagem **segurando**
- * a arma — são 16px mais largas que `stand` por causa do cano. `stand` e `hold`
- * são as duas poses sem arma nenhuma. O jogador ficava em `stand` quando não
- * estava atirando, então a arma só aparecia no disparo: parado, o `weapon_*`
- * desenhado na ponta ficava solto ao lado do corpo, e atirando ficavam duas
- * armas (a da pose e a da ponta).
+ * As poses `gun`/`machine`/`silencer` do pack já desenham o personagem
+ * **segurando** a arma — são 16px mais largas que `stand` por causa do cano.
+ * `stand` e `hold` são as duas poses sem arma nenhuma. O jogador ficava em
+ * `stand` quando não estava atirando, então a arma só aparecia no disparo:
+ * parado, o `weapon_*` desenhado na ponta ficava solto ao lado do corpo, e
+ * atirando ficavam duas armas (a da pose e a da ponta). Como a arma agora vem
+ * da pose, a sprite `weapon_*` da ponta sai.
  *
- * Como a arma agora vem da pose, a sprite `weapon_*` da ponta sai: ela duplica
- * o cano, é desenhada dentro de um espaço já rotacionado e depois des-rotacionado
- * (`rotate(-player.angle)` dentro de `rotate(player.angle)`), então ficava
- * sempre na horizontal independente da mira.
+ * GATE VISUAL (Sprint 3): as armas do Kay Lousberg NÃO entram na mão. Elas são
+ * perfil lateral (coronha, alça, detalhe lateral) e o jogo é top-down — a pose
+ * do Kenney já desenha a arma de cima, e colar uma shotgun lateral no ombro
+ * visto de cima é mistura de perspectiva. O pack Kay segue só nos projéteis,
+ * onde funde (cartuchos simétricos que rotacionam bem). O fallback que o TODO
+ * propunha (Kenney Scribble Dungeons) é tileset de dungeon e não tem arma na
+ * mão — a resposta real é manter as poses.
+ *
+ * A curadoria é por família (WEAPON_FAMILY, a mesma do som), não por arma:
+ * 12 armas colapsam nas 3 poses que o pack tem, e o `weaponClass` solto no
+ * config — que fazia Shotgun e Pistola na mesma pose — saiu do caminho.
  */
-const ARMED_POSE: Record<'pistol' | 'machine' | 'silencer', Pose> = {
+/** Exportada para o teste de completude da curadoria por família. */
+export const POSE_DA_FAMILIA: Record<WeaponFamily, Pose> = {
   pistol: 'gun',
+  mine: 'gun',
+  shotgun: 'machine',
   machine: 'machine',
-  silencer: 'silencer',
+  launcher: 'machine',
+  precision: 'silencer',
+  energy: 'silencer',
 };
 
-function playerPose(weaponClass: 'pistol' | 'machine' | 'silencer'): Pose {
+function playerPose(): Pose {
   // recarregando não é pose armada: o pack tem `reload` com as duas mãos na arma
   if (getIsReloading()) return 'reload';
-  return ARMED_POSE[weaponClass];
+  return POSE_DA_FAMILIA[getWeaponFamily()];
 }
 
 /**
  * Desenha o jogador com pose do pacote Kenney, arma na mão e auras
  * de escudo/fúria.
  */
-export function drawPlayer(player: Player, weaponClass: 'pistol' | 'machine' | 'silencer'): void {
+export function drawPlayer(player: Player): void {
   if (player.deathTimer > 0) {
     const progress = 1 - player.deathTimer / 1.5;
     ctx.save();
@@ -937,7 +1086,7 @@ export function drawPlayer(player: Player, weaponClass: 'pistol' | 'machine' | '
   ctx.rotate(player.angle);
 
   if (hasSprite) {
-    const img = getSprite(poseKey('survivor', playerPose(weaponClass)))!;
+    const img = getSprite(poseKey('survivor', playerPose()))!;
     drawSpriteFit(ctx, img, 0, 0, player.radius * 2.5, 0);
   } else {
     let bodyColor = skin.bodyColor;
@@ -1059,7 +1208,9 @@ export function pauseOptionAt(mx: number, my: number): number {
   const H = canvas.height;
   const boxW = 280;
   const rowH = 34;
-  const boxH = 90 + PAUSE_OPTIONS.length * rowH;
+  // Mesma conta do desenho: o hint ocupa as últimas linhas do box. Divergir
+  // aqui fazia o clique acertar a opção errada quando o rodapé tinha 2 linhas.
+  const boxH = 90 + PAUSE_OPTIONS.length * rowH + getHintLines(pauseHint()).length * HINT_LINE_H;
   const x = W / 2 - boxW / 2;
   const y = H / 2 - boxH / 2;
   for (let i = 0; i < PAUSE_OPTIONS.length; i++) {
@@ -1069,10 +1220,72 @@ export function pauseOptionAt(mx: number, my: number): number {
   return -1;
 }
 
+/** Largura útil dentro do box, descontando a borda. */
+const HINT_MAX_W = 240;
+/** Fonte dos rodapés de tecla. */
+const HINT_FONT = '11px monospace';
+/** Avanço da linha a cada 16px de fonte, com folga. */
+const HINT_LINE_H = 15;
+
+/**
+ * Rodapés de tecla como listas curtas, uma por linha.
+ *
+ * Uma linha só não cabia: o box do pause tem 280px e
+ * 'W/S escolher · ENTER confirmar · ESC continuar' mede ~304px a 11px
+ * monospace, ou seja, transbordava 24px dos dois lados. O das configurações
+ * estourava 90px. Quebrar em linhas curtas cabe sem mexer na largura do box,
+ * que é compartilhada pelo hit-test das opções.
+ */
+/**
+ * Rodapé da pausa.
+ *
+ * Com o jogo em tela cheia a última linha muda: dentro do iframe do itch.io não
+ * há barra do jogador para clicar de volta, então o ESC precisa aparecer como a
+ * saída — era o que faltava para o jogador saber que estava preso.
+ */
+function pauseHint(): string[] {
+  const base = ['W/S escolher · ENTER confirmar'];
+  base.push(estaEmTelaCheia() ? 'ESC: sair da tela cheia' : 'ESC continuar');
+  return base;
+}
+const SETTINGS_HINT = ['W/S escolher · A/D ajustar', 'ENTER alternar · ESC voltar'];
+
+/** Largura máxima que o hint ocupa, em pixels de fonte. */
+export function getHintWidth(text: string, fontPx: number): number {
+  // monospace anda ~0.6em por caractere; a folga de 4px cobre o arredondamento
+  return Math.ceil(text.length * fontPx * 0.6) + 4;
+}
+
+/** As linhas do rodapé já quebradas: garante que nenhuma estoura o box. */
+export function getHintLines(lines: string[], maxWidth = HINT_MAX_W): string[] {
+  const out: string[] = [];
+  for (const linha of lines) {
+    if (getHintWidth(linha, 11) <= maxWidth) { out.push(linha); continue; }
+    // quebra no separador mais próximo do meio, sem partir uma instrução
+    const partes = linha.split(' · ');
+    let atual = '';
+    for (const p of partes) {
+      const candidato = atual ? `${atual} · ${p}` : p;
+      if (getHintWidth(candidato, 11) <= maxWidth || !atual) atual = candidato;
+      else { out.push(atual); atual = p; }
+    }
+    if (atual) out.push(atual);
+  }
+  return out;
+}
+
+/** Desenha o rodapé de tecla centrado, empilhado para baixo. */
+function drawHintLines(centerX: number, bottomY: number, lines: string[]): void {
+  const quebrar = getHintLines(lines);
+  ctx!.fillStyle = PALETTE.textOff;
+  ctx!.font = HINT_FONT;
+  ctx!.textAlign = 'center';
+  const topo = bottomY - (quebrar.length - 1) * HINT_LINE_H;
+  quebrar.forEach((linha, i) => ctx!.fillText(linha, centerX, topo + i * HINT_LINE_H));
+}
+
 /**
  * Desenha o overlay de pausa com as opções navegáveis.
- * @param musicOn - estado da música
- * @param sfxOn - estado dos efeitos
  */
 export function drawPause(musicOn: boolean, sfxOn: boolean): void {
   const W = canvas.width;
@@ -1083,7 +1296,7 @@ export function drawPause(musicOn: boolean, sfxOn: boolean): void {
 
   const boxW = 280;
   const rowH = 34;
-  const boxH = 90 + PAUSE_OPTIONS.length * rowH;
+  const boxH = 90 + PAUSE_OPTIONS.length * rowH + getHintLines(pauseHint()).length * HINT_LINE_H;
   const x = W / 2 - boxW / 2;
   const y = H / 2 - boxH / 2;
 
@@ -1113,10 +1326,7 @@ export function drawPause(musicOn: boolean, sfxOn: boolean): void {
     ctx.fillText(label, x + 44, oy);
   });
 
-  ctx.fillStyle = PALETTE.textOff;
-  ctx.font = '10px monospace';
-  ctx.textAlign = 'center';
-  ctx.fillText('W/S escolher · ENTER confirmar · ESC continuar', W / 2, y + boxH - 14);
+  drawHintLines(W / 2, y + boxH - 28, pauseHint());
   ctx.textAlign = 'left';
 }
 
@@ -1175,8 +1385,6 @@ const SETTINGS_BTN = 30;
 
 /**
  * Geometria única do painel: draw e hit-test consomem a MESMA função.
- * @param W - largura do canvas
- * @param H - altura do canvas
  */
 export function getSettingsLayout(W: number, H: number): SettingsLayout {
   const boxW = Math.min(SETTINGS_BOX_W, W * 0.9);
@@ -1260,11 +1468,7 @@ function drawSettingsButton(r: MenuItemLayout, label: string, rowHovered: boolea
 
 /**
  * Desenha o painel de configurações (overlay centralizado).
- * @param master - volume geral (0–1)
- * @param music - volume da música (0–1)
  * @param sfx - volume dos efeitos (0–1)
- * @param musicOn - música ligada
- * @param sfxOn - efeitos ligados
  */
 export function drawSettings(master: number, music: number, sfx: number, musicOn: boolean, sfxOn: boolean): void {
   const W = canvas.width;
@@ -1338,10 +1542,7 @@ export function drawSettings(master: number, music: number, sfx: number, musicOn
     }
   });
 
-  ctx.fillStyle = PALETTE.textOff;
-  ctx.font = '10px monospace';
-  ctx.textAlign = 'center';
-  ctx.fillText('W/S escolher · A/D ajustar · ENTER alternar · ESC voltar', W / 2, L.y + L.h - 14);
+  drawHintLines(W / 2, L.y + L.h - 28, SETTINGS_HINT);
   ctx.textAlign = 'left';
 }
 
@@ -1405,7 +1606,7 @@ export function drawNPCs(npcs: NPCData[]): void {
     }
 
     ctx.fillStyle = PALETTE.textDim;
-    ctx.font = '9px monospace';
+    ctx.font = '11px monospace';
     ctx.textAlign = 'center';
     ctx.fillText(npc.name, npc.x, npc.y - npc.radius - 14);
 
@@ -1421,17 +1622,4 @@ export function drawNPCs(npcs: NPCData[]): void {
     ctx.globalAlpha = 1;
     ctx.textAlign = 'left';
   }
-}
-
-/** Cono de lanterna (hazard de escuridão da Caverna). */
-export function drawFlashlight(x: number, y: number, angle: number, radius: number): void {
-  const grad = ctx.createRadialGradient(x, y, 0, x, y, radius);
-  grad.addColorStop(0, 'rgba(200,184,144,0.22)');
-  grad.addColorStop(1, 'rgba(200,184,144,0)');
-  ctx.fillStyle = grad;
-  ctx.beginPath();
-  ctx.moveTo(x, y);
-  ctx.arc(x, y, radius, angle - 0.5, angle + 0.5);
-  ctx.closePath();
-  ctx.fill();
 }

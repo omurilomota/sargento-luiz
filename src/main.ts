@@ -12,14 +12,18 @@
  */
 
 import { normalize } from './utils';
-import { PHASES, ENEMY_TYPES, POWERUP_TYPES, WEAPONS, QUALITIES, PIECE_TYPES } from './config';
+import { PHASES, ENEMY_TYPES, POWERUP_TYPES, WEAPONS, QUALITIES, PIECE_TYPES, NUCLEO_RUSH, conditionLabel, ehNegativa } from './config';
 import { PALETTE } from './core/palette';
 
 // Entities
 import * as player from './entities/player';
 import { applyRegen, resetRegen } from './entities/player';
-import { getBullets, spawnBullet, updateBullets, clearBullets } from './entities/bullet';
+import { getBullets, spawnBullet, updateBullets, updateMines, clearBullets } from './entities/bullet';
+import { getSprite, BULLET_FAMILY, getEnemyCharacter } from './systems/sprites';
 import { getCoins, spawnCoins, updateCoins, clearCoins, setMagnetActive, resetPermanentMagnet } from './entities/coin';
+import { PHASE_END_PAUSE, PLAYER_BASE_HEALTH } from './core/constants';
+import type { Toast, ToastKind, WeaponSheet } from './ui/hud';
+import { updateSupportUrl, drawSupportFallback, hideSupportUrl } from './systems/support';
 
 // Systems
 import { spawnParticles, updateParticles, clearParticles, getParticles } from './systems/particles';
@@ -34,11 +38,11 @@ let wasJammed = false;
 const killTimes: number[] = [];
 import { checkBulletEnemyCollisions, checkEnemyPlayerCollision, checkEnemyBulletPlayerCollision, bulletHitsCircle } from './systems/collision';
 import { createExplosion, updateExplosions, clearExplosions } from './systems/explosions';
-import { loadMap, colAt, rowAt, charAt, isWall, hasPath, moveCircleBy, rebuildFlowField, sampleFlowDir, pushOutOfWalls, findAll, segmentHitsWall } from './systems/tilemap';
+import { loadMap, colAt, rowAt, charAt, isWall, hasPath, moveCircleBy, rebuildFlowField, sampleFlowDir, pushOutOfWalls, findAll, segmentHitsWall, findFreeSpotNear } from './systems/tilemap';
 import { initCamera, setViewportSize, setWorldSize, updateCamera, snapCamera, getCamX, getCamY, screenToWorld, drawVoid, isVisible, setShake } from './systems/camera';
 import { initProps, getProps, updateProps, damageProp, detonateProp, getBlast, drawProps, clearProps, collapsesOnHit, Prop } from './systems/props';
 import { buildTerrain, drawTerrain, clearTerrain } from './systems/terrain';
-import { initObjective, updateObjective, peekObjective, endsPhaseOnDone, vipDown, markVipDown, registerObjectiveDestroyed, cellCenter, ReachZone } from './systems/objectives';
+import { initObjective, updateObjective, peekObjective, vipDown, markVipDown, registerObjectiveDestroyed, cellCenter, ReachZone } from './systems/objectives';
 import { updateBoss, isBossTelegraphing, getBossTelegraphLabel, clearBossState } from './systems/boss';
 
 import {
@@ -51,46 +55,52 @@ import {
 } from './systems/renderer';
 
 // UI
-import { initHud, drawHud, HudData } from './ui/hud';
-import { drawShop, handleShopClick, setShopCoins, getShopCoins, addShopCoins, resetShop, updateShopAds, getPurchasedUpgrades, getPurchasedWeapons, getPurchasedWeaponPairs, attachShopWheelListener, addPurchasedWeapon, pushPendingReveal, consumeShopPowerups, restoreUpgrades } from './ui/shop';
+import { initHud, drawHud, drawTabScreen, medirHud, HudData } from './ui/hud';
+import { drawShop, handleShopClick, setShopCoins, getShopCoins, addShopCoins, resetShop, updateShopAds, getPurchasedUpgrades, getPurchasedWeapons, getPurchasedWeaponPairs, attachShopWheelListener, addPurchasedWeapon, pushPendingReveal, consumeShopPowerups, restoreUpgrades, applySavedTalentos, buyPerk, getStockPerks, getShopStock, getShopLayout, medirTextosDaLoja, setShopScroll } from './ui/shop';
 
 // Modules
-import { shoot, getCurrentWeapon, resetWeapons, canShoot, startReload, updateReload, getCurrentAmmo, getIsReloading, getReloadTimer, setWeapon, getEffectiveShootRate, setWeaponQuality, getCurrentWeaponIndex, getWeaponQuality, isJammed } from './weapons';
-import { getCurrentPhase, getCurrentWave, getGameState, setGameState, nextWave, nextPhase, resetPhases, resetWave, addScore, addScoreFlat, getScore, getCombo, getComboDecay, updateCombo, resetCombo, getKillStreak, wasGameCompleted } from './phases';
+import { shoot, getCurrentWeapon, resetWeapons, refillAmmo, canShoot, startReload, updateReload, getCurrentAmmo, getIsReloading, getReloadTimer, setWeapon, getEffectiveShootRate, setWeaponQuality, getCurrentWeaponIndex, getWeaponQuality, isJammed, getCurrentCapacity, getReloadTimeOf, getWeaponStats, getWeaponFamily, onReloadStarted } from './weapons';
+import { getCurrentPhase, getCurrentWave, getGameState, setGameState, nextWave, nextPhase, resetPhases, resetWave, setCurrentWave, addScore, addScoreFlat, getScore, getCombo, getComboDecay, updateCombo, resetCombo, getKillStreak, getTotalKills, wasGameCompleted, deveFecharFase } from './phases';
 import { rollLootDrop, spawnBossLoot, updateLoot, getLoot, clearLoot, drawLoot, powerupLabel, ELITE_TYPES } from './systems/loot';
-import { addPieceToInventory, getPieceType } from './systems/pieces';
-import { powerups, spawnPowerUp, updatePowerUps, hasPowerUp, activePowerups } from './powerups';
+import { addPieceToInventory, getPieceType, resetPieces, getInventorySnapshot, restoreInventory, getEquippedSnapshot, restoreEquipped } from './systems/pieces';
+import { powerups, spawnPowerUp, spawnPowerUpDeChefe, spawnPowerUpDeTipo, updatePowerUps, hasPowerUp, activePowerups } from './powerups';
 
 import {
-  initAudio, sfxPistol, sfxShotgun, sfxMachinegun, sfxSniper, sfxLaser, sfxRPG, sfxRaios, sfxGel,
-  sfxGranade, sfxMina, sfxExplosion, sfxBossDeath, sfxPlayerHit, sfxCoin, sfxPowerup, sfxWaveStart,
+  initAudio, sfxExplosion, sfxBossDeath, sfxPlayerHit, sfxCoin, sfxPowerup, sfxWaveStart, sfxLevelUp,
   sfxGameOver, sfxEnemyShoot, sfxDash, sfxShield, sfxFury, sfxMenuMove, sfxMenuSelect, sfxError, sfxJammed, sfxPiece,
   startMusic, playMusic, setMusicEnabled, setSfxEnabled, isMusicEnabled, isSfxEnabled, unlockAudio,
-  getMasterVolume, getMusicVolume, getSfxVolume,
+  getMasterVolume, getMusicVolume, getSfxVolume, WEAPON_SOUNDS,
+  sfxReload, sfxCondicao, resetFerrugem,
 } from './systems/audio';
-import { triggerScreenShake, triggerDamageFlash, triggerBossKillFlash, updateFlash, updateSlowMotion, triggerSlowMotion, triggerHitStop, updateHitStop, resetEffects, updateScreenShake, triggerBossZoom, updateBossZoom } from './systems/effects';
+import { getFuryCooldownMult } from './systems/skills';
+import { triggerScreenShake, triggerDamageFlash, triggerBossKillFlash, triggerLevelUpFlash, updateFlash, updateSlowMotion, triggerSlowMotion, triggerHitStop, updateHitStop, resetEffects, updateScreenShake, triggerBossZoom, updateBossZoom } from './systems/effects';
 
 import { useSkill, isSkillActive, updateSkills, resetSkills, getDamageMultiplier, getDamageTakenMultiplier, getSkillCooldown, getSkillMaxCooldown, setMoveDirection } from './systems/skills';
 import { toggleNpcFollow } from './systems/npcs';
-import { getCurrentClass, setCurrentClass, getClassDamageMult, getClassSpeedMult, getClassReloadMult, getClassHealthPerKill, loadClass, saveClass, resetClass, ClassId, CLASSES } from './systems/classes';
+import { getCurrentClass, setCurrentClass, getClassDamageMult, getClassSpeedMult, getClassReloadMult, getClassHealthPerSecond, loadClass, saveClass, resetClass, ClassId, CLASSES } from './systems/classes';
 import { updateEnvironmentEvents, resetEnvironmentEvents, getEnvironmentWarnings } from './systems/environment';
-import { updateCombos, getActiveCombos, getComboDamageBonus, getComboFireRateBonus, getComboHealthBonus, resetCombos } from './systems/combos';
+import { updateCombos, getActiveCombos, getComboDamageBonus, getComboCooldownMult, getComboHealthBonus, resetCombos } from './systems/combos';
 import { setComboHealthMultiplier } from './entities/player';
 import { resetSkins } from './systems/skins';
-import { resetAds } from './systems/ads';
+import { resetAds, resetAdsPerPhase } from './systems/ads';
 import { saveGame, loadGame, hasSave, markGameCompleted, isGameCompleted } from './systems/saveSystem';
 import { addLeaderboardEntry } from './systems/leaderboard';
 import { loadAchievements, checkAchievements, checkObjectiveAchievement, resetRunCounters } from './systems/achievements';
-import { loadDiary, unlockDiaryEntry, unlockDiaryEvent } from './systems/diary';
-import { startTutorial, isTutorialActive, getCurrentHint, updateTutorial } from './systems/tutorial';
+import { loadDiary, unlockDiaryEntry, unlockDiaryEvent, getUnlockedDiary, getDiaryEvents, rollDiaryEvent } from './systems/diary';
+import { addXp, resetProgress, restoreTalentos, restoreXp, getNivel, getPontosLivres, getTalentos, buyTalento, getXp, progressoNoNivel, TALENTOS, XP_BONUS_ONDA, XP_BONUS_FASE } from './systems/progress';
+import { migrarChavesDeSave } from './systems/migracaoSave';
+import { getStat, resetStats } from './core/stats';
+import { registrarTiroPerks, tickPerks, acenderInimigo, danoPassoFantasma, checarSegundoFolego, limparDashFantasma, temSortudoAtivo, resetPerks, temIncandescente, temSegundoFolego, temPassoFantasma } from './systems/perks';
+import { startTutorial, isTutorialActive, getCurrentHint, updateTutorial, advanceHint, endTutorial } from './systems/tutorial';
 import { updateBehavior, registerShot, registerHit, getPlayerTendency, resetBehavior } from './systems/dynamicDifficulty';
-import { spawnNPC, updateNPCs, getNPCs, resetNPCs, npcBark } from './systems/npcs';
+import { spawnNPC, updateNPCs, getNPCs, resetNPCs, npcBark, isNpcFollowing } from './systems/npcs';
 import { getBots, createBot, updateBots, removeDeadBots, resetBots, addBot, BotDifficulty } from './systems/bots';
-import { isEnabled as isLocalEnabled, initLocalMultiplayer, movePlayer2, shootPlayer2, getPlayer2, resetLocalMultiplayer, checkPlayer2EnemyCollision } from './systems/localMultiplayer';
-import { showCutscene, advanceCutscene, skipCutsceneText, isShowingCutscene, updateCutscene, resetStory } from './systems/story';
+import { isEnabled as isLocalEnabled, initLocalMultiplayer, movePlayer2, shootPlayer2, getPlayer2, resetLocalMultiplayer, checkPlayer2EnemyCollision, damagePlayer2, resetPlayer2, getWinner } from './systems/localMultiplayer';
+import { showCutscene, showCutsceneAt, cutsceneForPhase, advanceCutscene, skipCutscene, isShowingCutscene, updateCutscene, resetStory, isEpilogueScene, EPILOGUE_CUTSCENE, getCurrentCutscene, getCurrentLine } from './systems/story';
 import { getCurrentMode, setGameMode, GameMode, GAME_MODES } from './systems/gameModes';
 import { BIOMES, CELL_SIZE } from './maps';
 import { loadAllSprites } from './systems/sprites';
+import { observarTelaCheia, estaEmTelaCheia, sairDaTelaCheia, alternarTelaCheia, estaEmIframe } from './systems/fullscreen';
 
 // ─── Canvas Setup ──────────────────────────────────────────────
 const canvas = document.getElementById('game') as HTMLCanvasElement;
@@ -103,6 +113,11 @@ function resizeCanvas() {
 }
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
+// Entrar/sair de tela cheia muda o tamanho do iframe por um caminho que nem
+// sempre dispara `resize` a tempo — sem esta escuta o canvas ficava com a
+// resolução antiga e o jogo aparecia esticado. É o caso do botão de
+// fullscreen do itch.io, que pede fullscreen no iframe que embute o jogo.
+observarTelaCheia(resizeCanvas);
 
 initRenderer(canvas, ctx);
 initHud(ctx);
@@ -114,17 +129,27 @@ attachSettingsWheelListener();
 /** Teclas mantidas pressionadas (movimento contínuo). */
 const keys: Record<string, boolean> = {};
 /**
- * Teclas apertadas NESTE frame (edge). Antes o ENTER ficava `true` para
- * sempre no estado anterior: Game Over → ENTER → menu → o próprio `keys['enter']`
- * ainda verdadeiro entrava na cutscene sozinho.
+ * Teclas apertadas NESTE frame (edge).
+ *
+ * Precisa ser um Set separado de `keys`: um ENTER que fica `true` no estado
+ * seguinte faz Game Over → ENTER → menu entrarem na cutscene sozinhos.
  */
 let keysPressed = new Set<string>();
 const mouse = { x: 0, y: 0, down: false };
+/** Clique do mouse dado durante a cutscene (edge, um por frame). */
+let cutsceneClick = false;
 
 /** Consome um ENTER pressionado neste frame (edge, com clear do buffer). */
 function consumeEnter(): boolean {
   if (!keysPressed.has('enter')) return false;
   keysPressed.delete('enter');
+  return true;
+}
+
+/** Consome o clique do mouse dado na cutscene neste frame. */
+function consumeCutsceneClick(): boolean {
+  if (!cutsceneClick) return false;
+  cutsceneClick = false;
   return true;
 }
 
@@ -142,6 +167,7 @@ function resetInput(): void {
   for (const k in keys) keys[k] = false;
   keysPressed.clear();
   mouse.down = false;
+  cutsceneClick = false;
 }
 
 document.addEventListener('keydown', e => {
@@ -161,7 +187,24 @@ document.addEventListener('keydown', e => {
       if (key === '3') selectChoiceSafe(2);
       return;
     }
-    if (k === 'backspace' || key === 'ç') skipCutsceneText();
+    if (k === 'backspace' || key === 'ç') {
+      if (skipCutscene()) startRun();
+    }
+    keys[k] = true;
+    return;
+  }
+
+  // ─── Tela cheia tem precedência sobre TODAS as telas ─────────────
+  // O ESC é ação dupla: o navegador usa para sair do fullscreen e o jogo usava
+  // para abrir a pausa. Duas respostas para uma tecla, e dentro do iframe do
+  // itch não há barra para clicar de volta — se o navegador não entregar o
+  // ESC, o jogador ficava sem saída nenhuma.
+  //
+  // Aqui o jogo assume a saída: se está em tela cheia, o ESC pede
+  // `exitFullscreen()` e não abre a pausa. Se o navegador já estava saindo,
+  // a chamada é idempotente.
+  if (key === 'Escape' && estaEmTelaCheia()) {
+    void sairDaTelaCheia();
     keys[k] = true;
     return;
   }
@@ -239,35 +282,64 @@ document.addEventListener('keydown', e => {
 
   keys[k] = true;
 
-  if (key === ' ') { if (useSkill('dash')) sfxDash(); }
+  if (key === ' ') { if (useSkill('dash')) { limparDashFantasma(); sfxDash(); } }
   if (k === 'f') { if (useSkill('shield')) sfxShield(); }
   if (k === 'e') { if (useSkill('fury')) sfxFury(); }
   if (k === 'r') startReload();
   if (k === 'j') toggleNpcFollow();
+  // H usa medkit do inventário. Não existe "curar por 50 moedas durante o
+  // combate": esse ramo era compra ilimitada de 25 HP a cada tecla, e com
+  // milhares de moedas no fim da campanha tornava o jogador imortal.
   if (k === 'h') {
     if (player.getMedkits() > 0) {
       player.useMedkit();
       checkAchievements('medkit');
-    } else if (getShopCoins() >= 50) {
-      addShopCoins(-50);
-      player.healPlayer(25);
-      const pd = player.getPlayer();
-      damageNumbers.push({ x: pd.x, y: pd.y - 24, text: '+25 HP (-50)', color: PALETTE.moss, life: 1.4, vy: -70 });
-      checkAchievements('medkit');
+    } else {
+      pushToast('SEM MEDKIT', 1.2, 'equip');
     }
   }
-  // 1-9 equipam armas já compradas, sem abrir a loja
+  // 1-9 equipam pares (arma + qualidade) já comprados, sem abrir a loja.
+  // Antes lia `getPurchasedWeapons()`, que devolve só índices: com a mesma arma
+  // em duas raridades as duas linhas equipavam a mesma.
   if (key >= '1' && key <= '9') {
     const slot = parseInt(key, 10) - 1;
-    const owned = getPurchasedWeapons();
-    const weaponIdx = owned[slot];
-    if (weaponIdx !== undefined && WEAPONS[weaponIdx]) {
-      setWeapon(weaponIdx);
-      announceWeapon(weaponIdx);
+    const pares = getPurchasedWeaponPairs();
+    const par = pares[slot];
+    if (par && WEAPONS[par.index]) {
+      setWeapon(par.index, par.quality);
+      announceWeapon(par.index);
       sfxMenuSelect();
     }
   }
-  if (key === 'Escape') setGameState('paused');
+  // Q vai para a arma ANTERIOR. E NÃO cicla mais: a tecla tinha duas funções
+  // (fúria em :287 e ciclo de arma aqui), e a fúria é a habilidade mais cara do
+  // jogo — gastá-la trocando de arma era erro de quem jogou. Decisão do jogador
+  // em 2026-10-11: E só fúria, Q só arma anterior, sem ciclo para frente.
+  if (key === 'q') {
+    const pares = getPurchasedWeaponPairs();
+    if (pares.length > 1) {
+      const atual = pares.findIndex(p => p.index === getCurrentWeaponIndex() && p.quality === getWeaponQuality());
+      const prox = pares[(atual - 1 + pares.length) % pares.length];
+      if (prox) {
+        setWeapon(prox.index, prox.quality);
+        announceWeapon(prox.index);
+        sfxMenuSelect();
+      }
+    }
+  }
+  // TAB abre a ficha da arma + mapa grande. A tecla não estava ligada em
+  // lugar nenhum: o mapa do canto é pequeno demais para ler a sala, e o jogo
+  // não mostrava DPS real em nenhuma tela.
+  if (key === 'Tab') {
+    tabAberto = !tabAberto;
+    if (tabAberto) sfxMenuSelect(); else sfxMenuMove();
+  }
+  if (key === 'Escape') {
+    // as teclas agora ficam visíveis no HUD o tempo todo, então as dicas do
+    // tutorial viram ruído depois dos primeiros segundos
+    if (isTutorialActive()) endTutorial();
+    else setGameState('paused');
+  }
 });
 
 document.addEventListener('keyup', e => {
@@ -286,6 +358,14 @@ canvas.addEventListener('mousedown', e => {
   const state = getGameState();
   if (state === 'playing') mouse.down = true;
 
+  // cutscene tem dono próprio: clique avança a fala, sem roubar o tiro nem o
+  // menu por baixo. Enquanto espera escolha, o clique não faz nada — escolher
+  // é 1/2/3, e um clique sem alvo não pode selecionar a opção errada.
+  if (isShowingCutscene()) {
+    if (!isWaitingForChoice()) cutsceneClick = true;
+    e.preventDefault();
+    return;
+  }
   // painel de configurações: botões [-]/[+] ajustam volume,
   // linha de toggle alterna — antes dos branches menu/pause
   if (isSettingsOpen()) {
@@ -365,12 +445,12 @@ document.addEventListener('contextmenu', e => e.preventDefault());
 window.addEventListener('blur', () => { resetInput(); });
 
 // ─── Estado ────────────────────────────────────────────────────
-import { Enemy } from './types';
+import { Enemy, Bullet } from './types';
 let enemies: Enemy[] = [];
 let damageNumbers: { x: number; y: number; text: string; color: string; life: number; vy: number }[] = [];
 let lastTime = 0;
 let phaseTransitionTimer = 0;
-let achievementNotifications: { name: string; time: number }[] = [];
+let achievementNotifications: Toast[] = [];
 let playerDied = false;
 let bossZoomTriggered = false;
 let currentBossZoom = 1;
@@ -379,12 +459,29 @@ let currentShake: { x: number; y: number } = { x: 0, y: 0 };
 let selectedMode: GameMode = 'campaign';
 let selectedClass: ClassId = 'soldado';
 let bossSpawned = false;
+/** O chefe da fase já foi derrotado nesta fase. Não confundir com `bossSpawned`. */
+let bossKilled = false;
+/** Posição atual na fila de chefes do NÚCLEO (`NUCLEO_RUSH`). 0 = primeiro. */
+let bossRushIndex = 0;
+/** O versus local já anunciou o vencedor (evita repetir o aviso a cada frame). */
+let localTerminou = false;
+/** Tela de ficha da arma + mapa grande (TAB). */
+let tabAberto = false;
+/** Congela o update sem abrir nenhuma tela (harness de projéteis). */
+let pausaTiros = false;
 /**
- * Respiro pos-boss: armado com 2.5s na morte do chefe (killEnemy), contado no
- * topo do update. As saidas de fase (waveComplete, reach) so leem: enquanto
- * > 0, seguram a ida a loja para a caixa da NOVIDADES nao sumir sem ser vista.
+ * Respiro de fim de fase.
+ *
+ * Limpar a última onda abre a loja no mesmo frame. Sem esta pausa o loot que
+ * acabou de cair fica no chão enquanto a loja toma a tela, e o jogador nunca o
+ * vê. É genérico de propósito: vale para qualquer abate que feche a última
+ * onda, não só para o chefe.
+ *
+ * `phaseEnding` é o trava: sem ele o timer seria re-armado todo frame e a
+ * fase nunca fecharia.
  */
-let bossKillTimer = 0;
+let phaseEndPause = 0;
+let phaseEnding = false;
 /** Objetivos já contabilizados na partida, para o toast de conquista sair uma vez só. */
 const objectiveCounted = new Set<string>();
 let worldW = 1280;
@@ -400,14 +497,13 @@ import { isWaitingForChoice, selectChoice } from './systems/story';
 function isWaitingForChoiceSafe(): boolean { return isWaitingForChoice(); }
 function selectChoiceSafe(i: number): void { selectChoice(i); }
 
-/** Carrega mapa, terreno, props, câmera e objetivo da fase atual. */
 /**
  * Acha uma célula andável a 8–12 células do spawn, para o sobrevivente do
  * objetivo `protect`.
  *
  * Distância importa: com o NPC colado no jogador, "proteger o sobrevivente" e
- * "proteger a si mesmo" viram literalmente o mesmo objetivo, e o arquiereiro
- * caçando o NPC parece indistinguishable de qualquer inimigo normal.
+ * "proteger a si mesmo" viram literalmente o mesmo objetivo, e o arqueiro
+ * caçando o NPC fica indistinguível de qualquer inimigo normal.
  */
 function findVipCell(origin: { col: number; row: number }): { col: number; row: number } {
   const direcoes: [number, number][] = [[1, 0], [-1, 0], [0, 1], [0, -1]];
@@ -425,6 +521,11 @@ function loadPhaseEnvironment(): void {
   const phase = getCurrentPhase();
   const biome = BIOMES[phase.map];
   const map = loadMap(biome.rows);
+
+  // A trava de fim de fase é por fase: sem zerar aqui, a fase seguinte
+  // nasceria com a pausa ainda armada e a loja nunca abriria.
+  phaseEnding = false;
+  phaseEndPause = 0;
 
   worldW = map.width;
   worldH = map.height;
@@ -464,17 +565,22 @@ function loadPhaseEnvironment(): void {
     const vip = cellCenter(vipCell.col, vipCell.row);
     spawnNPC(vip.x, vip.y, 1);
   }
-  player.initPlayer(worldW, worldH);
-  player.getPlayer().x = pos.x;
-  player.getPlayer().y = pos.y;
+  player.placePlayer(pos.x, pos.y);
   initCamera(worldW, worldH, canvas.width, canvas.height, pos.x, pos.y);
   bossSpawned = false;
+  bossKilled = false;
+  bossRushIndex = 0;
 }
 
 function resetGame() {
   resetPhases();
   loadPhaseEnvironment();
+  hideSupportUrl();
+  player.resetPlayerProgress();
   resetWeapons();
+  // a ferrugem só range uma vez por arma por partida: sem isto, pegar a mesma
+  // enferrujada de novo na loja não faria som nenhum
+  resetFerrugem();
   resetShop();
   resetSpawner();
   resetEffects();
@@ -484,12 +590,27 @@ function resetGame() {
   resetCombos();
   resetBots();
   resetRegen();
+  // perks e stats vivem em módulo e o resetShop/resetPlayerProgress não os
+  // conhecem: sem isto a run seguinte começa com a escada da anterior e o
+  // `damageMult` já multiplicado — o jogador comprou duas vezes o que pagou uma.
+  resetPerks();
+  resetStats();
   resetSkins();
   resetAds();
   resetNPCs();
   resetStory();
   resetClass();
+  resetProgress();
+  resetPieces();
   bossZoomTriggered = false;
+  // Timers e flags de módulo: sem reset aqui, um valor residual de uma partida
+  // sobrevive à próxima — o respiro segurava a ida à loja e a fase seguinte
+  // abria com o overlay de transição ainda no ar.
+  playerDied = false;
+  phaseEndPause = 0;
+  phaseEnding = false;
+  phaseTransitionTimer = 0;
+  wasJammed = isJammed();
   enemies.length = 0;
   killTimes.length = 0;
   damageNumbers.length = 0;
@@ -523,6 +644,13 @@ function startFromSave() {
     announceWeapon(save.weaponIndex);
   }
   restoreUpgrades(save.upgrades);
+  applySavedTalentos(save.talentos ?? []);
+  restoreXp(save.xp ?? 0);
+  // peças: sem isto o `resetPieces()` de `resetGame` apagava a mochila e as
+  // equipadas, e o jogador voltava da peça que tinha comprado sem ela.
+  // Save antigo sem o campo entra vazio.
+  restoreInventory(save.pieces ?? []);
+  restoreEquipped(save.equippedPieces ?? {});
   setGameState('playing');
   loadAchievements();
   loadDiary();
@@ -542,10 +670,14 @@ function update(dt: number) {
     return;
   }
 
+  // TAB é uma tela de consulta: o mundo congela atrás dela
+  if (tabAberto && state === 'playing') return;
+  if (pausaTiros && state === 'playing') return;
+
   if (state === 'menu') {
     if (isShowingCutscene()) {
       updateCutscene(dt);
-      if (consumeEnter() || keys[' ']) {
+      if (consumeEnter() || keys[' '] || consumeCutsceneClick()) {
         const finished = advanceCutscene();
         if (finished) startRun();
       }
@@ -576,8 +708,25 @@ function update(dt: number) {
     return;
   }
 
+  // A cutscene de fase roda em `playing`, não no menu: `leaveShop()` abre a
+  // cena da próxima fase e o combate só começa quando ela acaba. Sem este
+  // early-return, o jogador lutava por cima da narração.
+  if (state === 'playing' && isShowingCutscene()) {
+    updateCutscene(dt);
+    if (consumeEnter() || keys[' '] || consumeCutsceneClick()) {
+      const finished = advanceCutscene();
+      if (finished) {
+        // o epílogo não abre a fase: ele encerra a campanha
+        if (isEpilogueScene()) setGameState('gameover');
+        else resetInput();
+      }
+    }
+    return;
+  }
+
   if (state === 'shop') {
     updateShopAds(dt);
+    updateSupportUrl(dt);
     for (const t of consumeShopPowerups()) {
       const pd = player.getPlayer();
       if (t === 'health') player.healPlayer(30);
@@ -596,9 +745,7 @@ function update(dt: number) {
   const hard = getCurrentMode() === 'hardcore';
 
   if (phaseTransitionTimer > 0) phaseTransitionTimer -= dt;
-  // respiro pós-boss: conta aqui no topo, antes de qualquer saída de fase.
-  // Armado no killEnemy; enquanto > 0 as transições abaixo seguram a loja.
-  if (bossKillTimer > 0) bossKillTimer = Math.max(0, bossKillTimer - dt);
+  if (phaseEndPause > 0) phaseEndPause = Math.max(0, phaseEndPause - dt);
   phaseElapsed += dt;
   setPhaseTime(phaseElapsed);
 
@@ -615,13 +762,27 @@ function update(dt: number) {
   if (keys['d'] || keys['arrowright']) mx += 1;
   setMoveDirection(mx, my);
 
-  const speedMult = hasPowerUp('speed') ? 1.5 : hasPowerUp('botas') ? 1.3 : 1;
+  const speedMult = hasPowerUp('speed') ? 1.5 : hasPowerUp('botas') ? 1.3 : hasPowerUp('trajeNucleo') ? 1.3 : 1;
   const classSpeedMult = getClassSpeedMult();
   // lama deixa o jogador lento — é o efeito mecânico do bioma Pântano
   const onMud = phase.hazard === 'mud' && charAt(colAt(p.x), rowAt(p.y)) === '^';
   player.movePlayer(keys, dt, { w: worldW, h: worldH }, speedMult * (onMud ? 0.55 : 1) * phaseSpeedMult * classSpeedMult);
 
   updateSkills(dt, p, { w: worldW, h: worldH });
+  // PASSO FANTASMA: o dash fere quem atravessa (25, uma vez por dash).
+  if (isSkillActive('dash')) {
+    for (const e of enemies) {
+      if (e.health <= 0) continue;
+      if (Math.hypot(e.x - p.x, e.y - p.y) < e.radius + p.radius + 6) {
+        const dano = danoPassoFantasma(e, true);
+        if (dano > 0) {
+          e.health -= dano;
+          e.hitFlash = 0.2;
+          spawnParticles(e.x, e.y, '#c8b890', 8, 200);
+        }
+      }
+    }
+  }
   p.x = pushOutOfWalls(p.x, p.y, p.radius).x;
   p.y = pushOutOfWalls(p.x, p.y, p.radius).y;
 
@@ -630,6 +791,15 @@ function update(dt: number) {
   p.angle = Math.atan2(aim.y - p.y, aim.x - p.x);
 
   applyRegen(dt);
+  // MÉDICO: cura por segundo enquanto há inimigo em campo, em vez de por
+  // abate. Contar abates premiava matar cinco inimigos fracos em vez de
+  // segurar a linha contra um mutante.
+  // A guarda de Hardcore é obrigatória: sem ela a classe curava em Hardcore,
+  // que promete "sem loja, sem cura".
+  const hpPorSegundo = hard ? 0 : getClassHealthPerSecond();
+  if (hpPorSegundo > 0 && enemies.some(e => e.spawnDelay <= 0)) {
+    player.healPlayer(hpPorSegundo * dt);
+  }
   if (hasPowerUp('invincible')) p.invincible = Math.max(p.invincible, 0.1);
 
   // ── flow field (IA dos inimigos) ──
@@ -642,6 +812,26 @@ function update(dt: number) {
     if (p2 && p2.alive && keys['l']) {
       const bullet = shootPlayer2();
       if (bullet) spawnBullet(bullet.x, bullet.y, bullet.vx, bullet.vy, bullet.damage, false, bullet.color, false, false, 0, false);
+    }
+    // P2 leva o mesmo dano que P1. Sem isto o versus não tinha perdedor: o P2
+    // só matava, nunca morria, e a tela nunca tinha fim.
+    for (const b of getBullets()) {
+      if (!b.isEnemy || !p2?.alive) continue;
+      if (bulletHitsCircle(b, p2.x, p2.y, p2.radius + 5)) {
+        damagePlayer2(b.damage);
+        b.life = 0;
+      }
+    }
+    for (const e of enemies) {
+      if (!p2?.alive) break;
+      if (checkPlayer2EnemyCollision(e.x, e.y, e.radius)) damagePlayer2(e.damage);
+    }
+    // Fim de partida do versus: um caiu e o outro não.
+    const vencedor = getWinner();
+    if (vencedor && !localTerminou) {
+      localTerminou = true;
+      pushToast(vencedor === 'p1' ? 'P1 VENCEU' : 'P2 VENCEU', 4, 'equip');
+      sfxGameOver();
     }
   }
 
@@ -668,17 +858,32 @@ function update(dt: number) {
   updateReload(dt);
   if (mouse.down && p.shootCooldown <= 0 && canShoot()) {
     const weapon = getCurrentWeapon();
-    p.shootCooldown = getEffectiveShootRate() * getComboFireRateBonus();
+    p.shootCooldown = getEffectiveShootRate() * getComboCooldownMult() * getFuryCooldownMult();
     const multiShot = hasPowerUp('multiShot');
     const fired = shoot(p.x, p.y, p.angle, multiShot, getDamageMultiplier() * getComboDamageBonus() * phaseDmgMult * getClassDamageMult());
     for (const b of fired) {
-      spawnBullet(b.x, b.y, b.vx, b.vy, b.damage, false, b.color, b.pierce, b.explosive, b.explosionRadius, b.isCrit);
+      spawnBullet(b.x, b.y, b.vx, b.vy, b.damage, false, b.color, b.pierce, b.explosive, b.explosionRadius, b.isCrit, b.bulletSprite);
     }
     const muzzleX = p.x + Math.cos(p.angle) * 24;
     const muzzleY = p.y + Math.sin(p.angle) * 24;
-    spawnParticles(muzzleX, muzzleY, weapon.color, 4, 120);
+    spawnParticles(muzzleX, muzzleY, weapon.color, 4, 120, 'muzzle');
     playWeaponSound(weapon.name);
     registerShot();
+    // PISTOLA INCANDESCENTE: cada 5º tiro acende o inimigo mais próximo do
+    // cano (DoT 2/s por 3s, tick em tickPerks abaixo).
+    if (registrarTiroPerks()) {
+      let alvo: Enemy | null = null;
+      let melhor = Infinity;
+      for (const e of enemies) {
+        if (e.health <= 0) continue;
+        const d = Math.hypot(e.x - muzzleX, e.y - muzzleY);
+        if (d < melhor) { melhor = d; alvo = e; }
+      }
+      if (alvo && melhor < 600) {
+        acenderInimigo(alvo);
+        spawnParticles(alvo.x, alvo.y, '#c46a3a', 8, 120);
+      }
+    }
     const jammedNow = isJammed();
     if (jammedNow && !wasJammed) sfxJammed();
     wasJammed = jammedNow;
@@ -687,12 +892,71 @@ function update(dt: number) {
 
   if (p.invincible > 0) p.invincible -= dt;
 
+  // SEGUNDO FÔLEGO: abaixo de 30% da vida máxima, 1,5s invencível (uma vez).
+  const folego = checarSegundoFolego(p.health, p.maxHealth);
+  if (folego > 0) {
+    p.invincible = Math.max(p.invincible, folego);
+    spawnParticles(p.x, p.y, PALETTE.moss, 20, 250);
+  }
+
+  // Queimadura do Incandescente: o DoT corre aqui, junto dos inimigos.
+  for (const t of tickPerks(dt)) {
+    const alvo = t.inimigo as Enemy;
+    if (alvo.health > 0) {
+      alvo.health -= t.dano;
+      alvo.hitFlash = 0.1;
+    }
+  }
+
   // ── ondas ──
   const rect = { w: worldW, h: worldH, px: getCamX(), py: getCamY(), viewW: canvas.width, viewH: canvas.height };
-  const waveComplete = spawnWaveEnemies(dt, enemies, getCurrentWave(), phase.enemyTypes, worldW, worldH, rect);
-  // respiro pós-boss: matar o chefe completa a onda no mesmo frame, e sem a
-  // guarda a loja abriria antes da caixa ser vista
-  if (waveComplete && bossKillTimer <= 0) {
+  const chefeVivo = phase.boss !== undefined && enemies.some(e => ENEMY_TYPES[e.type]?.isBoss);
+  // Durante a luta contra o chefe o spawner não corre: a última onda já foi
+  // zerada pelo `waveComplete` e, sem isto, ele reabastecia a cota dela e
+  // jogava reforço na tela enquanto o chefe morria.
+  const waveComplete = chefeVivo ? false : spawnWaveEnemies(dt, enemies, getCurrentWave(), phase.enemyTypes, worldW, worldH, rect, phase.mutantsPerWave ?? 0);
+  if (waveComplete) {
+    ganhaXp(XP_BONUS_ONDA);
+    const fechaFase = getCurrentWave() + 1 >= phase.waves;
+    // O chefe precisa estar morto antes de fechar a fase. Sem esta guarda o
+    // respiro de 5s começava a contar quando a ÚLTIMA ONDA morria, e o chefe
+    // nascia dentro dessa janela (main.ts:800 espera `enemies.length === 0`).
+    // O jogador ia para a loja com o chefe vivo na tela, e nunca via o
+    // countdown que só era desenhado durante o respiro.
+    //
+    // No rush do NÚCLEO o respiro não arma aqui: armar no primeiro
+    // esvaziamento do campo queimava a pausa do clímax — entre um chefe e
+    // outro a fila ainda tem nomes. O respiro do rush é o que o ÚLTIMO da
+    // fila arma na própria morte (bloco de morte do chefe).
+    const ehNucleoRush = phase.boss === 'nucleo' && getCurrentMode() === 'campaign';
+    const rushPorAndar = ehNucleoRush && bossRushIndex < NUCLEO_RUSH.length;
+    if (fechaFase && !phaseEnding && !rushPorAndar) {
+      phaseEnding = true;
+      phaseEndPause = PHASE_END_PAUSE;
+      ganhaXp(XP_BONUS_FASE);
+    }
+  }
+
+  // O fechamento da fase mora aqui, fora do `if (waveComplete)`: exigir
+  // `waveComplete` prendia a fase na limpeza total do campo, e o jogador
+  // só passava depois de matar todo reforço que o spawner tinha criado.
+  // `playerDied` ainda é false no frame em que a vida zera (o bloco de morte
+  // roda depois deste), então a checagem é pela vida: sem ela, matar o chefe e
+  // morrer no mesmo frame abria a loja em vez do game over.
+  //
+  // `ondaConcluida` é o que separa "terminou a onda" de "chegou na última
+  // onda". Duas fontes: o spawner zerou a cota (caminho normal) ou o chefe já
+  // nasceu e caiu — este último não passa pelo spawner, porque a cota foi zerada
+  // no frame em que o campo esvaziou para o chefe nascer.
+  const ondaConcluida = waveComplete || (bossSpawned && !chefeVivo);
+  if (deveFecharFase({
+    ondaCompleta: ondaConcluida,
+    ultimaOnda: getCurrentWave() + 1 >= phase.waves,
+    respiroArmado: phaseEnding,
+    respiroRestante: phaseEndPause,
+    chefeVivo,
+    jogadorMorto: playerDied || p.health <= 0,
+  })) {
     nextWave();
     if (!hard) player.healOnWaveComplete();
     sfxWaveStart();
@@ -764,34 +1028,47 @@ function update(dt: number) {
   // objetivo cumprido + campo vazio). O spawn e no centro do mundo, nao no `B`
   // (extracao no topo do Vulcao = "boss pulou pro espaco").
   const isUltimasOndas = getCurrentWave() === phase.waves - 1;
-  if (!bossSpawned && phase.boss && objetivoLiberouChefe && isUltimasOndas && enemies.length === 0) {
-    const pos = { x: worldW / 2, y: worldH / 2 };
-    const boss = spawnEnemy(phase.boss, worldW, worldH, 0, pos.x, pos.y);
+  // Boss rush do NÚCLEO: a fila `NUCLEO_RUSH` entra uma por vez, cada uma só
+  // quando o campo esvaziar. `bossSpawned` fica true do primeiro ao último —
+  // ele marca que o clímax começou, não que a fila acabou — e `bossKilled` +
+  // o índice dizem qual é o próximo. O fechamento da fase é pulado até o
+  // último da fila (ver bloco de morte), então a fase não fecha entre chefes.
+  const ehNucleoRush = phase.boss === 'nucleo' && getCurrentMode() === 'campaign';
+  // `bossRushIndex` é a próxima posição a nascer. A condição usa `< length`
+  // (não `< length - 1`): na morte do mothership o índice é 3 e o `nucleo`
+  // ainda é a posição 3 da fila — com `< length - 1` ele nunca nascia.
+  const proximoDoRush = ehNucleoRush && bossSpawned && bossKilled && bossRushIndex < NUCLEO_RUSH.length;
+  if ((!bossSpawned || proximoDoRush) && phase.boss && objetivoLiberouChefe && isUltimasOndas && enemies.length === 0) {
+    // célula livre mais próxima do centro: o centro do mapa é parede em 3 dos
+    // 9 biomas, e o boss nascia lá dentro
+    const livre = findFreeSpotNear(worldW / 2, worldH / 2, 46);
+    const tipoChefe = ehNucleoRush ? NUCLEO_RUSH[bossRushIndex] : phase.boss;
+    const boss = spawnEnemy(tipoChefe, worldW, worldH, 0, livre.x, livre.y);
     if (boss) {
       boss.spawnDelay = 0;
       boss.health = boss.maxHealth;
       enemies.push(boss);
       bossSpawned = true;
+      if (ehNucleoRush && bossRushIndex > 0) {
+        damageNumbers.push({ x: boss.x, y: boss.y - 60, text: `CHEFE ${bossRushIndex + 1}/${NUCLEO_RUSH.length}`, color: PALETTE.terracotta, life: 2.4, vy: -30 });
+      }
       triggerBossZoom();
       void playMusic('boss');
     }
   }
 
   if (phase.objective === 'reach' && objective.done && bossSpawned && getGameState() === 'playing'
-      && bossKillTimer <= 0 && !enemies.some(e => ENEMY_TYPES[e.type]?.isBoss)) {
+      && phaseEndPause <= 0 && !enemies.some(e => ENEMY_TYPES[e.type]?.isBoss)
+      && p.health > 0) {
     enemies.length = 0;
     clearBullets();
     triggerScreenShake(14, 0.5);
-    leaveShop();
-    return;
-  }
-
-  if (phase.objective !== 'clear' && phase.objective !== 'reach' && objective.done && getGameState() === 'playing'
-      && endsPhaseOnDone(phase.objective)) {
-    enemies.length = 0;
-    clearBullets();
-    triggerScreenShake(14, 0.5);
-    leaveShop();
+    // `reach` fecha a fase antes da última onda, então não passa por
+    // `nextWave()`. Chamar `leaveShop()` aqui pulava a loja inteira: o Vulcão
+    // ia direto para o Espaço sem comprar nada. `setGameState` é o que
+    // `nextWave()` costuma fazer antes de chamar `enterShop`.
+    setGameState('shop');
+    enterShop();
     return;
   }
 
@@ -800,7 +1077,7 @@ function update(dt: number) {
     playerDied = true;
     p.deathTimer = 1.5;
     addLeaderboardEntry('Jogador', getScore(), getCurrentWave());
-    spawnParticles(p.x, p.y, PALETTE.moss, 30, 300);
+    spawnParticles(p.x, p.y, PALETTE.moss, 30, 300, 'smoke');
     spawnParticles(p.x, p.y, PALETTE.title, 15, 200);
     triggerScreenShake(12, 0.6);
     sfxGameOver();
@@ -825,6 +1102,10 @@ function update(dt: number) {
   currentShake = updateScreenShake(dt);
   setShake(currentShake.x, currentShake.y);
   updateCamera(dt, p.x, p.y);
+
+  // atirar adianta a dica: o jogador já aprendeu a mirar, insistir no texto
+  // só atrasa o combate
+  if (isTutorialActive() && mouse.down) advanceHint();
 
   // toasts decaem com dt, não com frame rate
   for (let i = achievementNotifications.length - 1; i >= 0; i--) {
@@ -855,17 +1136,15 @@ function updateBiomeHazard(dt: number, p: ReturnType<typeof player.getPlayer>): 
   }
   if (phase.hazard === 'electric') {
     p.invincible = Math.max(p.invincible, 0.35);
-    if (Math.random() < dt * 6) spawnParticles(p.x, p.y, '#c8b890', 2, 90);
+    if (Math.random() < dt * 6) spawnParticles(p.x, p.y, '#c8b890', 2, 90, 'smoke');
   }
 }
 
 /**
  * Detona os barris cujo pavio acabou de queimar.
  *
- * O pavio é contado em `updateProps`, que devolve quem expirou. Antes esta
- * função fazia `if (fuse <= 0) continue; fuse = Math.min(fuse, 0)` — que zera o
- * pavio no ato e detona no frame seguinte à ignitação, então os 0.9s de pavio
- * nunca passavam e a faísca do barril era só decoração.
+ * O pavio é contado em `updateProps`, que devolve quem expirou — esta função
+ * só converte isso em explosão.
  */
 function updateBarrels(dt: number): void {
   for (const prop of updateProps(dt)) explodeProp(prop);
@@ -901,6 +1180,28 @@ function explodeProp(prop: Prop): void {
 }
 
 /**
+ * Detona um projétil explosivo no ponto em que ele está.
+ *
+ * Antes a explosão morava DENTRO do callback de colisão inimigo
+ * (checkBulletEnemyCollisions), então o RPG atravessava parede e caixote e só
+ * estourava se acertasse alguém — e, se não acertasse ninguém, voava até o
+ * fim da vida e sumia. Agora todo caminho de fim (inimigo, parede, prop,
+ * pavio) passa por aqui, e o flag `detonated` impede a dupla.
+ */
+function detonateBullet(b: Bullet): void {
+  if (b.detonated) return;
+  b.detonated = true;
+  b.life = 0;
+  // `createExplosion` itera SÓ os enemies da lista — o jogador nunca toma
+  // dano de explosão de arma própria. Barril é exceção proposital em
+  // `explodeProp`: é perigo do mundo, não do seu próprio tiro.
+  createExplosion(b.x, b.y, b.explosionRadius ?? 0, b.damage, enemies, b.color);
+  sfxExplosion();
+  triggerScreenShake(5, 0.15);
+  spawnParticles(b.x, b.y, b.color, 8, 180, 'smoke');
+}
+
+/**
  * Projéteis quebram props, do jogador e do inimigo.
  *
  * Cobertura que não protege é enfeite: quando o tiro dos inimigos atravessava o
@@ -933,7 +1234,7 @@ function updateBulletProps(bullets: ReturnType<typeof getBullets>): void {
       // fase nem encher o bolso do jogador
       if (fromPlayer && destroyed && prop.kind === 'nest') {
         registerObjectiveDestroyed();
-        spawnParticles(prop.x, prop.y, PALETTE.terracotta, 26, 320);
+        spawnParticles(prop.x, prop.y, PALETTE.terracotta, 26, 320, 'smoke');
         sfxExplosion();
         triggerScreenShake(8, 0.3);
       }
@@ -946,6 +1247,9 @@ function updateBulletProps(bullets: ReturnType<typeof getBullets>): void {
           triggerScreenShake(2, 0.08);
         }
       }
+      // explosivo detona em prop, não só em inimigo: foguete em caixote
+      // estoura no impacto em vez de atravessar
+      if (b.explosive && b.explosionRadius) detonateBullet(b);
       if (!b.pierce) b.life = 0;
       break;
     }
@@ -985,6 +1289,20 @@ function shootEnemyAt(e: Enemy, tx: number, ty: number): void {
   sfxEnemyShoot();
 }
 
+/**
+ * Soma XP com o feedback de subida de nível.
+ *
+ * O toast já existia; o som `levelUp.ogg` e o flash de tela existiam e nenhum
+ * dos dois era chamado — os dois órfãos previstos no Sprint 4.
+ */
+function ganhaXp(amount: number): void {
+  if (addXp(amount) > 0) {
+    pushToast(`NÍVEL ${getNivel()} — ${getPontosLivres()} PONTO(S) DE TALENTO`, 3.5);
+    sfxLevelUp();
+    triggerLevelUpFlash();
+  }
+}
+
 /** Aplica dano/morte a um inimigo e credita score, moedas e conquistas. */
 function killEnemy(e: Enemy, award: boolean): void {
   const def = ENEMY_TYPES[e.type];
@@ -1002,11 +1320,13 @@ function killEnemy(e: Enemy, award: boolean): void {
       killTimes.length = 0;
     }
     addScore(e.scoreValue);
+    // XP é o score acumulado: cada nível dá um ponto de talento (árvore de 3
+    // galhos na loja). O toast só aparece quando o nível sobe, não a cada kill.
+    // MENTE T1/T4 levantam o ganho via xpMult (stats.ts).
+    ganhaXp(Math.round(e.scoreValue * getStat('xpMult')));
     if (def?.coinDrop) spawnCoins(e.x, e.y, Math.max(1, Math.floor(def.coinDrop * 0.6)));
     spawnParticles(e.x, e.y, e.color, 20, 300);
     sfxExplosion();
-    const hpPerKill = getClassHealthPerKill();
-    if (hpPerKill > 0) player.healPlayer(hpPerKill);
     const killAch = checkAchievements('kill');
     if (killAch) pushToast(killAch.name, 3);
     const scoreAch = checkAchievements('score', getScore());
@@ -1015,25 +1335,57 @@ function killEnemy(e: Enemy, award: boolean): void {
 
   if (def?.isBoss) {
     clearBossState(e);
+    bossKilled = true;
     const bossAch = checkAchievements('boss_kill');
     if (bossAch) pushToast(bossAch.name, 3);
+    // A cutscene da Fábrica mata o Fernandes em cena. O diário é o registro que
+    // essa morte deixa no jogador: sem ele, o beat mais forte do roteiro não
+    // custava nada e não voltava nunca. Só na fase 3 (Fábrica), que é onde a
+    // cutscene mostra a morte — nas outras não houve Fernandes.
+    if (getCurrentPhase().name === 'Fábrica' && unlockDiaryEvent('fernandes')) {
+      pushToast('DIÁRIO: SEIS SEGUNDOS', 4);
+    }
     if (unlockDiaryEvent('boss_kill')) pushToast('NOVA ENTRADA NO DIÁRIO', 3);
-    spawnParticles(e.x, e.y, PALETTE.crit, 50, 400);
+    spawnParticles(e.x, e.y, PALETTE.crit, 50, 400, 'smoke');
     triggerBossKillFlash();
     triggerScreenShake(18, 0.8);
     sfxBossDeath();
-    spawnPowerUp(e.x, e.y);
+    // Rush do NÚCLEO: só o ÚLTIMO da fila fecha a fase e larga a caixa especial.
+    // Um chefe intermediário que derrubasse `phaseEnding`/loot encerrava a fase
+    // com 2 de 4 chefes vivos — e daria 4 Destruidores por partida.
+    const ehNucleoRush = getCurrentPhase().boss === 'nucleo' && getCurrentMode() === 'campaign';
+    const ultimoDaFila = !ehNucleoRush || bossRushIndex >= NUCLEO_RUSH.length - 1;
+    // a posição consumida não volta mais (inclusive a do último: sem isto o
+    // `proximoDoRush` respawnaria o NÚCLEO infinitamente após o fechamento)
+    if (ehNucleoRush) bossRushIndex++;
+    if (ultimoDaFila) {
+    // Última onda limpa e o chefe caiu agora: este é o respiro que o jogador
+    // espera ver. O caminho normal (`if (waveComplete)`) não dispara aqui,
+    // porque o spawner só reporta a onda completa quando a contagem dele
+    // zera — o chefe nunca entrou nessa contagem.
+    // Sem a guarda `!phaseEnding`: o respiro já estava armado desde a última
+    // onda, e essa guarda tornava o re-arm código morto. O consumo agora é
+    // por `deveFecharFase`, que não depende de `waveComplete`.
+    const ultimaOnda = getCurrentWave() + 1 >= getCurrentPhase().waves;
+    if (ultimaOnda) {
+      phaseEnding = true;
+      phaseEndPause = PHASE_END_PAUSE;
+    }
+    spawnPowerUpDeChefe(e.x, e.y);
     spawnPowerUp(e.x - 20, e.y + 20);
     const bossLoot = spawnBossLoot(e.x, e.y - 20);
     // caixa especial vai para a NOVIDADES: o jogador escolhe ativar/ventar,
     // não recebe uma troca forçada de arma
     pushPendingReveal(bossLoot.index, bossLoot.quality);
     damageNumbers.push({ x: e.x, y: e.y - 30, text: 'CAIXA ESPECIAL', color: PALETTE.mustard, life: 2, vy: -50 });
-    // respiro pós-boss: arma o timer que segura a ida à loja (lido no update).
-    // Sem isso, matar o chefe completa a onda no mesmo frame e a loja abre
-    // antes da caixa ser vista.
-    bossKillTimer = 2.5;
     void playMusic('combat');
+    } else {
+      // chefe intermediário caiu: dá um power-up de chefe como alívio — o
+      // próximo da fila nasce no frame em que o campo esvaziar.
+      spawnPowerUpDeChefe(e.x, e.y);
+      damageNumbers.push({ x: e.x, y: e.y - 30, text: 'O BUNKER NÃO PARA', color: PALETTE.terracotta, life: 2, vy: -50 });
+      void playMusic('combat');
+    }
   } else if (award) {
     rollLootDrop(e.x, e.y, e.type);
     // elites têm 25% de chance de dropar peça/acessório direto no inventário
@@ -1082,26 +1434,21 @@ function updateBotsAndCompetitors(p: ReturnType<typeof player.getPlayer>): void 
   }
 }
 
-const WEAPON_SOUNDS: Record<string, () => void> = {
-  'Pistola': sfxPistol,
-  'Shotgun': sfxShotgun,
-  'Metralhadora': sfxMachinegun,
-  'Sniper': sfxSniper,
-  'Laser': sfxLaser,
-  'RPG': sfxRPG,
-  'Raios': sfxRaios,
-  'Gel': sfxGel,
-  'Granada': sfxGranade,
-  'Mina': sfxMina,
-};
 
 function playWeaponSound(name: string): void {
-  (WEAPON_SOUNDS[name] || sfxPistol)();
+  WEAPON_SOUNDS[name]();
+  // Condição da arma: a `enferrujada` range no primeiro disparo, a `quebrada`
+  // falha com som mais seco. Antes a qualidade era invisível em jogo — só o
+  // número da loja dizia, e o tiro saía igual ao de uma arma nova.
+  const q = getWeaponQuality();
+  if (q !== 'normal' && q !== 'boa' && q !== 'ascendente' && q !== 'lendaria') {
+    sfxCondicao(q, getWeaponFamily());
+  }
 }
 
-function pushToast(name: string, time: number): void {
+function pushToast(name: string, time: number, kind: ToastKind = 'achievement'): void {
   // empilha no máximo 3: mais que isso vira parede de texto no canto
-  achievementNotifications.push({ name, time });
+  achievementNotifications.push({ name, time, kind });
   while (achievementNotifications.length > 3) achievementNotifications.shift();
 }
 
@@ -1113,8 +1460,8 @@ function pushToast(name: string, time: number): void {
 function announceWeapon(index: number): void {
   const w = WEAPONS[index];
   if (!w) return;
-  const q = QUALITIES[getWeaponQuality(index)] ?? QUALITIES.normal;
-  pushToast(`ARMANDO: ${w.name.toUpperCase()} · ${q.label.toUpperCase()}`, 2);
+  const q = QUALITIES[getWeaponQuality()] ?? QUALITIES.normal;
+  pushToast(`${w.name.toUpperCase()} · ${q.label.toUpperCase()}`, 2, 'equip');
 }
 
 /** Entra na loja: salva, inventa NPC e troca a música. */
@@ -1125,6 +1472,17 @@ function enterShop(): void {
   }
   const phaseIdx = PHASES.indexOf(getCurrentPhase());
   unlockDiaryEntry(Math.max(0, phaseIdx));
+  // Evento aleatório de fase (resgate / casa / sorte / azar): um sorteado que
+  // ainda não jogou, com efeito no bolso. Substitui o sorteio de NPC solto —
+  // agora o encontro tem nome, entrada no diário e consequência.
+  // A sorte (MENTE T3 + SORTUDO) pesa o sorteio do evento: cada ponto dobra a
+  // chance do melhor. Ver `rollDiaryEvent`.
+  const evento = rollDiaryEvent(Math.random, getStat('luck'));
+  if (evento) {
+    addShopCoins(evento.moedas);
+    const nome = getUnlockedDiary().find((e) => e.event === evento.event)?.title ?? 'EVENTO';
+    pushToast(`${evento.moedas >= 0 ? '+' : ''}${evento.moedas} MOEDAS · ${nome}`, 3.5);
+  }
   if (Math.random() < 0.4) spawnNpcAtEdge();
   saveGame(
     phaseIdx,
@@ -1134,19 +1492,26 @@ function enterShop(): void {
     getScore(),
     getPurchasedUpgrades(),
     getPurchasedWeaponPairs(),
-    getCurrentPhase()?.name || ''
+    getCurrentPhase()?.name || '',
+    // peças: mochila e equipadas. Gravei `[]`/`{}` aqui até a porta nº 5
+    // (`semOrfao`) acusar que os dois snapshots de `pieces.ts` não tinham
+    // chamador: o save tinha o campo e nunca era preenchido, então a peça que
+    // o jogador comprou e equipava sumia no continue.
+    getInventorySnapshot(),
+    getEquippedSnapshot(),
+    getTalentos(),
+    getXp(),
   );
   void playMusic('shop');
 }
 
 /**
- * Inventário salvo como pares (index, quality) → pares da loja. Antes o
- * `map` reconstruía só índices e a qualidade salva se perdia no continue.
+ * Inventário salvo como pares (index, quality) → pares da loja.
+ * Guardar só o índice perde a qualidade no continue.
  */
 function restoreSavedWeapons(weapons: { index: number; quality: string }[]): void {
   for (const w of weapons) {
-    setWeaponQuality(w.index, w.quality);
-    addPurchasedWeapon(w.index);
+    addPurchasedWeapon(w.index, w.quality);
   }
 }
 
@@ -1163,18 +1528,43 @@ function spawnNpcAtEdge(): void {
 
 function leaveShop(): void {
   nextPhase();
+  // A cota de resgates é por fase: sem isto o jogador fazia 30 resgates numa
+  // partida e tirava 78% da renda da campanha de graça.
+  resetAdsPerPhase();
   // fase final → gameover: getCurrentPhase() seria undefined logo depois
+  // `nextPhase()` passou da última fase: a campanha acabou. O epílogo roda
+  // ANTES do gameover, senão os 3 finais e a resolução do Genesis ficam
+  // inalcançáveis — eram 62 das 69 linhas de cena, todas nunca chamadas.
+  // O estado vai para `playing` de propósito: o update trata a cutscene em
+  // `playing`, e é de lá que o epílogo chama `setGameState('gameover')`.
   if (getGameState() !== 'playing') {
     resetShop();
+    if (wasGameCompleted()) {
+      setGameState('playing');
+      showCutsceneAt(EPILOGUE_CUTSCENE);
+    }
     return;
   }
   loadPhaseEnvironment();
+  // Fase do NÚCLEO: o traje de contenção espera o Rios na entrada do Bunker.
+  // É a recompensa da campanha — +100% dano, +30% velocidade, +3 escudo e
+  // metade do dano recebido por 20s. Spawnado direto (não no sorteio comum),
+  // à frente do jogador, fora da parede. Fora do campaign não aparece.
+  if (getGameState() === 'playing' && getCurrentMode() === 'campaign' && getCurrentPhase()?.boss === 'nucleo') {
+    const pp = player.getPlayer();
+    spawnPowerUpDeTipo(pp.x + 60, pp.y, 'trajeNucleo');
+    damageNumbers.push({ x: pp.x, y: pp.y - 40, text: 'TRAJE DE CONTENÇÃO', color: PALETTE.terracotta, life: 2.4, vy: -40 });
+  }
   enemies.length = 0;
   clearBullets();
   clearCoins();
   clearParticles();
   damageNumbers.length = 0;
   resetCombo();
+  // pente cheio na troca de fase: sem isto o jogador chegava na horda com
+  // 2/25 e recarregava no meio do melee. `resetWeapons` resolveria, mas ele
+  // zera dano/pierce/crítico e a build inteira — por isso o refill puro.
+  refillAmmo();
   // resetNPCs fica em loadPhaseEnvironment: ele monta o estado por fase (props,
   // terreno, objetivo, NPC). Resetar aqui depois apagaria o sobrevivente que o
   // objetivo protect acabou de criar.
@@ -1182,6 +1572,14 @@ function leaveShop(): void {
   phaseTransitionTimer = 2.0;
   resetInput();
   if (getGameState() === 'playing') void playMusic('combat');
+  // A cutscene da fase abre ANTES do combate. Sem isto, `showCutscene()` só era
+  // chamado no menu e 62 das 69 linhas escritas nunca jogavam — incluindo a
+  // morte do Fernandes e os 3 finais do epílogo. `nextPhase()` já rodou acima,
+  // então a fase atual é a que acabou de começar.
+  if (getGameState() === 'playing' && getCurrentMode() === 'campaign') {
+    const cena = cutsceneForPhase(PHASES.indexOf(getCurrentPhase()));
+    if (cena >= 0) showCutsceneAt(cena);
+  }
 }
 
 function startRun(): void {
@@ -1198,6 +1596,8 @@ function startRun(): void {
   // ativo — e ele mata qualquer inimigo que encoste nele.
   if (selectedMode === 'local') initLocalMultiplayer(worldW, worldH);
   else resetLocalMultiplayer();
+localTerminou = false;
+  tabAberto = false;
   resetInput();
   setGameState('playing');
   void playMusic('combat');
@@ -1267,12 +1667,24 @@ function draw() {
   }
   if (state === 'shop') {
     drawShop(ctx, canvas.width, canvas.height, mouse.x, mouse.y);
+    drawSupportFallback(ctx, canvas.width, canvas.height);
+    return;
+  }
+
+  // Cutscene de fase: a tela inteira, e o HUD escondido. Sem este early-return
+  // a cena era desenhada e logo coberta pelo mundo, porque `drawCutscene`
+  // desenha o fundo opaco mas o `drawWorld` vinha depois.
+  if (state === 'playing' && isShowingCutscene()) {
+    drawCutscene();
     return;
   }
   if (state === 'gameover') {
     // vitoria e derrota leem diferente: zerar o jogo nao e GAME OVER
-    if (isGameCompleted()) drawVictory(getScore(), getKillStreak());
-    else drawGameOver(getScore(), getKillStreak());
+    // `getTotalKills`, não `getKillStreak`: a sequência zera a cada intervalo sem
+    // abate, e a tela imprimia "Abates: 0" ao lado de uma pontuação alta. O
+    // jogador reliu isso como contador quebrado (relato de 2026-10-11).
+    if (isGameCompleted()) drawVictory(getScore(), getTotalKills());
+    else drawGameOver(getScore(), getTotalKills());
     return;
   }
   if (state === 'credits') {
@@ -1287,6 +1699,20 @@ function draw() {
 
   drawWorld();
 
+  // Remorso++: a tela vermelha de ódio enquanto a FÚRIA está ativa. É a cor do
+  // chefão final encontrando a fúria que o jogo já tinha — o jogador SENTE o
+  // modo antes de ler o HUD. Vinheta nas bordas (gradiente radial), pulsando
+  // devagar; nada de flash chapado, que lavaria o mundo.
+  if (isSkillActive('fury')) {
+    const W = canvas.width, H = canvas.height;
+    const pulso = 0.5 + 0.5 * Math.sin(Date.now() / 220);
+    const g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.32, W / 2, H / 2, Math.max(W, H) * 0.72);
+    g.addColorStop(0, 'rgba(90,10,10,0)');
+    g.addColorStop(1, `rgba(120,16,16,${0.32 + pulso * 0.16})`);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+  }
+
   if (phaseTransitionTimer > 0) {
     drawPhaseTransition(phaseTransitionTimer, getCurrentWave(), getCurrentPhase()?.name);
   }
@@ -1294,7 +1720,35 @@ function draw() {
     ctx.fillStyle = currentFlash;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
-  drawHud(buildHudData());
+  const hudData = buildHudData();
+  drawHud(hudData);
+  if (tabAberto) drawTabScreen(hudData, canvas.width, canvas.height);
+  if (estaEmTelaCheia()) drawFullscreenHint(canvas.width, canvas.height);
+}
+
+/**
+ * Aviso de tela cheia, sempre visível enquanto o jogo estiver nela.
+ *
+ * Dentro do iframe do itch.io a barra do jogador some, então não existe botão
+ * para voltar. Sem este aviso o jogador que entrou em fullscreen por engano
+ * fica sem nenhuma pista de como sair.
+ */
+function drawFullscreenHint(W: number, H: number): void {
+  const texto = 'ESC: sair da tela cheia';
+  ctx.save();
+  ctx.font = '11px monospace';
+  const largura = ctx.measureText(texto).width + 20;
+  const x = W / 2 - largura / 2;
+  const y = H - 14;
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillRect(x, y - 12, largura, 18);
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x + 0.5, y - 11.5, largura - 1, 17);
+  ctx.fillStyle = PALETTE.textDim;
+  ctx.textAlign = 'center';
+  ctx.fillText(texto, W / 2, y);
+  ctx.restore();
 }
 
 /** Desenha o mundo dentro da translação da câmera (uma vez por frame). */
@@ -1324,22 +1778,24 @@ function drawWorld(): void {
   renderPowerUps(powerups);
   drawLoot(getLoot(), ctx, (x, y, r) => isVisible(x, y, r, r));
   renderParticles(getParticles());
-  renderEnemies(enemies, p.x, p.y, (e) => Math.atan2(p.y - e.y, p.x - e.x));
+  // o índice da fase escolhe o personagem do bioma — sem ele, a tabela de
+  // variação existia mas todo inimigo voltava ao mapa geral (9 silhuetas).
+  renderEnemies(enemies, p.x, p.y, (e) => Math.atan2(p.y - e.y, p.x - e.x), PHASES.indexOf(getCurrentPhase()));
   drawNPCs(getNPCs());
   if (getCurrentMode() === 'competitive') drawBots(getBots());
   renderBullets(getBullets());
-  renderPlayer(p, getCurrentWeapon().weaponClass || 'pistol');
+  renderPlayer(p);
   drawDamageNumbers(damageNumbers);
   if (phase.hazard === 'darkness') {
-    // caverna oscura: overlay con agujero alrededor del jugador usando fill
-    // 'evenodd' para recortar la zona clara, no un rectángulo plano 85%
+    // caverna escura: overlay com um furo em volta do jogador, recortado com
+    // fill 'evenodd' — um retângulo chapado de 85% esconderia o jogador junto
     const camX = getCamX();
     const camY = getCamY();
     ctx.save();
     ctx.beginPath();
     ctx.rect(camX, camY, canvas.width, canvas.height);
     ctx.arc(p.x, p.y, 190, 0, Math.PI * 2, true);
-        ctx.fillStyle = 'rgba(4,4,8,0.60)';
+    ctx.fillStyle = 'rgba(4,4,8,0.60)';
     ctx.fill('evenodd');
     ctx.restore();
   }
@@ -1355,11 +1811,22 @@ function drawFrozenWorld(): void {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
 
+/** Ficha da arma equipada para a tela TAB, com a cor da raridade. */
+function buildWeaponSheet(): WeaponSheet | null {
+  const idx = getCurrentWeaponIndex();
+  const quality = getWeaponQuality();
+  const st = getWeaponStats(idx, quality);
+  return {
+    ...st,
+    qualityColor: QUALITIES[quality]?.color ?? PALETTE.textDim,
+  };
+}
+
 function buildHudData(): HudData {
   const p = player.getPlayer();
   const phase = getCurrentPhase();
   const weapon = getCurrentWeapon();
-  const reloadTime = weapon.reloadTime;
+  const effectiveReload = getReloadTimeOf(getCurrentWeaponIndex());
 
   const boss = enemies.find(e => ENEMY_TYPES[e.type]?.isBoss);
 
@@ -1368,16 +1835,28 @@ function buildHudData(): HudData {
     health: p.health,
     maxHealth: p.maxHealth,
     shield: p.shield,
+    nivel: getNivel(),
+    xpAtual: progressoNoNivel(getXp()).atual,
+    xpNecessario: progressoNoNivel(getXp()).necessario,
     score: getScore(),
     coins: getShopCoins(),
     wave: getCurrentWave(),
     maxWave: phase.waves,
     enemies: enemies.length,
     weapon: weapon.name,
+    // A condição é do PAR equipado, e o adjetivo é o da arma: "Corroída" numa
+    // Metralhadora, "Fosca" numa Sniper.
+    weaponCondition: ehNegativa(getWeaponQuality()) ? conditionLabel(weapon.name, getWeaponQuality()).toUpperCase() : '',
+    weaponConditionColor: QUALITIES[getWeaponQuality()]?.color ?? PALETTE.textDim,
     ammo: getCurrentAmmo(),
-    maxAmmo: weapon.magazineSize,
+    // Pente EFETIVO: com a peça CAPACIDADE o jogador tem 15 balas, e a barra
+    // desenhava 10 células. O mesmo para o progresso da recarga, que dividia
+    // pelo tempo base e ignorava velocidade, classe e peça — a barra nunca
+    // chegava a zero.
+    maxAmmo: getCurrentCapacity(),
     reloading: getIsReloading(),
-    reloadProgress: reloadTime > 0 ? 1 - Math.max(0, getReloadTimer()) / reloadTime : 1,
+    reloadProgress: effectiveReload > 0 ? 1 - Math.max(0, getReloadTimer()) / effectiveReload : 1,
+    weaponStats: buildWeaponSheet(),
     combo: getCombo(),
     comboDecay: getComboDecay(),
     skills: [
@@ -1406,6 +1885,10 @@ function buildHudData(): HudData {
     combos: getActiveCombos().map(c => ({ name: c.name, description: c.description, color: c.color })),
     hint: isTutorialActive() ? getCurrentHint() : null,
     toasts: achievementNotifications,
+    phaseEndSeconds: phaseEndPause,
+    medkits: player.getMedkits(),
+    hasNpc: getNPCs().some(n => n.alive),
+    npcFollowing: isNpcFollowing(),
   };
 }
 
@@ -1429,7 +1912,13 @@ function loop(time: number) {
 // ─── Boot ──────────────────────────────────────────────────────
 
 async function init() {
+  // o jogo foi publicado como ASHFALL e as 12 chaves de localStorage mudaram
+  // de prefixo. Sem isto, quem já jogou perde save, conquistas e recordes.
+  migrarChavesDeSave();
   await loadAllSprites();
+  // som de recarga por família de arma: `audio.ts` importa `weapons.ts`, então
+  // a direção do hook é weapons -> main -> audio, sem ciclo
+  onReloadStarted(() => sfxReload(getWeaponFamily()));
   const phase = PHASES[0];
   loadPhaseEnvironment();
   initCamera(worldW, worldH, canvas.width, canvas.height, player.getPlayer().x, player.getPlayer().y);
@@ -1561,7 +2050,7 @@ for (const e of enemies) {
     e.attackTimer += dt;
     if (e.attackTimer >= 0.5) {
       e.attackTimer = 0;
-      spawnParticles(e.x, e.y + e.radius, '#c46a3a', 3, 50);
+      spawnParticles(e.x, e.y + e.radius, '#c46a3a', 3, 50, 'smoke');
     }
   }
 }
@@ -1605,7 +2094,7 @@ checkEnemyBulletPlayerCollision(bullets, p.x, p.y, p.radius, p.invincible, (b) =
   const dmg = damageTaken(b.damage);
   if (dmg > 0) {
     checkAchievements('damage_taken');
-    player.enemyCollisionDamage(dmg);
+    player.damagePlayer(dmg);
     sfxPlayerHit();
     triggerDamageFlash();
   }
@@ -1622,9 +2111,7 @@ checkBulletEnemyCollisions(bullets, enemies, (b, e) => {
   // crítico vem do flag, não de comparar string de cor
   const isCrit = b.isCrit;
   if (b.explosive && b.explosionRadius) {
-    createExplosion(b.x, b.y, b.explosionRadius, b.damage, enemies, b.color);
-    sfxExplosion();
-    triggerScreenShake(5, 0.15);
+    detonateBullet(b);
   } else {
     e.health -= b.damage;
     damageNumbers.push({
@@ -1678,13 +2165,20 @@ for (let i = enemies.length - 1; i >= 0; i--) {
   if (enemies[i].health <= 0) killEnemy(enemies[i], true);
 }
 
-updateBullets(dt, worldW, worldH);
-// bala não atravessa parede: morre no cruzamento com fagulha
+// mina com inimigo no raio armeia o fuse; fuse estourado explode
+for (const m of updateMines(dt, enemies)) detonateBullet(m);
+// pavio: explosivo que chegou ao fim da vida útil explode em vez de sumir
+for (const b of updateBullets(dt, worldW, worldH)) detonateBullet(b);
+// bala não atravessa parede: morre no cruzamento com fagulha; explosivo
+// detona no impacto (o RPG parava de atravessar o mapa inteiro)
 for (const b of getBullets()) {
   if (b.life <= 0) continue;
   if (segmentHitsWall(b.px, b.py, b.x, b.y)) {
-    b.life = 0;
-    spawnParticles(b.x, b.y, b.color, 3, 100);
+    if (b.explosive && b.explosionRadius) detonateBullet(b);
+    else {
+      b.life = 0;
+      spawnParticles(b.x, b.y, b.color, 3, 100);
+    }
   }
 }
 updateParticles(dt);
@@ -1712,18 +2206,23 @@ if (p2) {
 }
 
 updateCoins(dt, p.x, p.y, p.radius, (v) => {
-  addScoreFlat(v);
-  addShopCoins(v);
+  // MENTE T2/T5 levantam cada moeda via coinMult; MENTE T3 e o SORTUDO pesam
+  // aqui (+5% por ponto de sorte). O piso de 1 mantém a moeda de 1 valor em 1.
+  const sorte = 1 + getStat('luck') * 0.05;
+  const comBonus = Math.max(1, Math.round(v * getStat('coinMult') * sorte));
+  addScoreFlat(comBonus);
+  addShopCoins(comBonus);
   sfxCoin();
 });
 updatePowerUps(dt, p.x, p.y, p.radius, (type) => {
   if (type === 'health') player.healPlayer(30);
   if (type === 'shield') p.shield += 2;
-  spawnParticles(p.x, p.y, POWERUP_TYPES[type].color, 15, 200);
+  if (type === 'trajeNucleo') p.shield += 3;
+  spawnParticles(p.x, p.y, POWERUP_TYPES[type].color, 15, 200, 'muzzle');
   sfxPowerup();
 });
 
-updateNPCs(dt, p.x, p.y, enemies);
+updateNPCs(dt, p.x, p.y, enemies, getBullets());
 
 const lootReward = updateLoot(dt, p.x, p.y, p.radius);
 if (lootReward) {
@@ -1745,3 +2244,312 @@ if (lootReward) {
   }
 }
 }
+
+// ─── Gancho de inspeção (harness visual) ─────────────────────
+// `tools/bullet-proof.mjs` precisa injetar projéteis com velocidade conhecida
+// para provar a orientação da sprite. Sem isto, a única forma de ver se a bala
+// está deitada é jogar e rezar — foi exatamente assim que uma bala girada 90°
+// passou por build e teste.
+declare global {
+  interface Window { __ashfall?: unknown }
+}
+window.__ashfall = {
+  canvas, ctx, spawnBullet, getBullets, clearBullets,
+  spriteFor: (k: string) => getSprite(k),
+  camera: () => ({ x: getCamX(), y: getCamY() }),
+  inimigoMaisProximo: () => {
+    const p = player.getPlayer();
+    let melhor: { x: number; y: number; type: string; health: number; dist: number } | null = null;
+    for (const e of enemies) {
+      if (e.spawnDelay > 0) continue;
+      const d = Math.hypot(e.x - p.x, e.y - p.y);
+      if (!melhor || d < melhor.dist) {
+        melhor = { x: e.x, y: e.y, type: e.type, health: e.health, dist: d };
+      }
+    }
+    return melhor;
+  },
+  telemetria: () => {
+    const p = player.getPlayer();
+    return {
+      hp: Math.round(p.health),
+      maxHp: p.maxHealth,
+      onda: getCurrentWave() + 1,
+      inimigos: enemies.length,
+      balas: getBullets().length,
+      kills: getKillStreak(),
+      estado: getGameState(),
+      moedas: getShopCoins(),
+      escudo: p.shield,
+      invicivel: Number(p.invincible.toFixed(2)),
+    };
+  },
+  // Estado de fim de fase: o harness precisa disto para provar que matar o
+  // chefe fecha a fase sem depender de matar todo o resto do campo.
+  // Config crua: o `campanha-proof.mjs` calcula o dano na entrada de cada fase
+  // aplicando a fórmula real do spawner. Ele lia `config.ts` por regex, e regex
+  // em dado de config erra sem aviso — pegou 7 das 9 fases numa primeira
+  // versão. Estalar o dado aqui elimina a fonte de drift.
+  config: () => ({
+    fases: PHASES.map((f) => ({
+      name: f.name, waves: f.waves, hazard: f.hazard,
+      difficulty: f.difficulty ?? null,
+      objective: f.objective, enemyTypes: f.enemyTypes, boss: f.boss ?? null,
+    })),
+    inimigos: Object.fromEntries(
+      Object.entries(ENEMY_TYPES).map(([k, v]) => [k, { damage: v.damage, health: v.health, speed: v.speed }]),
+    ),
+    // a fila do rush vem daqui: o `rush-proof.mjs` compara com o que entrou
+    // em tela e não repete a fonte de verdade em outro arquivo.
+    nucleoRush: NUCLEO_RUSH,
+    vidaBase: PLAYER_BASE_HEALTH,
+  }),
+  fase: () => {
+    // Depois da última fase `getCurrentPhase()` é undefined — o `campanha-proof`
+    // chama isto na transição do epílogo e derrubava o processo inteiro. O
+    // harness precisa de um estado para ler, não de uma exceção.
+    const fase = getCurrentPhase();
+    const p = player.getPlayer();
+    if (!fase) {
+      return {
+        fase: '(fim da campanha)', indice: PHASES.length, dificuldade: null, objetivo: null,
+        onda: 0, ondas: 0, vida: Math.round(p.health), vidaMax: p.maxHealth,
+        inimigos: 0, tipos: [], chefeVivo: false, chefeDerrotado: false,
+        respiroRestante: 0, respiroArmado: false, jogadorMorto: playerDied,
+        estado: getGameState(),
+      };
+    }
+    return {
+    fase: fase.name,
+    // índice e dificuldade: o `campanha-proof.mjs` precisa provar a ORDEM das
+    // 9 fases (o Bunker Central abrir o EPÍLOGO e as fases sem `difficulty`
+    // declarada só aparecem olhando estes dois campos).
+    indice: PHASES.indexOf(fase),
+    dificuldade: fase.difficulty ?? null,
+    objetivo: fase.objective,
+    onda: getCurrentWave() + 1,
+    ondas: fase.waves,
+    vida: Math.round(p.health),
+    vidaMax: p.maxHealth,
+    inimigos: enemies.length,
+    // quais tipos estão na tela: prova se o `asteroid` realmente entra no
+    // sorteio do Espaço em vez de só existir no config.
+    tipos: [...new Set(enemies.map(e => e.type))].sort(),
+    chefeVivo: enemies.some(e => ENEMY_TYPES[e.type]?.isBoss),
+    chefeDerrotado: bossKilled,
+    respiroRestante: phaseEndPause,
+    respiroArmado: phaseEnding,
+    jogadorMorto: playerDied,
+    estado: getGameState(),
+    };
+  },
+  pularParaUltimaOnda: () => {
+    // `resetWave` aqui desfaria o `setCurrentWave`: a ordem importa.
+    setCurrentWave(getCurrentPhase().waves - 1);
+    bossSpawned = false;
+    bossKilled = false;
+    bossRushIndex = 0;
+    phaseEnding = false;
+    phaseEndPause = 0;
+    for (let i = enemies.length - 1; i >= 0; i--) killEnemy(enemies[i], false);
+    return getCurrentWave();
+  },
+  // Salta para a fase `i` no meio da partida, sem jogar as anteriores: mesma
+  // sequência do `startFromSave` (nextPhase N vezes + ambiente). O
+  // `rush-proof.mjs` precisa disto para chegar ao Bunker Central sem rodar
+  // as 8 fases anteriores a cada execução.
+  irParaFase: (i: number) => {
+    resetPhases();
+    setGameState('playing');
+    for (let k = 0; k < i; k++) nextPhase();
+    loadPhaseEnvironment();
+    return PHASES.indexOf(getCurrentPhase());
+  },
+  // Invoca o chefe na hora. O spawn natural depende de `enemies.length === 0`
+  // numa janela de frame específica e o spawner reabastece a cota da onda antes
+  // disso; o harness não pode depender dessa corrida.
+  invocarChefe: () => {
+    const faseAtual = getCurrentPhase();
+    if (!faseAtual.boss) return false;
+    const livre = findFreeSpotNear(worldW / 2, worldH / 2, 46);
+    const b = spawnEnemy(faseAtual.boss, worldW, worldH, 0, livre.x, livre.y);
+    if (!b) return false;
+    b.spawnDelay = 0;
+    b.health = b.maxHealth;
+    enemies.push(b);
+    bossSpawned = true;
+    return true;
+  },
+  /**
+   * Inimigo de tipo e posição fixos.
+   *
+   * O `variedade-proof.mjs` precisa comparar o MESMO tipo entre fases: deixar o
+   * spawner-sortear comparava `grunt` na Cidade contra `drone` no Espaço, e o
+   * harness acusava "a variação não está na tela" com a tabela perfeita.
+   */
+  spawnarInimigo: (tipo: string, dist = 120, angulo = 0) => {
+    const p = player.getPlayer();
+    const e = spawnEnemy(tipo, worldW, worldH, 0, p.x + Math.cos(angulo) * dist, p.y + Math.sin(angulo) * dist);
+    if (!e) return null;
+    e.spawnDelay = 0;
+    enemies.push(e);
+    return { tipo, x: e.x, y: e.y };
+  },
+  spawnarReforco: (n: number) => {
+    const tipos = getCurrentPhase().enemyTypes;
+    for (let i = 0; i < n; i++) {
+      const livre = findFreeSpotNear(worldW / 2 + (i - 1) * 80, worldH / 2, 16);
+      const e = spawnEnemy(tipos[i % tipos.length], worldW, worldH, 0, livre.x, livre.y);
+      if (e) { e.spawnDelay = 0; enemies.push(e); }
+    }
+    return enemies.length;
+  },
+  matarChefe: () => {
+    const b = enemies.find(e => ENEMY_TYPES[e.type]?.isBoss);
+    if (!b) return false;
+    b.health = 0;
+    killEnemy(b, true);
+    return true;
+  },
+  matarTodos: () => {
+    for (let i = enemies.length - 1; i >= 0; i--) killEnemy(enemies[i], true);
+    return enemies.length;
+  },
+  zerarVida: () => { player.getPlayer().health = 0; return player.getPlayer().health; },
+  curar: () => { const p = player.getPlayer(); p.health = p.maxHealth; return p.health; },
+  // equipa um par com condição específica, para o harness ver o rótulo no HUD
+  equiparCondicao: (nome: string, qualidade: string) => {
+    const idx = WEAPONS.findIndex(w => w.name === nome);
+    if (idx < 0) return null;
+    addPurchasedWeapon(idx, qualidade);
+    setWeapon(idx, qualidade);
+    return getWeaponQuality();
+  },
+  // congela o update sem abrir o TAB, para o harness segurar os projéteis no lugar
+  pausarTiros: (v: boolean) => { pausaTiros = v; return v; },
+  // estado da cutscene, para o harness de narrativa
+  cena: () => ({
+    ativa: isShowingCutscene(),
+    titulo: getCurrentCutscene().title,
+    linha: getCurrentLine().text.slice(0, 40),
+    esperandoEscolha: isWaitingForChoice(),
+  }),
+  // avança de fase direto, sem passar pela loja (harness de narrativa)
+  pularParaProximaFase: () => { leaveShop(); return getCurrentPhase().name; },
+  // entra na loja e dá XP de uma vez, para o harness de progressão tirar o
+  // screenshot da árvore de talentos com pontos disponíveis (regra 16).
+  entrarLoja: (xp = 0) => { setGameState('shop'); enterShop(); if (xp > 0) addXp(xp); return getNivel(); },
+  // ativa a fúria na hora (tecla E), para o harness tirar o print da tela
+  // vermelha de remorso sem esperar o cooldown (regra 16).
+  ativarFuria: () => { useSkill('fury'); return isSkillActive('fury'); },
+  talentos: () => ({ nivel: getNivel(), xp: getXp(), pontos: getPontosLivres(), comprados: getTalentos() }),
+  // Estado da escada de perks. O `perks-proof.mjs` usa para provar que os 3
+  // slots da loja são os degraus ofertados e que comprar um special o deixa
+  // ativo — nenhum dos dois se vê pelo nome desenhado na tela.
+  perks: () => ({
+    oferta: getStockPerks(),
+    comprados: getPurchasedUpgrades(),
+    especiais: {
+      incandescente: temIncandescente(),
+      folego: temSegundoFolego(),
+      fantasma: temPassoFantasma(),
+      sortudo: temSortudoAtivo(),
+    },
+  }),
+  comprarPerk: (id: string) => buyPerk(id),
+  // devolve o estado da run nova depois do `resetGame`: o `perks-proof` compara
+  // com a run anterior para provar que perks e stats não sobreviveram.
+  resetarPartida: () => { resetGame(); return true; },
+  // o `perks-proof` precisa montar a loja com moedas e uma oferta conhecida
+  // para comparar a geometria desenhada com a que o estado diz que existe
+  __setShopCoins: (n: number) => { setShopCoins(n); return getShopCoins(); },
+  __lojaPronta: (moedas: number) => {
+    setGameState('shop');
+    enterShop();
+    setShopCoins(moedas);
+    getShopStock();
+    return getStockPerks();
+  },
+  __shopLayout: (w: number, h: number) => getShopLayout(w, h),
+  // o `loja-proof.mjs` mede o texto DEPOIS de desenhado: as seções que
+  // reclamaram de estouro (skins, card do traje) ficavam abaixo da dobra, e
+  // nenhum harness pegava. `measureText` do canvas real, na fonte real.
+  lojaMedir: () => medirTextosDaLoja(ctx),
+  /**
+   * As silhuetas de inimigo EM TELA, por fase.
+   *
+   * O `variedade.test.ts` prova que a tabela varia; este prova que a tela
+   * obedece — o `drawEnemies` recebe `PHASES.indexOf(fase)`, e sem esse
+   * parâmetro a variação existia no código e nunca aparecia (foi o primeiro
+   * estado desta feature).
+   */
+  personagensNaTela: () => enemies.map(e => getEnemyCharacter(e.type, PHASES.indexOf(getCurrentPhase()))),
+  /** Mesmo dado, agrupado por tipo: dois corpos para o mesmo tipo = incoerente. */
+  personagensPorTipo: () => {
+    const fase = PHASES.indexOf(getCurrentPhase());
+    const porTipo: Record<string, string[]> = {};
+    for (const e of enemies) {
+      (porTipo[e.type] ??= []).push(getEnemyCharacter(e.type, fase));
+    }
+    return porTipo;
+  },
+  /** O corpo de UM tipo, ou null se ele não está em tela. */
+  personagemDoTipo: (tipo: string) => {
+    const fase = PHASES.indexOf(getCurrentPhase());
+    return enemies.some(e => e.type === tipo) ? getEnemyCharacter(tipo, fase) : null;
+  },
+  /**
+   * Trava a câmera no inimigo mais próximo.
+   *
+   * A câmera segue o jogador e o spawner joga longe da tela: o `variedade-proof`
+   * tirava print do campo vazio com a variação certa nos dados. O harness
+   * precisa de um jeito de olhar para onde o inimigo está.
+   */
+  centralizarNoInimigo: () => {
+    const p = player.getPlayer();
+    const vivos = enemies.filter(e => e.spawnDelay <= 0);
+    if (vivos.length === 0) return null;
+    // o mais próximo do jogador, para não teleportar a câmera para o outro
+    // lado do mapa (o `initCamera` centraliza, então um inimigo distante
+    // punha a câmera fora de qualquer coisa)
+    const alvo = vivos
+      .slice()
+      .sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y))[0];
+    // o jogador vai para PERTO do inimigo, não sobre ele. 60px era distância de
+    // golpe (o print saía com a vinheta de dano) e sobrepunha as duas sprites;
+    // 130px deixa os dois corpos visíveis e longe do contato.
+    const dx = alvo.x - p.x, dy = alvo.y - p.y;
+    const d = Math.max(1, Math.hypot(dx, dy));
+    p.x = alvo.x - (dx / d) * 130;
+    p.y = alvo.y - (dy / d) * 130;
+    initCamera(worldW, worldH, canvas.width, canvas.height, alvo.x, alvo.y);
+    return { x: alvo.x, y: alvo.y, tipo: alvo.type, dist: d };
+  },
+  __lojaScroll: (y: number) => setShopScroll(y),
+  /**
+   * Mede o HUD em pixels de verdade, para o `hud-proof.mjs`.
+   *
+   * O teste de geometria prova que as caixas não se sobrepõem entre si; não
+   * prova que o TEXTO cabe dentro delas. Fonte monospace de 11px mede ~6.6px
+   * por caractere, e um rótulo 3px mais largo que a coluna invade a layer
+   * vizinha sem nenhum `expect` accusing. A medição é feita com o próprio
+   * `measureText` do canvas do jogo, na resolução real da tela.
+   */
+  hudMedir: () => medirHud(buildHudData()),
+  diario: () => getUnlockedDiary(),
+  diarioDefinido: () => ({ eventos: getDiaryEvents() }),
+  // spawna um projétil de uma arma específica, para o harness de projéteis.
+    // `screenToWorld` define a convenção do projeto: mundo = tela + câmera (a
+    // câmera é o canto superior esquerdo visível, não o centro), então a
+    // inversão é somar, não somar menos a metade da viewport.
+    tiroDe: (nome: string, telaX = 640, telaY = 360) => {
+      const idx = WEAPONS.findIndex(w => w.name === nome);
+      if (idx < 0) return null;
+      const w = WEAPONS[idx];
+      const x = getCamX() + telaX;
+      const y = getCamY() + telaY;
+      spawnBullet(x, y, 0, 0, w.damage, false, w.color, w.pierce, !!w.explosive, w.explosionRadius ?? 0, false, BULLET_FAMILY[nome]);
+      const b = getBullets()[getBullets().length - 1];
+      return b ? { bulletSprite: b.bulletSprite, dano: b.damage } : null;
+    },
+};
