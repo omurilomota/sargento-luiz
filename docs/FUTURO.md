@@ -101,6 +101,18 @@ local, `(Date.now() - t0)` (linha 116). Duas linhas, sem tocar na telemetria.
 Refactor adiado de propósito (não tem bug atrás). Só fazer quando outra
 mudança exigir — e aí extrair menu/loja primeiro.
 
+**Medido em 2026-11 (2.555 linhas):** os blocos são `update` (454),
+`endOfFrame` (395), `resetInput` + listeners (285) e `killEnemy` (100). O
+`input` puro tem 171 linhas e é o de menor dependência — mas ele lê `keys` em
+**6 lugares fora do listener** (o loop de update, a fim de fase, o movimento),
+então extraí-lo exige mudar esse contrato, e mexer no input sem bug à frente é
+risco puro.
+
+O custo real do tamanho não é a legibilidade: é que **omissão passa
+despercebida**. `resetPerks` ficou 3 sprints importado e nunca chamado
+(`main.ts`), e ninguém viu até a porta nº 5 do portão anti-IA existir. A
+mitigação real é o gate, não o refactor.
+
 ### 1.7 O TAB já mostra minimapa grande + ficha — ✅ RESOLVIDO em 10/10
 O pedido era "no TAB, ver o minimapa em tamanho grande, de preferência na mesma
 tela da ficha". `drawTabScreen` faz exatamente isso: minimapa grande à
