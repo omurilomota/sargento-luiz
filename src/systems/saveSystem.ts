@@ -1,5 +1,5 @@
 /**
- * Sistema de save/load using localStorage.
+ * Sistema de save/load em localStorage.
  * Salva progresso do jogo: fase, onda, arma, upgrades, moedas, score.
  */
 
@@ -19,23 +19,33 @@ interface SaveData {
   upgrades: string[];
   /** Armas compradas */
   weapons: { index: number; quality: string }[];
+  /** Peças na mochila (ids de PieceType) */
+  pieces: string[];
+  /** Peças equipadas por arma: { índiceDaArma: [ids] } */
+  equippedPieces: Record<string, string[]>;
+  /** Ids de talento da árvore de progressão comprados */
+  talentos: string[];
+  /** XP total da partida (o nível é recalculado dele no load) */
+  xp?: number;
   /** Nome da fase para exibição */
   phaseName: string;
   /** Timestamp do save */
   timestamp: number;
 }
 
-const SAVE_KEY = 'bubbleShooter_save';
+const SAVE_KEY = 'rios.save';
 
 /**
  * Salva o progresso do jogo no localStorage.
  */
 export function saveGame(
   phase: number, wave: number, weaponIndex: number,
-  coins: number, score: number, upgrades: string[], weapons: { index: number; quality: string }[], phaseName: string
+  coins: number, score: number, upgrades: string[], weapons: { index: number; quality: string }[], phaseName: string,
+  pieces: string[] = [], equippedPieces: Record<string, string[]> = {}, talentos: string[] = [], xp = 0
 ): void {
   const data: SaveData = {
     phase, wave, weaponIndex, coins, score, upgrades, weapons, phaseName,
+    pieces, equippedPieces, talentos, xp,
     timestamp: Date.now(),
   };
   try {
@@ -81,7 +91,7 @@ export function deleteSave(): void {
   }
 }
 
-const COMPLETION_KEY = 'bubbleShooter_completed';
+const COMPLETION_KEY = 'rios.completed';
 
 /**
  * Marca o jogo como completado.

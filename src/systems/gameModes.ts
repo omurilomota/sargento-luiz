@@ -1,10 +1,8 @@
 /**
  * src/systems/gameModes.ts
  *
- * Só existem 4 modos de verdade. Antes o menu oferecia 7 e três deles eram
- * mentira: `survival`, `missions` e `bossrush` não tinham uma única função
- * ligada — `startMission`/`updateMission`/`getMissionProgress` nunca eram
- * chamadas, e o objetivo por fase do Sprint 2 passou a cobrir esse papel.
+ * Os 4 modos reais. Cada um precisa ter regra própria ligada em `main.ts` —
+ * um modo no menu sem efeito é pior que um modo a menos.
  */
 
 /** Tipos de modo de jogo */
@@ -21,12 +19,10 @@ export const GAME_MODES: { key: string; mode: GameMode; name: string; desc: stri
 /** Estado do modo atual */
 let currentMode: GameMode = 'campaign';
 
-/** Retorna o modo atual. */
 export function getCurrentMode(): GameMode {
   return currentMode;
 }
 
-/** Define o modo de jogo. */
 export function setGameMode(mode: GameMode): void {
   currentMode = mode;
 }

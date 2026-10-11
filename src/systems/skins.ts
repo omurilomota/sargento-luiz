@@ -28,15 +28,15 @@ export interface Skin {
 /** Lista de skins disponíveis */
 const skins: Skin[] = [
   { name: 'Padrão', bodyColor: PALETTE.moss, borderColor: '#5a7a4a', aimColor: PALETTE.text, symbol: '', price: 0, unlocked: true, equipped: true },
-  { name: 'Fogo', bodyColor: PALETTE.danger, borderColor: '#6b3030', aimColor: PALETTE.terracotta, symbol: '', price: 50, unlocked: false, equipped: false },
-  { name: 'Gelo', bodyColor: PALETTE.stone, borderColor: '#4a6270', aimColor: '#ccc', symbol: '', price: 50, unlocked: false, equipped: false },
-  { name: 'Sombra', bodyColor: '#2a2a2c', borderColor: '#1a1a1c', aimColor: PALETTE.moss, symbol: '', price: 80, unlocked: false, equipped: false },
-  { name: 'Dourado', bodyColor: PALETTE.mustard, borderColor: '#8a6a4a', aimColor: PALETTE.text, symbol: '', price: 120, unlocked: false, equipped: false },
-  { name: 'Neon', bodyColor: '#5a7a4a', borderColor: '#4a5a3a', aimColor: PALETTE.moss, symbol: '', price: 100, unlocked: false, equipped: false },
-  { name: 'Sangue', bodyColor: PALETTE.danger, borderColor: '#5a3030', aimColor: PALETTE.terracotta, symbol: '', price: 90, unlocked: false, equipped: false },
-  { name: 'Raio', bodyColor: PALETTE.terracotta, borderColor: '#7a4a3a', aimColor: PALETTE.mustard, symbol: '', price: 110, unlocked: false, equipped: false },
-  { name: 'Fantasma', bodyColor: 'rgba(200,184,144,0.4)', borderColor: 'rgba(200,184,144,0.6)', aimColor: PALETTE.text, symbol: '', price: 200, unlocked: false, equipped: false },
-  { name: 'Robô', bodyColor: '#5a5a5a', borderColor: '#6a6a6a', aimColor: PALETTE.stone, symbol: '', price: 150, unlocked: false, equipped: false },
+  { name: 'Ferrugem', bodyColor: PALETTE.danger, borderColor: '#6b3030', aimColor: PALETTE.terracotta, symbol: '', price: 50, unlocked: false, equipped: false },
+  { name: 'Gelo Seco', bodyColor: PALETTE.stone, borderColor: '#4a6270', aimColor: '#ccc', symbol: '', price: 50, unlocked: false, equipped: false },
+  { name: 'Sombreado', bodyColor: '#2a2a2c', borderColor: '#1a1a1c', aimColor: PALETTE.moss, symbol: '', price: 80, unlocked: false, equipped: false },
+  { name: 'Reboco', bodyColor: PALETTE.mustard, borderColor: '#8a6a4a', aimColor: PALETTE.text, symbol: '', price: 120, unlocked: false, equipped: false },
+  { name: 'Fita Isolante', bodyColor: '#5a7a4a', borderColor: '#4a5a3a', aimColor: PALETTE.moss, symbol: '', price: 100, unlocked: false, equipped: false },
+  { name: 'Sangue Seco', bodyColor: PALETTE.danger, borderColor: '#5a3030', aimColor: PALETTE.terracotta, symbol: '', price: 90, unlocked: false, equipped: false },
+  { name: 'Lanterna', bodyColor: PALETTE.terracotta, borderColor: '#7a4a3a', aimColor: PALETTE.mustard, symbol: '', price: 110, unlocked: false, equipped: false },
+  { name: 'Pavio', bodyColor: 'rgba(200,184,144,0.4)', borderColor: 'rgba(200,184,144,0.6)', aimColor: PALETTE.text, symbol: '', price: 200, unlocked: false, equipped: false },
+  { name: 'Sucata', bodyColor: '#5a5a5a', borderColor: '#6a6a6a', aimColor: PALETTE.stone, symbol: '', price: 150, unlocked: false, equipped: false },
 ];
 
 /**
@@ -83,7 +83,7 @@ export function resetSkins(): void {
   skins[0].equipped = true;
   skins.forEach((s, i) => { s.unlocked = i === 0; });
   try {
-    const raw = localStorage.getItem('bubbleShooter_skins_unlocked');
+    const raw = localStorage.getItem('ashfall.skins_unlocked');
     if (raw) {
       const ids = JSON.parse(raw) as number[];
       for (const idx of ids) if (idx in skins) skins[idx].unlocked = true;
@@ -94,6 +94,6 @@ export function resetSkins(): void {
 function persistUnlocked(): void {
   try {
     const ids = skins.map((s, i) => (s.unlocked ? i : -1)).filter(i => i >= 0);
-    localStorage.setItem('bubbleShooter_skins_unlocked', JSON.stringify(ids));
+    localStorage.setItem('ashfall.skins_unlocked', JSON.stringify(ids));
   } catch {}
 }

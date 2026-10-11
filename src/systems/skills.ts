@@ -6,6 +6,7 @@
 
 import { Player } from '../entities/player';
 import { hasPowerUp } from '../powerups';
+import { getStat } from '../core/stats';
 
 /** Tipos de habilidade disponíveis */
 export type SkillType = 'dash' | 'shield' | 'fury';
@@ -37,6 +38,15 @@ const DASH_SPEED = 800;
 const FURY_DAMAGE_MULT = 2;
 /** Escala de dano recebido na fúria */
 const FURY_DAMAGE_TAKEN_MULT = 1.5;
+/**
+ * Multiplicador do INTERVALO entre tiros durante a fúria.
+ *
+ * A fúria só mexia em dano (2×) e dano recebido (1,5×). Dano sem cadência
+ * continua sendo dano, então a habilidade não mudava a *ritmo* de combate —
+ * uma Metralhadora em fúria matava mais, mas no mesmo ritmo. Como 0.75 é
+ * multiplicador de intervalo, a conta real é 1/0.75 = +33% de cadência.
+ */
+const FURY_COOLDOWN_MULT = 0.75;
 /** Direção da última investida do dash (undefined = parado) */
 let dashDirection: { x: number; y: number } | null = null;
 
@@ -56,7 +66,6 @@ export function setMoveDirection(dx: number, dy: number): void {
 
 /**
  * Tenta ativar uma habilidade.
- * @param type - tipo da habilidade
  * @returns true se a habilidade foi ativada
  */
 export function useSkill(type: SkillType): boolean {
@@ -65,13 +74,12 @@ export function useSkill(type: SkillType): boolean {
 
   skill.active = true;
   skill.duration = skill.maxDuration;
-  skill.cooldown = skill.maxCooldown;
+  skill.cooldown = skill.maxCooldown * getStat('dashCooldown');
   return true;
 }
 
 /**
  * Verifica se uma habilidade está ativa.
- * @param type - tipo da habilidade
  * @returns true se ativa
  */
 export function isSkillActive(type: SkillType): boolean {
@@ -80,7 +88,6 @@ export function isSkillActive(type: SkillType): boolean {
 
 /**
  * Retorna o cooldown restante de uma habilidade.
- * @param type - tipo da habilidade
  * @returns segundos restantes de cooldown
  */
 export function getSkillCooldown(type: SkillType): number {
@@ -89,7 +96,6 @@ export function getSkillCooldown(type: SkillType): number {
 
 /**
  * Retorna o cooldown máximo de uma habilidade.
- * @param type - tipo da habilidade
  * @returns segundos totais de cooldown
  */
 export function getSkillMaxCooldown(type: SkillType): number {
@@ -98,38 +104,39 @@ export function getSkillMaxCooldown(type: SkillType): number {
 
 /**
  * Retorna se uma habilidade está em cooldown.
- * @param type - tipo da habilidade
  * @returns true se em cooldown
- */
-export function isSkillOnCooldown(type: SkillType): boolean {
-  return skills[type].cooldown > 0;
-}
 
 /**
  * Retorna o multiplicador de dano baseado nas habilidades ativas.
- * @returns multiplicador de dano
  */
 export function getDamageMultiplier(): number {
   let mult = skills.fury.active ? FURY_DAMAGE_MULT : 1;
   if (hasPowerUp('furia')) mult *= 1.3;
+  if (hasPowerUp('trajeNucleo')) mult *= 2;
   return mult;
 }
 
 /**
+ * Multiplicador do intervalo entre tiros durante a fúria.
+ * `< 1` dispara mais rápido. Retorna 1 com a fúria inativa.
+ */
+export function getFuryCooldownMult(): number {
+  return skills.fury.active ? FURY_COOLDOWN_MULT : 1;
+}
+
+/**
  * Retorna o multiplicador de dano recebido baseado nas habilidades ativas.
- * @returns multiplicador de dano recebido
  */
 export function getDamageTakenMultiplier(): number {
   if (skills.shield.active) return 0;
   let mult = skills.fury.active ? FURY_DAMAGE_TAKEN_MULT : 1;
   if (hasPowerUp('peleDePedra')) mult *= 0.5;
+  if (hasPowerUp('trajeNucleo')) mult *= 0.5;
   return mult;
 }
 
 /**
  * Atualiza todas as habilidades.
- * @param dt - delta time em segundos
- * @param player - estado do jogador (para dash)
  * @param bounds - limites do mundo (o dash precisa de clamp, senão atravessa a borda)
  */
 export function updateSkills(dt: number, player: Player, bounds?: { w: number; h: number }): void {

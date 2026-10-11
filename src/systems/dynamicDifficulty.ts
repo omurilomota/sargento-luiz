@@ -32,11 +32,8 @@ const HISTORY_SIZE = 60;
 /**
  * Atualiza o tracking de comportamento do jogador.
  *
- * `dt` e `totalEnemyHealth` saíram da assinatura: o primeiro não era usado (o
- * histórico é marcado com performance.now()) e o segundo chegava sempre 0.
- * @param playerX - X do jogador
- * @param playerY - Y do jogador
- * @param enemyCount - inimigos vivos, para a distância média estimada
+ * A assinatura não leva `dt`: o histórico é marcado com `performance.now()`
+ * dentro do módulo, então um delta aqui não mudaria nada.
  */
 export function updateBehavior(playerX: number, playerY: number, enemyCount: number): void {
   behavior.positionHistory.push({ x: playerX, y: playerY, time: performance.now() });
@@ -44,7 +41,7 @@ export function updateBehavior(playerX: number, playerY: number, enemyCount: num
     behavior.positionHistory.shift();
   }
 
-  // Calculate tendencies from recent positions
+  // tendência de movimento nas últimas posições
   if (behavior.positionHistory.length > 10) {
     const recent = behavior.positionHistory.slice(-10);
     let hSum = 0, vSum = 0;
@@ -56,7 +53,7 @@ export function updateBehavior(playerX: number, playerY: number, enemyCount: num
     behavior.verticalTendency = Math.max(-1, Math.min(1, vSum / 500));
   }
 
-  // Average distance to enemies (estimated)
+  // distância média estimada aos inimigos
   behavior.avgDistance = enemyCount > 0 ? Math.max(100, 500 - enemyCount * 10) : 300;
 }
 
@@ -100,12 +97,6 @@ const MIN_SHOTS_FOR_ACCURACY = 20;
  * Pressão que o jogador impõe, de 0 (erra muito) a 1 (acerta quase tudo).
  * `null` enquanto a amostra é pequena demais para significar alguma coisa — sem
  * isso a banda mexeria na dificuldade nos 3 primeiros tiros, que é só ruído.
- *
- * É isto que `getPlayerAccuracy` sempre devolveu e ninguém consumia: o módulo
- * media a acurácia, mantinha `shotsFired`/`shotsHit` atualizados a cada tiro e
- * descartava o resultado. TODO.md já marcava "dificuldade progressiva dinâmica"
- * como entregue, e a posição prevista já funcionava — só a metade de acurácia
- * não tinha consumidor.
  * @returns 0..1, ou null sem amostra suficiente
  */
 export function getSkillPressure(): number | null {

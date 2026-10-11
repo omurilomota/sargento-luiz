@@ -66,7 +66,12 @@ src/
 │   ├── saveSystem.ts    # Save/load (localStorage)
 │   ├── tutorial.ts      # Dicas contextuais do primeiro minuto
 │   ├── ads.ts           # Anúncios simulados
-│   └── skins.ts         # Skins do jogador
+│   ├── skins.ts         # Skins do jogador
+│   ├── classes.ts       # Classes do jogador (soldado/sobrevivente/robô/médico)
+│   ├── loot.ts          # Tabela de drop, caixa de chefe e revelação
+│   ├── particles.ts     # Pool de partículas do mundo
+│   ├── pieces.ts        # Peças equipáveis na arma (base e acessório)
+│   └── support.ts       # Ferramentas de input (wheel, clique, toque)
 ├── ui/
 │   ├── hud.ts           # HUD 100% canvas (grade de 3 colunas, sem overlap)
 │   └── shop.ts          # Loja canvas (getShopLayout é a geometria única)
@@ -74,7 +79,11 @@ src/
 
 tools/
 ├── genmaps.py           # Gera e valida os 9 mapas (largura, borda, BFS)
-└── genmusic.py          # Sintetiza as 4 faixas OGG (precisa de ffmpeg)
+├── genmusic.py          # Sintetiza as 4 faixas OGG (precisa de ffmpeg)
+├── visual.mjs           # Harness Playwright: screenshots + 404/pageerror
+├── session.mjs          # Sessão longa com telemetria (HP/onda/inimigos)
+├── bullet-proof.mjs     # Prova de orientação dos projéteis
+└── tilemap-proof.mjs    # Prova de colisão contra o grid
 
 public/assets/           # Assets estáticos (Vite copia public/ → dist/)
 ├── sprites/topdown-shooter/PNG/  # Kenney Top-down Shooter, CC0
@@ -95,6 +104,8 @@ public/assets/           # Assets estáticos (Vite copia public/ → dist/)
 npm run dev        # Desenvolvimento com hot reload
 npm run build      # Build de produção (tsc + vite build)
 npm test           # Vitest
+npm run visual     # Build + screenshots + 404/pageerror (ver regra 16)
+npm run sessao     # Build + sessão longa com telemetria de HP/onda
 npx tsc --noEmit   # Type check sem gerar output
 python3 tools/genmaps.py    # Regenera e revalida src/maps.ts
 python3 tools/genmusic.py   # Regenera public/assets/music/*.ogg
@@ -176,6 +187,54 @@ python3 tools/genmusic.py   # Regenera public/assets/music/*.ogg
 
 ---
 
+## Portão Anti-IA (testes que reprovam sozinhos)
+
+> "Nada pode parecer ou entregar como IA" deixou de ser promessa em
+> 2026-10-10: virou cinco testes que rodam no `npm test`. O padrão desta base
+> era **afirmar sem portão** — cada defeito "pronto" que o usuário encontrou
+> depois tinha um `rg` e um "está bom" na origem. Estes testes são a resposta.
+
+| teste | o que trava |
+|---|---|
+| `semIA.test.ts` | tics de texto em `story.ts`/`diary.ts` (lista abaixo) |
+| `semDesenho.test.ts` | `arc`/`fillRect`/`ellipse`/gradiente em `renderer.ts` fora da lista permitida (regra 15) |
+| `semProcedural.test.ts` | função `sfx*` sem arquivo (`playSfxFile`) fora da lista de débito |
+| `semAssetQuebrado.test.ts` | arquivo de `public/assets/` que não chegou ao `dist/`, ou veio com 0 byte |
+| `semOrfao.test.ts` | **código que existe e não faz nada**: export sem chamador, `StatId` sem leitor, `StatId` sem escritor |
+
+Os quatro primeiros pegam **forma** (`arc()` no renderer, tics no texto,
+síntese no som, asset quebrado). O quinto pega **substância** — a classe de
+defeito mais cara do projeto, porque nada a revela: nem `tsc`, nem teste de
+geometria, nem screenshot. Foi ele que achou o `mente_t3` vendendo 150 moedas
+por um stat sem leitor, o teto de armadura que nunca abria, os 8 combos que só
+disparam em save antigo, e as peças que o save gravava como lista vazia.
+
+Tics que o `semIA` acusa: tríade `A, B e C` · "não X, mas Y" · "uma
+onda/langadouro de X" · corpo clichê (coração acelerou, olhos se
+arregalaram…) · etiqueta de fala além de "disse" (murmurou, sussurrou…) ·
+adjetivo vazio (silêncio pesado, olhar penetrante…) · narração repetindo a UI
+("cinco ondas") · palavra em espanhol vazada (recibir, mejor, también).
+
+Regras que valem para toda IA neste projeto:
+
+0. **Código novo que ninguém chama não entra.** Export com chamador, stat com
+   leitor, stat com escritor. Se não há consumidor ainda, não é entrega: é
+   dívida. A porta nº 5 reprova no `npm test` e nomeia o culpado.
+1. **Texto novo passa pelo `semIA` antes de existir.** Se a frase precisa do
+   tic para funcionar, ela não está pronta — reescreva, não contorne.
+2. **Não sei escrever sem soar IA? Não escrevo: pergunto.** Improvisar e
+   "reviso depois" foi como o passivo nasceu.
+3. **Arte nova vem de asset.** Código só desenha o que a lista permitida do
+   `semDesenho` já justifica (UI, efeito, sombra, fallback declarado). Débito
+   da lista não cresce; item novo é decisão registrada no diff do teste.
+4. **Som novo vem de arquivo.** A síntese é fallback atrás do `playSfxFile`;
+   o débito do `semProcedural` só encolhe.
+5. **Portão verde não substitui olho.** A regra 16 continua: render mudado
+   exige `npm run visual` com os PNGs abertos; HP/onda mudado exige
+   `npm run sessao`.
+
+---
+
 ## Regras para IAs Assistentes
 
 ### Princípio Fundamental
@@ -212,6 +271,8 @@ python3 tools/genmusic.py   # Regenera public/assets/music/*.ogg
 
 15. **Visual vem de asset, nunca de código.** O usuário **odeia desenho procedural**. O pack em `public/assets/` é o visual; desenhar forma com `arc`/`fillRect`/`stroke`/`ellipse` em vez de usar o sprite é fazer arte no editor de código, e o resultado é lido como IA, não como jogo. Vale para parede, chão, inimigo, item, ícone e árvore. Antes de escrever código que desenha alguma coisa, procurar o tile correspondente. Procedural é permitido **só como fallback** de um asset que falhou ao carregar, e essa intenção tem que estar dita no comentário. Em dúvida entre "tile do pack" e "desenho meu": tile.
 
+16. **Mudança de render não é verificada por `npm test`.** A suíte testa geometria (números de `getShopLayout`, `getHudCenterLayout`), nunca pixels. É possível ter `tsc` limpo, 646 testes verdes, build ok e o HUD ilegível com texto sobre texto. Toda alteração em `renderer.ts`, `hud.ts`, `shop.ts`, `terrain.ts`, `props.ts`, `sprites.ts`, `audio.ts` ou `maps.ts` **exige** rodar `npm run visual` e **abrir os PNGs de `tools/shots/` com a ferramenta de leitura de imagem** — screenshot não lido é screenshot inexistente. Se o ambiente não tiver Chrome, isso entra no relatório como pendência explícita, nunca como "está funcionando". Vale o mesmo para `npm run sessao` quando a mudança mexe em balanceamento de HP/onda.
+
 ### Fluxo de Trabalho
 
 ```
@@ -221,6 +282,7 @@ Receber tarefa
   → Explorar código relevante (não o projeto inteiro)
   → Implementar a mudança mínima necessária
   → Verificar: npm run build passa?
+  → Se mexeu render: npm run visual e ABRIR os screenshots (regra 16)
   → Reportar o que foi feito
   → Parar
 ```

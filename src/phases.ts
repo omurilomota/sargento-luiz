@@ -27,56 +27,39 @@ let totalKills = 0;
 
 /**
  * Retorna a fase atual com todas suas configurações.
- * @returns objeto Phase com nome, cores e tipos de inimigos
  */
 export function getCurrentPhase() { return PHASES[currentPhase]; }
 
-/**
- * Retorna o número da onda atual.
- * @returns índice da onda (0-indexado)
- */
 export function getCurrentWave() { return currentWave; }
 
-/**
- * Retorna o estado atual do jogo.
- * @returns GameStateType atual
- */
 export function getGameState() { return gameState; }
 
-/**
- * Retorna a pontuação total acumulada.
- * @returns pontuação
- */
 export function getScore() { return score; }
 
-/**
- * Retorna o multiplicador de combo atual.
- * @returns valor do combo
- */
 export function getCombo() { return combo; }
 
 /**
  * Retorna a sequência de abates consecutivos.
- * @returns número de kills sem morrer
  */
 export function getKillStreak() { return killStreak; }
 
 /**
- * Retorna o total de inimigos derrotados na partida.
- * @returns quantidade total de kills
+ * Total de abates da partida.
+ *
+ * Distinto de `getKillStreak`: a sequência zera a cada intervalo sem abate, e
+ * a tela de fim imprimia a sequência com o rótulo "Abates" — o jogador via
+ * "0 abates" ao lado de uma pontuação alta e achava o contador quebrado.
  */
 export function getTotalKills() { return totalKills; }
 
 /**
  * Define o estado do jogo.
- * @param state - novo estado a ser aplicado
  */
 export function setGameState(state: GameStateType) { gameState = state; }
 
 /**
  * Adiciona pontuação com bônus de combo.
  * Incrementa combo, kill streak e reseta o timer.
- * @param amount - pontos base a adicionar
  */
 export function addScore(amount: number) {
   const multiplier = 1 + combo * 0.1;
@@ -90,7 +73,6 @@ export function addScore(amount: number) {
 /**
  * Adiciona pontuação SEM incrementar o combo.
  * Usado para moedas e outros eventos que não são kills.
- * @param amount - pontos a adicionar
  */
 export function addScoreFlat(amount: number) {
   score += amount;
@@ -98,7 +80,6 @@ export function addScoreFlat(amount: number) {
 
 /**
  * Atualiza o timer do combo. Reseta o combo quando o timer expira.
- * @param dt - delta time em segundos
  */
 export function updateCombo(dt: number) {
   if (comboTimer > 0) {
@@ -128,6 +109,39 @@ export function resetCombo() {
   killStreak = 0;
 }
 
+/** Estado do respiro de fim de fase, no ponto em que a fase decide fechar. */
+export interface FimDeFase {
+  /**
+   * A onda atual acabou de verdade: o spawner zerou a cota dela e o campo está
+   * vazio, ou o chefe já nasceu e caiu.
+   *
+   * Sem este termo o predicado respondia `true` para qualquer onda que não fosse
+   * a última, e o bloco que o chama roda todo frame (não só quando a onda
+   * fecha). O resultado era a fase pular para a última onda em dois frames e o
+   * chefe nascer com o campo vazio — o sintoma "toda fase começa com chefe".
+   */
+  ondaCompleta: boolean;
+  ultimaOnda: boolean;
+  respiroArmado: boolean;
+  respiroRestante: number;
+  chefeVivo: boolean;
+  jogadorMorto: boolean;
+}
+
+/**
+ * A fase fecha quando a onda acabou, o respiro acabou, o chefe caiu e é a última.
+ *
+ * A morte do jogador tem precedência absoluta: sem este termo, matar o chefe e
+ * morrer no mesmo frame abria a loja em vez do game over, porque o bloco de onda
+ * roda antes do bloco de morte no update.
+ */
+export function deveFecharFase(f: FimDeFase): boolean {
+  if (f.jogadorMorto) return false;
+  if (!f.ondaCompleta) return false;
+  if (!f.ultimaOnda) return true;
+  return f.respiroArmado && f.respiroRestante <= 0 && !f.chefeVivo;
+}
+
 /**
  * Avança para a próxima onda.
  * Se todas as ondas da fase foram completadas, vai para a loja.
@@ -145,6 +159,11 @@ export function nextWave() {
  */
 export function resetWave(): void {
   currentWave = 0;
+}
+
+/** Salta para uma onda específica da fase. Usado pelo harness de fim de fase. */
+export function setCurrentWave(wave: number): void {
+  currentWave = Math.max(0, Math.min(wave, PHASES[currentPhase].waves - 1));
 }
 
 /**
@@ -185,28 +204,4 @@ export function resetPhases() {
   comboTimer = 0;
   killStreak = 0;
   totalKills = 0;
-}
-
-/**
- * Retorna a cor de fundo da fase atual.
- * @returns string de cor hex ou rgba
- */
-export function getPhaseBackground(): string {
-  return PHASES[currentPhase]?.bg || '#1a1a2e';
-}
-
-/**
- * Retorna a cor de fundo secundária da fase atual.
- * @returns string de cor hex
- */
-export function getPhaseBackground2(): string {
-  return PHASES[currentPhase]?.bgColor2 || '#0d0d1a';
-}
-
-/**
- * Retorna a cor da grade da fase atual.
- * @returns string de cor rgba
- */
-export function getPhaseGridColor(): string {
-  return PHASES[currentPhase]?.gridColor || 'rgba(255,255,255,0.03)';
 }

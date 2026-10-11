@@ -23,12 +23,6 @@ const FOLLOW_RATE = 9;
 
 /**
  * Configura a câmera para um novo mundo.
- * @param w - largura do mundo em pixels
- * @param h - altura do mundo em pixels
- * @param viewWidth - largura da viewport em pixels
- * @param viewHeight - altura da viewport em pixels
- * @param focusX - X inicial da câmera
- * @param focusY - Y inicial da câmera
  */
 export function initCamera(w: number, h: number, viewWidth: number, viewHeight: number, focusX: number, focusY: number): void {
   worldW = w;
@@ -68,8 +62,6 @@ function clampAxis(v: number, world: number, view: number): number {
 /**
  * Registra o shake que o draw vai aplicar, para a conversão tela→mundo
  * Dessas usar a mesma matriz. Sem isso a mira erra o offset do tremor.
- * @param x - deslocamento X do shake
- * @param y - deslocamento Y do shake
  */
 export function setShake(x: number, y: number): void {
   shakeX = x;
@@ -78,9 +70,6 @@ export function setShake(x: number, y: number): void {
 
 /**
  * Move a câmera em direção ao alvo com lerp.
- * @param dt - delta time em segundos
- * @param targetX - X do alvo
- * @param targetY - Y do alvo
  */
 export function updateCamera(dt: number, targetX: number, targetY: number): void {
   const t = 1 - Math.exp(-FOLLOW_RATE * dt);
@@ -94,10 +83,8 @@ export function snapCamera(targetX: number, targetY: number): void {
   camY = clampAxis(targetY - viewH / 2, worldH, viewH);
 }
 
-/** Deslocamento X atual da câmera. */
 export function getCamX(): number { return camX; }
 
-/** Deslocamento Y atual da câmera. */
 export function getCamY(): number { return camY; }
 
 /**
@@ -106,8 +93,6 @@ export function getCamY(): number { return camY; }
  * Desconta o shake: o draw aplica `-camX + shake.x`, então o ponto sob o cursor
  * é `tela + camX - shake.x`. Sem o desconto a mira erra o tremor, que chega a
  * 14px em explosão.
- * @param screenX - X do mouse na tela
- * @param screenY - Y do mouse na tela
  */
 export function screenToWorld(screenX: number, screenY: number): { x: number; y: number } {
   return { x: screenX + camX - shakeX, y: screenY + camY - shakeY };
@@ -115,10 +100,6 @@ export function screenToWorld(screenX: number, screenY: number): { x: number; y:
 
 /**
  * Verifica se um retângulo em mundo está visível na viewport.
- * @param x - X do canto
- * @param y - Y do canto
- * @param w - largura
- * @param h - altura
  */
 export function isVisible(x: number, y: number, w: number, h: number): boolean {
   return x + w > camX && x < camX + viewW && y + h > camY && y < camY + viewH;
@@ -127,7 +108,6 @@ export function isVisible(x: number, y: number, w: number, h: number): boolean {
 /**
  * Desenha o "void" fora dos limites do mapa, para o jogador perceber onde
  * o mundo acaba em vez de ver o fundo vazio.
- * @param ctx - contexto 2D
  */
 export function drawVoid(ctx: CanvasRenderingContext2D): void {
   ctx.fillStyle = PALETTE.void;

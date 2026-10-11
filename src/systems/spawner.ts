@@ -29,16 +29,11 @@ let difficulty = 1;
 let phaseTime = 0;
 /** Quantidade de inimigos já criados na onda atual */
 let enemiesSpawnedThisWave = 0;
+/** Quantos dos inimigos já criados na onda atual eram mutantes */
+let mutantsSpawnedThisWave = 0;
 
 export function setPhaseTime(t: number): void { phaseTime = t; }
 
-/** Retorna o temporizador atual de spawn da onda. */
-export function getWaveTimer(): number { return waveTimer; }
-
-/** Retorna quantos inimigos foram gerados na onda atual. */
-export function getEnemiesSpawned(): number { return enemiesSpawnedThisWave; }
-
-/** Reseta o temporizador e contador de inimigos da onda. */
 /**
  * Define o multiplicador de stats da fase. Chamado ao carregar o mapa.
  * @param value - Phase.difficulty da fase (1 = sem ajuste)
@@ -50,6 +45,7 @@ export function setPhaseDifficulty(value: number): void {
 export function resetSpawner(): void {
   waveTimer = 0;
   enemiesSpawnedThisWave = 0;
+  mutantsSpawnedThisWave = 0;
   difficulty = 1;
   phaseTime = 0;
 }
@@ -109,13 +105,7 @@ function pickSpawnPosition(rect: SpawnRect): { x: number; y: number } {
 
 /**
  * Cria um inimigo de um tipo específico.
- * @param type - chave do tipo de inimigo no ENEMY_TYPES
- * @param worldWidth - largura do mundo
- * @param worldHeight - altura do mundo
- * @param currentWave - número da onda (escala de dificuldade)
  * @param forceX - X forçado (boss, invocação)
- * @param forceY - Y forçado
- * @param rect - viewport do jogador (usado para escolher posição de spawn)
  */
 export function spawnEnemy(
   type: string,
@@ -151,14 +141,6 @@ export function spawnEnemy(
 
 /**
  * Atualiza o sistema de ondas.
- * @param dt - delta time em segundos
- * @param enemies - array de inimigos ativos (modificado diretamente)
- * @param currentWave - número da onda atual
- * @param currentPhaseEnemyTypes - tipos de inimigos disponíveis na fase atual
- * @param worldWidth - largura do mundo
- * @param worldHeight - altura do mundo
- * @param rect - viewport do jogador
- * @returns true quando a onda está completa (todos spawnados e derrotados)
  */
 export function spawnWaveEnemies(
   dt: number,
@@ -167,11 +149,18 @@ export function spawnWaveEnemies(
   currentPhaseEnemyTypes: string[],
   worldWidth: number,
   worldHeight: number,
-  rect?: SpawnRect
+  rect?: SpawnRect,
+  mutantsPerWave = 0
 ): boolean {
   waveTimer += dt;
   const totalEnemies = WAVE_BASE_ENEMIES + currentWave * WAVE_ENEMIES_PER_LEVEL;
   const spawnRate = Math.max(WAVE_MIN_SPAWN_RATE, WAVE_BASE_SPAWN_RATE - currentWave * WAVE_SPAWN_RATE_DECAY);
+
+  // O mutante não conta no total da onda: ele SUBSTITUI inimigos comuns. Sortear
+  // pelo `enemyTypes` da fase com pesos iguais colocaria metade da onda em
+  // mutantes (1 de 2 tipos na Cidade), que é o oposto do que a fase pede.
+  const totalMutants = Math.min(mutantsPerWave, Math.floor(totalEnemies / 2));
+  const totalDaOnda = totalEnemies + totalMutants;
 
   // Dinâmica de dificuldade pela acurácia: quem acerta muito sofre ondas mais
   // densas. A banda é estreita de propósito (12% no intervalo de spawn) — o
@@ -180,16 +169,27 @@ export function spawnWaveEnemies(
   const pressure = getSkillPressure();
   const pressureMult = pressure === null ? 1 : 1 - pressure * 0.12;
 
-  if (waveTimer >= spawnRate * pressureMult && enemiesSpawnedThisWave < totalEnemies && enemies.length < MAX_ENEMIES) {
+  if (waveTimer >= spawnRate * pressureMult && enemiesSpawnedThisWave < totalDaOnda && enemies.length < MAX_ENEMIES) {
     waveTimer = 0;
-    const type = currentPhaseEnemyTypes[Math.floor(rand(0, currentPhaseEnemyTypes.length))];
+    const querMutante = mutantsSpawnedThisWave < totalMutants;
+    const pool = querMutante
+      ? currentPhaseEnemyTypes.filter(t => ENEMY_TYPES[t]?.isMutant)
+      : currentPhaseEnemyTypes.filter(t => !ENEMY_TYPES[t]?.isMutant);
+    // Fase sem tipo mutante (ou toda a cota já saiu) cai no outro lado do pool,
+    // senão a onda nunca chega em `totalDaOnda` e a fase trava.
+    if (pool.length === 0) return false;
+    const type = pool[Math.floor(rand(0, pool.length))];
     const enemy = spawnEnemy(type, worldWidth, worldHeight, currentWave, undefined, undefined, rect);
-    if (enemy) enemies.push(enemy);
-    enemiesSpawnedThisWave++;
+    if (enemy) {
+      enemies.push(enemy);
+      enemiesSpawnedThisWave++;
+      if (ENEMY_TYPES[type]?.isMutant) mutantsSpawnedThisWave++;
+    }
   }
 
-  if (enemiesSpawnedThisWave >= totalEnemies && enemies.length === 0) {
+  if (enemiesSpawnedThisWave >= totalDaOnda && enemies.length === 0) {
     enemiesSpawnedThisWave = 0;
+    mutantsSpawnedThisWave = 0;
     waveTimer = 0;
     return true;
   }

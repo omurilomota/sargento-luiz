@@ -82,7 +82,6 @@ let props: Prop[] = [];
 
 /**
  * Cria os props a partir dos caracteres do mapa.
- * @param cells - matriz de caracteres do mapa
  */
 export function initProps(cells: string[][]): void {
   props = [];
@@ -114,17 +113,14 @@ export function getNests(): Prop[] {
   return props.filter(p => p.kind === 'nest' && p.health > 0);
 }
 
-/** Retorna todos os props ativos. */
 export function getProps(): Prop[] {
   return props;
 }
 
-/** Retorna apenas os props que ainda bloqueiam o caminho. */
 export function getBlockingProps(): Prop[] {
   return props.filter(p => p.health > 0);
 }
 
-/** Remove todos os props. */
 export function clearProps(): void {
   props.length = 0;
   acesos.clear();
@@ -137,7 +133,6 @@ export function clearProps(): void {
  * ruína não aguenta tiro. Nas outras fases o prop é madeira e metal, que aguentam
  * — a diferença é o que dá à Cidade a identidade de "a cobertura aqui também é
  * perecível", já que a cobertura em si (segurar tiro) vale em toda fase.
- * @param hazard - hazard da fase
  */
 export function collapsesOnHit(hazard: HazardKind): boolean {
   return hazard === 'debris';
@@ -170,8 +165,6 @@ export function igniteBarrel(p: Prop): void {
  * cadeia") e o que não acontecia: `detonateProp` aplicava um raio único, os
  * barris alcançados morriam sem detonar, e a fileira inteira de barris alinhados
  * não ia junto. Atirar num basta para a linha inteira subir.
- * @param p - prop detonado
- * @returns lista de props destruídos (incluindo o próprio)
  */
 export function detonateProp(p: Prop): Prop[] {
   const destroyed: Prop[] = [];
@@ -206,7 +199,6 @@ export function getBlast(p: Prop): { radius: number; damage: number } {
 
 /**
  * Reduz o flash de dano e consome o pavio dos barris acesos.
- * @returns os barris cujo pavio acabou de zerar, prontos para detonar
  */
 export function updateProps(dt: number): Prop[] {
   const expirados: Prop[] = [];
@@ -230,9 +222,7 @@ export function updateProps(dt: number): Prop[] {
  * que são justamente os biomas onde o objeto deveria ser rocha ou ferro — tinham o
  * mesmo engradado de madeira do pântano.
  *
- * @param ctx - contexto 2D
  * @param visible - callback que diz se um retângulo em mundo está visível
- * @param paleta - corpo do caixote e tampa do barril do bioma atual
  */
 export function drawProps(
   ctx: CanvasRenderingContext2D,

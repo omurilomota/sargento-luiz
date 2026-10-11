@@ -1,6 +1,30 @@
-# BubbleGame — Status Geral do Projeto
+# SARGENTO RIOS — Status Geral do Projeto
 
-> Atualizado: 2026-10-03 · branch `feature/v1.3-hud-bugfixes` · v1.4 (pós-review + pendências)
+> Atualizado: 2026-10-11 · branch `feature/v2-weapons-story` ·
+> 833 testes em 46 arquivos · `tsc` limpo · build ok.
+> Este arquivo estava parado na v1.3 (420 testes, nome ASHFALL) e foi
+> reconciliado com o código nesta sprint.
+
+## Verificação atual (2026-10-11)
+
+```
+npm test         # 833 passando
+npx tsc --noEmit # 0 erros
+npm run build    # ok
+npm run visual   # 8 screenshots, sem 404/pageerror
+npm run perks    # 13/13 (prova de tela da escada de perks)
+npm run sessao   # INCONCLUSIVO — o bot morre na onda 1 (FUTURO §1.4)
+```
+
+## Portão Anti-IA — 5 testes
+
+| teste | pega |
+|---|---|
+| `semIA` | 11 tics de texto em `story.ts`/`diary.ts` |
+| `semDesenho` | desenho em código no renderer (58 sites auditados, 3 de débito) |
+| `semProcedural` | `sfx*` que nasce 100% sintético (débito vazio) |
+| `semAssetQuebrado` | asset de `public/` que não chega ao `dist/` |
+| `semOrfao` | **código que existe e não faz nada** (export sem chamador, stat sem leitor/escritor) |
 
 Direção do jogo: [`docs/DESIGN.md`](docs/DESIGN.md) ·
 pendências: [`TODO.md`](TODO.md) ·
@@ -8,7 +32,7 @@ decisões autônomas: [`docs/DECISIONS.md`](docs/DECISIONS.md)
 
 ---
 
-## Versão atual: v1.3 (geometria + HUD)
+## Versão anterior: v1.3 (geometria + HUD)
 
 A v1.2 tinha 7 fases, 11 armas, 19 upgrades, 3 habilidades e 4 modos — e era
 chato, porque **o campo de batalha era um retângulo vazio**: `collision.ts` só
@@ -155,12 +179,21 @@ npm run build       # ok
 
 ## ⏳ NÃO ENTREGUE (está no `TODO.md`)
 
-- Modo competitivo online
+- Modo competitivo online (adiado por decisão de 2026-10-10)
+- **Local 2P sem tela de fim** — o P2 tem vida, dano e `getWinner` (ligados em
+  `main.ts:811,817,820`), mas nada desenha o vencedor. Anunciar "versus" no
+  itch ainda não é honesto
+- **Sem touch** — nenhum `pointerdown`/`touch` no código. Fecha a porta de
+  CrazyGames/Poki, onde jogo indie vive
+- **Sem preset de loadout** (`FUTURO §1.8`) — com 24 degraus + 12 armas + peças,
+  o jogador refaz a mesma arrumação 9 vezes por campanha
 - A curva de dificuldade é **monotônica, mas não uniforme**: os passos vão de
-  +2% a +106%. O custo base das fases varia 10× entre a primeira e a última, e
-  um multiplicador só não achata sem deixar o jogo uniforme. Monotônico é o
-  contrato que `balance.test.ts` trava
-- `main.ts` ainda é o orquestrador com 1300 linhas
+  +2% a +106%. Monotônico é o contrato que `balance.test.ts` trava
+- `main.ts` com 2.452 linhas é a próxima fonte da família de defeitos "existe
+  e não é chamado" (o `resetPerks` ficou 3 sprints importado sem uso). Não é
+  refactor agora — não há bug à frente — mas é onde a próxima omissão mora
+- **A telemetria não alcança o fim da campanha** (`FUTURO §1.4`): o bot do
+  `session.mjs` morre na onda 1 da Cidade. Sem o dodge, nenhuma mudança de
+  HP/onda nas fases finais tem medição de verdade
 
-Ver `TODO.md` para a lista completa e `docs/DESIGN.md` §10 para o que está
-fora de escopo por decisão.
+Ver `TODO.md` para a lista completa e `docs/FUTURO.md` para o cardápio.

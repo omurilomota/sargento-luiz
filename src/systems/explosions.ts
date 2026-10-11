@@ -13,20 +13,9 @@ const explosions: { x: number; y: number; radius: number; maxRadius: number; lif
 
 /**
  * Retorna a lista de explosões ativas para renderização.
- * @returns array de explosões
- */
-export function getExplosions(): typeof explosions {
-  return explosions;
-}
 
 /**
  * Causa dano em área e cria efeito visual de explosão.
- * @param x - centro da explosão
- * @param y - centro da explosão
- * @param radius - raio da explosão
- * @param damage - dano causado a cada inimigo no raio
- * @param enemies - lista de inimigos
- * @param color - cor da explosão
  */
 export function createExplosion(
   x: number, y: number, radius: number, damage: number,
@@ -47,13 +36,12 @@ export function createExplosion(
   explosions.push({ x, y, radius: 0, maxRadius: radius, life: 0.3 });
 
   // Partículas de explosão
-  spawnParticles(x, y, color, 30, 250);
-  spawnParticles(x, y, '#fff', 10, 150);
+  spawnParticles(x, y, color, 30, 250, 'smoke');
+  spawnParticles(x, y, '#fff', 10, 150, 'spark');
 }
 
 /**
  * Atualiza todas as explosões ativas.
- * @param dt - delta time em segundos
  */
 export function updateExplosions(dt: number): void {
   for (let i = explosions.length - 1; i >= 0; i--) {

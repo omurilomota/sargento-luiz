@@ -16,7 +16,14 @@ export interface ClassDef {
   damageMult: number;
   speedMult: number;
   reloadMult: number;
-  healthPerKill: number;
+  /**
+   * Vida por segundo durante o combate (MÉDICO).
+   *
+   * Era HP por abate, o que premiava matar cinco inimigos fracos em vez de
+   * segurar a linha contra um mutante: a cura vinha da contagem, não do
+   * esforço. Por segundo, segurar a linha compensa.
+   */
+  healthPerSecond: number;
 }
 
 export const CLASSES: ClassDef[] = [
@@ -29,7 +36,7 @@ export const CLASSES: ClassDef[] = [
     damageMult: 1.15,
     speedMult: 1.0,
     reloadMult: 1.0,
-    healthPerKill: 0,
+    healthPerSecond: 0,
   },
   {
     id: 'sobrevivente',
@@ -40,7 +47,7 @@ export const CLASSES: ClassDef[] = [
     damageMult: 1.0,
     speedMult: 1.15,
     reloadMult: 1.0,
-    healthPerKill: 0,
+    healthPerSecond: 0,
   },
   {
     id: 'robo',
@@ -51,18 +58,18 @@ export const CLASSES: ClassDef[] = [
     damageMult: 1.0,
     speedMult: 1.0,
     reloadMult: 0.8,
-    healthPerKill: 0,
+    healthPerSecond: 0,
   },
   {
     id: 'medico',
     name: 'MÉDICO',
-    desc: '+5 HP por kill',
+    desc: '+4 HP/s em combate',
     color: '#8b4040',
     sprite: 'manBlue',
     damageMult: 1.0,
     speedMult: 1.0,
     reloadMult: 1.0,
-    healthPerKill: 5,
+    healthPerSecond: 4,
   },
 ];
 
@@ -88,11 +95,11 @@ export function getClassReloadMult(): number {
   return getCurrentClass().reloadMult;
 }
 
-export function getClassHealthPerKill(): number {
-  return getCurrentClass().healthPerKill;
+export function getClassHealthPerSecond(): number {
+  return getCurrentClass().healthPerSecond;
 }
 
-const CLASS_KEY = 'bubbleShooter_class';
+const CLASS_KEY = 'rios.class';
 
 export function loadClass(): void {
   try {

@@ -11,12 +11,12 @@
  * ler "isto bloqueia" num relance.
  */
 
-import { Biome, CELL_SIZE } from '../maps';
-import { getSprite } from './sprites';
+import { Biome, BIOMES, CELL_SIZE } from '../maps';
+import { getSprite, DUNGEON_COUNT } from './sprites';
 
 /** Canvas offscreen do terreno já tintado (null antes do primeiro build) */
 let prerendered: HTMLCanvasElement | null = null;
-/** Chave do bioma do terrain Currently prerenderizado */
+/** Chave do bioma do terreno já prerenderizado */
 let prerenderedKey = '';
 
 /** Cache de tiles já dessaturados e tingidos, por (número do Kenney, cor do bioma) */
@@ -44,7 +44,7 @@ export function buildTerrain(biome: Biome, cells: string[][]): HTMLCanvasElement
         case '#': drawWall(c, px, py, biome, cells, col, row); break;
         case ',': drawDecor(c, px, py, biome, (col * 7 + row * 13) % 4); break;
         case '^': drawHazard(c, px, py, biome, (col * 7 + row * 13) % 4); break;
-        default: drawFloor(c, px, py, biome, (col * 31 + row * 17) % biome.floorTiles.length); break;
+        default: drawFloor(c, px, py, biome, (col * 31 + row * 17) % biome.floorTiles.length, col, row); break;
       }
     }
   }
@@ -63,7 +63,27 @@ export function buildTerrain(biome: Biome, cells: string[][]): HTMLCanvasElement
  * saem do bioma. Sem ele, o chão do Kenney brilha e o jogador lê o piso como
  * objeto em vez de espaço.
  */
-function drawFloor(c: CanvasRenderingContext2D, px: number, py: number, biome: Biome, variant: number): void {
+function drawFloor(c: CanvasRenderingContext2D, px: number, py: number, biome: Biome, variant: number, col: number, row: number): void {
+  // O tile do pack Top Down Dungeon tem textura real; o do Kenney é 87%
+  // chapado e é o que produz a costura de 64px visível no chão.
+  //
+  // O multiply usa `biome.tint`, não `biome.floor`: `floor` é uma cor escura
+  // (#2a2521 na Cidade) e multiplicar textura por ela apaga a textura — o
+  // chão fica preto chapado, que é justamente o defeito que este pack veio
+  // resolver. A cor escura entra depois, na passada de valor.
+  const dngeon = getDungeonTile(biome.dungeonFloor, varianteDeChao(col, row), biome.tint);
+  if (dngeon) {
+    c.drawImage(dngeon, px, py, CELL_SIZE, CELL_SIZE);
+    // O rejunte do pack é forte demais na escala 64px: sem esta lavagem o chão
+    // lê como azulejo de banheiro e compete com os inimigos. Alpha baixo e
+    // uma única passada de escurecimento tiram o excesso sem voltar ao
+    // chapado — o traço da textura continua lá, só que discreto.
+    c.fillStyle = biome.floor;
+    c.globalAlpha = 0.62;
+    c.fillRect(px, py, CELL_SIZE, CELL_SIZE);
+    c.globalAlpha = 1;
+    return;
+  }
   const n = biome.floorTiles[variant % biome.floorTiles.length];
   const tile = getFloorTile(n, biome.floor);
   if (tile) {
@@ -77,6 +97,17 @@ function drawFloor(c: CanvasRenderingContext2D, px: number, py: number, biome: B
     c.fillStyle = shade(biome.floor, 0.12);
     c.fillRect(px + 8, py + 12, 20, 14);
   }
+}
+
+/**
+ * Variação de tile sem período curto.
+ *
+ * O `(col*31 + row*17) % n` original tinha período lcm(30,20)/… baixo demais e
+ * a parede `(col*5 + row*3) % 4` repetia um bloco 4x4 visível. Aqui o termo
+ * `col*row` embaralha a sequência sem período curto perceptível.
+ */
+function varianteDeChao(col: number, row: number): number {
+  return Math.abs(col * 7 + row * 13 + ((col * row * 3) % 11)) % DUNGEON_COUNT.piso;
 }
 
 /**
@@ -325,7 +356,19 @@ function drawWall(
   c.fillRect(px, py, CELL_SIZE, CELL_SIZE);
 
   // superfície de tile: substitui a textura procedural inteira, mas o beiral
-  // e a cumeeira continuam vindo embaixo porque são o que diz "isto é parede"
+  // e a cumeeira continuam vindo embaixo porque são o que diz "isto é parede".
+  //
+  // O tile do Top Down Dungeon tem tijolo/rejunte de verdade. O do Kenney é
+  // chapado, e a escolha `(col*5 + row*3) % 4` tinha período 4x4: parede longa
+  // mostrava sempre o mesmo bloco de 16 células. Aqui são 16 variações com um
+  // hash que não tem período curto.
+  const variante = (col * 7 + row * 13 + ((col * row) % 5)) % DUNGEON_COUNT.parede;
+  const dngeonWall = tintTile(`dngeon_${biome.dungeonWall}_${variante}`, biome.wall);
+  if (dngeonWall) {
+    c.drawImage(dngeonWall, px, py, CELL_SIZE, CELL_SIZE);
+    drawWallEdges(c, px, py, biome, cells, col, row, isWall);
+    return;
+  }
   const wallTiles = WALL_TILES[biome.key];
   if (wallTiles) {
     const img = getSprite(`tile_${wallTiles[(col * 5 + row * 3) % wallTiles.length]}`);
@@ -532,12 +575,29 @@ function applyTint(c: CanvasRenderingContext2D, off: HTMLCanvasElement, biome: B
   c.restore();
 }
 
-/** Cacheia a versão dessaturada e tingida de um tile do Kenney. */
+/** Cacheia a versão dessaturada e tingida de um tile. */
 function getFloorTile(n: number, biomeColor: string): HTMLCanvasElement | null {
-  const key = `${n}:${biomeColor}`;
+  return tintTile(`tile_${n}`, biomeColor);
+}
+
+/**
+ * Versão tingida de um tile do pack Top Down Dungeon (chave `dngeon_<mat>_<n>`).
+ *
+ * O tint é o mesmo pipeline do Kenney — `saturation` para tirar a saturação e
+ * `multiply` pela cor do bioma. É o que permite o material ter textura de
+ * verdade sem virar o "pack saturated e claro brigando com a paleta sóbria".
+ */
+function getDungeonTile(material: string, variant: number, biomeColor: string): HTMLCanvasElement | null {
+  const key = `dngeon_${material}_${variant % DUNGEON_COUNT.piso}`;
+  return tintTile(key, biomeColor);
+}
+
+/** Cacheia a versão dessaturada e tingida de um tile, por chave de sprite. */
+function tintTile(spriteKey: string, biomeColor: string): HTMLCanvasElement | null {
+  const key = `${spriteKey}:${biomeColor}`;
   const cached = floorTileCache.get(key);
   if (cached) return cached;
-  const img = getSprite(`tile_${n}`);
+  const img = getSprite(spriteKey);
   if (!img) return null;
   const off = document.createElement('canvas');
   off.width = CELL_SIZE;
@@ -565,7 +625,6 @@ function getFloorTile(n: number, biomeColor: string): HTMLCanvasElement | null {
  * também aqui aplicava o offset duas vezes: numa janela de 2560px o mapa de
  * 1920px aparecia deslocado 320px para a direita, com a borda esquerda vazia e
  * a direita cortada.
- * @param ctx - contexto 2D principal
  */
 export function drawTerrain(ctx: CanvasRenderingContext2D): void {
   if (!prerendered) return;
@@ -578,9 +637,171 @@ export function clearTerrain(): void {
   prerenderedKey = '';
 }
 
-/** Bioma do terreno atual prerenderizado. */
-export function getTerrainKey(): string {
-  return prerenderedKey;
+// ─── Fundo das cutscenes ────────────────────────────────────────
+
+/** Cache dos fundos de cutscene, por (cena, tamanho da tela). */
+const backdropCache = new Map<string, HTMLCanvasElement | null>();
+
+interface CenaCutscene {
+  /** Bioma que empresta o piso e o tom ao fundo. */
+  bioma: string;
+  /** Tiles que se erguem do chão, na ordem em que aparecem. */
+  objetos: number[];
+  /** Tamanho do objeto em relação ao tile de 64px. */
+  escala: number;
+  /** Estrelas no céu, com sprite de partícula (só o Espaço tem). */
+  estrelas?: number;
+  /** Objetos menores e mais altos: a segunda fileira dá profundidade. */
+  longe?: number[];
+  /** Teto de pedra no alto: a Caverna é fechada. */
+  teto?: boolean;
+  /**
+   * Alpha do fundo na tela. O padrão 0.15 é o véu para a cena ficar atrás do
+   * texto; o Espaço é um céu escuro e some com ele (medido no harness: as
+   * estrelas não apareciam), então ali o céu entra mais forte.
+   */
+  veu?: number;
+  /** Brilho quente no pé da tela, na cor do bioma (Vulcão). */
+  brasa?: string;
+}
+
+/**
+ * A cena de cada capítulo, com o tile do próprio bioma.
+ *
+ * Os objetos saem do que o jogo já usa: copa e arbusto da Floresta (208/209
+ * são as duas metades da mesma copa, 183 o arbusto, 186 o de outono), cristal
+ * da Caverna (238/239/264), placa e detrito do Espaço (333/264) e a lava do
+ * Vulcão (316/319 — os únicos discos incandescentes do pack).
+ *
+ * As 5 de §2.2b (antes fundo chapado) seguem o mesmo critério: entulho da
+ * Cidade no PRÓLOGO (292/265/260), sucata e engradado da Fábrica (180/129) com
+ * o anel elétrico (264), lama e folhagem do Pântano (320/134), pedra e espinho
+ * do Castelo (133/268) e os caixotes do Bunker no EPÍLOGO (129/156/158). A
+ * fase 8 abre o EPÍLOGO, não uma cena "BUNKER": o título é o que `story.ts`
+ * passa (FASE_PARA_CUTSCENE), e um nome que não bate com ele nunca desenha.
+ */
+const CENAS_CUTSCENE: Record<string, CenaCutscene> = {
+  // As copas são redondas (183 verde, 186 de outono). As metades 208/209 ficam
+  // de fora: sozinhas, cada uma lê como uma copa cortada pela metade.
+  FLORESTA: { bioma: 'floresta', objetos: [183, 186, 183, 186, 183], escala: 1.8, longe: [186, 183, 186] },
+  CAVERNA: { bioma: 'caverna', objetos: [238, 264, 239, 238, 264], escala: 1.1, teto: true },
+  'ESPAÇO': { bioma: 'espaco', objetos: [333, 333, 264], escala: 1, estrelas: 34, veu: 0.4 },
+  'VULCÃO': { bioma: 'vulcao', objetos: [319, 316, 319, 320], escala: 1.4, brasa: '#c46a3a' },
+  'PRÓLOGO': { bioma: 'cidade', objetos: [292, 265, 260, 292, 265], escala: 1.2, longe: [265, 260, 292] },
+  'FÁBRICA': { bioma: 'fabrica', objetos: [180, 129, 180, 264, 180], escala: 1.3, longe: [129, 180, 129] },
+  'PÂNTANO': { bioma: 'pantano', objetos: [320, 134, 320, 134], escala: 1.1, longe: [134, 320, 134] },
+  'CASTELO': { bioma: 'castelo', objetos: [133, 268, 133, 268, 133], escala: 1.2, longe: [268, 133, 268] },
+  'EPÍLOGO': { bioma: 'bunker', objetos: [129, 156, 130, 158, 129], escala: 1.3, longe: [130, 129, 156] },
+};
+
+/** Alpha com que o renderer desenha a cena (o véu é parte do fundo). */
+export function cutsceneVeil(title: string): number {
+  return CENAS_CUTSCENE[title]?.veu ?? 0.15;
+}
+
+/**
+ * Fundo da cena de cutscene, montado com tile do pack.
+ *
+ * Era o último lugar do jogo onde a arte era código (`arc`/`fillRect` no
+ * renderer): árvore em círculo, estalactite em triângulo, estrela em ponto.
+ * Aqui a cena usa o mesmo piso com textura e os mesmos objetos do bioma — e o
+ * véu de alpha baixo do renderer deixa tudo atrás do texto.
+ *
+ * Prerenderizado uma vez por (cena, tamanho) porque o renderer chama isto a
+ * cada frame. Sem `applyTint`: a dessaturação existe para varrer uma tela
+ * inteira de chão saturado, e nos objetos ela apagaria o desenho.
+ */
+export function buildCutsceneBackdrop(title: string, width: number, height: number): HTMLCanvasElement | null {
+  const cena = CENAS_CUTSCENE[title];
+  if (!cena) return null;
+  const chave = `${title}:${width}x${height}`;
+  const cacheado = backdropCache.get(chave);
+  if (cacheado !== undefined) return cacheado;
+
+  const biome = BIOMES[cena.bioma];
+  const off = document.createElement('canvas');
+  off.width = width;
+  off.height = height;
+  const c = off.getContext('2d')!;
+
+  /** Piso do bioma, no mesmo material e com a mesma lavagem do terreno. */
+  const piso = (px: number, py: number, col: number, row: number, alpha: number) => {
+    const dngeon = getDungeonTile(biome.dungeonFloor, varianteDeChao(col, row), biome.tint);
+    if (dngeon) {
+      c.drawImage(dngeon, px, py, CELL_SIZE, CELL_SIZE);
+      c.fillStyle = biome.floor;
+      c.globalAlpha = alpha;
+      c.fillRect(px, py, CELL_SIZE, CELL_SIZE);
+      c.globalAlpha = 1;
+      return;
+    }
+    c.fillStyle = biome.floor;
+    c.fillRect(px, py, CELL_SIZE, CELL_SIZE);
+  };
+
+  // Chão no pé da tela (22%): a cena tem onde pisar.
+  const topo = height - Math.round(height * 0.22);
+  for (let py = topo; py < height; py += CELL_SIZE) {
+    for (let px = 0; px < width; px += CELL_SIZE) {
+      piso(px, py, px / CELL_SIZE, (py - topo) / CELL_SIZE, 0.62);
+    }
+  }
+
+  // A Caverna é fechada: pedra em cima também.
+  if (cena.teto) {
+    const alturaTeto = Math.round(height * 0.1);
+    for (let py = 0; py < alturaTeto; py += CELL_SIZE) {
+      for (let px = 0; px < width; px += CELL_SIZE) {
+        piso(px, py, px / CELL_SIZE, py / CELL_SIZE, 0.74);
+      }
+    }
+  }
+
+  // Brilho do Vulcão: atmosfera, não objeto — entra na cor do bioma.
+  if (cena.brasa) {
+    const g = c.createRadialGradient(width / 2, height, 0, width / 2, height, height * 0.55);
+    g.addColorStop(0, cena.brasa);
+    g.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    c.globalAlpha = 0.45;
+    c.fillStyle = g;
+    c.fillRect(0, 0, width, height);
+    c.globalAlpha = 1;
+  }
+
+  // Estrelas do Espaço: sprite de partícula em ponto pequeno. Antes era
+  // `ctx.arc()` de raio 1 — o céu era o único desenho do jogo sem asset.
+  if (cena.estrelas) {
+    for (let i = 0; i < cena.estrelas; i++) {
+      const brilha = i % 5 === 0;
+      const img = getSprite(`fx_${brilha ? 'flare_01' : `spark_0${(i % 5) + 1}`}`);
+      if (!img) break;
+      const tam = brilha ? 13 : 5;
+      const x = (((i * 977 + 61) % 1000) / 1000) * (width - tam);
+      const y = (((i * 613 + 29) % 1000) / 1000) * (height * 0.7);
+      c.drawImage(img, x, y, tam, tam);
+    }
+  }
+
+  // Objetos sobre a faixa de chão. Posição determinística (sem `Math.random`):
+  // a mesma cena em toda partida, que é o que um fundo de cutscene precisa.
+  const linhaDeObjetos = (tiles: number[], escala: number, linhaY: number, variacao: number) => {
+    const n = tiles.length;
+    tiles.forEach((tile, i) => {
+      const img = getSprite(`tile_${tile}`);
+      if (!img) return;
+      const tam = CELL_SIZE * escala * (0.85 + ((i * 37) % 30) / 100);
+      const x = (width * (i + 0.5)) / n - tam / 2 + (((i * 53) % 40) - 20) * variacao;
+      const y = linhaY - tam * 0.6 + ((i * 29) % 16);
+      c.drawImage(img, x, y, tam, tam);
+    });
+  };
+
+  // Fileira de trás primeiro: ela é o fundo da fileira da frente.
+  if (cena.longe) linhaDeObjetos(cena.longe, cena.escala * 0.62, topo - CELL_SIZE * 0.5, 0.5);
+  linhaDeObjetos(cena.objetos, cena.escala, topo, 1);
+
+  backdropCache.set(chave, off);
+  return off;
 }
 
 /**

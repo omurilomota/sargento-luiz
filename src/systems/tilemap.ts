@@ -39,7 +39,6 @@ const NEIGHBORS: readonly (readonly [number, number])[] = [
 
 /**
  * Carrega um mapa a partir das linhas de string.
- * @param rows - linhas do mapa, todas do mesmo tamanho
  */
 export function loadMap(rows: string[]): Tilemap {
   const r = rows.length;
@@ -53,7 +52,6 @@ export function loadMap(rows: string[]): Tilemap {
   return map;
 }
 
-/** Retorna o mapa carregado ou null. */
 export function getMap(): Tilemap | null {
   return map;
 }
@@ -86,11 +84,6 @@ export function charAt(col: number, row: number): string {
   return map.cells[row][col];
 }
 
-/** Retorna o tipo de tile de uma célula. */
-export function kindAt(col: number, row: number) {
-  return tileKindAt(charAt(col, row));
-}
-
 /** Verifica se a célula é parede (bloqueia movimento). */
 export function isWall(col: number, row: number): boolean {
   return charAt(col, row) === '#';
@@ -102,7 +95,7 @@ export function isWallAtPx(px: number, py: number): boolean {
 }
 
 /** Verifica se um círculo sobrepõe qualquer parede próxima. */
-function circleOverlaps(x: number, y: number, r: number): boolean {
+export function circleOverlaps(x: number, y: number, r: number): boolean {
   if (!map) return false;
   const minCol = colAt(x - r);
   const maxCol = colAt(x + r);
@@ -141,11 +134,7 @@ function sweepAxis(fixed: number, start: number, target: number, radius: number,
 
 /**
  * Move um círculo pelo grid resolvendo X e Y separadamente.
- * @param x - X atual
- * @param y - Y atual
  * @param dx - deslocamento X desejado
- * @param dy - deslocamento Y desejado
- * @param radius - raio do círculo
  * @returns nova posição com o deslize aplicado
  */
 export function moveCircleBy(x: number, y: number, dx: number, dy: number, radius: number): { x: number; y: number } {
@@ -169,9 +158,6 @@ export function moveCircleBy(x: number, y: number, dx: number, dy: number, radiu
 /**
  * Empurra um círculo para fora de paredes em que já está (usado depois de
  * explosões e teleports, quando não há deslocamento varrido).
- * @param x - X atual
- * @param y - Y atual
- * @param radius - raio do círculo
  */
 export function pushOutOfWalls(x: number, y: number, radius: number): { x: number; y: number } {
   if (!map || !circleOverlaps(x, y, radius)) return { x, y };
@@ -185,6 +171,37 @@ export function pushOutOfWalls(x: number, y: number, radius: number): { x: numbe
       const cx = Math.max(radius, Math.min(map.width - radius, tx));
       const cy = Math.max(radius, Math.min(map.height - radius, ty));
       if (!circleOverlaps(cx, cy, radius)) return { x: cx, y: cy };
+    }
+  }
+  return { x, y };
+}
+
+/**
+ * Procura em espiral o ponto livre mais próximo de (x, y).
+ *
+ * O boss nascia no centro do mapa com `forceX/forceY`, que pula a validação de
+ * spawn do spawner. O centro é parede em cidade, floresta e bunker — com raio
+ * de 46px contra célula de 64px, o `moveCircleBy` do boss não sai de dentro e
+ * ele fica congelado.
+ *
+ * A busca é por PONTO, não por centro de célula: com raio 46 e célula 64, um
+ * chefe quase nunca cabe no centro de uma célula, e procurar só centros o
+ * jogaria para o outro lado do mapa.
+ */
+export function findFreeSpotNear(x: number, y: number, radius: number): { x: number; y: number } {
+  if (!map) return { x, y };
+  if (!circleOverlaps(x, y, radius)) return { x, y };
+
+  const step = CELL_SIZE / 4;
+  for (let d = step; d <= CELL_SIZE * 6; d += step) {
+    const passos: [number, number][] = [
+      [0, -1], [1, -1], [1, 0], [1, 1],
+      [0, 1], [-1, 1], [-1, 0], [-1, -1],
+    ];
+    for (const [dx, dy] of passos) {
+      const tx = Math.max(radius, Math.min(map.width - radius, x + dx * d));
+      const ty = Math.max(radius, Math.min(map.height - radius, y + dy * d));
+      if (!circleOverlaps(tx, ty, radius)) return { x: tx, y: ty };
     }
   }
   return { x, y };
@@ -352,9 +369,4 @@ export function findAll(ch: string): { col: number; row: number }[] {
     }
   }
   return out;
-}
-
-/** Lista todas as células com hazard. */
-export function findHazards(): { col: number; row: number }[] {
-  return findAll('^');
 }

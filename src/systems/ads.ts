@@ -1,75 +1,77 @@
 /**
- * Sistema de anúncios in-game.
- * Permite ao jogador "assistir" um anúncio simulado para ganhar moedas.
- * Simula um ad real com contagem regressiva e recompensa.
+ * Monetização: resgate de moedas e apoio ao projeto.
+ *
+ * ANTES este módulo se chamava "ad" e o botão dizia `ASSISTIR ANÚNCIO` sem
+ * existir anúncio nenhum — só uma barra de 5 segundos que dava moedas. A
+ * diretriz de qualidade do itch.io proíbe anúncio enganoso, e isso é um
+ * anúncio que não existe. Então o rótulo virou `RESGATE DE MOEDAS`: é uma
+ * faucet de moeda com cooldown, e é honesto dizer que é isso.
+ *
+ * A recompensa e o cooldown continuam exatamente os mesmos de antes — quem
+ * conhece o ritmo do botão não sente nada. O que muda é o texto.
+ *
+ * O gancho continua sendo o ponto de extensão: num portal que pague
+ * impressions (CrazyGames, Poki), é aqui que entra o SDK — `updateAd` passa a
+ * consultar o anúncio real e o `canWatchAd` vira "o anúncio carregou". A
+ * assinatura não precisa mudar.
  */
 
-/** Estado do sistema de ads */
+/** Estado do resgate */
 let adsWatched = 0;
 let cooldownTimer = 0;
 let isWatching = false;
 let watchProgress = 0;
-let watchDuration = 5;
+const watchDuration = 5;
 let lastReward = 0;
 
-/** Configurações */
 const AD_COOLDOWN = 30;
 const AD_REWARD_BASE = 15;
-const AD_REWARD_PER_WATCH = 5;
 
 /**
- * Retorna se um ad está sendo assistido agora.
+ * Resgates por fase.
+ *
+ * A recompensa crescia +5 por visualização e só era zerada no `resetGame`, o
+ * que dava um faucet sem teto: 30 resgates numa partida = 2625 moedas de graça,
+ * ou 78% de toda a renda da campanha sem o jogador matar nada. Agora o resgate
+ * é um income menor e previsível, e a moeda que importa vem de abate.
  */
+const AD_MAX_PER_PHASE = 2;
+
 export function getIsWatchingAd(): boolean {
   return isWatching;
 }
 
-/**
- * Retorna o progresso do ad (0-1).
- */
 export function getAdProgress(): number {
   return watchProgress / watchDuration;
 }
 
-/**
- * Retorna o cooldown restante entre ads.
- */
 export function getAdCooldown(): number {
   return cooldownTimer;
 }
 
-/**
- * Retorna quantos ads foram assistidos.
- */
 export function getAdsWatched(): number {
   return adsWatched;
 }
 
-/**
- * Retorna a recompensa do último ad assistido.
- */
-export function getLastAdReward(): number {
-  return lastReward;
-}
-
-/**
- * Retorna se o ad pode ser assistido.
- */
 export function canWatchAd(): boolean {
-  return !isWatching && cooldownTimer <= 0;
+  return !isWatching && cooldownTimer <= 0 && adsWatched < AD_MAX_PER_PHASE;
 }
 
-/**
- * Retorna a recompensa que o próximo ad dará.
- */
 export function getNextAdReward(): number {
-  return AD_REWARD_BASE + adsWatched * AD_REWARD_PER_WATCH;
+  return AD_REWARD_BASE;
 }
 
-/**
- * Inicia a reprodução de um ad simulado.
- * @returns true se o ad começou
- */
+/** Resgates restantes na fase — a loja desabilita o botão quando é 0. */
+export function getAdsRemaining(): number {
+  return Math.max(0, AD_MAX_PER_PHASE - adsWatched);
+}
+
+/** Zera a cota ao trocar de fase; o cooldown curto sozinho não limitava nada. */
+export function resetAdsPerPhase(): void {
+  adsWatched = 0;
+  cooldownTimer = 0;
+}
+
 export function startWatchingAd(): boolean {
   if (!canWatchAd()) return false;
   isWatching = true;
@@ -77,11 +79,6 @@ export function startWatchingAd(): boolean {
   return true;
 }
 
-/**
- * Atualiza o estado do ad.
- * @param dt - delta time em segundos
- * @returns recompensa se o ad terminou, 0 caso contrário
- */
 export function updateAd(dt: number): number {
   if (isWatching) {
     watchProgress += dt;
@@ -98,9 +95,6 @@ export function updateAd(dt: number): number {
   return 0;
 }
 
-/**
- * Reseta o sistema de ads.
- */
 export function resetAds(): void {
   adsWatched = 0;
   cooldownTimer = 0;

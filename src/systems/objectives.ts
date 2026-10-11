@@ -32,8 +32,6 @@ let sawEnemies = false;
 
 /**
  * Inicia o objetivo da fase.
- * @param objective - tipo de objetivo
- * @param objectiveTarget - alvo numérico
  */
 export function initObjective(objective: ObjectiveKind, objectiveTarget: number): void {
   kind = objective;
@@ -61,11 +59,6 @@ export type ReachZone = { x: number; y: number; radius: number };
  * `dt === 0` para não ter efeito colateral, o que é frágil — qualquer
  * mudança futura no update passaria a se comportar diferente dependendo de se
  * um frame desenhou antes ou depois do update.
- * @param playerX - X do jogador no mundo
- * @param playerY - Y do jogador no mundo
- * @param enemiesAlive - quantidade de inimigos vivos
- * @param reachZones - zonas de extração (células) quando o objetivo é `reach`
- * @param target - alvo numérico do objetivo
  */
 export function peekObjective(
   playerX: number, playerY: number, enemiesAlive: number, reachZones: ReachZone[]
@@ -132,11 +125,6 @@ export function peekObjective(
 
 /**
  * Atualiza o objetivo. Chamar todo frame enquanto `playing`.
- * @param dt - delta time em segundos
- * @param playerX - X do jogador no mundo
- * @param playerY - Y do jogador no mundo
- * @param enemiesAlive - quantidade de inimigos vivos
- * @param reachZones - zonas de extração (células) quando o objetivo é `reach`
  */
 export function updateObjective(
   dt: number,
@@ -152,25 +140,6 @@ export function updateObjective(
     }
   }
   return peekObjective(playerX, playerY, enemiesAlive, reachZones);
-}
-
-/**
- * Se cumprir o objetivo encerra a fase na hora, ou só libera o chefe.
- *
- * Cumprir o objetivo encerrava a fase assim que a condição batia, e o resto da
- * fase nunca existia: a fase `protect` do Castelo terminava na onda 0 de 7 (e o
- * chefe nunca aparecia) e a `survive` da Fábrica na onda 1 de 6.
- *
- * A forma certa é o objetivo ser o pivot e o chefe ser o clímax: `survive`,
- * `destroy` e `protect` seguram até a última onda, e é o chefe que fecha a fase
- * quando morre. `reach` é a exceção — chegar na zona É fugir, e fugir não tem
- * boss: a fase acaba na hora.
- * @param kind - tipo do objetivo
- */
-export function endsPhaseOnDone(kind: ObjectiveKind): boolean {
-  // reach deixou de terminar a fase sozinho: chegou na zona, libera o boss como
-  // em todos os outros objetivos. Encerra só quando o boss cai.
-  return false;
 }
 
 /** Marca o sobrevivente como morto (usado pelo npcs.ts e pelo teste no browser). */

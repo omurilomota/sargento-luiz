@@ -1,4 +1,4 @@
-# Bubble Shooter
+# ASHFALL
 
 > Top-down shooter **pós-apocalíptico** com progressão roguelite.
 > TypeScript + Vite + Canvas 2D. Tudo em canvas — não existe HUD em DOM.

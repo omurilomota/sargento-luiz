@@ -55,38 +55,6 @@ let earthquakeActive = false;
 /** Se a tempestade está ativa (para indicador visual) */
 let stormActive = false;
 
-/**
- * Verifica se um evento está ativo.
- * @param type - tipo do evento
- * @returns true se ativo
- */
-export function isEventActive(type: EnvironmentEvent): boolean {
-  return events[type].active;
-}
-
-/**
- * Retorna se o terremoto está ativo (para indicador visual).
- */
-export function isEarthquakeActive(): boolean {
-  return earthquakeActive;
-}
-
-/**
- * Retorna se a tempestade está ativa (para indicador visual).
- */
-export function isStormActive(): boolean {
-  return stormActive;
-}
-
-/**
- * Retorna o timer restante de um evento.
- * @param type - tipo do evento
- * @returns segundos restantes
- */
-export function getEventTimer(type: EnvironmentEvent): number {
-  return events[type].timer;
-}
-
 export interface EnvironmentDamage {
   x: number;
   y: number;
@@ -101,11 +69,7 @@ export interface EnvironmentResult {
 
 /**
  * Atualiza todos os eventos de ambiente.
- * @param dt - delta time em segundos
- * @param enemies - lista de inimigos
  * @param playerX - posição X do jogador
- * @param playerY - posição Y do jogador
- * @returns array de eventos de dano para exibir números de dano
  */
 export function updateEnvironmentEvents(
   dt: number,
@@ -178,7 +142,7 @@ export function updateEnvironmentEvents(
               e.health -= EARTHQUAKE_DAMAGE;
               e.hitFlash = 0.15;
               enemyDamages.push({ x: e.x, y: e.y - 15, damage: EARTHQUAKE_DAMAGE, color: PALETTE.mustard });
-              spawnParticles(e.x, e.y, PALETTE.mustard, 2, 80);
+              spawnParticles(e.x, e.y, PALETTE.mustard, 2, 80, 'muzzle');
             }
             playerDamage += EARTHQUAKE_DAMAGE;
           }
@@ -186,8 +150,8 @@ export function updateEnvironmentEvents(
           if (Math.random() < dt * 8) {
             const px = Math.random() * worldWidth;
             const py = Math.random() * worldHeight;
-            spawnParticles(px, py, '#8a7a60', 5, 60);
-            spawnParticles(px, py, '#6a5a40', 2, 30);
+            spawnParticles(px, py, '#8a7a60', 5, 60, 'smoke');
+            spawnParticles(px, py, '#6a5a40', 2, 30, 'smoke');
           }
           break;
 
@@ -196,7 +160,7 @@ export function updateEnvironmentEvents(
             if (enemies.length > 0) {
               const target = enemies[Math.floor(rand(0, enemies.length))];
               createExplosion(target.x, target.y, LIGHTNING_RADIUS, LIGHTNING_DAMAGE, enemies, PALETTE.stone);
-              spawnParticles(target.x, target.y - 100, '#ddd', 5, 100);
+              spawnParticles(target.x, target.y - 100, '#ddd', 5, 100, 'spark');
               enemyDamages.push({ x: target.x, y: target.y - 20, damage: LIGHTNING_DAMAGE, color: PALETTE.stone });
               const distToPlayer = Math.hypot(target.x - playerX, target.y - playerY);
               if (distToPlayer < LIGHTNING_RADIUS * 2) {
@@ -213,13 +177,13 @@ export function updateEnvironmentEvents(
               e.health -= STORM_DAMAGE;
               e.hitFlash = 0.15;
               enemyDamages.push({ x: e.x, y: e.y - 15, damage: STORM_DAMAGE, color: PALETTE.stone });
-              spawnParticles(e.x, e.y, PALETTE.stone, 1, 60);
+              spawnParticles(e.x, e.y, PALETTE.stone, 1, 60, 'smoke');
             }
           }
           // Chuva visual
           if (Math.random() < dt * 15) {
             const rx = Math.random() * worldWidth;
-            spawnParticles(rx, -10, PALETTE.stone, 1, 300);
+            spawnParticles(rx, -10, PALETTE.stone, 1, 300, 'smoke');
           }
           break;
       }

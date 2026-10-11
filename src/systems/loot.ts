@@ -13,6 +13,10 @@
 import { spawnParticles } from './particles';
 import { PALETTE } from '../core/palette';
 import { WEAPONS, POWERUP_TYPES, rollQuality } from '../config';
+import { getCurrentPhase } from '../phases';
+import { pushOutOfWalls } from './tilemap';
+import { PICKUP_RADIUS } from '../core/constants';
+import { getStat } from '../core/stats';
 
 export type LootTier = 'sucata' | 'usavel' | 'militar' | 'prototipo';
 
@@ -42,7 +46,7 @@ let boxes: LootBox[] = [];
 export function getLoot(): LootBox[] { return boxes; }
 export function clearLoot(): void { boxes = []; }
 
-const POWERUP_KEYS = ['health', 'speed', 'damage', 'shield', 'magnet', 'multiShot', 'invincible', 'furia', 'peleDePedra', 'botas', 'municaoInfinita', 'reflexos'];
+const POWERUP_KEYS = Object.keys(POWERUP_TYPES);
 
 function randomPowerup(): string {
   return POWERUP_KEYS[Math.floor(Math.random() * POWERUP_KEYS.length)];
@@ -60,7 +64,7 @@ function rollLoot(tier: LootTier): LootReward {
   const weaponChance = tier === 'sucata' ? 0 : tier === 'usavel' ? 0.1 : tier === 'militar' ? 0.3 : 0.9;
   const boost = tier === 'prototipo' ? 2 : tier === 'militar' ? 1 : 0;
   if (r < weaponChance) {
-    return { kind: 'weapon', index: randomWeaponIndex(), quality: rollQuality(boost) };
+    return { kind: 'weapon', index: randomWeaponIndex(), quality: rollQuality(boost, Math.round(getStat('luck'))) };
   }
   if (Math.random() < 0.08) return { kind: 'medkit' };
   return { kind: 'powerup', type: randomPowerup() };
@@ -71,15 +75,6 @@ export const ELITE_TYPES = new Set(['tank', 'magmaGolem', 'crystal', 'knight', '
 /** Tenta dropar loot de um inimigo comum morto. */
 export function rollLootDrop(x: number, y: number, type?: string): void {
   const elite = type !== undefined && ELITE_TYPES.has(type);
-  // elites têm chance de dropar peça de arma diretamente
-  if (elite && Math.random() < 0.25) {
-    const pieceTypes = ['dano', 'cadencia', 'capacidade', 'precisao'];
-    const pieceType = pieceTypes[Math.floor(Math.random() * pieceTypes.length)];
-    boxes.push({ x, y, tier: 'militar', especial: false, life: 14 });
-    // marca a caixa como peça via tier militar + flag especial? não —
-    // peças dropam direto no inventário via callback em main.ts
-    return;
-  }
   const r = Math.random();
   let tier: LootTier | null = null;
   const eliteRate = 0.15;
@@ -95,11 +90,20 @@ export function rollLootDrop(x: number, y: number, type?: string): void {
     else if (r < commonRate * 0.75) tier = 'usavel';
     else if (r < commonRate) tier = 'sucata';
   }
-  if (tier) boxes.push({ x, y, tier, especial: false, life: 14 });
+  if (!tier) return;
+  const at = pushOutOfWalls(x, y, PICKUP_RADIUS);
+  boxes.push({ x: at.x, y: at.y, tier, especial: false, life: 14 });
 }
 
 /** Caixa especial do boss: conteúdo resolvido imediatamente */
 export function spawnBossLoot(x: number, y: number): { kind: 'weapon'; index: number; quality: string; x: number; y: number } {
+  // O chefão final (NÚCLEO) sempre entrega o Destruidor de Mundos: é a arma da
+  // vingança do Rios, e a fase já é apelona o suficiente sem o prêmio ser
+  // sorteado. Nos outros chefes, o Destruidor fica FORA do pool (secreto).
+  const faseAtual = getCurrentPhase();
+  if (faseAtual?.boss === 'nucleo') {
+    return { kind: 'weapon', index: WEAPONS.findIndex(w => w.name === 'Destruidor'), quality: 'ascendente', x, y };
+  }
   const r = Math.random();
   if (r < 0.25) {
     return { kind: 'weapon', index: WEAPONS.findIndex(w => w.name === 'M. Quebrada'), quality: 'quebrada', x, y };
@@ -126,7 +130,7 @@ export function updateLoot(dt: number, px: number, py: number, pr: number): Loot
     if (b.life <= 0) { boxes.splice(i, 1); continue; }
     if (Math.hypot(px - b.x, py - b.y) < pr + 16) {
       boxes.splice(i, 1);
-      spawnParticles(b.x, b.y, b.especial ? PALETTE.mustard : TIER_COLOR[b.tier], 12, 180);
+      spawnParticles(b.x, b.y, b.especial ? PALETTE.mustard : TIER_COLOR[b.tier], 12, 180, 'muzzle');
       got = rollLoot(b.tier);
     }
   }
@@ -171,8 +175,7 @@ export function powerupLabel(type: string): string {
     magnet: 'ÍMÃ', multiShot: 'TIRO DUPLO', invincible: 'INVENCÍVEL', furia: 'FÚRIA',
     peleDePedra: 'PELE DE PEDRA', botas: 'BOTAS ALADAS', municaoInfinita: 'MUNIÇÃO INF.',
     reflexos: 'REFLEXOS',
+    trajeNucleo: 'TRAJE DE CONTENÇÃO',
   };
   return labels[type] ?? type;
 }
-
-void POWERUP_TYPES;

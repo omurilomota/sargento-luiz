@@ -55,12 +55,6 @@ export function setBossRandom(fn: () => number): void {
 
 /**
  * Executa um passo de ação do boss.
- * @param e - o boss
- * @param tx - X do alvo (jogador)
- * @param ty - Y do alvo
- * @param worldW - largura do mundo
- * @param worldH - altura do mundo
- * @param elapsed - delta time do frame
  * @returns inimigos invocados durante este frame (para o main adicionarem)
  */
 export function updateBoss(

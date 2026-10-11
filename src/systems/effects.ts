@@ -10,7 +10,6 @@ let screenShakeMaxDuration = 0;
 
 /**
  * Ativa screen shake.
- * @param intensity - força do tremor (1-20)
  * @param duration - duração em segundos
  */
 export function triggerScreenShake(intensity: number, duration: number): void {
@@ -23,7 +22,6 @@ export function triggerScreenShake(intensity: number, duration: number): void {
  * Atualiza o screen shake. Chamar a cada frame e passar o resultado ao draw.
  * O envelope é linear no tempo restante: sem isso o tremor é um degrau que
  * some do nada (e, antes, nem era aplicado — `{x:0, y:0}` fixo no main).
- * @param dt - delta time em segundos
  * @returns deslocamento {x, y} para aplicar na transformação do mundo
  */
 export function updateScreenShake(dt: number): { x: number; y: number } {
@@ -80,7 +78,6 @@ export function triggerBossKillFlash(): void {
 
 /**
  * Atualiza o flash. Chamar a cada frame.
- * @param dt - delta time
  * @returns string de cor para draw, ou null se não há flash
  */
 export function updateFlash(dt: number): string | null {
@@ -109,8 +106,6 @@ export function triggerSlowMotion(scale: number, duration: number): void {
 
 /**
  * Atualiza slow motion. Chamar a cada frame.
- * @param dt - delta time original
- * @returns dt ajustado
  */
 export function updateSlowMotion(dt: number): number {
   if (slowMotionDuration > 0) {
@@ -136,7 +131,6 @@ export function triggerHitStop(duration: number): void {
 
 /**
  * Atualiza hit stop. Chamar a cada frame.
- * @param dt - delta time
  * @returns true se o jogo está congelado
  */
 export function updateHitStop(dt: number): boolean {
@@ -146,8 +140,6 @@ export function updateHitStop(dt: number): boolean {
   }
   return false;
 }
-
-// ─── Reset ───────────────────────────────────────────────────
 
 // ─── Boss Zoom ───────────────────────────────────────────────
 let bossZoomActive = false;

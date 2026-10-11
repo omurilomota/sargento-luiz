@@ -7,7 +7,7 @@
  */
 
 import { normalize } from '../utils';
-import { moveCircleBy, sampleFlowDir, getMapWidth, getMapHeight } from './tilemap';
+import { moveCircleBy, sampleFlowDir, getMapWidth, getMapHeight, findFreeSpotNear } from './tilemap';
 import { PALETTE } from '../core/palette';
 
 /** Nível de dificuldade do bot */
@@ -89,22 +89,32 @@ export function getBots(): Bot[] {
 
 /**
  * Cria um bot com a dificuldade especificada.
- * @param difficulty - nível de dificuldade
- * @param canvasWidth - largura do canvas
- * @param canvasHeight - altura do canvas
- * @returns bot criado
+ *
+ * @param worldWidth - largura do MAPA, não da tela
+ * @param worldHeight - altura do MAPA, não da tela
+ *
+ * Nasce dentro do mapa, numa célula de chão perto de uma borda. Antes ia para
+ * `-30` / `worldW + 30`: `main.ts` passa `worldW/worldH` (o tamanho do mapa,
+ * não o do canvas) e o bot aparecia dentro do anel de parede da borda, de onde
+ * o `moveCircleBy` não consegue sair — daí o "bot esbarrando em parede".
  */
-export function createBot(difficulty: BotDifficulty, canvasWidth: number, canvasHeight: number): Bot {
+export function createBot(difficulty: BotDifficulty, worldWidth: number, worldHeight: number): Bot {
   const config = DIFFICULTY_CONFIG[difficulty];
-  const side = Math.floor(Math.random() * 4);
-  let x = 0, y = 0;
-  if (side === 0) { x = -30; y = Math.random() * canvasHeight; }
-  else if (side === 1) { x = canvasWidth + 30; y = Math.random() * canvasHeight; }
-  else if (side === 2) { x = Math.random() * canvasWidth; y = -30; }
-  else { x = Math.random() * canvasWidth; y = canvasHeight + 30; }
+  const margin = 96;
+  const x = Math.random();
+  const y = Math.random();
+  const bx = margin + x * (worldWidth - margin * 2);
+  const by = margin + y * (worldHeight - margin * 2);
+  const edge = [
+    [bx, margin],
+    [bx, worldHeight - margin],
+    [margin, by],
+    [worldWidth - margin, by],
+  ][Math.floor(Math.random() * 4)];
+  const spot = findFreeSpotNear(edge[0], edge[1], 16);
 
   return {
-    x, y, radius: 16, speed: config.speed,
+    x: spot.x, y: spot.y, radius: 16, speed: config.speed,
     health: config.health, maxHealth: config.health,
     damage: config.damage, color: difficulty === 'hard' ? PALETTE.danger : difficulty === 'medium' ? PALETTE.mustard : PALETTE.stone,
     angle: 0, shootTimer: 0, shootRate: config.shootRate,
@@ -117,13 +127,7 @@ export function createBot(difficulty: BotDifficulty, canvasWidth: number, canvas
 
 /**
  * Atualiza a IA de todos os bots.
- * @param dt - delta time
  * @param playerX - posição X do jogador
- * @param playerY - posição Y do jogador
- * @param bullets - lista de projéteis ativos (para esquiva)
- * @param canvasWidth - largura do canvas
- * @param canvasHeight - altura do canvas
- * @returns array de projéteis disparados pelos bots
  */
 export function updateBots(
   dt: number,
@@ -255,7 +259,6 @@ export function updateBots(
 
 /**
  * Remove bots mortos (health <= 0).
- * @returns array de bots derrotados (para processamento de score/coins)
  */
 export function removeDeadBots(): Bot[] {
   const dead: Bot[] = [];
