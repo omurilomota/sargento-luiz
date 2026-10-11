@@ -212,13 +212,14 @@ npm run build       # ok
   CrazyGames/Poki, onde jogo indie vive
 - **Sem preset de loadout** (`FUTURO §1.8`) — com 24 degraus + 12 armas + peças,
   o jogador refaz a mesma arrumação 9 vezes por campanha
+- **Árvore de talentos inútil quando lotada** — quais dos 24 degraus não valem o
+  preço. Medir antes de podar
+- **Tutorial de perks** — o jogador não sabe se uma compra vale (24 degraus, 4
+  ramos, nenhuma explicação em tela)
 - A curva de dificuldade é **monotônica, mas não uniforme**: os passos vão de
   +2% a +106%. Monotônico é o contrato que `balance.test.ts` trava
 - `main.ts` com 2.452 linhas é a próxima fonte da família de defeitos "existe
   e não é chamado" (o `resetPerks` ficou 3 sprints importado sem uso). Não é
   refactor agora — não há bug à frente — mas é onde a próxima omissão mora
-- **A telemetria não alcança o fim da campanha** (`FUTURO §1.4`): o bot do
-  `session.mjs` morre na onda 1 da Cidade. Sem o dodge, nenhuma mudança de
-  HP/onda nas fases finais tem medição de verdade
 
 Ver `TODO.md` para a lista completa e `docs/FUTURO.md` para o cardápio.

@@ -488,7 +488,8 @@ para as imagens), `config.ts`.
 
 1. **Portão anti-IA** — destrava confiança em todo o resto.
 2. **Dívidas 1.1–1.4** — Castelo, 2P, fim de fase, telemetria (são as que o
-   jogador sente).
+   jogador sente). **Só o Castelo (§1.1) resta**: 2P, fim de fase e telemetria
+   foram pagos em 2026-11.
 3. **Som + arte das cutscenes + texto** — o trio que tira a "cara de IA".
 4. **Progressão (2.4)** — o maior destrave de sensação de roguelite.
 5. **Campo 2.0 (muros + salas) e rejogabilidade (semente do dia, boss rush).**

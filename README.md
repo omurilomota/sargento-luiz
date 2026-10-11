@@ -87,9 +87,11 @@ npm run visual      # 8 screenshots, sem 404/pageerror
 npm run perks       # escada de perks na loja
 npm run hud         # texto do HUD cabe na caixa (4 resoluções)
 npm run loja        # texto e seções da loja (3 scrolls)
+npm run local2p     # tela de fim do versus: revanche e vencedor nos 2 sentidos
 npm run variedade   # personagem de inimigo muda por fase
-npm run espaco      # reproduz o Game Over do Espaço
-npm run sessao      # telemetria de HP/onda (o bot morre na onda 1)
+npm run fases       # mede as 9 fases: sobrevivência, onda e dano por fonte
+npm run espaco      # reproduz o Game Over do Espaço (só vs. jogador sem desvio)
+npm run sessao      # sessão longa com telemetria de dano por fonte
 ```
 
 Os mapas são validados por script — para regenerar:

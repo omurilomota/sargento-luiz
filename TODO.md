@@ -589,9 +589,13 @@
 // [x] Portões: tsc limpo, 807 testes, build ok, `npm run visual` sem 404,
 //     `tools/perks-proof.mjs` 13/13 e o PNG da loja aberto (3 perks sem
 //     overlap com serviços e talentos).
-// [ ] `npm run sessao` NÃO mede a escada: o bot morre na onda 1 da Cidade e a
-//     loja só abre no fim da fase. Dívida do bot sem desvio (FUTURO §1.4), não
-//     regressão — nenhuma mudança do Sprint 5 é alcançável antes da loja.
+// [x] `npm run sessao` mede a escada: o bot DESVIA (kite, `tools/dodge.mjs` +
+//     `dodgeBot.test.ts` — a 1ª versão aproximava o jogador em 179 dos 360
+//     ângulos) e olha BARRIL também, então não morre mais na onda 1. Medir uma
+//     fase não exige chegar nela: `npm run fases` (`irParaFase`) abriu as 9 e
+//     o número está em `tools/fases-medidas.json`. O bot é o PISO — não usa
+//     dash, escudo nem fúria. O Item acima (o bot morrer na Cidade) era a
+//     dívida do `FUTURO §1.4` e está paga.
 
 // ─── SPRINT 6 — COMBOS REAIS (2026-10-11) ───
 // Os 8 combos eram binarios (arma X + upgrade Y). [x] Checar por id.
@@ -620,6 +624,8 @@
 //     exigeArma bate com a lista, degrau acessivel, combo tem efeito.
 
 // ─── SPRINT 7 — MORAL <-> SORTE + EVENTOS ALEATORIOS ───
+// A numeração dos sprints colidiu uma vez: o de TELEMETRIA (logo abaixo, já
+// entregue) também se chamou SPRINT 7. Este é o que está em aberto.
 // Estado novo entre fases (gameState: 'event'), antes da loja.
 // [ ] Moral (-100..+100): ajudar sobrevivente sobe, perder dinheiro cai.
 // [ ] Sorte derivada da moral + componente estocastico.
@@ -1069,18 +1075,24 @@
 //     é `lowGravity`: multiplica o movimento do inimigo por 1.35 E o dano
 //     recebido por 1.10, com `ufo`(6) e `drone`(5) atirando e o `asteroid`
 //     (raio 28, dano 21, o maior do jogo) a 30 px/s — 8 toques matam.
-//     [ ] CORRIGIR o balanceamento: é decisão de design (o `lowGravity` é o que
-//         faz o Espaço se sentir como espaço). Ver `FUTURO` §1.4.
+// [x] MEDIDO com o bot que desvia (2026-11): o Espaço sobrevive 45s na onda 2
+//     levando 66 de dano de `projetil`. A reprodução acima é de jogador que
+//     NÃO desvia — o `espaco-proof.mjs` usa o próprio movimento (space a cada
+//     900ms, sem dodge). Ou seja: a fase não é injogável, a prova media o
+//     jogador parado. Sanado por medição, não por balanceamento: mexer no
+//     `lowGravity` agora seria consertar um número que a régua errada produziu.
 //
 // ─── PENDENTES DESTA RODADA (feature, não bug) ───
 // [ ] Tutorial de perks + destrinchar os 4 ramos (o jogador não sabe se vale
 //     comprar). [ ] Cores ilustrando lendária/boa/suja durante a partida.
-// [ ] Árvore de talentos inútil quando lotada.
-// [ ] NPC aliado do Castelo (atira, sobrevive, dá arma lendária) — a resposta
-//     ao §1.1 do FUTURO, decided pelo relato do jogador. Fábrica fica intacta
-//     (o Fernandes morre lá, que é o gancho).
+// [ ] Árvore de talentos inútil quando lotada: quais dos 24 degraus não valem
+//     o preço. Medir antes de podar.
+// [ ] NPC aliado do Castelo (atira, sobrevive, dá arma lendária). NÃO é a
+//     resposta ao §1.1 do FUTURO: a fase protect do Castelo tem 3 caminhos
+//     próprios (abrigo / interceptar linha de tiro / vida de escolta) e nenhum
+//     deles é um aliado que atira. São features distintas e a protect segue
+//     sem decisão. Fábrica fica intacta (o Fernandes morre lá, que é o gancho).
 // [ ] Deploy do site na Vercel + aprofundar o conteúdo do site.
-// [ ] Variar tilesets.
 // [ ] Spec completa de história (Parte II, nave destruída) → `HISTORIA-II-IV.md`.
 
 // ═══════════════════════════════════════════════════════════════
@@ -1119,9 +1131,10 @@
 //     são perfil lateral e o jogo é top-down (DECISIONS #91).
 // [ ] Pack CC0 novo de personagens, se o tint não bastar.
 // [ ] Variar tilesets por zona (Bloco 4): mais material por bioma em
-//     `terrain.ts` + `npm run visual`.
+//     `terrain.ts` + `npm run visual`. (Esta e a linha "Variar tilesets." mais
+//     acima eram a mesma pendência em dois lugares; a de cima saiu.)
 
-// ─── SPRINT 7 — TELEMETRIA QUE CHEGA ATÉ O FIM (FUTURO §1.4) ───
+// ─── SPRINT 7T — TELEMETRIA QUE CHEGA ATÉ O FIM (FUTURO §1.4) — [x] ENTREGUE ───
 // O bloqueio era "o bot morre na Cidade, onda 1, então Espaço/Castelo/Bunker
 // nunca são medidos". Entregue: o bot desvia e a medição não depende de
 // sobreviver até lá.
