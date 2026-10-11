@@ -398,10 +398,24 @@
 //     `getWinner` "foram removidos como codigo morto". NAO era verdade:
 //     `damagePlayer2` esta ligado em `main.ts:811,817` e `getWinner` em `:820`,
 //     com `immortality.test.ts` provando. O que faltava era o resto da tela:
-//     [ ] P2 ainda sem tela de fim de partida — `getWinner` existe mas nada
-//         desenha o vencedor. Antes de anunciar "versus" no itch, precisa disso.
-//     [ ] `setPlayer2Health` (setter público sem chamador) era a porta aberta
-//         para o P2 virar invencível por engano; virou `matarPlayer2`.
+//     [x] Tela de fim de partida entregue em 2026-11 (`drawFimLocal` +
+//         `revancheLocal` + `fimLocal`): P2 cai e a tela entra por early-return
+//         do draw (a partida continua em `playing`), ENTER é REVANCHE (mesma
+//         fase, os dois de pé, sem perder arma/moeda/nível), e P1 caído desenha
+//         "P2 VENCEU" em vez do GAME OVER de campanha. Prova em
+//         `tools/local2p-proof.mjs` (`npm run local2p`), 7 checagens e 3 PNGs
+//         abertos. A prova achou o defeito que fechou o item: o ENTER da tela
+//         só existia no ramo `gameover`, então a queda do P2 nunca alcançava a
+//         revanche — a tela anunciava uma tecla que não fazia nada.
+//     [x] `setPlayer2Health` (setter público sem chamador) era a porta aberta
+//         para o P2 virar invencível por engano; virou `matarPlayer2`, que o
+//         harness de 2P usa para fechar a partida.
+//     [ ] NOVO, achado fechando o item acima: o P2 NÃO É DESENHADO. Existe
+//         estado (vida, dano, tiro, vitória) e nenhum caminho de render — a
+//         `renderer.ts` não importa `localMultiplayer`, e o spawn dele é
+//         `worldW*0.75` (não a célula 'P' do mapa). O modo anuncia "mesmo
+//         teclado" com um jogador invisível, e a tela de fim nova passou a
+//         nomear um vencedor que ninguém viu em campo.
 
 // ═══════════════════════════════════════════════════════════════
 // v2 — REBALANCEAMENTO E SISTEMAS NOVOS (2026-10-09)

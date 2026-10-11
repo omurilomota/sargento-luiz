@@ -63,16 +63,48 @@ diferente:
 
 Escolher **uma**. As três juntas viram sopa.
 
-### 1.2 O Local 2P: o dano e a vitória já existem, falta a TELA — ⚠️
-**Atualizado 2026-11.** Este item dizia que o P2 "não leva dano e não existe
-condição de vitória" e que `damagePlayer2`/`getWinner` "foram removidos como
-código morto". **Era falso**: `damagePlayer2` está ligado em `main.ts:821,827`
-e `getWinner` em `:830`, com `immortality.test.ts` provando os dois.
+### 1.2 O Local 2P: o dano e a vitória já existem, falta a TELA — ✅ RESOLVIDO
+**Entregue em 2026-11.** Restava a **tela de fim de partida**, e ela está:
+`drawFimLocal` (renderer) + `revancheLocal`/`fimLocal` (main.ts). O P2 cai e a
+partida continua em `playing` — a tela entra por early-return do draw, senão o
+jogador atirava num campo vazio com um toast sumindo. ENTER é **revanche**
+(mesma fase, os dois de pé,sem perder arma, moedas nem nível entre dois rounds)
+e o P1 caído desenha "P2 VENCEU" em vez do GAME OVER de campanha com recorde.
 
-O que falta é a **tela de fim de partida**: `getWinner()` devolve `'p1' | 'p2'`
-e nada desenha isso. O que diz "Local 2P" na página do itch continua
-prometendo mais do que a tela entrega. Fechar isso é o que dá o `co-op`
-honesto depois.
+A prova é `npm run local2p` (7 checagens, 3 PNGs abertos). Ela achou o defeito
+que fechou o item: **o ENTER da tela só existia no ramo `gameover`**, então a
+queda do P2 — que não muda o estado do jogo — nunca alcançava a revanche. A
+tela anunciava uma tecla que não fazia nada.
+
+**O que a prova destravou e o que não:** destravou o fim de partida. Não
+consertou o resto do modo — ver o item 1.10, o P2 invisível.
+
+### 1.10 O P2 do versus local não é desenhado — ⚠️ NOVO, achado pela prova do 1.2
+A tela de fim entrou e passou a nomear um vencedor. Abrindo o PNG da partida
+para conferir (regra 16), apareceu o que nenhum teste pega: **só o P1 está em
+tela**.
+
+O estado do P2 existe inteiro — nasce, anda com as setas, atira com L, leva
+dano de inimigo e de projétil, e ganha. O que não existe é caminho de render: a
+`renderer.ts` não importa `localMultiplayer` em nenhum lugar, então não há
+`drawPlayer2`. Some também o spawn: `initLocalMultiplayer(worldW, worldH)`
+recebe o tamanho do MUNDO e posiciona o P2 em `worldW * 0.75` — a célula 'P' do
+jogador é (15, 14) na Cidade, e 75% da largura do mundo é outro ponto do mapa,
+não ao lado dele.
+
+**A pergunta a responder:** onde o P2 tem que nascer? Duas leituras defensáveis:
+
+- **Ao lado do P1**, alguns pixels de distância: os dois dividem a mesma tela e
+  a mesma câmera, que é o que "mesmo teclado" promete. Custo: os dois corpos
+  disputam o mesmo espaço na hora do tiro.
+- **Do outro lado do mapa**, como estão hoje: dá distância, mas a câmera segue o
+  P1 e o P2 sai da tela — que é exatamente o estado atual, com o agravante de
+  nem ser desenhado.
+
+Enquanto isso, "LOCAL 2P" na página do itch continua prometendo um versus de um
+jogador visível. **Como medir:** `npm run local2p` já monta a partida; falta
+uma checagem de "o P2 está dentro da viewport da câmera" e um PNG com os dois
+corpos. Não é para resolver sem a decisão de onde ele nasce.
 
 ### 1.3 O fim de fase depois do chefe (relato do `bugs.md`) — ✅ RESOLVIDO
 "O chefe morre, o countdown acaba e a partida não acaba; só fecha quando o
