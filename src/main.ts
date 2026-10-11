@@ -91,6 +91,7 @@ import { addXp, resetProgress, restoreTalentos, restoreXp, getNivel, getPontosLi
 import { migrarChavesDeSave } from './systems/migracaoSave';
 import { getStat, resetStats } from './core/stats';
 import { registrarTiroPerks, tickPerks, acenderInimigo, danoPassoFantasma, checarSegundoFolego, limparDashFantasma, temSortudoAtivo, resetPerks, temIncandescente, temSegundoFolego, temPassoFantasma } from './systems/perks';
+import { resetDanoTelemetria, danoPorFonte } from './systems/danoTelemetria';
 import { startTutorial, isTutorialActive, getCurrentHint, updateTutorial, advanceHint, endTutorial } from './systems/tutorial';
 import { updateBehavior, registerShot, registerHit, getPlayerTendency, resetBehavior } from './systems/dynamicDifficulty';
 import { spawnNPC, updateNPCs, getNPCs, resetNPCs, npcBark, isNpcFollowing } from './systems/npcs';
@@ -602,6 +603,7 @@ function resetGame() {
   resetClass();
   resetProgress();
   resetPieces();
+  resetDanoTelemetria();
   bossZoomTriggered = false;
   // Timers e flags de módulo: sem reset aqui, um valor residual de uma partida
   // sobrevive à próxima — o respiro segurava a ida à loja e a fase seguinte
@@ -844,7 +846,7 @@ function update(dt: number) {
     const dmg = damageTaken(envResult.playerDamage);
     if (dmg > 0) {
       checkAchievements('damage_taken');
-      player.enemyCollisionDamage(dmg);
+      player.enemyCollisionDamage(dmg, { fonte: 'evento' });
       sfxPlayerHit();
       triggerDamageFlash();
     }
@@ -1125,7 +1127,7 @@ function updateBiomeHazard(dt: number, p: ReturnType<typeof player.getPlayer>): 
   if (dmg > 0 && p.invincible <= 0) {
     const total = damageTaken(dmg);
     if (total > 0) {
-      player.enemyCollisionDamage(total);
+      player.enemyCollisionDamage(total, { fonte: 'bioma' });
       sfxPlayerHit();
       triggerDamageFlash();
     }
@@ -1160,7 +1162,7 @@ function explodeProp(prop: Prop): void {
   }
   const p = player.getPlayer();
   if (Math.hypot(p.x - prop.x, p.y - prop.y) < radius && p.invincible <= 0) {
-    player.enemyCollisionDamage(damageTaken(damage));
+    player.enemyCollisionDamage(damageTaken(damage), { fonte: 'barril' });
     sfxPlayerHit();
     triggerDamageFlash();
   }
@@ -1276,15 +1278,15 @@ function shootEnemyAt(e: Enemy, tx: number, ty: number): void {
   if (def?.spreadShot) {
     for (let s = -1; s <= 1; s++) {
       const a = angle + s * 0.3;
-      spawnBullet(e.x, e.y, Math.cos(a) * speed * 0.83, Math.sin(a) * speed * 0.83, e.damage, true, color, false);
+      spawnBullet(e.x, e.y, Math.cos(a) * speed * 0.83, Math.sin(a) * speed * 0.83, e.damage, true, color, false, false, 0, false, 'small_bullet', e.type);
     }
   } else if (def?.splitBullet) {
     for (let s = 0; s < 4; s++) {
       const a = angle + (s * Math.PI) / 2;
-      spawnBullet(e.x, e.y, Math.cos(a) * speed * 0.67, Math.sin(a) * speed * 0.67, e.damage, true, color, false);
+      spawnBullet(e.x, e.y, Math.cos(a) * speed * 0.67, Math.sin(a) * speed * 0.67, e.damage, true, color, false, false, 0, false, 'small_bullet', e.type);
     }
   } else {
-    spawnBullet(e.x, e.y, Math.cos(angle) * speed, Math.sin(angle) * speed, e.damage, true, color, false);
+    spawnBullet(e.x, e.y, Math.cos(angle) * speed, Math.sin(angle) * speed, e.damage, true, color, false, false, 0, false, 'small_bullet', e.type);
   }
   sfxEnemyShoot();
 }
@@ -1418,7 +1420,7 @@ function updateBotsAndCompetitors(p: ReturnType<typeof player.getPlayer>): void 
     if (Math.hypot(p.x - bot.x, p.y - bot.y) < p.radius + bot.radius && p.invincible <= 0) {
       const dmg = damageTaken(bot.damage);
       if (dmg > 0) {
-        player.enemyCollisionDamage(dmg);
+        player.enemyCollisionDamage(dmg, { fonte: 'bot' });
         sfxPlayerHit();
         triggerDamageFlash();
       }
@@ -2037,6 +2039,22 @@ for (const e of enemies) {
     );
     e.x = next.x;
     e.y = next.y;
+
+    // Tira da parede quem entrou nela. `moveCircleBy` só impede ENTRAR: um
+    // inimigo que já sobrepõe uma parede fica com `flowDist === -1`, o
+    // `sampleFlowDir` devolve 0,0, o seek direto aponta para o jogador e
+    // `moveCircleBy` recusa TODOS os passos porque o círculo já está dentro.
+    // O inimigo fica parado para sempre, a onda nunca fecha e o jogo trava
+    // numa fase que o jogador não consegue matar nem ver.
+    //
+    // Foi medido no Bunker (`npm run fases`): a fase que tem a fileira 17
+    // quase toda parede e a 19 totalmente parede deixava inimigos parados
+    // dentro do mapa, e o `session.mjs` gastava 60s com 4 hostis na tela e
+    // zero abates. Jogador, chefe, loot, moeda e powerup já usavam
+    // `pushOutOfWalls`; só o inimigo comum ficou de fora.
+    const fora = pushOutOfWalls(e.x, e.y, e.radius);
+    e.x = fora.x;
+    e.y = fora.y;
   }
 
   if (e.canShoot && !ENEMY_TYPES[e.type]?.isBoss) {
@@ -2070,7 +2088,10 @@ checkEnemyPlayerCollision(activeEnemies, p.x, p.y, p.radius, p.invincible, (e) =
   const dmg = damageTaken(baseDmg);
   if (dmg > 0) {
     checkAchievements('damage_taken');
-    player.enemyCollisionDamage(dmg);
+    player.enemyCollisionDamage(dmg, {
+      fonte: ENEMY_TYPES[e.type]?.isBoss ? 'boss' : 'contato',
+      tipo: e.type,
+    });
     sfxPlayerHit();
     triggerDamageFlash();
   }
@@ -2094,7 +2115,7 @@ checkEnemyBulletPlayerCollision(bullets, p.x, p.y, p.radius, p.invincible, (b) =
   const dmg = damageTaken(b.damage);
   if (dmg > 0) {
     checkAchievements('damage_taken');
-    player.damagePlayer(dmg);
+    player.damagePlayer(dmg, { tipo: b.orcador });
     sfxPlayerHit();
     triggerDamageFlash();
   }
@@ -2269,6 +2290,39 @@ window.__ashfall = {
     }
     return melhor;
   },
+  /**
+   * A ameaça mais próxima que MATA: inimigo ou barril aceso.
+   *
+   * Existe porque `npm run sessao`-media "o bot morre na onda 1" e a telemetria
+   * respondeu `barril: 90` de 115 de dano: o bot não estava morrendo de inimigo,
+   * estava morrendo dos próprios caixotes, que ele não desvia porque só olhava
+   * para `inimigoMaisProximo`. Devolve também `raio`, a distância em que aquela
+   * ameaça começa a doer, para o bot não precisar saber número de balanceamento.
+   */
+  ameacaMaisProxima: () => {
+    const p = player.getPlayer();
+    let melhor: { dx: number; dy: number; dist: number; tipo: string; origem: string; raio: number } | null = null;
+    const considerar = (x: number, y: number, tipo: string, origem: string, raio: number) => {
+      const dx = x - p.x;
+      const dy = y - p.y;
+      const dist = Math.hypot(dx, dy);
+      // o raio entra no critério: um barril a 200px com raio 96 não é ameaça
+      // mais próxima que um inimigo a 40px, mesmo estando mais perto no mapa
+      const peso = dist - raio;
+      if (!melhor || peso < melhor.dist - melhor.raio) {
+        melhor = { dx, dy, dist, tipo, origem, raio };
+      }
+    };
+    for (const e of enemies) {
+      if (e.spawnDelay > 0) continue;
+      considerar(e.x, e.y, e.type, 'inimigo', p.radius + e.radius);
+    }
+    for (const pr of getProps()) {
+      if (pr.kind !== 'barrel') continue;
+      considerar(pr.x, pr.y, 'barril', 'barril', getBlast(pr).radius);
+    }
+    return melhor;
+  },
   telemetria: () => {
     const p = player.getPlayer();
     return {
@@ -2277,11 +2331,15 @@ window.__ashfall = {
       onda: getCurrentWave() + 1,
       inimigos: enemies.length,
       balas: getBullets().length,
-      kills: getKillStreak(),
+      // total, não sequência: `getKillStreak()` zera a cada intervalo sem
+      // abate e a linha do log mostrava `kills` congelado enquanto os abates
+      // aconteciam. É o mesmo bug que a tela de fim tinha com "Abates".
+      kills: getTotalKills(),
       estado: getGameState(),
       moedas: getShopCoins(),
       escudo: p.shield,
       invicivel: Number(p.invincible.toFixed(2)),
+      dano: danoPorFonte(),
     };
   },
   // Estado de fim de fase: o harness precisa disto para provar que matar o
@@ -2359,6 +2417,22 @@ window.__ashfall = {
   // `rush-proof.mjs` precisa disto para chegar ao Bunker Central sem rodar
   // as 8 fases anteriores a cada execução.
   irParaFase: (i: number) => {
+    // Limpa o mundo ANTES de trocar. Sem isto, `fases-todas.mjs` mede a fase
+    // errada: os inimigos da fase anterior sobrevivem ao salto e continuam
+    // perseguindo, então a Cidade aparecia no Espaço com o `mutante` dela
+    // batendo. A tabela inteira saiu idêntica nas 9 fases — e o sintoma era
+    // "todo mundo morre igual", não "todo mundo é igual".
+    for (let k = enemies.length - 1; k >= 0; k--) enemies.splice(k, 1);
+    clearBullets();
+    clearParticles();
+    damageNumbers.length = 0;
+    resetDanoTelemetria();
+    playerDied = false;
+    bossKilled = false;
+    bossSpawned = false;
+    phaseEnding = false;
+    phaseEndPause = 0;
+
     resetPhases();
     setGameState('playing');
     for (let k = 0; k < i; k++) nextPhase();
@@ -2497,6 +2571,28 @@ window.__ashfall = {
   personagemDoTipo: (tipo: string) => {
     const fase = PHASES.indexOf(getCurrentPhase());
     return enemies.some(e => e.type === tipo) ? getEnemyCharacter(tipo, fase) : null;
+  },
+  /**
+   * Todo inimigo vivo com o veredito de "está dentro da parede".
+   *
+   * Existe para o `sessao-diagnostico.mjs` poder dizer, com número, que
+   * nenhum inimigo travou. O sintoma sem isto era indireto demais: a fase
+   * "não acaba", o log mostra 4 hostis e 0 abates, e dá para culpar o
+   * balanceamento, o spawner ou o mapa — todos innocentados, porque a causa é o
+   * inimigo estar dentro de uma parede que ele não consegue sair.
+   */
+  diagnosticoInimigos: () => enemies.map((e) => ({
+    tipo: e.type,
+    x: Math.round(e.x),
+    y: Math.round(e.y),
+    raio: e.radius,
+    celula: [colAt(e.x), rowAt(e.y)],
+    dentroDaParede: isWall(colAt(e.x), rowAt(e.y)),
+  })),
+  /** Posição do jogador em coordenadas de mundo — o dodge do `session.mjs` precisa. */
+  playerPos: () => {
+    const p = player.getPlayer();
+    return { x: p.x, y: p.y, raio: p.radius };
   },
   /**
    * Trava a câmera no inimigo mais próximo.

@@ -7,6 +7,7 @@
 import { PLAYER_BASE_SPEED, PLAYER_BASE_HEALTH, PLAYER_RADIUS, INVINCIBLE_DURATION, BULLET_INVINCIBLE_DURATION, WAVE_HEAL_ON_COMPLETE } from '../core/constants';
 import { getStat, applyStat, resetStat } from '../core/stats';
 import { getHardcore } from '../systems/gameModes';
+import { registrarDano, type FonteDano } from '../systems/danoTelemetria';
 import { moveCircleBy } from '../systems/tilemap';
 
 /** Interface que define todas as propriedades do jogador */
@@ -115,19 +116,39 @@ export function movePlayer(
 }
 
 /**
+ * De onde veio o dano, para a telemetria de `npm run sessao`.
+ *
+ * `fonte` tem padrão por função (projétil → `projetil`, contato → `contato`) e
+ * só o chamador que sabe de outro lugar precisa dizer: hazard de bioma, explosão
+ * de caixote e bot do competitivo.
+ */
+export interface DanoCtx {
+  fonte?: FonteDano;
+  /** Tipo do inimigo que causou — `grunt`, `ufo`, … Só para atribuição fina. */
+  tipo?: string;
+}
+
+/**
  * Aplica dano ao jogador causado por projéteis inimigos.
  *
  * A armadura passa a valer aqui também. Antes ela era só placa contra corpo a
  * corpo — declaro isso no próprio código, e o jogador lia "Armadura +5%" como
  * se fosse defesa geral. 17 dos 31 tipos de inimigo atiram, então mais da metade
  * do dano que chega ao jogador ignorava o eixo CORPO inteiro.
+ *
+ * O registro da telemetria mora AQUI, e não em cada chamador de `main.ts`: são
+ * 6 caminhos que tiram HP (projétil, contato, hazard de bioma, explosão de
+ * caixote, bot, explosão) e, registrado na ponta, 3 deles entravam por baixo
+ * da régua. O `sessao` media 20 de 130 de dano — e uma régua que mede um terço
+ * do que acontece não serve para calibrar nada.
  */
-export function damagePlayer(amount: number): void {
+export function damagePlayer(amount: number, ctx: DanoCtx = {}): void {
   if (player.shield > 0) {
     player.shield--;
   } else {
-    const reduced = Math.floor(amount * (1 - getStat('armor')));
-    player.health -= Math.max(1, reduced);
+    const reduced = Math.max(1, Math.floor(amount * (1 - getStat('armor'))));
+    player.health -= reduced;
+    registrarDano(ctx.fonte ?? 'projetil', reduced, ctx.tipo ?? '');
   }
   player.hitFlash = 0.2;
   player.invincible = BULLET_INVINCIBLE_DURATION;
@@ -136,13 +157,16 @@ export function damagePlayer(amount: number): void {
 /**
  * Aplica dano ao jogador causado por colisão direta com inimigos.
  * Escudo absorve o dano se disponível. Invencibilidade mais longa que projéteis.
+ *
+ * Mesma porta da telemetria de `damagePlayer`: registra aqui, não no chamador.
  */
-export function enemyCollisionDamage(enemyDamage: number): void {
+export function enemyCollisionDamage(enemyDamage: number, ctx: DanoCtx = {}): void {
   if (player.shield > 0) {
     player.shield--;
   } else {
-    const reduced = Math.floor(enemyDamage * (1 - getStat('armor')));
-    player.health -= Math.max(1, reduced);
+    const reduced = Math.max(1, Math.floor(enemyDamage * (1 - getStat('armor'))));
+    player.health -= reduced;
+    registrarDano(ctx.fonte ?? 'contato', reduced, ctx.tipo ?? '');
   }
   player.hitFlash = 0.2;
   player.invincible = INVINCIBLE_DURATION;

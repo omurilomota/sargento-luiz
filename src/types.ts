@@ -48,6 +48,14 @@ export interface Bullet {
   hitBy?: Set<Enemy>;
   /** Já explodiu — o flag que impede a dupla detonação (pavio × parede × impacto) */
   detonated?: boolean;
+  /**
+   * Tipo do inimigo que disparou (só em projétil inimigo).
+   *
+   * Só a telemetria lê: sem ele, `npm run sessao` responde "quanto o Espaço
+   * mata" e não "qual inimigo mata mais no Espaço" — que é a pergunta que
+   * decide o balanceamento do hazard.
+   */
+  orcador?: string;
   /** Fuse da mina plantada: segundos acumulados desde que o inimigo entrou no raio */
   fuse?: number;
 }

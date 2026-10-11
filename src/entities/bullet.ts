@@ -31,13 +31,15 @@ export function spawnBullet(
   x: number, y: number, vx: number, vy: number,
   damage: number, isEnemy: boolean, color: string, pierce: boolean,
   explosive = false, explosionRadius = 0, isCrit = false,
-  bulletSprite = 'small_bullet'
+  bulletSprite = 'small_bullet', orcador = ''
 ): void {
   // mina plantada (explosiva sem velocidade): pavio longo de mina, não o da bala
   const life = explosive && vx === 0 && vy === 0 ? MINE_LIFE : BULLET_LIFE;
   bullets.push({
     x, y, px: x, py: y, vx, vy, life, damage, isEnemy, color, isCrit,
     pierce, explosive, explosionRadius, bulletSprite,
+    // só projétil INIMIGO guarda o orcador: o do jogador não tem de quem veio
+    orcador: isEnemy ? orcador : '',
     hitBy: new Set<Enemy>(),
   });
 }

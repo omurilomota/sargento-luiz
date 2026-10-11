@@ -173,6 +173,48 @@ export function pushOutOfWalls(x: number, y: number, radius: number): { x: numbe
       if (!circleOverlaps(cx, cy, radius)) return { x: cx, y: cy };
     }
   }
+  // A busca em anel é heurística e PODE falhar: ela só olha 8 posições por
+  // raio, e há cantos onde nenhuma delas serve. Devolver a posição original
+  // nesse caso é devolver o corpo preso — foi assim que um inimigo ficou
+  // dentro da fileira sólida do Bunker, com `flowDist === -1`, e travou
+  // para sempre: a fase mostrava 4 hostis e nunca acabava.
+  //
+  // A varredura em anéis de célula é o piso: ela é cara, mas só roda quando o
+  // caminho rápido falhou, e ela ENCONTRA um chão livre sempre que existe
+  // algum no mapa. Um resgate que pode falhar é a origem do bug.
+  return primeiroChaoLivre(x, y, radius);
+}
+
+/**
+ * Primeiro chão livre, em ordem crescente de distância, varrendo anéis de
+ * célula. Cai no ponto original quando o mapa inteiro está tomado (mapa sem
+ * chão, ou raio maior que qualquer vão) — aí não há para onde ir mesmo.
+ */
+function primeiroChaoLivre(x: number, y: number, radius: number): { x: number; y: number } {
+  if (!map) return { x, y };
+  const c0 = colAt(x);
+  const r0 = rowAt(y);
+  // o centro da célula basta na maioria dos casos; os deslocamentos existem
+  // para vão estreito onde o centro encosta na parede vizinha
+  const AMOSTRAS: [number, number][] = [
+    [0.5, 0.5], [0.5, 0.25], [0.25, 0.5], [0.75, 0.5], [0.5, 0.75], [0.25, 0.25], [0.75, 0.75],
+  ];
+  const maxAnel = Math.max(map.cols, map.rows);
+  for (let anel = 0; anel <= maxAnel; anel++) {
+    for (let dr = -anel; dr <= anel; dr++) {
+      for (let dc = -anel; dc <= anel; dc++) {
+        if (Math.max(Math.abs(dr), Math.abs(dc)) !== anel) continue;
+        const c = c0 + dc;
+        const r = r0 + dr;
+        if (c < 0 || r < 0 || c >= map.cols || r >= map.rows) continue;
+        for (const [fx, fy] of AMOSTRAS) {
+          const tx = c * CELL_SIZE + fx * CELL_SIZE;
+          const ty = r * CELL_SIZE + fy * CELL_SIZE;
+          if (!circleOverlaps(tx, ty, radius)) return { x: tx, y: ty };
+        }
+      }
+    }
+  }
   return { x, y };
 }
 
