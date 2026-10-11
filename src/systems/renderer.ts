@@ -591,6 +591,82 @@ function drawEndScreen(title: string, titleColor: string, score: number, killStr
 
 // ─── Créditos ────────────────────────────────────────────────
 
+// ─── Fim de partida do versus local ───────────────────────────────
+/**
+ * Tela de fim do Local 2P.
+ *
+ * O módulo de 2P já tinha vida, dano, i-frame e `getWinner()`, mas o fim da
+ * partida era um TOAST de 4 segundos e a partida seguia. "LOCAL 2P" na página
+ * do itch promete versus, e versus precisa de tela: sem esta, ninguém descobre
+ * que ganhou nem que perdeu, e a partida não acaba na tela.
+ *
+ * Sem desenho próprio: o fundo reusa o das outras telas de fim e o placar é
+ * barra retangular — UI, que é o que a `semDesenho` autoriza.
+ */
+export function drawFimLocal(
+  vencedor: 'p1' | 'p2',
+  placar: { nome: string; vida: number; vidaMax: number; vivo: boolean; cor: string }[],
+  onda: number,
+): void {
+  const W = canvas.width;
+  const H = canvas.height;
+
+  ctx.fillStyle = PALETTE.bg;
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = PALETTE.textDim;
+  ctx.font = '13px monospace';
+  ctx.fillText('LOCAL 2P', W / 2, H * 0.13);
+
+  ctx.fillStyle = vencedor === 'p1' ? PALETTE.moss : PALETTE.stone;
+  ctx.font = 'bold 36px monospace';
+  ctx.fillText(`${vencedor.toUpperCase()} VENCEU`, W / 2, H * 0.22);
+
+  ctx.fillStyle = PALETTE.text;
+  ctx.font = '15px monospace';
+  ctx.fillText(`Onda ${onda}`, W / 2, H * 0.31);
+
+  // lado a lado: o que o jogador quer no fim de um versus é comparar
+  const colW = 170;
+  const gap = 70;
+  const x0 = W / 2 - gap / 2 - colW;
+  const y0 = H * 0.42;
+
+  placar.forEach((jog, i) => {
+    const x = x0 + i * (colW + gap);
+    ctx.fillStyle = jog.cor;
+    ctx.font = 'bold 16px monospace';
+    ctx.fillText(jog.nome, x + colW / 2, y0);
+
+    ctx.fillStyle = PALETTE.textDim;
+    ctx.font = '13px monospace';
+    ctx.fillText(jog.vivo ? 'em pé' : 'caído', x + colW / 2, y0 + 20);
+
+    const barW = colW;
+    const barH = 12;
+    const by = y0 + 32;
+    ctx.fillStyle = PALETTE.void;
+    ctx.fillRect(x, by, barW, barH);
+    const frac = jog.vidaMax > 0 ? Math.max(0, Math.min(1, jog.vida / jog.vidaMax)) : 0;
+    ctx.fillStyle = jog.cor;
+    ctx.fillRect(x, by, Math.round(barW * frac), barH);
+    ctx.strokeStyle = PALETTE.textDim;
+    ctx.strokeRect(x + 0.5, by + 0.5, barW - 1, barH - 1);
+
+    ctx.fillStyle = PALETTE.text;
+    ctx.font = '13px monospace';
+    ctx.fillText(`${jog.vida} / ${jog.vidaMax}`, x + colW / 2, by + barH + 18);
+  });
+
+  ctx.globalAlpha = 0.3 + Math.sin(Date.now() / 600) * 0.3;
+  ctx.fillStyle = PALETTE.textDim;
+  ctx.font = '13px monospace';
+  ctx.fillText('ENTER revanche   ·   ESC menu', W / 2, H * 0.85);
+  ctx.globalAlpha = 1;
+  ctx.textAlign = 'left';
+}
+
 export function drawCredits(): void {
   const W = canvas.width;
   const H = canvas.height;

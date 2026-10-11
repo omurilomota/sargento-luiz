@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { POWERUP_TYPES } from '../config';
 import { powerups, spawnPowerUp, spawnPowerUpDeChefe, resetPowerUps } from '../powerups';
 import { checkEnemyBulletPlayerCollision, checkEnemyPlayerCollision } from '../systems/collision';
-import { matarPlayer2, damagePlayer2, getPlayer2, initLocalMultiplayer, resetLocalMultiplayer, getWinner, resetPlayer2 } from '../systems/localMultiplayer';
+import { matarPlayer2, damagePlayer2, getPlayer2, initLocalMultiplayer, resetLocalMultiplayer, getWinner, resetPlayer2, getPlacarLocal } from '../systems/localMultiplayer';
+import { PALETTE } from '../core/palette';
 import type { Bullet, Enemy } from '../types';
 
 /**
@@ -110,6 +111,68 @@ describe('imortalidade: o jogador 2 leva dano', () => {
     const depois = getPlayer2()!.health;
     damagePlayer2(20);
     expect(getPlayer2()!.health, 'segundo dano furou o i-frame').toBe(depois);
+    resetLocalMultiplayer();
+  });
+});
+
+describe('fim de partida local: o placar que a tela mostra', () => {
+  // A tela de fim é a primeira peça do versus que não existia: `getWinner`
+  // sabia quem caiu e nada desenhava. Estes testes travam o CONTRATO do placar —
+  // de quem vem cada vida e o que "caído" significa — porque a tela é desenhada
+  // por `drawFimLocal(vencedor, placar)`, e placar errado aparece como barra
+  // cheia ao lado de um perdedor.
+
+  it('os dois de pé: vidas cheias, nas cores de cada um', () => {
+    initLocalMultiplayer(1280, 720);
+    const placar = getPlacarLocal(100, 100);
+    expect(placar).toHaveLength(2);
+    expect(placar[0]).toMatchObject({ nome: 'P1', vida: 100, vidaMax: 100, vivo: true, cor: PALETTE.moss });
+    expect(placar[1]).toMatchObject({ nome: 'P2', vida: 100, vidaMax: 100, vivo: true, cor: PALETTE.stone });
+    resetLocalMultiplayer();
+  });
+
+  it('a vida do P1 vem de quem a carrega: este módulo só conhece a do P2', () => {
+    initLocalMultiplayer(1280, 720);
+    // 62.4 -> 62: a barra divide pela vida máxima, e casa decimal no meio
+    // apareceria como "62 / 100" na tela de fim.
+    const placar = getPlacarLocal(62.4, 100);
+    expect(placar[0].vida).toBe(62);
+    expect(placar[0].vivo).toBe(true);
+    expect(placar[1].vida, 'a vida do P2 não é afetada pela do P1').toBe(100);
+    resetLocalMultiplayer();
+  });
+
+  it('P2 caído: placar mostra 0 e caído, e o P1 continua em pé', () => {
+    initLocalMultiplayer(1280, 720);
+    matarPlayer2();
+    const placar = getPlacarLocal(38, 100);
+    expect(placar[1]).toMatchObject({ vida: 0, vivo: false });
+    // o P2 mantém a própria vida máxima: a barra dele mede contra 100 dele,
+    // não contra o resto de vida do vencedor
+    expect(placar[1].vidaMax).toBe(100);
+    expect(placar[0].vivo, 'quem ganhou aparece em pé').toBe(true);
+    expect(getWinner(), 'o placar e o vencedor dizem a mesma coisa').toBe('p1');
+    resetLocalMultiplayer();
+  });
+
+  it('P1 caído: o placar mostra o P1 em 0 — o ramo p2 do vencedor é legítimo', () => {
+    initLocalMultiplayer(1280, 720);
+    const placar = getPlacarLocal(0, 100);
+    expect(placar[0]).toMatchObject({ vida: 0, vivo: false });
+    expect(placar[1].vivo, 'o P2 segue em pé').toBe(true);
+    resetLocalMultiplayer();
+  });
+
+  it('a revanche devolve o placar cheio: nada da partida anterior sobra na tela', () => {
+    initLocalMultiplayer(1280, 720);
+    matarPlayer2();
+    expect(getPlacarLocal(100, 100)[1].vivo).toBe(false);
+
+    // é o que a revanche chama, e a tela lê o placar no quadro seguinte
+    resetPlayer2(1280, 720);
+    const depois = getPlacarLocal(100, 100);
+    expect(depois[1]).toMatchObject({ vida: 100, vivo: true });
+    expect(getWinner(), 'vencedor velho não pode sobreviver à revanche').toBe(null);
     resetLocalMultiplayer();
   });
 });

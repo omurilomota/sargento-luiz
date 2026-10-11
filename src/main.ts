@@ -46,7 +46,7 @@ import { initObjective, updateObjective, peekObjective, vipDown, markVipDown, re
 import { updateBoss, isBossTelegraphing, getBossTelegraphLabel, clearBossState } from './systems/boss';
 
 import {
-  initRenderer, drawMenu, drawCutscene, drawGameOver, drawVictory, drawCredits, drawCoins as renderCoins,
+  initRenderer, drawMenu, drawCutscene, drawGameOver, drawVictory, drawFimLocal, drawCredits, drawCoins as renderCoins,
   drawPowerUps as renderPowerUps, drawParticles as renderParticles, drawBullets as renderBullets,
   drawEnemies as renderEnemies, drawPlayer as renderPlayer, drawDamageNumbers, drawPhaseTransition,
   restoreCanvas, drawNPCs, drawBots, drawPause, menuIndexAt, getPauseIndex, movePause, PAUSE_OPTIONS, setPauseIndex, pauseOptionAt, setUiMouse,
@@ -96,7 +96,7 @@ import { startTutorial, isTutorialActive, getCurrentHint, updateTutorial, advanc
 import { updateBehavior, registerShot, registerHit, getPlayerTendency, resetBehavior } from './systems/dynamicDifficulty';
 import { spawnNPC, updateNPCs, getNPCs, resetNPCs, npcBark, isNpcFollowing } from './systems/npcs';
 import { getBots, createBot, updateBots, removeDeadBots, resetBots, addBot, BotDifficulty } from './systems/bots';
-import { isEnabled as isLocalEnabled, initLocalMultiplayer, movePlayer2, shootPlayer2, getPlayer2, resetLocalMultiplayer, checkPlayer2EnemyCollision, damagePlayer2, resetPlayer2, getWinner } from './systems/localMultiplayer';
+import { isEnabled as isLocalEnabled, initLocalMultiplayer, movePlayer2, shootPlayer2, getPlayer2, resetLocalMultiplayer, checkPlayer2EnemyCollision, damagePlayer2, resetPlayer2, getWinner, getPlacarLocal, matarPlayer2 } from './systems/localMultiplayer';
 import { showCutscene, showCutsceneAt, cutsceneForPhase, advanceCutscene, skipCutscene, isShowingCutscene, updateCutscene, resetStory, isEpilogueScene, EPILOGUE_CUTSCENE, getCurrentCutscene, getCurrentLine } from './systems/story';
 import { getCurrentMode, setGameMode, GameMode, GAME_MODES } from './systems/gameModes';
 import { BIOMES, CELL_SIZE } from './maps';
@@ -336,6 +336,16 @@ document.addEventListener('keydown', e => {
     if (tabAberto) sfxMenuSelect(); else sfxMenuMove();
   }
   if (key === 'Escape') {
+    // A tela de fim do versus escreve "ESC menu". Sem este ramo, ESC abria a
+    // PAUSA por cima dela (e, no gameover do versus, abria pausa também), e o
+    // jogador tinha dois passos pela frente para chegar onde a tela promete.
+    if (fimLocal()) {
+      resetGame();
+      setGameState('menu');
+      // crossfade combate → menu, como o caminho do gameover
+      startMusic();
+      return;
+    }
     // as teclas agora ficam visíveis no HUD o tempo todo, então as dicas do
     // tutorial viram ruído depois dos primeiros segundos
     if (isTutorialActive()) endTutorial();
@@ -466,6 +476,43 @@ let bossKilled = false;
 let bossRushIndex = 0;
 /** O versus local já anunciou o vencedor (evita repetir o aviso a cada frame). */
 let localTerminou = false;
+
+/**
+ * Revanche do versus local: mesma fase, mesma onda, os dois de pé.
+ *
+ * Não chama `resetGame()` porque isso reinicia a campanha inteira — o P1
+ * perderia arma, moedas e LEVEL, e o versus passaria a ter progressão, que é
+ * outro jogo. Zera só o que é da PARTIDA: vida dos dois, inimigos na tela e o
+ * flag de fim.
+ */
+function revancheLocal(): void {
+  const p = player.getPlayer();
+  player.healPlayer(p.maxHealth);
+  p.invincible = 0;
+  resetPlayer2(worldW, worldH);
+  for (let i = enemies.length - 1; i >= 0; i--) enemies.splice(i, 1);
+  clearBullets();
+  playerDied = false;
+  localTerminou = false;
+  setGameState('playing');
+  startMusic();
+}
+
+/** Quem ganhou a partida local, e o placar dos dois para a tela. */
+function fimLocal(): { vencedor: 'p1' | 'p2'; placar: ReturnType<typeof getPlacarLocal> } | null {
+  if (!isLocalEnabled()) return null;
+  const p = player.getPlayer();
+  // O P1 cai e o jogo vai para `gameover`; o P2 cai e a partida segue em
+  // `playing`. Os dois casos precisam da MESMA tela — senão o P2 nunca vê que
+  // ganhou, porque o ramo 'p2' de `getWinner` era inalcançável na tela.
+  const p1Vivo = p.health > 0;
+  const p2Vivo = getPlayer2()?.alive ?? false;
+  if (p1Vivo === p2Vivo) return null;
+  return {
+    vencedor: p1Vivo ? 'p1' : 'p2',
+    placar: getPlacarLocal(p.health, p.maxHealth),
+  };
+}
 /** Tela de ficha da arma + mapa grande (TAB). */
 let tabAberto = false;
 /** Congela o update sem abrir nenhuma tela (harness de projéteis). */
@@ -700,11 +747,17 @@ function update(dt: number) {
 
   if (state === 'gameover') {
     if (consumeEnter()) {
-      resetGame();
-      setGameState('menu');
-      // volta do gameover: sem isto a música de combate loopa
-      // para sempre no menu (stopMusic nunca era chamado aqui)
-      startMusic();
+      // No versus local o ENTER é REVANCHE, não voltar ao menu: o modo promete
+      // duas partidas seguidas e mandar o jogador pro menu a cada queda
+      // transformava o versus em duas partidas com ida e volta.
+      if (isLocalEnabled()) revancheLocal();
+      else {
+        resetGame();
+        setGameState('menu');
+        // volta do gameover: sem isto a música de combate loopa
+        // para sempre no menu (stopMusic nunca era chamado aqui)
+        startMusic();
+      }
       resetInput();
     }
     return;
@@ -741,6 +794,17 @@ function update(dt: number) {
   }
 
   if (state !== 'playing') return;
+
+  // Fim de partida do versus local: o P2 caiu e a partida CONTINUA em `playing`
+  // (só a morte do P1 muda o estado), então é aqui que ela precisa ser travada
+  // — e aqui que o ENTER da tela tem que ser lido. Sem este ramo a tela
+  // anunciava "ENTER revanche" e nenhuma tecla fazia nada: o único ramo que
+  // chama `revancheLocal` mora no `gameover`, que a queda do P2 nunca alcança.
+  // Foi o que `local2p-proof.mjs` pegou.
+  if (localTerminou && fimLocal()) {
+    if (consumeEnter()) revancheLocal();
+    return;
+  }
 
   const p = player.getPlayer();
   const phase = getCurrentPhase();
@@ -1598,7 +1662,7 @@ function startRun(): void {
   // ativo — e ele mata qualquer inimigo que encoste nele.
   if (selectedMode === 'local') initLocalMultiplayer(worldW, worldH);
   else resetLocalMultiplayer();
-localTerminou = false;
+  localTerminou = false;
   tabAberto = false;
   resetInput();
   setGameState('playing');
@@ -1681,6 +1745,14 @@ function draw() {
     return;
   }
   if (state === 'gameover') {
+    // versus local tem tela própria: o `getWinner` sabia quem caiu desde sempre,
+    // mas o desenho era o GAME OVER genérico com recordes de campanha — o P2
+    // que ganhou via pelo `GAME OVER` do P1.
+    const local = fimLocal();
+    if (local) {
+      drawFimLocal(local.vencedor, local.placar, getCurrentWave() + 1);
+      return;
+    }
     // vitoria e derrota leem diferente: zerar o jogo nao e GAME OVER
     // `getTotalKills`, não `getKillStreak`: a sequência zera a cada intervalo sem
     // abate, e a tela imprimia "Abates: 0" ao lado de uma pontuação alta. O
@@ -1697,6 +1769,20 @@ function draw() {
     drawFrozenWorld();
     drawPause(isMusicEnabled(), isSfxEnabled());
     return;
+  }
+
+  // Versus local: o P2 caiu e a partida continua em `playing`, então a tela de
+  // fim entra aqui. Sem este early-return o jogador ficava atirando num campo
+  // vazio com um toast de 4 segundos no canto, e o P2 nunca soube que perdeu.
+  if (localTerminou) {
+    const fim = fimLocal();
+    if (fim) {
+      drawWorld();
+      drawFimLocal(fim.vencedor, fim.placar, getCurrentWave() + 1);
+      return;
+    }
+    // os dois de pé de novo (a revanche andou antes do desenho): flag morta
+    localTerminou = false;
   }
 
   drawWorld();
@@ -2593,6 +2679,15 @@ window.__ashfall = {
     // acusava 6 fases com problema quando não havia nenhum.
     spawnDelay: Number(e.spawnDelay.toFixed(2)),
   })),
+  /** Abaixa o P2, para o harness de versus poder fechar a partida. */
+  abaterP2: () => matarPlayer2(),
+  /** Placar dos dois, como a tela de fim do versus lê. */
+  placarLocal: () => {
+    const p = player.getPlayer();
+    return getPlacarLocal(p.health, p.maxHealth);
+  },
+  /** Quem a tela de fim do versus está mostrando agora (null se não acabou). */
+  fimLocal: () => fimLocal(),
   /** Posição do jogador em coordenadas de mundo — o dodge do `session.mjs` precisa. */
   playerPos: () => {
     const p = player.getPlayer();

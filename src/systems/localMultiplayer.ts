@@ -161,12 +161,45 @@ export function matarPlayer2(): boolean {
 /**
  * Condição de vitória: um jogador em pé e o outro não.
  * `null` enquanto os dois estão de pé (partida em andamento) ou os dois caíram.
+ *
+ * `p1Vivo` é constante porque o P1 é o jogador do mouse e a partida termina em
+ * `gameover` quando ele cai — o ramo `'p2'` existe para quando essa tela rodar
+ * no modo local, e é lá que ele é lido.
  */
 export function getWinner(): 'p1' | 'p2' | null {
   if (!player2) return null;
   const p1Vivo = true;
   if (player2.alive === p1Vivo) return null;
   return player2.alive ? 'p2' : 'p1';
+}
+
+/** Como a tela de fim do versus apresenta cada jogador. */
+export interface PlacarLocal {
+  nome: string;
+  vida: number;
+  vidaMax: number;
+  vivo: boolean;
+  cor: string;
+}
+
+/**
+ * Placar dos dois para a tela de fim do versus.
+ *
+ * O P1 vem do chamador porque a vida dele vive em `entities/player.ts` e não
+ * aqui — este módulo só conhece o P2.
+ */
+export function getPlacarLocal(vidaP1: number, vidaMaxP1: number): PlacarLocal[] {
+  const p2 = player2;
+  return [
+    { nome: 'P1', vida: Math.round(vidaP1), vidaMax: Math.round(vidaMaxP1), vivo: vidaP1 > 0, cor: PALETTE.moss },
+    {
+      nome: 'P2',
+      vida: Math.round(p2?.health ?? 0),
+      vidaMax: Math.round(p2?.maxHealth ?? PLAYER_BASE_HEALTH),
+      vivo: p2?.alive ?? false,
+      cor: PALETTE.stone,
+    },
+  ];
 }
 
 /** Reposiciona e revive o P2 para uma nova partida. */

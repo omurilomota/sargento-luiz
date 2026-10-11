@@ -12,8 +12,8 @@ import { join } from 'path';
  *
  * A terceira exceção é a que degrada: sem portão, "fallback" vira o visual
  * pretendido e ninguém percebe, porque funciona. Este teste congela o estado
- * auditado: 58 sites, 56 permitidos com porquê, 3 de débito declarado com
- * teto. Débito pode encolher; crescer (ou aparecer function nova desenhando)
+ * auditado: 65 sites, 62 permitidos com porquê, 3 de débito declarado com
+ * teto. Débito pode encolher; crescer (ou aparecer função nova desenhando)
  * reprova aqui.
  *
  * O débito encolheu duas vezes: a cena de cutscene (5 sites) virou tile
@@ -21,6 +21,9 @@ import { join } from 'path';
  * power-up (4 sites) viraram sprite da Kenney Platformer Art Deluxe — os dois
  * ficaram na PERMITIDAS como o que são hoje: fallback atrás de asset.
  * Restam os 3 sites de `drawBots`.
+ *
+ * O total subiu de 58 para 65 em 2026-11 com `drawFimLocal` (tela de fim do
+ * versus local). Os 7 são chrome: fundo e as duas barras de vida lado a lado.
  *
  * Este portão NÃO substitui o olho: os harnesses visuais (`npm run visual`,
  * `npm run sessao`) continuam obrigatórios para mexer em render (regra 16).
@@ -43,6 +46,7 @@ const PERMITIDAS: Record<string, string> = {
   drawSettingsButton: 'chrome do botão de configurações',
   drawPause: 'chrome da pausa',
   drawEndScreen: 'chrome da tela de fim',
+  drawFimLocal: 'chrome da tela de fim do versus: fundo e as duas barras de vida, lado a lado. É UI de comparação — a mesma categoria das barras de drawEnemies/drawNPCs, não arte do mundo',
   drawCredits: 'chrome dos créditos',
   drawPhaseTransition: 'véu da transição de fase',
   drawParticles: 'fallback de sprite (o visual é o Kenney Particle Pack)',
@@ -60,8 +64,16 @@ const DEBITO: Record<string, { teto: number; motivo: string }> = {
   drawBots: { teto: 3, motivo: 'corpo do bot é círculo — decisão de visual pendente (FUTURO §1.2)' },
 };
 
-/** Total atual auditado. Subir este número é uma decisão consciente. */
-const TOTAL_ATUAL = 58;
+/**
+ * Total atual auditado. Subir este número é uma decisão consciente.
+ *
+ * 58 → 65 pela tela de fim do versus local (FUTURO §1.2): fundo + duas barras
+ * de vida com a moldura. São 7 sítios de chrome de tela, todos dentro de
+ * `drawFimLocal`, e a alternativa seria uma barra desenhada como sprite — que
+ * é pior: barra de vida é UI, muda de tamanho com a tela, e sprite para isso é
+ *Shapesmith errado.
+ */
+const TOTAL_ATUAL = 65;
 
 const METODOS = 'arc|ellipse|fillRect|strokeRect|roundRect|createRadialGradient|createLinearGradient';
 const CHAMADA = new RegExp(`\\.(?:${METODOS})\\(`);
