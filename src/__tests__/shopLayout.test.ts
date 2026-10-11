@@ -6,8 +6,7 @@ vi.mock('../systems/audio', () => {
   return { sfxBuy: noop, sfxError: noop };
 });
 import { getShopLayout, rowActionButtons, Rect, pushPendingReveal, addPurchasedWeapon, resetShop, getPurchasedWeaponPairs, hasWeaponPair, keepPendingReveal, getPendingReveals } from '../ui/shop';
-import { WEAPONS, UPGRADES } from '../config';
-import { setWeaponQuality } from '../weapons';
+
 
 const W = 1280;
 const H = 720;
@@ -23,9 +22,11 @@ function overlaps(a: Rect, b: Rect): boolean {
 describe('getShopLayout: geometria única', () => {
   const L = getShopLayout(W, H);
 
-  it('cria 3 slots de arma sorteados e um retângulo por upgrade', () => {
+  it('cria 3 slots de arma sorteados e 3 slots de perk', () => {
     expect(L.weapons).toHaveLength(3);
-    expect(L.upgrades).toHaveLength(UPGRADES.length);
+    // a escada substituiu os 19 UPGRADES avulsos: a seção não cresce com o
+    // catálogo, são sempre as 3 linhas da oferta da visita
+    expect(L.upgrades).toHaveLength(3);
   });
 
   it('as linhas não se sobrepõem dentro de cada coluna', () => {
@@ -133,9 +134,9 @@ describe('rowActionButtons: vender só no botão VENDER', () => {
     pushPendingReveal(1, 'normal');
     pushPendingReveal(2, 'normal');
     pushPendingReveal(3, 'normal');
-    addPurchasedWeapon(1);
-    addPurchasedWeapon(2);
-    addPurchasedWeapon(3);
+    addPurchasedWeapon(1, 'normal');
+    addPurchasedWeapon(2, 'normal');
+    addPurchasedWeapon(3, 'normal');
   });
 
   it('caixas ficam dentro da linha, sem sobreposição entre si, alinhadas verticalmente', () => {
@@ -186,18 +187,29 @@ describe('rowActionButtons: vender só no botão VENDER', () => {
 /**
  * Posse por par (arma + qualidade): receber a Pistola Quebrada da NOVIDADE
  * não pode marcar a Pistola Lendária do estoque como ADQUIRIDA.
+ *
+ * A raridade mora no PAR possuído, não num mapa por índice de arma. Com a
+ * mesma arma em duas raridades, um mapa por índice fazia as duas linhas
+ * mostrarem e cobrarem a última escrita — o bug de B4.
  */
 describe('posse por par (arma + qualidade)', () => {
   beforeEach(() => {
     resetShop();
-    setWeaponQuality(1, 'normal');
   });
 
   it('mesma arma com qualidade diferente não conta como possuída', () => {
-    setWeaponQuality(1, 'quebrada');
-    expect(addPurchasedWeapon(1)).toBe(true);
+    expect(addPurchasedWeapon(1, 'quebrada')).toBe(true);
     expect(hasWeaponPair(1, 'quebrada')).toBe(true);
     expect(hasWeaponPair(1, 'lendaria')).toBe(false);
+  });
+
+  it('a mesma arma em duas raridades ocupa dois slots e não se confunde', () => {
+    expect(addPurchasedWeapon(1, 'quebrada')).toBe(true);
+    expect(addPurchasedWeapon(1, 'lendaria')).toBe(true);
+    expect(hasWeaponPair(1, 'quebrada')).toBe(true);
+    expect(hasWeaponPair(1, 'lendaria')).toBe(true);
+    const pares = getPurchasedWeaponPairs().filter(p => p.index === 1);
+    expect(pares).toHaveLength(2);
   });
 
   it('keepPendingReveal guarda o par exato da caixa', () => {
@@ -208,9 +220,40 @@ describe('posse por par (arma + qualidade)', () => {
   });
 
   it('getPurchasedWeaponPairs devolve os pares para o save', () => {
-    setWeaponQuality(3, 'boa');
-    addPurchasedWeapon(3);
+    addPurchasedWeapon(3, 'boa');
     const pairs = getPurchasedWeaponPairs();
     expect(pairs).toContainEqual({ index: 3, quality: 'boa' });
   });
+});
+
+describe('getShopLayout: os dois botões de monetização', () => {
+  // Bug de sobreposição anterior: o diário era posicionado em `ad.y + ad.h + 45`
+  // e o clique do ad ficava logo acima. Ao entrar o botão de apoio, os dois
+  // precisaram de casa própria — é o que estes testes travam.
+  for (const [w, h] of [[1280, 720], [1920, 1080], [1024, 600]] as [number, number][]) {
+    it(`resgate e apoio não se sobrepõem em ${w}x${h}`, () => {
+      const L = getShopLayout(w, h);
+      expect(overlaps(L.ad, L.support)).toBe(false);
+    });
+
+    it(`apoio fica abaixo do resgate e acima do diário em ${w}x${h}`, () => {
+      const L = getShopLayout(w, h);
+      expect(L.support.y).toBeGreaterThanOrEqual(L.ad.y + L.ad.h);
+      expect(L.sections.diary).toBeGreaterThan(L.support.y + L.support.h);
+    });
+
+    it(`os dois cabem dentro da coluna esquerda em ${w}x${h}`, () => {
+      const L = getShopLayout(w, h);
+      for (const r of [L.ad, L.support]) {
+        expect(r.x).toBeGreaterThanOrEqual(0);
+        expect(r.w).toBeGreaterThan(0);
+        expect(r.h).toBeGreaterThan(0);
+      }
+    });
+
+    it(`o conteúdo rolável cobre o botão de apoio em ${w}x${h}`, () => {
+      const L = getShopLayout(w, h);
+      expect(L.contentHeight).toBeGreaterThan(L.support.y + L.support.h);
+    });
+  }
 });
