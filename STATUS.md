@@ -1,19 +1,23 @@
 # SARGENTO RIOS — Status Geral do Projeto
 
-> Atualizado: 2026-10-11 · branch `feature/v2-weapons-story` ·
-> 833 testes em 46 arquivos · `tsc` limpo · build ok.
+> Atualizado: 2026-11 · branch `develop` (v2 mesclada) ·
+> 856 testes em 47 arquivos · `tsc` limpo · build ok.
 > Este arquivo estava parado na v1.3 (420 testes, nome ASHFALL) e foi
-> reconciliado com o código nesta sprint.
+> reconciliado com o código.
 
-## Verificação atual (2026-10-11)
+## Verificação atual
 
 ```
-npm test         # 833 passando
-npx tsc --noEmit # 0 erros
-npm run build    # ok
-npm run visual   # 8 screenshots, sem 404/pageerror
-npm run perks    # 13/13 (prova de tela da escada de perks)
-npm run sessao   # INCONCLUSIVO — o bot morre na onda 1 (FUTURO §1.4)
+npm test           # 856 passando em 47 arquivos
+npx tsc --noEmit   # 0 erros
+npm run build      # ok
+npm run visual     # 8 screenshots, sem 404/pageerror
+npm run perks      # 13/13 — escada de perks na loja
+npm run hud        # 4 resoluções, texto cabe na caixa
+npm run loja       # 3 scrolls, texto e seções sem sobreposição
+npm run variedade  # personagem de inimigo muda por fase (57% entre vizinhas)
+npm run espaco     # REPRODUZIDO — o Espaço derruba na onda 1 (FUTURO §1.4)
+npm run sessao     # INCONCLUSIVO — o bot morre na onda 1, nunca chega à loja
 ```
 
 ## Portão Anti-IA — 5 testes
@@ -148,31 +152,25 @@ ataca isso primeiro.
 
 ## Testes
 
-420 testes em 17 arquivos, cobrindo exatamente as regressões que já voltaram:
+**856 em 47 arquivos.** A lista completa por arquivo está em
+`src/__tests__/`; o que este status registra é a cobertura que não é óbvia pelo
+nome:
 
 | Arquivo | Cobre |
 |---|---|
-| `collision.test.ts` | Colisão swept (tunneling), ponto-segmento, circle-circle |
-| `boss.test.ts` | `updateBoss`: avanço por faixa de HP, telegrafia, `mines` acende barril, summon, e as 9 fases ligadas a um boss |
-| `camera.test.ts` | clamp por eixo, lerp não atravessa o limite, mira desconta o shake |
-| `objectives.test.ts` | os 5 tipos sabem quando terminam, `peekObjective` não muta, latch de `protect` |
-| `dynamicDifficulty.test.ts` | guard de amostra, banda de pressão, ritmo do spawn |
-| `assets.test.ts` | nomes de arquivo (pad de tile), sprite mapeado por tipo, tipo órfão |
-| `props.test.ts` | os 3 tipos, dano, cadeia de barril, pavio de 0.9s, entulho |
-| `terrain.test.ts` | `shade`, e o contrato de dado dos 9 biomas que o prerender consome |
-| `balance.test.ts` | a curva de dificuldade das 9 fases cresce |
-| `achievements.test.ts` | os 21 ids únicos e cada gatilho |
-| `shopLayout.test.ts` | `getShopLayout`: sobreposição, colunas, hit-test bate com o draw |
-| `menuLayout.test.ts` | `getMenuLayout`: índice do clique, cabimento em 4 resoluções |
-| `mapValidation.test.ts` | 9 mapas: largura, borda, conectividade, contraste piso/parede, caminho de tile no disco |
-| `saveSystem.test.ts` | round-trip do save, restauração depois do `resetShop`, upgrades do mesmo efeito substituindo em vez de empilhar, todo `effect` do config reconhecido |
-| `weapons.test.ts` | teto de pierce e o custo de 25%, crítico ×1.5 com 60% de teto, qualidade/falha da Quebrada, jam + Reparo, medkit, armadura |
-| `loot.test.ts` | taxa de drop por tipo, coleta e expiração, validade de toda recompensa, raridade do medkit, caixa do boss |
-| `biome.test.ts` | todo hazard tem par na tabela de mods, os 3 de `takenMult` existem, DPS de Laser/Raios, inimigos de fase existem |
-| `terrain.test.ts` (extra) | 8 biomas com tile de parede, todo tile em `TILE_NUMBERS`, min 2 tiles por bioma |
+| `semIA` · `semDesenho` · `semProcedural` · `semAssetQuebrado` · `semOrfao` | os 5 portões anti-IA (ver tabela acima) |
+| `balance.test.ts` | a primeira fase é sobrevivível com a pistola e só a pistola; a armadura cobre projétil |
+| `variedade.test.ts` | o personagem de inimigo muda por fase (57% entre vizinhas, zero estagnação) |
+| `perkLadder.test.ts` | a run nova não herda especial, dano, degrau nem oferta |
+| `weaponAmmo.test.ts` | `refillAmmo` enche sem estourar a build nem consertar a quebrada |
+| `phaseEnd.test.ts` | o fim de fase não fecha no meio (60 chamadas com a onda em andamento) |
+| `saveSystem.test.ts` | round-trip com degraus, especiais e o save anterior à escada |
+| `gear.test.ts` | teto dos combos empilhados; combo exige degrau, não id morto |
+| `explosivos.test.ts` | o explosivo detona uma vez e não fere o jogador |
+| `immortality.test.ts` | o P2 tem vida, dano, i-frame e vencedor |
 
 ```
-npm test            # 420 passando
+npm test            # 856 passando
 npx tsc --noEmit    # 0 erros
 npm run build       # ok
 ```

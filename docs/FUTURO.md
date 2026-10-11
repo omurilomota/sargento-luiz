@@ -63,23 +63,34 @@ diferente:
 
 Escolher **uma**. As três juntas viram sopa.
 
-### 1.2 O Local 2P anuncia mais do que entrega — ⚠️
-O P2 se move, atira e mata, mas não leva dano e não existe condição de vitória
-(o próprio `PUBLISHING.md` manda não vender como "versus"). **Decisão de
-10/10: consertar de verdade** — vida pro P2, condição de fim e revanche; a
-página ganha o `co-op` honesto depois.
+### 1.2 O Local 2P: o dano e a vitória já existem, falta a TELA — ⚠️
+**Atualizado 2026-11.** Este item dizia que o P2 "não leva dano e não existe
+condição de vitória" e que `damagePlayer2`/`getWinner` "foram removidos como
+código morto". **Era falso**: `damagePlayer2` está ligado em `main.ts:821,827`
+e `getWinner` em `:830`, com `immortality.test.ts` provando os dois.
 
-### 1.3 O fim de fase depois do chefe (relato do `bugs.md`)
+O que falta é a **tela de fim de partida**: `getWinner()` devolve `'p1' | 'p2'`
+e nada desenha isso. O que diz "Local 2P" na página do itch continua
+prometendo mais do que a tela entrega. Fechar isso é o que dá o `co-op`
+honesto depois.
+
+### 1.3 O fim de fase depois do chefe (relato do `bugs.md`) — ✅ RESOLVIDO
 "O chefe morre, o countdown acaba e a partida não acaba; só fecha quando o
-campo limpa." Pode já ter sido resolvido pelo respiro pós-boss genérico —
-**verificar se ainda reproduz** e, se reproduzir, escrever o teste que pega.
+campo limpa." Resolvido pelo respiro pós-boss genérico e por
+`deveFecharFase` (que consome `ondaCompleta = waveComplete || (bossSpawned &&
+!chefeVivo)`). Prova em `tools/fase-proof.mjs` e `tools/onda-proof.mjs`.
 
-### 1.4 A telemetria não alcança o fim da campanha
+### 1.4 A telemetria não alcança o fim da campanha — ⚠️ **O MAIOR BLOQUEIO**
 O bot do `session.mjs` não desvia e morre na Cidade, onda 1 — a sessão longa
 nunca mede Espaço/Castelo/Bunker. Precisa de: dodge simples (mover
 perpendicular ao inimigo mais próximo a menos de N px) + telemetria de dano
-recebido por fonte. Sem isso, nenhuma mudança de balanceamento nas fases finais
-tem medição de verdade.
+recebido por fonte.
+
+**Reforçado 2026-11:** enquanto isso existir, **nenhuma mudança de HP, onda ou
+economia nas fases finais tem medição**. Foi o que deixou o `lowGravity` do
+Espaço (que mata na onda 1, reproduzido por `npm run espaco`) sem correção
+medida, e o ajuste I5+I6 da armadura sem calibração por jogo. É a dívida que
+mais bloqueia as outras.
 
 ### 1.5 `t=undefined` no log do `session.mjs` — [x] FEITO em 2026-10-10
 O log imprimia `t=undefined` porque pedia o relógio à telemetria, que devolve
@@ -90,13 +101,20 @@ local, `(Date.now() - t0)` (linha 116). Duas linhas, sem tocar na telemetria.
 Refactor adiado de propósito (não tem bug atrás). Só fazer quando outra
 mudança exigir — e aí extrair menu/loja primeiro.
 
-### 1.7 TAB abre a ficha da arma, mas o minimapa grande não existe (bugs.md)
-Pedido direto: no TAB, ver o minimapa em tamanho grande — de preferência na
-mesma tela da ficha (a informação é complementar: campo + build).
+### 1.7 O TAB já mostra minimapa grande + ficha — ✅ RESOLVIDO em 10/10
+O pedido era "no TAB, ver o minimapa em tamanho grande, de preferência na mesma
+tela da ficha". `drawTabScreen` faz exatamente isso: minimapa grande à
+esquerda, ficha da arma com DPS real à direita. A informação é complementar
+(campo + build), como o pedido queria.
 
-### 1.8 Sem auto-equipar e sem preset de loadout (bugs.md)
-Com o arsenal inteiro + peças, o jogador refaz a mesma arrumação a cada loja. Presets
-salvos no save resolvem sem UI nova: 2–3 slots, tecla na ficha.
+### 1.8 Auto-equipar já existe; falta preset de loadout (bugs.md)
+**Atualizado 2026-11.** O auto-equipar foi entregue: `equiparSeMelhor()` só
+troca a arma se o DPS novo for maior (`getEffectiveDps`, que conta recarga,
+peça, qualidade e combo).
+
+O que continua aberto é o **preset**: com 24 degraus, 12 armas e peças, o
+jogador refaz a mesma arrumação a cada loja. 2–3 slots salvos no save, tecla
+na ficha do TAB.
 
 ---
 

@@ -1,4 +1,4 @@
-# ASHFALL
+# SARGENTO RIOS
 
 > Top-down shooter **pós-apocalíptico** com progressão roguelite.
 > TypeScript + Vite + Canvas 2D. Tudo em canvas — não existe HUD em DOM.
@@ -13,6 +13,7 @@ A direção do jogo está em [`docs/DESIGN.md`](docs/DESIGN.md).
 
 - **Mover:** WASD ou setas · **Mirar:** mouse · **Atirar:** botão esquerdo
 - **Habilidades:** `Espaço` dash (segue o movimento) · `F` escudo · `E` fúria
+- **Armas:** `1`-`9` ou `Q` (anterior) para trocar · **Ficha:** `TAB` (DPS real + mapa)
 - **Recarregar:** `R` (automático ao esvaziar o pente) · **Pausa:** `Esc`
 - **Som:** `M` música · `S` efeitos (toggle persistente)
 - **Dificuldade:** cada fase tem hazard e objetivo próprios — sobreviver,
@@ -56,9 +57,18 @@ timbre do som.
 | RPG | 65 | 1.8s | 2 | 1 | 350 | explosivo |
 | BFG | 80 | 2.0s | 1 | 5 | 999 | **secreta** (só após completar o jogo) |
 
-Entre as fases a loja vende 19 upgrades permanentes (vida, velocidade, dano,
-escudo, magnetismo, crítico, pierce, armadura, regeneração, recarga rápida) e
-skins. Certain combinações arma+upgrade viram **combos** com bônus próprio.
+Entre as fases a loja oferece **3 perks por visita**, tirados de uma escada de
+4 ramos (DANO, CORPO, PERNAS, MENTE) com 5 degraus e um especial no fim de cada
+um. O degrau N só destrava depois do N−1, e 1 dos 3 sempre casa com a build que
+você já tem. Também vende skins, peças e medkits.
+
+Certos degraus com certain armas viram **combos** com bônus próprio.
+
+## Progressão
+
+XP por abate, por onda e por fase, somando nível. Cada nível dá 1 ponto, gasto
+na **árvore de talentos** (3 galhos × 2 nós) ou na escada de perks. Tudo
+persiste no save.
 
 ## Como rodar
 
@@ -66,8 +76,20 @@ skins. Certain combinações arma+upgrade viram **combos** com bônus próprio.
 npm install
 npm run dev      # desenvolvimento com hot reload
 npm run build    # build de produção (tsc + vite build)
-npm test         # vitest
+npm test         # vitest (856 testes, inclui os 5 portões anti-IA)
 npx tsc --noEmit # type check
+```
+
+Provas de tela — cada uma abre o PNG e falha se algo estiver ilegível:
+
+```bash
+npm run visual      # 8 screenshots, sem 404/pageerror
+npm run perks       # escada de perks na loja
+npm run hud         # texto do HUD cabe na caixa (4 resoluções)
+npm run loja        # texto e seções da loja (3 scrolls)
+npm run variedade   # personagem de inimigo muda por fase
+npm run espaco      # reproduz o Game Over do Espaço
+npm run sessao      # telemetria de HP/onda (o bot morre na onda 1)
 ```
 
 Os mapas são validados por script — para regenerar:
