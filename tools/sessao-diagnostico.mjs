@@ -64,10 +64,10 @@ for (let fase = 0; fase < 9; fase++) {
   await bot.medir(SEG, { aCada: Math.max(5, Math.round(SEG / 5)) });
   await bot.parar();
 
-  // "imóvel" só é defeito se estiver perto. Um inimigo parado a 900px, no
-  // meio do spawn, é o `spawnDelay` dele — não é trava. Medir sem a distância
-  // acusava a Cidade com 4 inimigos travados quando nenhum deles estava perto
-  // do jogador, e o número não dizia nada.
+  // "imóvel" só é defeito em três condições: estar perto do jogador, estar no
+  // chão E já ter passado o `spawnDelay` (senão é um inimigo que ainda nem
+  // nasceu andando). Medir sem as três acusava 6 fases com problema quando não
+  // havia nenhum — a primeira versão deste arquivo fez exatamente isso.
   let dentroParede = 0;
   const historico = new Map();
   for (let k = 0; k < 5; k++) {
@@ -83,14 +83,16 @@ for (let fase = 0; fase < 9; fase++) {
       if (e.dentroDaParede) dentroParede++;
       const chave = `${e.tipo}:${e.x},${e.y}`;
       const anterior = historico.get(chave);
-      if (anterior) anterior.dist = Math.min(anterior.dist, e.dist);
-      else historico.set(chave, { dist: e.dist, tipo: e.tipo });
+      if (anterior) {
+        anterior.dist = Math.min(anterior.dist, e.dist);
+        anterior.spawnDelay = Math.max(anterior.spawnDelay, e.spawnDelay);
+      } else {
+        historico.set(chave, { dist: e.dist, tipo: e.tipo, spawnDelay: e.spawnDelay });
+      }
     }
     await page.waitForTimeout(500);
   }
-  // 5 amostras na MESMA coordenada = imóvel; e imóvel perto do jogador = trava
-  const todosImoveis = [...historico.entries()].filter(([, n]) => n !== undefined);
-  const colados = todosImoveis.filter(([, n]) => n.dist < 320);
+  const colados = [...historico.values()].filter((n) => n.dist < 320 && n.spawnDelay <= 0);
   const t = await page.evaluate(() => window.__ashfall.telemetria());
   presoPorFase.push({
     fase: cfg.fase,
@@ -102,7 +104,7 @@ for (let fase = 0; fase < 9; fase++) {
   const problemas = [];
   if (dentroParede) problemas.push(`${dentroParede} leitura(s) dentro de parede`);
   if (colados.length) {
-    const amostra = colados.slice(0, 3).map(([, n]) => `${n.tipo}@${n.dist}px`).join(', ');
+    const amostra = colados.slice(0, 3).map((n) => `${n.tipo}@${n.dist}px`).join(', ');
     problemas.push(`${colados.length} imóvel(is) perto: ${amostra}`);
   }
   console.log(

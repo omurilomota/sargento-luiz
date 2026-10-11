@@ -2588,6 +2588,10 @@ window.__ashfall = {
     raio: e.radius,
     celula: [colAt(e.x), rowAt(e.y)],
     dentroDaParede: isWall(colAt(e.x), rowAt(e.y)),
+    // `spawnDelay > 0` significa que ele AINDA não anda: medir "parado" sem
+    // isto acusava inimigo recém-nascido como travado, e o `sessao-diagnostico`
+    // acusava 6 fases com problema quando não havia nenhum.
+    spawnDelay: Number(e.spawnDelay.toFixed(2)),
   })),
   /** Posição do jogador em coordenadas de mundo — o dodge do `session.mjs` precisa. */
   playerPos: () => {
