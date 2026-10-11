@@ -4,7 +4,7 @@ import {
   repairCurrentWeapon, isJammed, getJamTimer, shoot, setWeapon, getCurrentAmmo,
   setWeaponQuality, canShoot, useAmmo, startReload, updateReload,
 } from '../weapons';
-import { initPlayer, resetPlayer, useMedkit, addMedkits, getMedkits, getPlayer, addArmor, getArmorLevel, enemyCollisionDamage } from '../entities/player';
+import { initPlayer, resetPlayerProgress, useMedkit, addMedkits, getMedkits, getPlayer, addArmor, getArmorLevel, enemyCollisionDamage } from '../entities/player';
 import { WEAPONS, QUALITIES, rollQuality } from '../config';
 
 vi.mock('../systems/audio', () => {
@@ -100,9 +100,9 @@ describe('qualidade da arma e o conserto do jam', () => {
   it('Quebrada derruba o dano pela metade e pode falhar o disparo', () => {
     const idx = WEAPONS.findIndex(w => w.name === 'Metralhadora');
     setWeapon(idx);
-    setWeaponQuality(idx, 'normal');
+    setWeapon(idx, 'normal');
     const bom = shoot(0, 0, 0, false)[0];
-    setWeaponQuality(idx, 'quebrada');
+    setWeaponQuality('quebrada');
     let falhou = false;
     let danoQuebrado: number | null = null;
     for (let i = 0; i < 200; i++) {
@@ -125,7 +125,7 @@ describe('qualidade da arma e o conserto do jam', () => {
     const idx = WEAPONS.findIndex(w => w.broken);
     expect(idx, 'nenhuma arma com broken: true no config').toBeGreaterThanOrEqual(0);
     setWeapon(idx);
-    setWeaponQuality(idx, 'normal');
+    setWeapon(idx, 'normal');
 
     // o pente tem 30 e o jam chega em 35: precisa recarregar no meio. Cuidado
     // para não chamar updateReload depois de encasquilhar, porque o próprio
@@ -151,7 +151,7 @@ describe('qualidade da arma e o conserto do jam', () => {
 describe('medkit: usa com H, respeita vida cheia e não vira negativo', () => {
   beforeEach(() => {
     initPlayer(1280, 720);
-    resetPlayer(1280, 720);
+    resetPlayerProgress();
   });
 
   it('não gasta medkit com a vida cheia', () => {
@@ -191,9 +191,9 @@ describe('medkit: usa com H, respeita vida cheia e não vira negativo', () => {
     expect(getMedkits()).toBe(9);
   });
 
-  it('resetPlayer zera os medkits', () => {
+  it('resetPlayerProgress zera os medkits', () => {
     addMedkits(3);
-    resetPlayer(1280, 720);
+    resetPlayerProgress();
     expect(getMedkits()).toBe(0);
   });
 });
@@ -201,7 +201,7 @@ describe('medkit: usa com H, respeita vida cheia e não vira negativo', () => {
 describe('armadura absorve dano de colisão sem zerar', () => {
   beforeEach(() => {
     initPlayer(1280, 720);
-    resetPlayer(1280, 720);
+    resetPlayerProgress();
   });
 
   it('50% de armadura corta o dano pela metade', () => {

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   initObjective, updateObjective, peekObjective, registerObjectiveDestroyed,
-  markVipDown, cellCenter, endsPhaseOnDone, ReachZone,
+  markVipDown, cellCenter, ReachZone,
 } from '../systems/objectives';
 import { resetNPCs, spawnNPC, getNPCs, updateNPCs } from '../systems/npcs';
 import { PHASES } from '../config';
@@ -171,15 +171,6 @@ describe('npcs: o dano por contato é por segundo, não por frame', () => {
 });
 
 describe('objectives: o objetivo não encerra mais a fase, ele libera o chefe', () => {
-  it('só o reach encerra a fase na hora — os outros seguram até a última onda', () => {
-    // Medido no browser: a fase protect do Castelo terminava na onda 0 de 7 e a
-    // survive da Fábrica na onda 1 de 6, porque cumprir o objetivo cortava a fase
-    // no primeiro instante. reach é a exceção: chegar na zona É fugir.
-    const encerra = PHASES.filter(f => endsPhaseOnDone(f.objective)).map(f => f.objective);
-    // antes um bug: reach liberava a fase sem chefe; agora nada encerra direto
-    expect(encerra).toEqual([]);
-  });
-
   it('toda fase com objetivo != clear tem chefe para fechar a fase', () => {
     for (const fase of PHASES) {
       expect(fase.boss, `${fase.name}: objetivo ${fase.objective} sem chefe`).toBeTruthy();

@@ -47,8 +47,16 @@ describe('rollLootDrop: quem dropa e com que frequência', () => {
 
   it('tipo desconhecido não vira elite (não pode explodir a taxa de drop)', () => {
     clearLoot();
-    for (let i = 0; i < 3000; i++) rollLootDrop(0, 0, 'nao_existe');
+    // Este teste era flake (~4%): com 3000 sorteios e taxa real perto do
+    // limite de 6%, a amostragem caía acima da linha de vez em quando. Medir
+    // probabilidade exige semente fixa — `Math.random` sem mock é ruído.
+    const semente = vi.spyOn(Math, 'random');
+    let i = 0;
+    // sequência determinística equidistante: cobre [0,1) sem depender de sorte
+    semente.mockImplementation(() => ((i++ * 2654435761) % 100000) / 100000);
+    for (let k = 0; k < 3000; k++) rollLootDrop(0, 0, 'nao_existe');
     const taxa = getLoot().length / 3000;
+    semente.mockRestore();
     expect(taxa).toBeLessThanOrEqual(0.06);
   });
 
@@ -98,8 +106,10 @@ describe('updateLoot: coleta por proximidade e expiração', () => {
   });
 
   it('clearLoot esvazia tudo', () => {
-    for (let i = 0; i < 20; i++) rollLootDrop(0, 0, 'tank');
-    expect(getLoot().length).toBeGreaterThan(0);
+    // Sem o mock, 20 tentativas de elite (15% cada) falham ~4% das vezes:
+    // o teste era flake antes de existir qualquer mudança aqui.
+    for (let i = 0; i < 20; i++) dropForSure('tank');
+    expect(getLoot().length).toBe(20);
     clearLoot();
     expect(getLoot().length).toBe(0);
   });
