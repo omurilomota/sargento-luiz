@@ -95,11 +95,14 @@ for (let i = 0; i < 6; i++) {
 }
 const inicio = await page.evaluate(() => {
   const a = window.__ashfall;
-  return { estado: a.fase().estado, placar: a.placarLocal(), cena: a.cena() };
+  return { estado: a.fase().estado, placar: a.placarLocal(), p2: a.p2NaTela() };
 });
 checar('o modo local inicia com os dois jogadores',
   inicio.estado === 'playing' && inicio.placar.length === 2 && inicio.placar[1].vivo,
   `estado=${inicio.estado} · ${inicio.placar.map((j) => `${j.nome} ${j.vida}/${j.vidaMax}`).join(' · ')}`);
+checar('o P2 nasce na mesma tela que o P1',
+  inicio.p2?.dentro === true && Math.hypot(inicio.p2.dx, inicio.p2.dy) < 400,
+  inicio.p2 ? `a ${Math.round(Math.hypot(inicio.p2.dx, inicio.p2.dy))}px do P1 (${inicio.p2.dx}, ${inicio.p2.dy}), na viewport: ${inicio.p2.dentro}` : 'sem P2');
 
 // ─── 1. a partida rolando, com os dois vivos ───
 await page.mouse.move(LARGURA * 0.75, ALTURA * 0.4);

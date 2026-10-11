@@ -25,6 +25,11 @@ import { join } from 'path';
  * O total subiu de 58 para 65 em 2026-11 com `drawFimLocal` (tela de fim do
  * versus local). Os 7 são chrome: fundo e as duas barras de vida lado a lado.
  *
+ * Subiu para 67 no mesmo mês com `drawPlayer2`: sombra em elipse (efeito, a
+ * mesma do `drawPlayer`) e um círculo que só corre se a sprite do pack não
+ * carregar — fallback declarado. O corpo em si é sprite do Kenney, e o rótulo
+ * "P2" é texto.
+ *
  * Este portão NÃO substitui o olho: os harnesses visuais (`npm run visual`,
  * `npm run sessao`) continuam obrigatórios para mexer em render (regra 16).
  */
@@ -37,6 +42,7 @@ const RENDERER = join(__dirname, '..', 'systems', 'renderer.ts');
  */
 const PERMITIDAS: Record<string, string> = {
   drawPlayer: 'sombra, fulgor de morte, fallback de sprite e auras de status',
+  drawPlayer2: 'sombra em elipse e o círculo de fallback do sprite do P2 — o corpo é sprite do pack',
   drawEnemies: 'sombra em elipse, anel de chefe, flash de dano e barras de vida',
   drawNPCs: 'sombra, fallback de sprite, barra de vida e balão de fala',
   drawCutscene: 'letterbox, painel de escolha e fallback de retrato (comentado no código)',
@@ -72,8 +78,12 @@ const DEBITO: Record<string, { teto: number; motivo: string }> = {
  * `drawFimLocal`, e a alternativa seria uma barra desenhada como sprite — que
  * é pior: barra de vida é UI, muda de tamanho com a tela, e sprite para isso é
  *Shapesmith errado.
+ *
+ * 65 → 67 pelo P2 do versus (FUTURO §1.10): sombra em elipse e o círculo de
+ * fallback, os mesmos dois que `drawPlayer` já tem. O corpo continua vindo do
+ * pack — o que muda é que agora existe.
  */
-const TOTAL_ATUAL = 65;
+const TOTAL_ATUAL = 67;
 
 const METODOS = 'arc|ellipse|fillRect|strokeRect|roundRect|createRadialGradient|createLinearGradient';
 const CHAMADA = new RegExp(`\\.(?:${METODOS})\\(`);

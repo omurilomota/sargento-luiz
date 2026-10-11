@@ -7,6 +7,26 @@
 
 import { PLAYER_RADIUS, PLAYER_BASE_SPEED, PLAYER_BASE_HEALTH, BULLET_INVINCIBLE_DURATION } from '../core/constants';
 import { PALETTE } from '../core/palette';
+import { pushOutOfWalls } from './tilemap';
+
+/** Distância do P2 em relação ao P1 no nascimento (px). */
+const NASCER_LADO = 70;
+
+/**
+ * Onde o P2 nasce.
+ *
+ * Era `canvasWidth * 0.75` — com o mundo de 1920px, um ponto a ~530px do
+ * jogador que a câmera (que segue o P1) não alcança. "Mesmo teclado" quer dizer
+ * os dois na MESMA tela. O `pushOutOfWalls` trata do caso de o deslocamento
+ * fixo cair dentro de parede, que é o que um offset cego ignora.
+ */
+function nascerP2(baseX: number, baseY: number, worldW: number, worldH: number): { x: number; y: number } {
+  const livre = pushOutOfWalls(baseX - NASCER_LADO, baseY - NASCER_LADO * 0.5, PLAYER_RADIUS);
+  return {
+    x: Math.max(PLAYER_RADIUS, Math.min(worldW - PLAYER_RADIUS, livre.x)),
+    y: Math.max(PLAYER_RADIUS, Math.min(worldH - PLAYER_RADIUS, livre.y)),
+  };
+}
 
 /** Estado do segundo jogador */
 export interface LocalPlayer {
@@ -44,12 +64,21 @@ export function getPlayer2(): LocalPlayer | null {
 
 /**
  * Inicializa o modo multiplayer local.
+ *
+ * `baseX`/`baseY` são a posição do P1: o P2 nasce ao lado dele, não num canto
+ * do mapa (ver `nascerP2`). O padrão é o centro do mundo.
  */
-export function initLocalMultiplayer(canvasWidth: number, canvasHeight: number): void {
+export function initLocalMultiplayer(
+  canvasWidth: number,
+  canvasHeight: number,
+  baseX = canvasWidth / 2,
+  baseY = canvasHeight / 2,
+): void {
   enabled = true;
+  const nasc = nascerP2(baseX, baseY, canvasWidth, canvasHeight);
   player2 = {
-    x: canvasWidth * 0.75,
-    y: canvasHeight / 2,
+    x: nasc.x,
+    y: nasc.y,
     radius: PLAYER_RADIUS,
     speed: PLAYER_BASE_SPEED,
     health: PLAYER_BASE_HEALTH,
@@ -202,11 +231,17 @@ export function getPlacarLocal(vidaP1: number, vidaMaxP1: number): PlacarLocal[]
   ];
 }
 
-/** Reposiciona e revive o P2 para uma nova partida. */
-export function resetPlayer2(canvasWidth: number, canvasHeight: number): void {
+/** Reposiciona e revive o P2 para uma nova partida, ao lado do P1. */
+export function resetPlayer2(
+  canvasWidth: number,
+  canvasHeight: number,
+  baseX = canvasWidth / 2,
+  baseY = canvasHeight / 2,
+): void {
   if (!player2) return;
-  player2.x = canvasWidth * 0.75;
-  player2.y = canvasHeight / 2;
+  const nasc = nascerP2(baseX, baseY, canvasWidth, canvasHeight);
+  player2.x = nasc.x;
+  player2.y = nasc.y;
   player2.health = player2.maxHealth;
   player2.alive = true;
   player2.invincible = 0;

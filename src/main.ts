@@ -47,6 +47,7 @@ import { updateBoss, isBossTelegraphing, getBossTelegraphLabel, clearBossState }
 
 import {
   initRenderer, drawMenu, drawCutscene, drawGameOver, drawVictory, drawFimLocal, drawCredits, drawCoins as renderCoins,
+  drawPlayer2 as renderPlayer2,
   drawPowerUps as renderPowerUps, drawParticles as renderParticles, drawBullets as renderBullets,
   drawEnemies as renderEnemies, drawPlayer as renderPlayer, drawDamageNumbers, drawPhaseTransition,
   restoreCanvas, drawNPCs, drawBots, drawPause, menuIndexAt, getPauseIndex, movePause, PAUSE_OPTIONS, setPauseIndex, pauseOptionAt, setUiMouse,
@@ -489,7 +490,7 @@ function revancheLocal(): void {
   const p = player.getPlayer();
   player.healPlayer(p.maxHealth);
   p.invincible = 0;
-  resetPlayer2(worldW, worldH);
+  resetPlayer2(worldW, worldH, p.x, p.y);
   for (let i = enemies.length - 1; i >= 0; i--) enemies.splice(i, 1);
   clearBullets();
   playerDied = false;
@@ -1660,7 +1661,10 @@ function startRun(): void {
   // false em resetLocalMultiplayer(), que não era chamada em lugar nenhum. Então
   // jogar uma partida local e depois iniciar uma campanha deixava o P2 fantasma
   // ativo — e ele mata qualquer inimigo que encoste nele.
-  if (selectedMode === 'local') initLocalMultiplayer(worldW, worldH);
+  if (selectedMode === 'local') {
+    const p = player.getPlayer();
+    initLocalMultiplayer(worldW, worldH, p.x, p.y);
+  }
   else resetLocalMultiplayer();
   localTerminou = false;
   tabAberto = false;
@@ -1873,6 +1877,10 @@ function drawWorld(): void {
   if (getCurrentMode() === 'competitive') drawBots(getBots());
   renderBullets(getBullets());
   renderPlayer(p);
+  // o P2 do versus local: sem esta linha o modo anunciava "mesmo teclado" com
+  // um jogador que existia no estado e não aparecia em tela (FUTURO §1.10)
+  const p2 = isLocalEnabled() ? getPlayer2() : null;
+  if (p2) renderPlayer2(p2);
   drawDamageNumbers(damageNumbers);
   if (phase.hazard === 'darkness') {
     // caverna escura: overlay com um furo em volta do jogador, recortado com
@@ -2688,6 +2696,26 @@ window.__ashfall = {
   },
   /** Quem a tela de fim do versus está mostrando agora (null se não acabou). */
   fimLocal: () => fimLocal(),
+  /**
+   * O P2 em relação à câmera e ao P1.
+   *
+   * Existe porque "mesmo teclado" quer dizer os dois na MESMA tela, e o P2
+   * nascia em `worldW * 0.75` — longe da câmera, que segue o P1. A prova do
+   * versus precisa medir isso, não concluir pelo spawn: `pushOutOfWalls` move
+   * o ponto se ele cair em parede, e aí a distância muda.
+   */
+  p2NaTela: () => {
+    const p2v = getPlayer2();
+    if (!p2v) return null;
+    const p = player.getPlayer();
+    return {
+      x: Math.round(p2v.x),
+      y: Math.round(p2v.y),
+      dx: Math.round(p2v.x - p.x),
+      dy: Math.round(p2v.y - p.y),
+      dentro: isVisible(p2v.x, p2v.y, p2v.radius, p2v.radius),
+    };
+  },
   /** Posição do jogador em coordenadas de mundo — o dodge do `session.mjs` precisa. */
   playerPos: () => {
     const p = player.getPlayer();

@@ -1238,6 +1238,49 @@ export function drawPlayer(player: Player): void {
   }
 }
 
+/**
+ * Desenha o segundo jogador do versus local.
+ *
+ * O P2 existe no estado desde outubro de 2026 — nasce, anda com as setas,
+ * atira com L, leva dano e ganha — e nunca foi desenhado: esta função não
+ * existia, então "LOCAL 2P" anunciava um jogador invisível. O rótulo é o que
+ * separa os dois corpos, porque o pack tem um personagem só de jogador e a
+ * paleta dá ao P2 o azul-pedra.
+ *
+ * É o mesmo caminho de sprite do `drawPlayer`, sem arte nova em código: sombra
+ * (efeito) e um círculo que só entra se o sprite não carregar (fallback).
+ */
+export function drawPlayer2(p2: { x: number; y: number; radius: number; angle: number; alive: boolean }): void {
+  if (!p2.alive) return;
+
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.beginPath();
+  ctx.ellipse(p2.x, p2.y + p2.radius * 0.7, p2.radius * 0.8, p2.radius * 0.3, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  const img = isSpritesEnabled() ? getSprite(poseKey('survivor', 'gun')) : null;
+
+  ctx.save();
+  ctx.translate(p2.x, p2.y);
+  ctx.rotate(p2.angle);
+  if (img) {
+    drawSpriteFit(ctx, img, 0, 0, p2.radius * 2.5, 0);
+  } else {
+    // fallback declarado: só entra se a sprite do pack não carregar
+    ctx.fillStyle = PALETTE.stone;
+    ctx.beginPath();
+    ctx.arc(0, 0, p2.radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  ctx.fillStyle = PALETTE.stone;
+  ctx.font = '11px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('P2', p2.x, p2.y - p2.radius - 8);
+  ctx.textAlign = 'left';
+}
+
 export function drawDamageNumbers(damageNumbers: { x: number; y: number; text: string; color: string; life: number; vy: number }[]): void {
   for (const d of damageNumbers) {
     ctx.globalAlpha = Math.min(1, d.life / 0.5);
