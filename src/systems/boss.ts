@@ -1,0 +1,291 @@
+/**
+ * src/systems/boss.ts
+ *
+ * Executes o padrão data-driven do boss (`EnemyType.pattern`), substituindo o
+ * `if (isBoss)` por faixa de HP que vivia dentro do `main.ts`.
+ *
+ * A troca de fase dispara uma janela de telegrafia antes da nova ação — é o que
+ * faz um boss parecer "com mecânica" em vez de "com 3 números de HP".
+ */
+
+import { Enemy } from '../types';
+import { ENEMY_TYPES } from '../config';
+import { spawnBullet } from '../entities/bullet';
+import { spawnParticles } from './particles';
+import { PALETTE } from '../core/palette';
+import { spawnEnemy } from './spawner';
+import { detonateProp, getProps, igniteBarrel } from './props';
+import { moveCircleBy, pushOutOfWalls, isWall, colAt, rowAt, sampleFlowDir } from './tilemap';
+
+/** Intervalo base entre ações do boss (segundos) */
+const ACTION_INTERVAL = 3.4;
+/** Tempo de recarga da investida (charge) em segundos */
+const CHARGE_SPEED = 620;
+const CHARGE_TIME = 0.75;
+/** Telegrafia padrão quando `EnemyType.telegraph` não vem definido */
+const DEFAULT_TELEGRAPH = 0.8;
+
+/** Estado de execução por inimigo (indexado por identidade do objeto) */
+interface BossRuntime {
+  /** Índice da etapa atual do padrão */
+  step: number;
+  /** Tempo restante da telegrafia antes da próxima ação */
+  telegraph: number;
+  /** Rótulo exibido durante a telegrafia */
+  telegraphLabel: string;
+  /** Tempo restante da investida (charge) */
+  charge: number;
+  /** Direção da investida */
+  chargeAngle: number;
+  /** Cooldown até a próxima ação */
+  timer: number;
+  /** Tempo de recarga das minas */
+  mineTimer: number;
+  /**true enquanto o boss está em telegrafia */
+  flashing: boolean;
+}
+
+const runtimes = new WeakMap<Enemy, BossRuntime>();
+
+/** Aleatoriedade injetável para os testes. */
+let randFn: () => number = Math.random;
+export function setBossRandom(fn: () => number): void {
+  randFn = fn;
+}
+
+/**
+ * Executa um passo de ação do boss.
+ * @returns inimigos invocados durante este frame (para o main adicionarem)
+ */
+export function updateBoss(
+  e: Enemy,
+  tx: number,
+  ty: number,
+  worldW: number,
+  worldH: number,
+  elapsed: number
+): Enemy[] {
+  const spawned: Enemy[] = [];
+  const def = ENEMY_TYPES[e.type];
+  if (!def?.pattern || def.pattern.length === 0) return spawned;
+
+  let rt = runtimes.get(e);
+  if (!rt) {
+    rt = {
+      // step começa fora de qualquer faixa: se valer 0, `step.index !== rt.step`
+      // é falso no primeiro frame e o chefe nunca telegrafa a PRIMEIRA ação —
+      // ele fica 2.6s em silêncio e ataca sem aviso. -1 força a entrada na
+      // faixa 0 com janela de leitura, que é o que o padrão promete.
+      step: -1,
+      telegraph: 0,
+      telegraphLabel: '',
+      charge: 0,
+      chargeAngle: 0,
+      timer: ACTION_INTERVAL,
+      mineTimer: 0,
+      flashing: false,
+    };
+    runtimes.set(e, rt);
+  }
+
+  const hpPct = e.health / e.maxHealth;
+  const step = currentStep(def.pattern, hpPct);
+  if (step.index !== rt.step) {
+    rt.step = step.index;
+    // telegrafia 0.2s menor: mantém a leitura mas cobra punho rápido
+    rt.telegraph = Math.max(0.4, (def.telegraph ?? DEFAULT_TELEGRAPH) - 0.2);
+    rt.telegraphLabel = step.step.telegraph ?? '';
+    rt.flashing = true;
+    rt.timer = ACTION_INTERVAL;
+  }
+
+  if (rt.flashing) {
+    rt.telegraph -= elapsed;
+    // durante a telegrafia o boss recua: dá espaço para o jogador ler a ação.
+    // Precisa resolver contra o grid — recuar sem colisão enterrava o boss na
+    // parede e ele ficava congelado ali para sempre.
+    const away = Math.atan2(e.y - ty, e.x - tx);
+    const moved = moveCircleBy(
+      e.x, e.y,
+      Math.cos(away) * def.speed * 0.5 * elapsed,
+      Math.sin(away) * def.speed * 0.5 * elapsed,
+      e.radius,
+    );
+    e.x = moved.x;
+    e.y = moved.y;
+    if (rt.telegraph <= 0) {
+      rt.flashing = false;
+      rt.timer = ACTION_INTERVAL * 0.4;
+    }
+    return spawned;
+  }
+
+  if (rt.charge > 0) {
+    rt.charge -= elapsed;
+    // resolve contra o grid como o jogador: sem isso o chefe atravessa parede
+    // e a arena deixa de existir. Na Cidade a praça é cercada e o VIGIA
+    // atravessava a parede no primeiro ataque — exatamente o momento em que o
+    // jogador está sendo ensinado a usar cobertura.
+    const next = moveCircleBy(
+      e.x, e.y,
+      Math.cos(rt.chargeAngle) * CHARGE_SPEED * elapsed,
+      Math.sin(rt.chargeAngle) * CHARGE_SPEED * elapsed,
+      e.radius,
+    );
+    e.x = next.x;
+    e.y = next.y;
+    if (rt.charge <= 0) {
+      rt.charge = 0;
+      const out = pushOutOfWalls(e.x, e.y, e.radius);
+      e.x = out.x;
+      e.y = out.y;
+    }
+    return spawned;
+  }
+
+  // entre ações o boss persegue o jogador pelo flow field — antes ele ficava
+  // estático todo o intervalo do timer, como um espantalho
+  const flow = sampleFlowDir(e.x, e.y);
+  const distToPlayer = Math.hypot(tx - e.x, ty - e.y);
+  let seekX = 0;
+  let seekY = 0;
+  if (distToPlayer < 140) {
+    const len = distToPlayer || 1;
+    seekX = (tx - e.x) / len;
+    seekY = (ty - e.y) / len;
+  } else if (flow.x !== 0 || flow.y !== 0) {
+    seekX = flow.x;
+    seekY = flow.y;
+  } else {
+    const len = distToPlayer || 1;
+    seekX = (tx - e.x) / len;
+    seekY = (ty - e.y) / len;
+  }
+  if (seekX !== 0 || seekY !== 0) {
+    const next = moveCircleBy(
+      e.x, e.y,
+      seekX * def.speed * 0.6 * elapsed,
+      seekY * def.speed * 0.6 * elapsed,
+      e.radius,
+    );
+    e.x = next.x;
+    e.y = next.y;
+  }
+
+  rt.timer -= elapsed;
+  if (rt.timer > 0) return spawned;
+  rt.timer = ACTION_INTERVAL;
+
+  const action = step.step.action;
+  const angle = Math.atan2(ty - e.y, tx - e.x);
+  const speed = def.bulletSpeed ?? 300;
+  const color = def.projectileColor ?? PALETTE.terracotta;
+  const dmg = e.damage * 1.3;
+
+  switch (action) {
+    case 'spread':
+      for (let s = -2; s <= 2; s++) {
+        const a = angle + s * 0.14;
+        spawnBullet(e.x, e.y, Math.cos(a) * speed * 1.1, Math.sin(a) * speed * 1.1, dmg, true, color, false);
+      }
+      break;
+    case 'ring':
+      for (let s = 0; s < 8; s++) {
+        const a = (s * Math.PI * 2) / 12 + e.angle;
+        spawnBullet(e.x, e.y, Math.cos(a) * speed, Math.sin(a) * speed, dmg * 0.7, true, color, false);
+      }
+      break;
+    case 'sweep': {
+      const dir = randFn() > 0.5 ? 1 : -1;
+      for (let s = 0; s < 9; s++) {
+        const a = angle + s * 0.09 * dir;
+        spawnBullet(e.x, e.y, Math.cos(a) * speed * 0.9, Math.sin(a) * speed * 0.9, dmg * 0.6, true, color, false);
+      }
+      break;
+    }
+    case 'charge':
+      rt.charge = CHARGE_TIME;
+      rt.chargeAngle = angle;
+      break;
+    case 'summon': {
+      for (let i = 0; i < 2; i++) {
+        // offset fixo caía dentro de prédio e o minion ficava preso: valida
+        // contra o grid e cai para a célula livre mais próxima do boss
+        let mx = e.x + (i - 1) * 40;
+        let my = e.y + 40;
+        if (isWall(colAt(mx), rowAt(my))) {
+          const out = pushOutOfWalls(mx, my, 16);
+          mx = out.x;
+          my = out.y;
+        }
+        const minion = spawnEnemy(
+          randFn() > 0.5 ? 'runner' : 'drone',
+          worldW, worldH, 3,
+          mx, my
+        );
+        if (minion) {
+          const out = pushOutOfWalls(minion.x, minion.y, minion.radius);
+          minion.x = out.x;
+          minion.y = out.y;
+          spawned.push(minion);
+        }
+      }
+      spawnParticles(e.x, e.y, color, 14, 180);
+      break;
+    }
+    case 'mines':
+      for (let i = 0; i < 5; i++) {
+        const a = (i * Math.PI * 2) / 5;
+        spawnBullet(e.x + Math.cos(a) * 40, e.y + Math.sin(a) * 40,
+          Math.cos(a) * 90, Math.sin(a) * 90, dmg * 0.5, true, color, false);
+      }
+      for (const p of getProps()) {
+        if (p.kind === 'barrel' && p.health > 0) igniteBarrel(p);
+      }
+      break;
+    case 'split':
+      for (let i = 0; i < 3; i++) {
+        const a = angle + (i * Math.PI) / 2;
+        spawnBullet(e.x, e.y, Math.cos(a) * speed * 0.8, Math.sin(a) * speed * 0.8, dmg * 0.8, true, color, false);
+      }
+      break;
+  }
+
+  // 'mines' também funde props próximos ao boss — a arena fica combustível
+  if (action === 'mines' || action === 'charge') {
+    for (const p of getProps()) {
+      if (p.kind === 'barrel' && p.health > 0 && Math.hypot(p.x - e.x, p.y - e.y) < e.radius + 40) {
+        detonateProp(p);
+      }
+    }
+  }
+
+  return spawned;
+}
+
+function currentStep(pattern: { atHp: number; action: string; telegraph?: string }[], hpPct: number) {
+  let index = 0;
+  for (let i = 0; i < pattern.length; i++) {
+    if (hpPct <= pattern[i].atHp) index = i;
+  }
+  const step = pattern[Math.min(index, pattern.length - 1)];
+  return { index: Math.min(index, pattern.length - 1), step: step as { atHp: number; action: string; telegraph?: string } };
+}
+
+/** Limpa o estado de um boss (usado quando ele morre). */
+export function clearBossState(e: Enemy): void {
+  runtimes.delete(e);
+}
+
+/**
+ * Retorna se o boss está em janela de telegrafia (para o HUD piscar).
+ */
+export function isBossTelegraphing(e: Enemy): boolean {
+  return runtimes.get(e)?.flashing ?? false;
+}
+
+/** Texto da ação que vem a seguir, para a barra de boss. */
+export function getBossTelegraphLabel(e: Enemy): string {
+  const rt = runtimes.get(e);
+  return rt?.flashing ? rt.telegraphLabel : '';
+}

@@ -6,34 +6,43 @@
 // ─── Screen Shake ────────────────────────────────────────────
 let screenShakeIntensity = 0;
 let screenShakeDuration = 0;
+let screenShakeMaxDuration = 0;
 
 /**
  * Ativa screen shake.
- * @param intensity - força do tremor (1-20)
  * @param duration - duração em segundos
  */
 export function triggerScreenShake(intensity: number, duration: number): void {
   screenShakeIntensity = Math.max(screenShakeIntensity, intensity);
   screenShakeDuration = Math.max(screenShakeDuration, duration);
+  screenShakeMaxDuration = Math.max(screenShakeMaxDuration, duration);
 }
 
 /**
- * Atualiza o screen shake. Chamar a cada frame.
- * @param dt - delta time em segundos
- * @returns deslocamento {x, y} para aplicar no canvas
+ * Atualiza o screen shake. Chamar a cada frame e passar o resultado ao draw.
+ * O envelope é linear no tempo restante: sem isso o tremor é um degrau que
+ * some do nada (e, antes, nem era aplicado — `{x:0, y:0}` fixo no main).
+ * @returns deslocamento {x, y} para aplicar na transformação do mundo
  */
 export function updateScreenShake(dt: number): { x: number; y: number } {
-  if (screenShakeDuration > 0) {
-    screenShakeDuration -= dt;
-    const decay = screenShakeDuration > 0 ? 1 : 0;
-    const x = (Math.random() - 0.5) * screenShakeIntensity * 2 * decay;
-    const y = (Math.random() - 0.5) * screenShakeIntensity * 2 * decay;
-    if (screenShakeDuration <= 0) {
-      screenShakeIntensity = 0;
-    }
-    return { x, y };
+  if (screenShakeDuration <= 0) {
+    screenShakeIntensity = 0;
+    screenShakeMaxDuration = 0;
+    return { x: 0, y: 0 };
   }
-  return { x: 0, y: 0 };
+  screenShakeDuration -= dt;
+  if (screenShakeDuration <= 0) {
+    screenShakeDuration = 0;
+    screenShakeIntensity = 0;
+    screenShakeMaxDuration = 0;
+    return { x: 0, y: 0 };
+  }
+  const envelope = screenShakeMaxDuration > 0 ? screenShakeDuration / screenShakeMaxDuration : 1;
+  const mag = screenShakeIntensity * envelope;
+  return {
+    x: (Math.random() - 0.5) * 2 * mag,
+    y: (Math.random() - 0.5) * 2 * mag,
+  };
 }
 
 // ─── Flash Overlay ───────────────────────────────────────────
@@ -69,7 +78,6 @@ export function triggerBossKillFlash(): void {
 
 /**
  * Atualiza o flash. Chamar a cada frame.
- * @param dt - delta time
  * @returns string de cor para draw, ou null se não há flash
  */
 export function updateFlash(dt: number): string | null {
@@ -85,7 +93,6 @@ export function updateFlash(dt: number): string | null {
 // ─── Slow Motion ─────────────────────────────────────────────
 let slowMotionScale = 1;
 let slowMotionDuration = 0;
-let slowMotionTarget = 1;
 
 /**
  * Ativa slow motion.
@@ -95,13 +102,10 @@ let slowMotionTarget = 1;
 export function triggerSlowMotion(scale: number, duration: number): void {
   slowMotionScale = scale;
   slowMotionDuration = duration;
-  slowMotionTarget = 1;
 }
 
 /**
  * Atualiza slow motion. Chamar a cada frame.
- * @param dt - delta time original
- * @returns dt ajustado
  */
 export function updateSlowMotion(dt: number): number {
   if (slowMotionDuration > 0) {
@@ -127,7 +131,6 @@ export function triggerHitStop(duration: number): void {
 
 /**
  * Atualiza hit stop. Chamar a cada frame.
- * @param dt - delta time
  * @returns true se o jogo está congelado
  */
 export function updateHitStop(dt: number): boolean {
@@ -137,8 +140,6 @@ export function updateHitStop(dt: number): boolean {
   }
   return false;
 }
-
-// ─── Reset ───────────────────────────────────────────────────
 
 // ─── Boss Zoom ───────────────────────────────────────────────
 let bossZoomActive = false;
@@ -173,6 +174,7 @@ export function updateBossZoom(dt: number): number {
 export function resetEffects(): void {
   screenShakeIntensity = 0;
   screenShakeDuration = 0;
+  screenShakeMaxDuration = 0;
   flashDuration = 0;
   slowMotionScale = 1;
   slowMotionDuration = 0;

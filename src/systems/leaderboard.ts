@@ -15,7 +15,7 @@ interface LeaderboardEntry {
   date: string;
 }
 
-const STORAGE_KEY = 'bubbleShooter_leaderboard';
+const STORAGE_KEY = 'rios.leaderboard';
 const MAX_ENTRIES = 10;
 
 /**
@@ -57,9 +57,3 @@ export function addLeaderboardEntry(name: string, score: number, waves: number):
   return trimmed[0]?.score === score && trimmed[0]?.name === name;
 }
 
-/**
- * Limpa o leaderboard.
- */
-export function clearLeaderboard(): void {
-  localStorage.removeItem(STORAGE_KEY);
-}

@@ -1,0 +1,372 @@
+/**
+ * src/maps.ts — dados puros dos mapas.
+ *
+ * Cada mapa é uma grade de 30 colunas × 20 linhas de 64px (1920×1280 px),
+ * maior que a tela em quase todo monitor. O jogo desenha o terreno uma vez
+ * num canvas offscreen e só faz um `drawImage` por frame.
+ *
+ * Legenda:
+ *   `#` parede · `.` chão · `,` chão decorativo · `^` hazard
+ *   `c` caixote (destrutível) · `b` barril (explosivo)
+ *   `P` spawn do jogador · `E` zona de spawn de inimigo
+ *   `B` spawn de boss · `N` ninho/objetivo · `R` zona de extração (reach)
+ *
+ * Convenção obrigatória: borda fechada de `#` em volta de tudo. O teste
+ * `mapValidation.test.ts` falha se alguma linha tiver tamanho diferente,
+ * se `P` estiver em parede, ou se não existir caminho de `P` até todo `B`/`N`.
+ */
+
+import { HazardKind } from './types';
+
+/** Tamanho de uma célula do mapa em pixels */
+export const CELL_SIZE = 64;
+
+/** Tipos de tile que o tilemap entende */
+export type TileKind = 'wall' | 'floor' | 'decor' | 'hazard' | 'crate' | 'barrel';
+
+/** Material do piso, do pack Top Down Dungeon (Screaming Brain, CC0). */
+export type DungeonFloor =
+  | 'piso_pedra' | 'piso_pedra2' | 'piso_terra' | 'piso_terra2'
+  | 'piso_areia' | 'piso_grama' | 'piso_metal' | 'piso_madeira';
+
+/** Material da parede, do mesmo pack. */
+export type DungeonWall =
+  | 'parede_pedra' | 'parede_tijolo' | 'parede_concreto'
+  | 'parede_metal' | 'parede_terra' | 'parede_areia';
+
+export interface MapDef {
+  /** Linhas do mapa (30 × 20) */
+  rows: string[];
+  /** Cor base do chão antes do tint */
+  floor: string;
+  /** Cor da parede (desenhada proceduralmente) */
+  wall: string;
+  /** Cor de acento do bioma (usada no tint, props e HUD) */
+  accent: string;
+  /** Cor aplicada como `multiply` no prerender (tinta do bioma) */
+  tint: string;
+  /** Tiles de chão do Kenney curtados visualmente (números existentes) */
+  floorTiles: number[];
+  /**
+   * Material do chão com textura real. Os `floorTiles` do Kenney são 87%
+   * chapados (medido: 453 de 520 sem nenhuma textura), e é daí que vem a
+   * costura de 64px visível no chão. Estes têm rejunte, mancha e grão.
+   */
+  dungeonFloor: DungeonFloor;
+  /** Material da parede com textura real. */
+  dungeonWall: DungeonWall;
+  /** Corpo do caixote. Sem isto todo bioma repete o mesmo caixote bege. */
+  propCrate: string;
+  /** Tampa e cinta do barril */
+  propBarrel: string;
+  /** Cor da granulação de desgaste sobreposta no prerender */
+  grain: string;
+  /** Densidade da granulação (0 = sem granulação) */
+  grainAlpha: number;
+  /** Cor de fundo fora dos limites do mapa (o "void") */
+  void: string;
+}
+
+export interface Biome extends MapDef {
+  key: string;
+  name: string;
+  hazard: HazardKind;
+  /** Cor do hazard quando ativo */
+  hazardColor: string;
+}
+
+export const BIOMES: Record<string, Biome> = {
+  cidade: {
+    key: 'cidade', name: 'Cidade em Ruínas', hazard: 'debris', hazardColor: '#8a7a60',
+    floor: '#2a2521', wall: '#5d5340', accent: '#a08050', tint: '#e8e0d4',
+    floorTiles: [13, 15, 349, 350, 376, 377],
+    dungeonFloor: 'piso_pedra2', dungeonWall: 'parede_concreto',
+    propCrate: '#6a5a48', propBarrel: '#5a4a3a',
+    grain: '#1a1714', grainAlpha: 0.18, void: '#08080a',
+    rows: [
+      '##############################',
+      '#......E.,..........E........#',
+      '#..####...####...####........#',
+      '#..####...####...####.b####..#',
+      '#..####...####...####..####..#',
+      '#..####..........####..####.,#',
+      '#...c,...........####,.####E.#',
+      '#.....c................####..#',
+      '#..####...###..#####.,,......#',
+      '#..####...###..#####....E..,.#',
+      '#,.####...###..#####..#####..#',
+      '#..####...###..#####..#####..#',
+      '#....b....###..Eb............#',
+      '#b...........b.c...##....##..#',
+      '#..######......P.............#',
+      '#..######.c#####......B......#',
+      '#..######b.#####...##....##..#',
+      '#..######..#####c............#',
+      '#.......E....................#',
+      '##############################',
+    ],
+  },
+
+  floresta: {
+    key: 'floresta', name: 'Floresta', hazard: 'fog', hazardColor: '#8a9a8a',
+    floor: '#1e2718', wall: '#42502e', accent: '#7a9a6a', tint: '#e0e8d4',
+    floorTiles: [1, 2, 3, 4, 17, 18],
+    dungeonFloor: 'piso_grama', dungeonWall: 'parede_terra',
+    propCrate: '#5a4c34', propBarrel: '#4a3f2a',
+    grain: '#141c10', grainAlpha: 0.22, void: '#060806',
+    rows: [
+      '##############################',
+      '#cE..............,..b....###E#',
+      '#...###,...###c....###...###.#',
+      '#,..###.b..###....#####..###.#',
+      '#..,###....###....#####.b....#',
+      '#..###..b.....E...#####...c..#',
+      '#.#####.......###..###..###..#',
+      '#.#####..,...#####......###..#',
+      '#.#####.c....#####..,...###..#',
+      '#..###.......#####...........#',
+      '#............####.....,....E.#',
+      '#.E...###..........,.....###.#',
+      '#....#####........###.,..###.#',
+      '#....#####.......#####...###.#',
+      '#..c.#####..,....#####.......#',
+      '#,..B.###........#####,......#',
+      '#..###,.....###...###.###.cE.#',
+      '#..###c.....###..c....###....#',
+      '#..###N.....###P......###N...#',
+      '##############################',
+    ],
+  },
+
+  caverna: {
+    key: 'caverna', name: 'Caverna', hazard: 'darkness', hazardColor: '#608090',
+    floor: '#1b1d26', wall: '#3d4350', accent: '#608090', tint: '#dde4f0',
+    floorTiles: [31, 32, 58, 59, 169, 178],
+    dungeonFloor: 'piso_pedra', dungeonWall: 'parede_pedra',
+    propCrate: '#4a4a52', propBarrel: '#3e3e46',
+    grain: '#0e1016', grainAlpha: 0.3, void: '#05050a',
+    rows: [
+      '##############################',
+      '#.....E.....,...c.......Ec...#',
+      '#.#.#####.#####.#####.######.#',
+      '#.#.#####.#####.#####.######.#',
+      '#....#.....#.....#c....#.c...#',
+      '#....#....b#N....#.....#.....#',
+      '#.#.#####.#####E#####,######.#',
+      '#.#.#####.#####.#####.######.#',
+      '#...,#.....#....b#c....#...,.#',
+      '#....#E....#....,#..N..#.....#',
+      '#.#.#####.#####.#####.######.#',
+      '#.#.#####.#####.#####.######.#',
+      '#...,#.....#.....#..c..#.....#',
+      '#....#....N#.....#.....#E....#',
+      '#.#.#####.#####.#####.######.#',
+      '#.#.#####.#####.#####.######.#',
+      '#....#.....#b....#.....#.....#',
+      '#....#E....#....,#....,#B....#',
+      '#..............P.,.......,...#',
+      '##############################',
+    ],
+  },
+
+  fabrica: {
+    key: 'fabrica', name: 'Fábrica', hazard: 'electric', hazardColor: '#b07050',
+    floor: '#241f1d', wall: '#524840', accent: '#a08050', tint: '#ece2d8',
+    floorTiles: [35, 36, 37, 62, 63, 64],
+    dungeonFloor: 'piso_metal', dungeonWall: 'parede_metal',
+    propCrate: '#5a5450', propBarrel: '#48433f',
+    grain: '#181210', grainAlpha: 0.2, void: '#070707',
+    rows: [
+      '##############################',
+      '#...E..........c.,.......c...#',
+      '#.....#...,............#..E..#',
+      '#.....#.^#..#..#..#.^#.#.....#',
+      '#b....#..#..#.E#..#..#b#.....#',
+      '#.....#........,.......#.....#',
+      '#.....##^###########^###.....#',
+      '#.....#................#.....#',
+      '#....b#..#..#..#..#..#c#.....#',
+      '#.E...#.^#..#c.#..#.^#.#.....#',
+      '#.....#...........c....#.....#',
+      '#.....#................#.....#',
+      '#.....##^###########^###.....#',
+      '#.....#....c.......c...#.....#',
+      '#.b...#..#..#..#..#,.#.#...E.#',
+      '#.....#.^#..#..#..#.^#.#.....#',
+      '#.....#.............,..#.....#',
+      '#...E.#................#.....#',
+      '#..b....B......P.........,...#',
+      '##############################',
+    ],
+  },
+
+  pantano: {
+    key: 'pantano', name: 'Pântano', hazard: 'mud', hazardColor: '#5a7a5a',
+    floor: '#18231e', wall: '#37483c', accent: '#5a7a5a', tint: '#dcece2',
+    floorTiles: [19, 20, 76, 77],
+    dungeonFloor: 'piso_terra2', dungeonWall: 'parede_tijolo',
+    propCrate: '#4a4436', propBarrel: '#3c382c',
+    grain: '#0e1512', grainAlpha: 0.26, void: '#050807',
+    rows: [
+      '##############################',
+      '#..E......................E.,#',
+      '#..###,.###.,......###..###..#',
+      '#..###..###........###..###..#',
+      '#..###..###........###..###..#',
+      '#..,.,..^^^^^^^...^^^^^^.....#',
+      '#.......c...b..E..........b..#',
+      '#....###,...###,.....###.....#',
+      '#....###....###,.....###...c.#',
+      '#.b..###..^^^^^^^....###.....#',
+      '#.....E......................#',
+      '#..###...,......###c...###...#',
+      '#..###.......cb.###....###...#',
+      '#.,###^^^^^^^...##^^^^^###...#',
+      '#.......................E..b.#',
+      '#......###.........###..c....#',
+      '#......###.........###.,.....#',
+      '#..E...###..^^^^^^^###.,.....#',
+      '#.......Bc.....P.c...........#',
+      '##############################',
+    ],
+  },
+
+  castelo: {
+    key: 'castelo', name: 'Castelo', hazard: 'spikes', hazardColor: '#8a8a7a',
+    floor: '#24231a', wall: '#524f33', accent: '#a08050', tint: '#f0e8c8',
+    floorTiles: [89, 90, 91, 92, 95, 334],
+    dungeonFloor: 'piso_pedra', dungeonWall: 'parede_tijolo',
+    propCrate: '#6a625a', propBarrel: '#565048',
+    grain: '#16150f', grainAlpha: 0.22, void: '#070706',
+    rows: [
+      '##############################',
+      '#...............c............#',
+      '#.##########################.#',
+      '#..,...#.....cE.......#....,.#',
+      '#......#....#..#..#...#......#',
+      '#......#...,#..#..#...#......#',
+      '#b.b...#######.########......#',
+      '#......#.^,^.^.^.^.^..#......#',
+      '#...E..#.,..#..#..#...#......#',
+      '#......#....#..#..#..b#......#',
+      '#......#.,............#....,.#',
+      '#......#######.########...c..#',
+      '#.....b#.^.^c^.^.^.^..#......#',
+      '#......#....#..#..#...#..E...#',
+      '#......#....#..#..#...#......#',
+      '#......#.......,......#......#',
+      '#..E..c#..............#...E..#',
+      '#.############.#############.#',
+      '#.....Bc..E...P..............#',
+      '##############################',
+    ],
+  },
+
+  vulcao: {
+    key: 'vulcao', name: 'Vulcão', hazard: 'lava', hazardColor: '#c46a3a',
+    floor: '#271915', wall: '#57362b', accent: '#c46a3a', tint: '#f0d8c0',
+    floorTiles: [77, 79, 80, 398],
+    dungeonFloor: 'piso_areia', dungeonWall: 'parede_pedra',
+    propCrate: '#4e3630', propBarrel: '#402c26',
+    grain: '#180a06', grainAlpha: 0.24, void: '#0a0403',
+    rows: [
+      '##############################',
+      '#....E...c.............bE....#',
+      '#............................#',
+      '#......c........,.........b..#',
+      '#...^^^^.....................#',
+      '#.....^.^^^............b...c.#',
+      '#....###.^.^^^.E.....###.....#',
+      '#....###.c..^.^^^^...###.....#',
+      '#....###.......^..^^^###.....#',
+      '#..E,..........^^^^..^^^.....#',
+      '#..........^^^^....,.^..^^...#',
+      '#.....^^^^^......c......^....#',
+      '#.........b..................#',
+      '#....b...........,........E..#',
+      '#......###..........###......#',
+      '#......###..........###......#',
+      '#......###..........###......#',
+      '#..R..E,........,............#',
+      '#........B.....P....b........#',
+      '##############################',
+    ],
+  },
+
+  espaco: {
+    key: 'espaco', name: 'Espaço', hazard: 'lowGravity', hazardColor: '#7a6a8a',
+    floor: '#15181f', wall: '#31374a', accent: '#7a6a8a', tint: '#d8e0f4',
+    floorTiles: [86, 93, 340, 361, 362, 363],
+    dungeonFloor: 'piso_metal', dungeonWall: 'parede_metal',
+    propCrate: '#3e4a52', propBarrel: '#333d45',
+    grain: '#080a10', grainAlpha: 0.28, void: '#040408',
+    rows: [
+      '##############################',
+      '#...E.c....c.............E...#',
+      '#.,...........b..............#',
+      '#..###........###.......###,.#',
+      '#..###........###.......###..#',
+      '#..###.......,###.......###..#',
+      '#.........,....E......b...b..#',
+      '#......,...#.................#',
+      '#............................#',
+      '#.E...b###..........###......#',
+      '#......###..........###.c..b.#',
+      '#......###..........###......#',
+      '#.......c....................#',
+      '#...............c#.........E.#',
+      '#..###...................###.#',
+      '#..###.....c.............###.#',
+      '#..###...........b.......###,#',
+      '#............#.E...........c.#',
+      '#..P......B.......c..........#',
+      '##############################',
+    ],
+  },
+
+  bunker: {
+    key: 'bunker', name: 'Bunker Central', hazard: 'none', hazardColor: '#a08050',
+    floor: '#1d1f24', wall: '#4a4d57', accent: '#a08050', tint: '#e8eaf0',
+    floorTiles: [40, 41, 67, 68, 86, 93],
+    dungeonFloor: 'piso_metal', dungeonWall: 'parede_concreto',
+    propCrate: '#52565a', propBarrel: '#43474b',
+    grain: '#101216', grainAlpha: 0.16, void: '#060607',
+    rows: [
+      '##############################',
+      '#............................#',
+      '#.##########################.#',
+      '#...E..#....,.#....c..#......#',
+      '#..............E...b.........#',
+      '#.....,#......#.......#......#',
+      '#..##.######.######,####.##b.#',
+      '#......#......#.....c.#......#',
+      '#............................#',
+      '#.............##......#...b..#',
+      '#..##.........##.##...##.##..#',
+      '#..##......B...E.##...#......#',
+      '#......##....................#',
+      '#......##.............#......#',
+      '#..##.######.######.####.##..#',
+      '#......#......#c......#....cc#',
+      '#...E..............,.........#',
+      '#.##########################.#',
+      '#..E,.........PE..b..........#',
+      '##############################',
+    ],
+  },
+};
+
+/**
+ * Converte um caractere da legenda no tipo de tile correspondente.
+ * `P`, `E`, `B`, `N` e `R` são chão andável por cima do seu conteúdo.
+ */
+export function tileKindAt(ch: string): TileKind {
+  switch (ch) {
+    case '#': return 'wall';
+    case ',': return 'decor';
+    case '^': return 'hazard';
+    case 'c': return 'crate';
+    case 'b': return 'barrel';
+    default: return 'floor';
+  }
+}

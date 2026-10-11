@@ -7,31 +7,70 @@
 import { PowerUp } from './types';
 import { POWERUP_TYPES } from './config';
 import { rand } from './utils';
+import { pushOutOfWalls } from './systems/tilemap';
+import { PICKUP_RADIUS, POWERUP_LIFE } from './core/constants';
 
 /** Lista de power-ups ativos no campo de batalha */
 export const powerups: PowerUp[] = [];
 /** Mapa de power-ups temporários ativos e seus tempos restantes (segundos) */
 export const activePowerups: Record<string, number> = {};
 
+/** Limpa o campo e os power-ups ativos. Usado no reset de partida. */
+export function resetPowerUps(): void {
+  powerups.length = 0;
+  for (const k in activePowerups) delete activePowerups[k];
+}
+
+/**
+ * Power-ups que NÃO entram no sorteio do drop comum.
+ *
+ * `invincible` dá 4s de imunidade total — tiro, contato, hazard, tudo — e um
+ * inimigo comum sorteado entre 12 tipos o entregava sem esforço. Tirar do
+ * sorteio não remove a mecânica: o chefe ainda pode dropar (ver `spawnPowerUpDeChefe`).
+ */
+const SEM_SORTEIO = ['invincible'];
+// trajeNucleo também fica fora do sorteio comum: é exclusivo da fase do NÚCLEO,
+// entregue por spawn direto — nunca por queda de inimigo aleatório.
+SEM_SORTEIO.push('trajeNucleo');
+
 /**
  * Cria um power-up aleatório na posição especificada.
  * O tipo é escolhido aleatoriamente entre todos os tipos disponíveis.
- * @param x - posição horizontal
- * @param y - posição vertical
  */
 export function spawnPowerUp(x: number, y: number) {
-  const types = Object.keys(POWERUP_TYPES);
-  const type = types[Math.floor(rand(0, types.length))];
-  powerups.push({ x, y, type, life: 12 });
+  const tipos = Object.keys(POWERUP_TYPES).filter(t => !SEM_SORTEIO.includes(t));
+  const type = tipos[Math.floor(rand(0, tipos.length))];
+  const at = pushOutOfWalls(x, y, PICKUP_RADIUS);
+  powerups.push({ x: at.x, y: at.y, type, life: POWERUP_LIFE });
+}
+
+/**
+ * Spawna um power-up de um tipo específico (não sorteado).
+ * Usado pelo traje de contenção da fase do NÚCLEO: um item de roteiro, não uma
+ * queda aleatória. Ainda passa pelo `pushOutOfWalls` — não pode nascer dentro
+ * de uma parede.
+ */
+export function spawnPowerUpDeTipo(x: number, y: number, type: string) {
+  const def = POWERUP_TYPES[type];
+  if (!def) return;
+  const at = pushOutOfWalls(x, y, PICKUP_RADIUS);
+  powerups.push({ x: at.x, y: at.y, type, life: POWERUP_LIFE });
+}
+
+/**
+ * Power-up de chefe: aqui o sorteio inclui `invincible`, porque o chefe já é
+ * a recompensa por limpar a fase.
+ */
+export function spawnPowerUpDeChefe(x: number, y: number) {
+  const tipos = Object.keys(POWERUP_TYPES);
+  const type = tipos[Math.floor(rand(0, tipos.length))];
+  const at = pushOutOfWalls(x, y, PICKUP_RADIUS);
+  powerups.push({ x: at.x, y: at.y, type, life: POWERUP_LIFE });
 }
 
 /**
  * Atualiza duração dos power-ups ativos e verifica coleta pelo jogador.
  * Remove power-ups que expiraram ou foram coletados.
- * @param dt - delta time em segundos
- * @param playerX - posição horizontal do jogador
- * @param playerY - posição vertical do jogador
- * @param playerRadius - raio de colisão do jogador
  * @param onCollect - callback chamado ao coletar um power-up (recebe o tipo)
  */
 export function updatePowerUps(dt: number, playerX: number, playerY: number, playerRadius: number, onCollect: (type: string) => void) {
@@ -59,64 +98,8 @@ export function updatePowerUps(dt: number, playerX: number, playerY: number, pla
 
 /**
  * Verifica se um power-up temporal está ativo.
- * @param type - tipo do power-up a verificar
  * @returns true se o power-up está ativo
  */
 export function hasPowerUp(type: string): boolean {
   return !!activePowerups[type];
-}
-
-/**
- * Desenha todos os power-ups no campo de batalha com efeito de flutuação.
- * @param ctx - contexto 2D do canvas
- */
-export function drawPowerUps(ctx: CanvasRenderingContext2D) {
-  for (const p of powerups) {
-    const def = POWERUP_TYPES[p.type];
-    const bob = Math.sin(Date.now() / 200 + p.x) * 3;
-    const alpha = Math.min(1, p.life / 2);
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = def.color;
-    ctx.shadowColor = def.color;
-    ctx.shadowBlur = 12;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y + bob, 12, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 12px monospace';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(def.symbol, p.x, p.y + bob);
-  }
-  ctx.globalAlpha = 1;
-}
-
-/**
- * Desenha os ícones dos power-ups ativos com tempo restante.
- * Posicionados no canto superior direito da tela.
- * @param ctx - contexto 2D do canvas
- * @param width - largura do canvas
- */
-export function drawActivePowerUps(ctx: CanvasRenderingContext2D, width: number) {
-  let x = width - 20;
-  for (const key in activePowerups) {
-    const def = POWERUP_TYPES[key];
-    const remaining = activePowerups[key];
-    ctx.fillStyle = def.color;
-    ctx.globalAlpha = 0.8;
-    ctx.beginPath();
-    ctx.arc(x, 30, 15, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 10px monospace';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(def.symbol, x, 30);
-    ctx.fillStyle = '#fff';
-    ctx.font = '10px monospace';
-    ctx.fillText(remaining.toFixed(1), x, 52);
-    x -= 35;
-  }
-  ctx.globalAlpha = 1;
 }

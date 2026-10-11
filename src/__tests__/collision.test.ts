@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { checkBulletEnemyCollisions, checkEnemyBulletPlayerCollision, checkEnemyPlayerCollision } from '../systems/collision';
+import { checkBulletEnemyCollisions, checkEnemyBulletPlayerCollision, checkEnemyPlayerCollision, pointSegmentDistSq, bulletHitsCircle } from '../systems/collision';
 import { dist } from '../utils';
 
 describe('dist', () => {
@@ -115,5 +115,46 @@ describe('checkEnemyPlayerCollision', () => {
 
     checkEnemyPlayerCollision(enemies as any, 12, 12, 10, 0, onHit);
     expect(onHit).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('colisão swept (tunneling)', () => {
+  it('pointSegmentDistSq retorna 0 quando o ponto está sobre o segmento', () => {
+    expect(pointSegmentDistSq(50, 50, 0, 50, 100, 50)).toBe(0);
+  });
+
+  it('pointSegmentDistSq usa a extremidade quando o ponto está fora do segmento', () => {
+    expect(pointSegmentDistSq(-10, 50, 0, 50, 100, 50)).toBe(100);
+    expect(pointSegmentDistSq(110, 50, 0, 50, 100, 50)).toBe(100);
+  });
+
+  it('acerta um inimigo que o projétil atravessou entre frames', () => {
+    // laser: 1200px/s a 60fps = 20px por frame. O inimigo está no MEIO do trajeto.
+    const bullet = { x: 100, y: 100, px: 80, py: 100, vx: 1200, vy: 0, isEnemy: false };
+    const enemy = { x: 90, y: 100, radius: 16, health: 10 };
+    const onHit = vi.fn();
+    checkBulletEnemyCollisions([bullet] as any, [enemy] as any, onHit);
+    expect(onHit).toHaveBeenCalledTimes(1);
+  });
+
+  it('não acerta quando o trajeto passa longe do inimigo', () => {
+    const bullet = { x: 100, y: 100, px: 80, py: 100, vx: 1200, vy: 0, isEnemy: false };
+    const enemy = { x: 90, y: 160, radius: 16, health: 10 };
+    const onHit = vi.fn();
+    checkBulletEnemyCollisions([bullet] as any, [enemy] as any, onHit);
+    expect(onHit).not.toHaveBeenCalled();
+  });
+
+  it('acerta projétil inimigo que atravessa o jogador entre frames', () => {
+    const bullet = { x: 300, y: 200, px: 280, py: 200, vx: 1200, vy: 0, isEnemy: true };
+    const onHit = vi.fn();
+    checkEnemyBulletPlayerCollision([bullet] as any, 290, 200, 18, 0, onHit);
+    expect(onHit).toHaveBeenCalledTimes(1);
+  });
+
+  it('bulletHitsCircle aceita trajeto com px/py ausentes (cai na posição atual)', () => {
+    const bullet = { x: 100, y: 100, vx: 0, vy: 0, isEnemy: false };
+    expect(bulletHitsCircle(bullet as any, 105, 100, 10)).toBe(true);
+    expect(bulletHitsCircle(bullet as any, 200, 100, 10)).toBe(false);
   });
 });

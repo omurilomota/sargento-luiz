@@ -58,6 +58,90 @@
 
 // --- ONLINE ---
 - [ ] Modo competitivo online para jogar com amigos.
+    (Decidido 2026-10-10: adiado. O formato seria coop, não competitivo — e
+    mesmo assim o usuário avaliou como distante. Não fazer por enquanto.)
+
+// --- OBJETIVO DE FASE ---
+// [x] 5 tipos de objetivo: clear, survive, destroy, protect, reach
+// [x] protect com fase (Castelo) e inimigo que caça o NPC (archer, huntsNpc)
+// [x] reach com fase (Vulcão) e zona de extração a 15 células do spawn
+// [x] protect não encerra a fase no 1o frame (latch "houve luta")
+// [x] NPC com dano por segundo, não por frame (30 DPS)
+// [x] protect: o objetivo não encerra mais a fase, ele libera o chefe
+// [x] protect: o sobrevivente cair reinicia a fase (não existe fim negativo)
+// [x] Marcador de boss no mundo: anel no chão, cor única terracota
+// [x] Cobertura real nas 9 fases; só o entulho da Cidade desmorona
+// [x] Paleta de props por bioma (antes 9 engradados bege iguais)
+// [x] Curva de balanceamento monotônica + balance.test.ts (9)
+// [x] 21 conquistas (13 -> 21) + achievements.test.ts (14)
+// [x] main.ts: update() de 463 para 252 linhas; init() duplicado removido
+// [x] props.test.ts (26) e terrain.test.ts (98)
+
+// --- FEEDBACK DO JOGADOR (sessão 2026-10-05) ---
+// [x] Crash ao sair da loja na última fase (getCurrentPhase() undefined)
+// [x] Continuar o save devolvia só a pistola: inventário, qualidades e upgrades
+// [x] Upgrades do mesmo efeito empilhavam (Dano +25% e +50% davam 1.75)
+// [x] Balanceamento: crítico ×2 -> ×1.5 com teto de 60%, pierce com teto de 3
+//     e -25% de dano, Laser e Raios com DPS abaixo de 40
+// [x] Inimigo melee morria ao encostar; agora briga (bate e apanha no contato)
+// [x] NPC atravessava parede (J alterna seguir/parar; protect faz todos caçarem)
+// [x] Medkit como item de inventário, tecla H
+// [x] Inimigos escalam com o tempo da fase
+// [x] Névoa da Floresta removida
+// [x] Bioma dá pró e contra nos 9 (o de dano recebido estava inerte, corrigido)
+// [x] Serviço "Reparar Arma" na loja
+// [x] Cobertura de teste: saveSystem (15), weapons (18), loot (12), biome (7)
+// [x] Tela preta ao comprar skin: auditada, caminho correto, sem alteração
+// [x] Som de tiro: 10 armas com estalo+corpo distintos e variação de pitch
+// [x] Parede vem de tile do pack nos 8 biomas (Floresta usa a copa de 181/209)
+// [x] Regra gravada no AGENTS.md: visual vem de asset, nunca de código
+// [x] Procedural restante — AUDITADO, não há dívida:
+//     drawHazard usa HAZARD_SPRITES com tile por hazard, e o desenho procedural
+//     só roda atrás de `if (img) return` (fallback de asset que não carregou).
+//     Os 7 tiles (260,265,264,268,316,319,320) existem no pack.
+//     drawDecor tem spriteFor com os 9 biomas; os 9 tiles existem.
+//     renderer: as arc/ellipse são sombra de sprite, anel de pulso e poeira —
+//     código legítimo. O corpo do jogador e do inimigo estão no `else` do sprite.
+//     darkness/lowGravity/none não marcam o chão por decisão de design
+//     (terrain.ts), não por falta de tile.
+// [x] Música real (Soundimage/Eric Matyas, livre com atribuição) no lugar da síntese do genmusic.py
+// [x] Retrato das cutscenes já usam sprites do personagem quando carregado (fallback só se faltar sprite)
+
+// --- BOSS ---
+// [x] VIGIA na Cidade em Ruínas (fase 1) — primeira luta ensina o mapa
+// [x] NÚCLEO no Bunker Central (fase 9) — chefe final, sem investida
+// [x] Arena de boss nos 2 mapas que não tinham (corredor de 13x3 e 1x28)
+// [x] Texto da telegrafia aparece na barra de boss (era dado morto)
+// [x] Primeira ação de cada chefe telegrafada (step do runtime = -1)
+// [x] Chefe não morre no contato: investida matava o chefe sozinho
+// [x] Investida resolve contra o grid (a praça do VIGIA ficou inútil sem isso)
+// [x] Lanterna da Caverna centralizada no jogador (overlay transladava 2x)
+// [x] Terreno não desloca mais em viewport maior que o mapa
+
+// --- SPRITES ---
+// [x] Protagonista segura a arma quando parado (pose pela classe da arma)
+// [x] Pose `reload` usada enquanto recarrega (estava carregada e sem uso)
+// [x] Pose armada no inimigo atirador fora do disparo
+// [x] Sem arma duplicada: a sprite weapon_* da ponta saiu
+// [x] Os 9 chefes com sprite do bioma (antes todos caíam no fallback 'zombie')
+// [x] assets.test.ts: pad de tile, 54 nomes de personagem, tipo sem sprite
+
+// --- HAZARDS ---
+// [x] fog (Floresta) deixa de ser número: vinheta larga em torno do jogador
+// [x] debris (Cidade) deixa de ser número: props seguram tiro e desmoronam
+// [x] Os 9 biomas têm efeito mecânico próprio (antes 6 de 9)
+
+// --- LOJA ---
+// [ ] Editor de fases visual: é uma ferramenta, não uma fase do jogo
+
+// --- GEOMETRIA (a maior pendência do projeto até v1.3) ---
+// [x] Tilemap 30×20 com colisão círculo-vs-grid e deslize por eixo
+// [x] Câmera com follow/clamp e conversão screen→mundo
+// [x] Flow field para IA (troca o seek direto que empilhava inimigos)
+// [x] Prerender do terreno com tint por bioma (1 drawImage/frame)
+// [x] Props destrutíveis: caixote, barril com explosão em cadeia, ninho
+// [x] 9 mapas autorais com hazard e objetivo próprios
+// [x] Colisão swept de projétil (Laser não atravessa mais inimigo)
 
 // --- HISTÓRIA / NARRATIVA ---
 - [x] Cutscenes com mais animação (fundo dinâmico por fase, retrato flutuando)
@@ -65,7 +149,6 @@
 - [x] Personagens secundários integrados ao gameplay (NPCs spawam aleatoriamente)
 
 // --- GAMEPLAY ---
-- [ ] Continuação do jogo estilo Zombotron (2D lateral)
 
 // --- VISUAL ---
 - [x] Tiles de terreno por fase (floresta, caverna, fábrica, pântano, castelo, vulcão, espaço)
@@ -106,11 +189,32 @@
 // --- Cenas ---
 // retratos dos personagens (Rios, Vale, Ferreira) para cutscenes
 
+// --- LAYOUT / OVERLAP ---
+// [x] HUD 100% canvas em grade de 3 colunas (score não bate mais no minimapa)
+// [x] Geometria única da loja: draw e hit-test no mesmo getShopLayout
+// [x] Geometria única do menu: getMenuLayout (clique não selecionava outro modo)
+// [x] Modos cortados de 7 para 4 (3 eram inertes)
+
+// --- AUDIO ---
+// [x] 4 faixas OGG reais com crossfade no lugar do piano procedural
+// [x] 29 SFX reais em assets/sfx/ (campanha CC0: Kenney + OpenGameArt; tiros CC-BY 3.0 Vincent Sevedge)
+// [x] Som distinto por habilidade (dash, escudo, fúria)
+// [x] Toggle de música/SFX no pause, com persistência
+
+// --- VISUAL / PALETA ---
+// [x] Cores Flat UI saturadas removidas de combos, bots, multiplayer, explosões, story e skins (22 locais)
+// [x] Skins reescritas como tons temáticos desaturados (Fogo/Gelo/Neon/Sangue/Robô em terracota/musgo/stone)
+// [x] shadowBlur do body do jogador 15 -> 8 (uniforme com o título)
+
+// --- ASSETS ---
+// [x] assets/ movido para public/ (build de produção não copiava sprite nenhum)
+// [x] Pad de 2 dígitos no nome do tile (todo tile de 1 a 99 dava 404)
+// [x] Credits reais em public/assets/CREDITS.md
+
 // ═══════════════════════════════════════════════════════════════
 // SUGESTÕES AVANÇADAS (baixa prioridade)
 // ═══════════════════════════════════════════════════════════════
-- [ ] Modo survival com leaderboard online
-- [ ] Sistema de achievement/badges expandido
+- [x] Sistema de achievement/badges expandido (13 -> 21)
 - [x] Testes unitários para sistemas de colisão e dano
 - [x] Screen shake mais sutil e consistente (explosões, terremoto, relâmpago reduzidos)
 - [x] Partículas de poeira no chão durante terremoto
@@ -118,3 +222,887 @@
 - [x] Sombras dos personagens no chão
 - [x] Efeito de zoom lento no boss quando aparece
 - [x] Performance: limitar partículas por frame (80/frame + 500 global)
+// [x] Skins agora persistem via localStorage ('bubbleShooter_skins_unlocked'); resetSkins
+//     carrega as salvas em vez de zerar
+// [x] Serviços/Upgrades/Ads agora têm chips (inicial + cor) nas cartas da loja
+// [x] HUD: painel sólido do topo-centro removido -> só sombra de texto no black
+// [x] Boss: summon capado em 12 inimigos vivos; MAX_ENEMIES 30 -> 16 (não afoga mais a fase)
+
+// ═══════════════════════════════════════════════════════════════
+// BUGS DE JOGABILIDADE (2026-10-09)
+// ═══════════════════════════════════════════════════════════════
+// [x] Item preso em parede: moeda, power-up e caixa nasciam na posição crua do
+//     inimigo morto e não tinham colisão nenhuma — se nascesse encostado na
+//     parede, morria ali intocável. Spawn passa por pushOutOfWalls e a moeda
+//     usa moveCircleBy. pickup.test.ts (20) trava nos 9 biomas.
+// [x] Overlap no HUD: o score era desenhado em waveBarY+26 e o "ONDA x/y" em
+//     waveBarY+18 — o topo dos dígitos invadia a label. Geometria extraída para
+//     getHudCenterLayout; hudLayout.test.ts (15).
+// [x] Overlap no menu: as linhas de controle avançavam 14px de h*0.88 e o aviso
+//     de save era posicionado em h*0.94-18. Em 720p o "V: Créditos" caía
+//     ACIMA do "C: Continuar jogo salvo". Rodapé virou getMenuFooterLayout,
+//     ancorado pela base; menuLayout.test.ts.
+// [x] Dano de projétil usava enemyCollisionDamage: armadura (que é placa contra
+//     corpo a corpo) era aplicada a tiro, e os i-frames eram os de contato.
+//     damagePlayer() estava morta; BULLET_INVINCIBLE_DURATION nunca se aplica.
+// [x] resetPieces() nunca era chamada em resetGame(): peças equipadas e o
+//     inventário vazavam de uma partida para a outra.
+// [x] wasJammed, playerDied e os timers de fase não eram resetados por
+//     resetGame(), então o valor residual da partida anterior sobrevivia.
+// [x] endsPhaseOnDone() retornava false sempre e o bloco que a consumia em
+//     main.ts nunca entrava. Função e bloco removidos; o teste que só confirmava
+//     a tautologia foi trocado pelo que importa (toda fase tem chefe).
+// [x] loot.ts calculava pieceType e pieceTypes num caminho que nunca os usava.
+// [x] Respiro de fim de fase era armado só na morte do chefe. Agora é genérico:
+//     qualquer abate que feche a última onda segura a ida à loja.
+// [x] loot.test.ts era flake (~4%): 20 rollLootDrop sem mock num drop de 15%.
+
+// ═══════════════════════════════════════════════════════════════
+// LIMPEZA DE RESÍDUO DE GERAÇÃO (2026-10-09)
+// ═══════════════════════════════════════════════════════════════
+// [x] Comentários que narram histórico de bug ("antes X / o bug que / nunca
+//     Y") — memória de sessão gravada no código. Reduzidos à decisão que vale.
+// [x] gameModes.ts descrevia funções que não existem no disco.
+// [x] ~236 tags @param/@returns que só repetiam o tipo que o TS já declara.
+// [x] ~45 exports mortos (getWaveTimer, findHazards, buyWeapon que ignorava o
+//     limite de inventário, drawFlashlight, getTotalKills, MAX_BULLETS...).
+// [x] Statements inertes: `void POWERUP_TYPES`, `void H`, fillText de string
+//     vazia na loja.
+// [x] 8 comentários em inglês/espanhol no meio do português (dynamicDifficulty,
+//     npcs, bots, saveSystem, terrain, main).
+// [x] Seção `// ─── Reset ───` vazia em effects.ts; 2 blocos JSDoc órfãos.
+// [x] Três listas paralelas de power-up que podiam divergir (loot.ts x2,
+//     config.ts) — agora uma só, derivada de POWERUP_TYPES.
+// [x] Diálogo duplicado entre story.ts e diary.ts (mesmo beat escrito duas
+//     vezes: "a terra treme", "pelo menos tentei", "não é instinto").
+// [x] "O mundo não tinha acabado" x3 em 12 linhas no epílogo.
+// [x] Conquistas: 16 das 21 eram 4 templates aritméticos com nomes em sinônimo
+//     crescente. 'Rebaixo' (que significa desconto) e jargão "props" na
+//     descrição corrigidos; typos ('Cacador', 'Milionario') e meta-comentário
+//     ("os 5 tipos de objetivo") fora.
+// [x] Nomes de fantasia genéricos em combos e skins; 'Neon' prometia uma cor
+//     que a paleta proíbe.
+// [x] Subtitulo do menu dizia o gênero ("PÓS-APOCALÍPTICO"), não a premissa.
+// [x] Barks de NPC eram 10 frases para 3 classes; agora por classe.
+// [x] 'Mãe-Nave' na cutscene vs 'MOTHERSHIP' que o HUD imprime; 'OVN' typo.
+// [x] Geografia errada: o Bunker é a fase 9, não "do outro lado" do Pântano.
+
+// ═══════════════════════════════════════════════════════════════
+// PUBLICAÇÃO — itch.io (português primeiro, inglês depois)
+// ═══════════════════════════════════════════════════════════════
+// [x] Fase 0: `base: './'` no vite (vite.config.ts:21). Build abre em iframe.
+// [x] Fase 0: brand. package.json é `sargento-rios`, README sem "Bubble".
+// [x] Fase 0: chaves bubbleShooter_* fora do bundle (distBuild.test.ts:54).
+// [x] Fase 0: créditos dizem 29 efeitos (renderer.ts:613/615).
+// [x] Fase 1: 2 botões na loja. Moedas virou "RESGATE DE MOEDAS" (shop.ts:1197)
+//     — a diretriz do itch proíbe anúncio enganoso — e o botão de apoio abre a
+//     página de doação (shop.ts:1223).
+// [x] Fase 2: build, zip de dist/ e verificação local dos assets. Publicado no
+//     itch.io (confirmado pelo usuário em 2026-10-10).
+// [ ] DEPOIS: tradução para en-US (~1.574 strings, sem camada de i18n ainda).
+// [ ] DEPOIS: CrazyGames/Poki. Exige touch (hoje só há mouse) e o SDK deles
+//     no lugar do ads.ts. O dist passa folgado nos limites (12MB/658 arquivos).
+// [ ] DEPOIS: Steam. Wrapper desktop, Steamworks, save em nuvem, ~$100.
+
+// ═══════════════════════════════════════════════════════════════
+// BUGS DE JOGABILIDADE — RELATADOS EM JOGO (2026-10-09)
+// ═══════════════════════════════════════════════════════════════
+// [x] Upgrade de vida descartado a cada fase: loadPhaseEnvironment chamava
+//     initPlayer(), que recria o jogador com maxHealth 100. resetPlayerProgress
+//     é o que partida nova usa; placePlayer() só reposiciona e cura.
+//     playerProgress.test.ts (9)
+// [x] Munição infinita: currentAmmo era UM escalar e setWeapon reescrevia com
+//     magazineSize — trocar de arma devolvia o pente inteiro. Agora é Map por
+//     arma, e o encasquilhamento também é por arma (trocar consertava de graça).
+//     weaponAmmo.test.ts (13)
+// [x] Boss nasce dentro de parede: o centro do mapa é '#' em cidade, floresta e
+//     bunker, e o spawn usava forceX/forceY (que pula a validação do spawner).
+//     findFreeSpotNear() busca em espiral. bossSpawn.test.ts (20)
+// [x] Vulcão pulava a loja: o atalho do objetivo 'reach' chamava leaveShop(),
+//     que vai direto para a próxima fase. Agora faz setGameState('shop') +
+//     enterShop().
+// [x] BFG e M. Quebrada sem som: não estavam em WEAPON_SOUNDS e caíam num
+//     `|| sfxPistol` silencioso. O mapa foi para audio.ts e weaponSound.test.ts
+//     (17) trava que toda arma tem som.
+// [x] Descrições da loja prometendo mecânica inexistente: Gel "cola os inimigos"
+//     e Shotgun "empurra os inimigos" — `Enemy` não tem campo de slow nem de
+//     knockback. Texto corrigido para descrever o que o código faz.
+// [x] Diálogo travado: advanceCutscene devolvia false enquanto a linha digitava,
+//     a 18 chars/s. ENTER ficava inerte ~5s por linha e BACKSPACE (a única saída)
+//     só era anunciado depois. Agora ENTER completa a linha, BACKSPACE pula a
+//     cutscene inteira, a velocidade é 40 chars/s e o prompt fica sempre visível.
+//     cutscene.test.ts (9) conta os toques INERTES de ENTER — precisa ser 0.
+// [x] Contagem de 5s antes da loja (era 2,5s e silenciosa, então lia como
+//     travamento). O número aparece no centro da tela.
+// [x] Tiro de inimigo não acertava o sobrevivente: não havia colisão
+//     projétil x NPC, só dano por contato. O arqueiro do Castelo é `huntsNpc`
+//     e mirava no NPC — a bala passava. npcDamage.test.ts (8)
+// [x] Bot nascia dentro da parede de borda: createBot usava -30 / worldW+30 e
+//     main.ts passava worldW/worldH (tamanho do MAPA) nos parâmetros chamados
+//     canvasWidth/Height. botsSpawn.test.ts (11)
+// [x] "Conquista" a cada troca de arma: o aviso ARMANDO empilhava no mesmo
+//     array das conquistas e o HUD prefixava CONQUISTA:. Toast agora tem `kind`.
+// [x] Fontes: 42 de 128 eram 9/10/11px. Em monospace, O/0 e S/5 ficavam
+//     indistinguíveis — o menu imprimia "SELECIONE 0 MODO" e "5: Efeitos".
+//     Tudo agora é 11px, e o crédito de licença saiu de 9px/#333 (ilegível).
+// [x] Teclas H (medkit), J (seguir NPC) e 1-9 (armas) não apareciam em lugar
+//     nenhum. Agora ficam visíveis sob as skills, e o tutorial é dispensável
+//     (ESC) e adianta ao atirar.
+
+// ═══════════════════════════════════════════════════════════════
+// VISUAL — DIAGNÓSTICO RESOLVIDO (pack Screaming Brain, 2026-10-10)
+// ═══════════════════════════════════════════════════════════════
+// [x] O pack Kenney Top-down Shooter NÃO é um tileset de piso/parede: medido,
+//     453 de 520 tiles (87%) completamente chapados, e o chão dos 9 biomas usava
+//     0 tiles com textura. Resolvido: Screaming Brain Studios "Top Down Dungeon
+//     Pack" (CC0), 160 tiles 64x64 com rejunte/mancha/grão, 8 materiais de
+//     chão x 8 variações e 6 de parede x 16. Fatiado por tools/extract_tiles.py.
+// [x] Capa do menu (tile_31 95% cinza repetido 64x) -> MENU_TILE virou
+//     dngeon_parede_concreto_0 (Sprint 10).
+// [x] Paredes repetindo em grade 4x4 -> variante de parede com período maior e
+//     claraboia sorteada contida (Sprint 10).
+// [x] UPGRADE REAL: tileset CC0 de piso/parede com curadoria, CREDITS.md e
+//     dungeonFloor/dungeonWall por bioma em maps.ts. Entregue pelo item acima.
+//     Costura de 64px e "treliça de emendas" somem do chão, parede e capa.
+
+// ═══════════════════════════════════════════════════════════════
+// FEATURES PEDIDAS — PÓS-RELEASE
+// ═══════════════════════════════════════════════════════════════
+// [x] Renomear ASHFALL -> SARGENTO RIOS. "Ashfall" tem 8 jogos no itch.io,
+//     vários com "AI Disclosure: AI Assisted". Colide com "Ashfall City"
+//     (HTML5 wave shooter, mesmo gênero). Trocar em: package.json, index.html,
+//     renderer.ts (titulo + creditos), README, STATUS, SUPPORT_URL e o prefixo
+//     de save `ashfall.*` -> `rios.*` (13 chaves).
+// [x] Alpha Wolf e um homem marrom: o pack nao tem NENHUM animal. 8 dos 29
+//     tipos de inimigo nao batem com o sprite (mosquito, bat e slime sao zumbi).
+//     A propria cutscene ja chama de "a matilha" e o padrao do chefe diz
+//     CHAMANDO A MATILHA — renomear o chefe resolve por 1 string.
+// [x] Preview de classe com upscale de 130px sem filtro: vira borrão. Usar
+//     nearest-neighbor ou sprite maior.
+// [x] Furia com mais eixos: hoje so mexe em dano (x2) e dano recebido (x1.5).
+//     Candidato: tambem cadencia.
+// [ ] Objetivos mais profundos: 5 das 9 fases sao `clear`, que nao tem condicao
+//     de vitoria. Alinhar a Fábrica com a cutscene (destroy nos robos) e
+//     possivelmente objetivos secundarios em paralelo.
+// [x] Restricao de peca por classe de arma (allowedClasses no PieceType).
+// [x] Comparador de armas na loja com DPS real, para o jogador ver se vale
+//     trocar.
+// [x] Auto-equip de itens.
+// [x] Expansao de historia: a narrativa so aparece no comeco. Hooks prontos
+//     sem uso: Fernandes morre na Fabrica e nunca e citado de novo; o NUCLEO e
+//     a cura do Genesis nunca tem resolução em tela.
+// [x] Som de recarga por arma.
+// [ ] Novas armas. Esquema de armadura. Slots de skill. Arvore de habilidades.
+// [x] Local 2P: RECONCILIADO em 2026-10-11. Este item dizia que o P2 "nao
+//     leva dano e nao existe condicao de vitoria" e que `damagePlayer2`/
+//     `getWinner` "foram removidos como codigo morto". NAO era verdade:
+//     `damagePlayer2` esta ligado em `main.ts:811,817` e `getWinner` em `:820`,
+//     com `immortality.test.ts` provando. O que faltava era o resto da tela:
+//     [ ] P2 ainda sem tela de fim de partida — `getWinner` existe mas nada
+//         desenha o vencedor. Antes de anunciar "versus" no itch, precisa disso.
+//     [ ] `setPlayer2Health` (setter público sem chamador) era a porta aberta
+//         para o P2 virar invencível por engano; virou `matarPlayer2`.
+
+// ═══════════════════════════════════════════════════════════════
+// v2 — REBALANCEAMENTO E SISTEMAS NOVOS (2026-10-09)
+// ═══════════════════════════════════════════════════════════════
+
+// A curva de dificuldade esta invertida: o comeco mata quem nao sabe o jogo e
+// o fim vira decorativo. Medido com o modelo real do jogo (pistola = 25,5 DPS
+// efetivos com recarga; i-frame de contato 0,5s; pior caso = jogador cercado):
+//
+//   Onda 1 da Cidade, hoje: 8 inimigos -> 100 de dano de 100 HP -> MORRE
+//   Onda 3 da Cidade, hoje: 14 inimigos -> 260 de dano -> MORRE
+//
+// E o poder do jogador diverge mais rapido que o do inimigo. O inimigo escala
+// por ONDA (waveScale = 1 + wave*0.15, so 1.0x -> 2.05x na campanha inteira).
+// O jogador escala por upgrade COMPRADO, e o topo e livre:
+//
+//   dano 1.75x | crit 1.5x | pierce 4 (5 alvos por bala) | vida 2.75x
+//   armadura 0.40 | escudo 3 cargas | regen
+//
+// A taxa de limpeza vai ~11x enquanto o HP inimigo vai 3x.
+
+// ─── SPRINT 0 — BALANÇO (entrega jogo jogável, não espera nada) ───
+
+// [x] Hotfix do combo 'Carvão': a descrição diz "+30% de cadência" e o valor
+//     real entrega +43%. fireRateBonus multiplica o COOLDOWN (main.ts:700),
+//     não a taxa — renomeado para cooldownMult para não armar a armadilha de
+//     novo. Teto de 1.5x no empilhamento de vida (Couro Duplo 1.25 x Imanência
+//     1.30 = 1.625x, e os dois são independentes de arma, então empilham mesmo)
+//     e piso de cooldown na hora de aplicar.
+//     NOTA: a explosão multiplicativa de DANO que se supunha não existe — cada
+//     combo de dano exige uma arma diferente e só se equipa uma por vez.
+// [x] Fases 1 e 2 com difficulty 0.7 e 0.75 (antes as duas eram 1.0, o tier
+//     máximo, enquanto a Caverna da fase 3 já vinha em 0.8).
+// [x] Constantes de onda: WAVE_BASE_ENEMIES 8 -> 4, WAVE_ENEMIES_PER_LEVEL
+//     3 -> 2, WAVE_BASE_SPAWN_RATE 0.8 -> 1.2.
+// [x] balance.test.ts: a CERTIFICAÇÃO. Falha se a onda 1 da fase 1 passar de 4
+//     inimigos, ou se o dano possível da fase 1 exceder a vida do jogador.
+//     Roda no `npm test`, então o começo não regride sem o teste quebrar.
+// [x] Curva de HP dos 9 chefes, TTK de 27s-288s -> 15s-75s. Total 20.879 ->
+//     5.500 (-74%). O VIGIA cai de 499 para 290 (-42%): era o primeiro chefe e
+//     exigia 28s de pistola, que é a única arma da fase 1.
+//     vigia 290 | alphaWolf 380 | crystalQueen 550 | sentinel 360 |
+//     leviathan 420 | reiMutante 630 | infernoPrime 830 |
+//     mothership 980 | nucleo 1060
+// [x] Tipo `mutante`: HP 80 (grunt 20), dano 25 (grunt 10), raio 26, vel 62,
+//     coinDrop 12, sprite manBlue (asset do pack que ninguem usava). Um mutante
+//     vale ~3 grunts em TTK mas o jogador mira em UM corpo so — a densidade
+//     cai e a ameaca por alvo sobe. Sprite novo = falta ameaca visual.
+// [x] Faucet de moedas fechado. O RESGATE DE MOEDAS dava 15 + 5*adsWatched sem
+//     teto e sem reset por fase (resetAds so no resetGame): 30 resgates = 2625
+//     moedas de graca, ou 78% de toda a renda da campanha sem matar nada.
+//     Agora: 2 resgates por fase, reset em leaveShop(), e AD_REWARD_PER_WATCH
+//     5 -> 0 (a recompensa crescia a cada uso, vira espiral).
+
+// ─── SPRINT 1 — REGISTRO CENTRAL DE STATS (keystone) ───
+// Sem isso a escada de perks vira addX() espalhada: hoje os stats sao ~10 `let`
+// soltas entre player.ts e weapons.ts (damageMultiplier, pierceCount,
+// critChance, reloadSpeedMultiplier, armorLevel, regenLevel, medkits...).
+// [x] src/core/stats.ts: registro com applyStat(id, value) + clamp declarado.
+//     11 stats: damageMult, critChance, critMult, pierce, reloadSpeed, armor,
+//     armorMax (teto vivo, perk pode levantar), regen, coinMult, xpMult, luck.
+//     Fora de propósito: maxHealth/speed (estado da entidade; o combo de vida
+//     grava delta direto no player.maxHealth), escudo vivo, medkits.
+// [x] Migrar player.ts e weapons.ts para ler daqui. Os add* viraram cascas de
+//     applyStat — API pública intacta (loja, combos, testes e HUD sem mudança).
+// [x] Teste de paridade: statsParity.test.ts (10) — cada expectativa é a
+//     aritmética dos `let` antigos escrita à mão (piso 0.3 da recarga, teto 3
+//     do pierce, teto 0.5 da armadura, soma sem clamp do crítico).
+// NOTA: existe triggerLevelUp() em effects.ts:69 e o asset levelUp.ogg, e
+//     NENHUM dos dois e chamado. Estao prontos, so plugar no Sprint 4.
+
+// ─── SPRINT 2 — EXPLOSIVOS ───
+// [x] Bala colide com o grid: `segmentHitsWall` já existia (tilemap.ts:213) e
+//     o fim de frame já matava a bala na parede com fagulha. O que faltava era
+//     o explosivo DETONAR nesse impacto em vez de sumir em silêncio.
+// [x] Explosivo detona em: inimigo, parede, prop ou FIM DA VIDA ÚTIL (pavio).
+//     `detonateBullet()` (main.ts) virou o único caminho de explosão, com o
+//     flag `detonated` no Bullet contra a dupla; `updateBullets` devolve os
+//     expirados (pavio), `updateBulletProps` detona no prop e o loop de parede
+//     detona no muro. Efeito colateral bom: a BFG (pierce + explosiva) explodia
+//     a cada inimigo atravessado e seguia voando; agora cada projétil explode
+//     uma vez e morre.
+// [x] Mina: vida própria (MINE_LIFE 12s), raio de detecção (72px) e fuse de
+//     0,6s — `updateMines` (bullet.ts) devolve quem estourou e main.ts detona.
+//     Antes sumia com o pavio de 2s da bala e só explodia se alguém pisasse.
+// [x] Explosão não fere o jogador: `createExplosion` itera SÓ a lista de
+//     enemies (testado em explosivos.test.ts). Barril continua machucando de
+//     propósito: é perigo do mundo (explodeProp), não do próprio tiro.
+
+// ─── SPRINT 3 — ASSETS DE TIRO E ARMA ───
+// O pack Kenney Top-down Shooter tem 3 sprites de arma (weapon_gun,
+// weapon_machine, weapon_silencer) e ZERO de projetil. 12 armas colapsam em 3
+// weaponClass, e todo tiro e ctx.arc() em renderer.ts:736.
+// Regra 15 do AGENTS.md: o arc so pode ficar como fallback de asset que nao
+// carregou, nunca como visual pretendido.
+// [x] Kenney Particle Pack (CC0, 80 sprites: spark, glow, muzzle flash, smoke,
+//     fire, electricity). Mesmo autor do pack atual -> consistencia visual
+//     garantida. Creditar em CREDITS.md.
+// [x] Kay Lousberg "2D Guns" (CC0: pistola, revolver, shotgun, sniper, SMG,
+//     rifle + balas, granadas, municao, SVG fonte).
+// [x] GATE VISUAL: NÃO funde — decidido olhando os dois lados. As armas do Kay
+//     Lousberg são perfil lateral (coronha, alça, detalhe lateral) e o jogo é
+//     top-down: a pose do Kenney já desenha a arma de cima, e colar shotgun
+//     lateral no ombro visto de cima é mistura de perspectiva. O pack Kay
+//     segue só nos projéteis, onde funde (cartuchos simétricos que rotacionam
+//     bem). O fallback que o TODO propunha (Kenney Scribble Dungeons) é
+//     tileset de dungeon e não tem arma na mão — a resposta real é manter
+//     as poses. Decisão registrada no comentário da tabela em renderer.ts.
+// [x] 6 famílias de arma, não 12 sprites: a pose agora sai de POSE_DA_FAMILIA
+//     (renderer.ts) pela WEAPON_FAMILY (a mesma do som), não mais do
+//     `weaponClass` solto no config — que fazia Shotgun e Pistola na mesma
+//     pose. Mapa: pistola/mina->gun, escopeta/máquina/lança->machine,
+//     precisão/energia->silencer. O `weaponClass` saiu do config E do tipo
+//     Weapon (não era lido por mais nada); completude testada em
+//     weaponSound.test.ts (toda arma tem família, toda família tem pose).
+// [x] Projeteis: `BULLET_FAMILY` (sprites.ts:136) mapeia as 13 armas no
+//     projétil que cada uma usa de fato — small/medium/large_bullet (Kay
+//     Lousberg) + estilhaco, feixe, foguete, orbe, plasma. O `arc` em
+//     renderer.ts:790 virou fallback de asset ausente.
+
+// ─── SPRINT 4 — XP E NIVEL ───
+// [x] XP por abate (killEnemy), por onda (XP_BONUS_ONDA 40, no waveComplete) e
+//     por fase (XP_BONUS_FASE 150, no phaseEnding). Moral/sorte continuam fora
+//     — são Sprint 7.
+// [x] Barra de nível + XP no HUD: rótulo "NV x" + trilho de 4px entre o número
+//     de vida e as skills (getHudHintsLayout virou geometria compartilhada e
+//     empurrou as skills 10px). HudData ganhou nivel/xpAtual/xpNecessario;
+//     teste de geometria em hudLayout.test.ts; PNGs conferidos (regra 16).
+// [x] Level-up: `ganhaXp()` envia toast + sfxLevelUp() + triggerLevelUpFlash()
+//     nos três ganhos — os dois órfãos agora têm chamador.
+// [x] Persistir XP: `saveGame` grava `xp`, `restoreXp()` no continue
+//     recalcula o nível do total e os pontos livres (níveis - talentos
+//     comprados). Save antigo sem o campo carrega como 0.
+
+// ─── SPRINT 5 — ESCADA DE PERKS ───
+// Hoje a loja lista os 19 UPGRADES todos, toda visita, em ordem fixa
+// (shop.ts:456 faz UPGRADES.map direto, sem slicing). Custo total 3890 moedas:
+// a renda da fase 4 ja compra tudo e a loja — que era a decisao central do
+// jogo — deixa de existir.oferecer tudo de uma vez e apelão.
+// REGRA: so compra o degrau N depois do N-1. Um special por ramo no fim.
+//   DANO: T1-T5 +8% cada (+40%) -> PISTOLA INCANDESCENTE (cada 5o tiro, fogo)
+//   CORPO: T1-T5 vida/armadura/escudo -> SEGUNDO FOLEGO (abaixo de 30% de vida,
+//          1,5s de invulnerabilidade)
+//   PERNAS: T1-T5 velocidade/dash -> PASSO FANTASMA (dash fere quem atravessa)
+//   MENTE: T1-T5 xp/moedas -> SORTUDO (sorte alta puxa o melhor evento)
+// [x] PERK_LADDER em `systems/perks.ts` (não em config.ts): degrau, custo,
+//     statId, requires. 24 degraus = 4 ramos × 5 + 1 especial cada.
+// [x] Compra sequencial: bloquear degrau N se o N-1 nao foi comprado.
+// [x] 4 habilidades especiais com efeito real no codigo.
+// [x] Loja oferece 3 perks por visita.
+// [x] REGRA DO PERK GARANTIDO (decidido): 1 dos 3 sempre casa com a build atual.
+//     Criterio: entre os 3 sorteados, garante o proximo degrau de um ramo onde o
+//     jogador ja tem >=1 degrau comprado. Run nova cai no primeiro degrau de
+//     DANO. Assim a loja e curation, nao loteria.
+// [x] Continue restaura os degraus: `restoreUpgrades` resolve o id na
+//     PERK_LADDER e chama a MESMA porta da compra (`aplicarPerk`). Sem isso os 4
+//     especiais — que vivem em flag, não em stat — voltavam desligados: o
+//     jogador pagava 400 e ficava sem o efeito, e nenhum teste de número via.
+// [x] `resetGame` chama `resetPerks()` e `resetStats()`, e `resetShop` zera
+//     `stockPerks`. Os dois primeiros estavam importados e nunca chamados:
+//     a run seguinte herdava os 4 especiais e o dano comprado, multiplicados.
+// [x] Save anterior à escada (`PERK_LEGADO`): efeito aplicado direto, com
+//     "maior valor do mesmo efeito vence" como estado local do restore — sem
+//     isso `vida25`+`vida50` no save valiam +75. NÃO traduz para degrau: perde
+//     poder (Dano +50% viraria +40%) e deixa os degraus de baixo compráveis de
+//     novo, porque o `requires` só olha o anterior. DECISIONS #118.
+// [x] Código morto removido: `UPGRADES` (config.ts), `interface Upgrade`
+//     (types.ts), `buyUpgrade` + `purchasedEffectValues` + `effectText`
+//     (shop.ts). `effectText` já era órfão antes.
+// [x] Portões: tsc limpo, 807 testes, build ok, `npm run visual` sem 404,
+//     `tools/perks-proof.mjs` 13/13 e o PNG da loja aberto (3 perks sem
+//     overlap com serviços e talentos).
+// [ ] `npm run sessao` NÃO mede a escada: o bot morre na onda 1 da Cidade e a
+//     loja só abre no fim da fase. Dívida do bot sem desvio (FUTURO §1.4), não
+//     regressão — nenhuma mudança do Sprint 5 é alcançável antes da loja.
+
+// ─── SPRINT 6 — COMBOS REAIS (2026-10-11) ───
+// Os 8 combos eram binarios (arma X + upgrade Y). [x] Checar por id.
+// [x] Soma com teto em vez de produto sem limite.
+// [x] CORRIGIDO: os 8 combos estavam MOROS desde que a escada entrou.
+//     `combos.ts` exigia `crit2`, `dano25`, `pierce`, `vel15`, `magnetismo`,
+//     `escudo`, `vida25`/`vida50` — ids do catalogo de 19 upgrades removido. A
+//     escada produz `dano_t1`, `mente_t3`, `corpo_t3`… e nao tem nenhum id em
+//     comum: 7 dos 8 so disparavam em save anterior a escada.
+//     CAUSA RAIZ: nao era mapeamento, era eixo. A escada nao tem CRITICO,
+//     PERFURANTE, RECARGA nem MAGNETISMO — e `luck`/`critMult` nao tinham
+//     NENHUM leitor em producao, ou seja, o eixo nao existia de fato.
+// [x] `comboCheck` virou `COMBO_CHECKS` (dado, nao funcao): um `check` so
+//     callable nao prova que aponta para a escada, so que "algum combo
+//     disparou". Definicao e requisito andam na mesma ordem, com guarda de nome.
+// [x] 6 combos mapeados: Tiro Longo, Carvao, Rearme Pesado e Pancada -> `dano_t3`;
+//     Couro Duplo -> `corpo_t3` + `corpo_t1`; Congelante -> `pernas_t1`.
+// [x] Arco Eletrico e Imanencia REMOVIDOS: exigiam `pierce` e `magnetismo`,
+//     que a escada nao tem eixo. Deixa-los com `check: false` seria um combo
+//     listado no jogo que nunca dispara. Voltam com o eixo (DECISIONS #127).
+// [x] Compra antiga NAO liga combo: `dano25` virou inerte. 6 combos nao
+//     sobrevivem a migracao do save — registrado, nao escondido.
+// [ ] Combos cruzados entre ramos (ex.: DANO T5 + MENTE T4 -> "Polvora
+//     Instavel", +30% dano mas -10% vida).
+// [x] 5 travas em gear.test.ts: id na escada, definicao==requisito,
+//     exigeArma bate com a lista, degrau acessivel, combo tem efeito.
+
+// ─── SPRINT 7 — MORAL <-> SORTE + EVENTOS ALEATORIOS ───
+// Estado novo entre fases (gameState: 'event'), antes da loja.
+// [ ] Moral (-100..+100): ajudar sobrevivente sobe, perder dinheiro cai.
+// [ ] Sorte derivada da moral + componente estocastico.
+// [ ] Moral pesa o sorteio do evento; sorte pesa drop de moeda e qualidade do loot.
+// [ ] Eventos com 2-3 escolhas, cada uma com consequencia em moral/sorte/
+//     moeda/XP.
+// [ ] Persistir moral e sorte no save.
+
+// ─── SPRINT 8 — MURAIS ───
+// [ ] Mural de conquistas no menu: hoje ACHIEVEMENTS so aparece como toast,
+//     nao existe nenhuma tela de listar.
+// [ ] Mural de personagens contando as historias: story.ts tem retratos e
+//     falas, mas nao ha roster visual que junte as historias por personagem.
+
+// ─── SPRINT 9 — PECAS, PROTECT, CONQUISTA DE LOSS ───
+// [x] Vender pecas na mochila: hoje so da pra vender ARMA
+//     (sellInventoryWeapon). Peca (pieces.ts) so equipa, nunca vende, e
+//     acumula sem utilidade.
+// [ ] Fase protect (Castelo) inviagivel: o arqueiro huntsNpc mata o
+//     sobrevivente rapido demais. A solucao NAO e tornar o NPC invencivel —
+//     precisa de design (o NPC se abaixa/atras de cobertura, ou o jogador
+//     intercpta a linha de tiro).
+// [x] Conquista de loss ("amigo morto"): hoje so existe vip_saved (salvou).
+//     Falta a conquista pelo loss, apresentada com peso de narrativa.
+
+// ─── SPRINT 10 — IDENTIDADE ───
+// [x] Renomear ASHFALL -> SARGENTO RIOS (package.json, index.html, renderer.ts,
+//     README, STATUS, SUPPORT_URL e o prefixo de save ashfall.* -> rios.*).
+// [x] SUPPORT_URL: hoje aponta https://ashfall.itch.io. Vai para
+//     https://omurilomota.itch.io/sargento-rios (config.ts:345).
+// [x] Texto do pause estoura o box: boxW = 280 mas o texto
+//     "W/S escolher · ENTER confirmar · ESC continuar" mede ~304px a 11px
+//     (renderer.ts:1148). O da linha 1367 mede ~370px. Quebrar em 2 linhas.
+// [x] drawKeyHints (hud.ts:511) sobrepoe a dica do tutorial — as duas sao
+//     strings de largura variavel sem geometria compartilhada. Extrair um
+//     getHudHintsLayout(), como ja existe getHudCenterLayout e
+//     getMenuFooterLayout.
+// [x] Capa do menu: MENU_TILE = tile_31 e 95% cinza com um tracinho amarelo,
+//     repetido 64x em grade perfeita sob 72% de preto. O que aparece e a
+//     trelica de emendas. Trocar por fundo solido + vinheta.
+// [x] Parede repete em grade 4x4: o tile vem de (col*5 + row*3) % 4, periodo
+//     4x4, e drawWallEdges sorteia uma claraboia em ~20% das celulas.
+
+// ─── SPRINT 11 — FECHAMENTO ───
+// [ ] TODO.md + DECISIONS.md com tudo que foi decidido no lugar do usuario.
+// [ ] tsc --noEmit, npm test, npm run build.
+// [ ] ZIP do dist para o itch — SO QUANDO O USUARIO MANDAR.
+
+// ─── BUGS REPORTADOS EM JOGO (2026-10-09) ───
+// [x] CHEFE MORTO NAO ENCERRAVA A FASE. Tres causas, uma so visivel: o
+//     consumo do respiro morava DENTRO de `if (waveComplete)`, que exige
+//     `enemies.length === 0` E a cota do spawner preenchida. Como o spawner
+//     zera a cota ao reportar a onda completa, ele recomecava a ultima onda
+//     durante a luta contra o chefe e jogava reforco na tela — o jogador so
+//     passava depois de matar esse reforco. E o re-arm em killEnemy() tinha
+//     `!phaseEnding`, mas `phaseEnding` ja era true desde a ultima onda, entao
+//     era codigo morto.
+//     Fix: `deveFecharFase()` puro em phases.ts, consumo fora do
+//     `waveComplete`, spawner parado enquanto o chefe esta vivo. tools/fase-proof.mjs
+//     prova os 2 cenarios no navegador. (A analise antiga no TODO dizia "vai
+//     direto a loja" — o comportamento real era o oposto: a fase nao fechava.)
+
+// ═══════════════════════════════════════════════════════════════
+// v2 — ARMAS, ASSETS E NARRATIVA (2026-10-10)
+// Branch: feature/v2-weapons-story. Detalhes em docs/DECISIONS.md #80-#109.
+// Verificacao: 713 testes, tsc limpo, build ok, 4 provas em navegador.
+
+// ─── FASE -1: A IA PELA VER DE QUEM MEXE EM RENDER ─────────────
+// [x] playwright como devDependency + scripts `visual`, `sessao`, `provas`
+// [x] AGENTS.md regra 16: mudanca de render exige `npm run visual` E abrir
+//     os PNGs. Antes, `tsc` limpo + 646 testes verdes + build ok escondiam o
+//     HUD ilegivel com texto sobre texto.
+// [x] favicon: o harness reportava um 404 de /favicon.ico a cada rodada
+// [x] AGENTS.md: 5 modulos faltando na estrutura de diretorios
+
+// ─── FASE 0: BUGS QUE QUEBRAM A CAMPANHA ──────────────────────
+// [x] Chefe morto so encerrava a fase depois de matar TODO o reforco.
+//     tools/fase-proof.mjs (7/7) prova os dois cenarios.
+// [x] Morrer no fimzinho ainda passava de fase: o bloco de onda roda antes do
+//     de morte, e `playerDied` ainda e false no frame em que a vida zera.
+// [x] H sem medkit comprava 25 HP por 50 moedas EM COMBATE, sem limite.
+// [x] `invincible` dava 4s de imunidade total, sorteado por qualquer inimigo
+//     comum entre 12 tipos. Tirado do sorteio comum, mantido no chefe.
+// [x] A passiva do MEDICO curava em Hardcore, que promete "sem loja, sem cura".
+// [x] `weaponQualities` era Map por indice: a mesma arma em duas raridades
+//     mostrava e vendia pela mesma. Agora a qualidade e do par {index,quality}.
+// [x] Local 2P: P2 nao levava dano e nao havia fim de partida.
+// [x] loot.test.ts era flake (~4%): sorteio com LCG mockado
+
+// ─── FASE 1: INVENTARIO, AUTO-EQUIP E FICHA ───────────────────
+// [x] Vender a arma deixava as pecas equipadas orfas num Map que nenhuma tela
+//     lia. Agora voltam para a mochila.
+// [x] `sellPiece()` com preco — peca so equipava e nunca vendia.
+// [x] Pecas persistidas no save (startFromSave() apagava todas)
+// [x] `getEffectiveDps()` e `getWeaponStats()`: DPS real com recarga, peca,
+//     penalidade de pierce e falha da Quebrada
+// [x] Auto-equip condicional: compra so equipa se o DPS novo for maior
+// [x] Q/E para ciclar as armas (1-9 cobriam so 4 slots de 4 possiveis)
+// [x] Tela TAB: minimapa grande + ficha da arma (TAB nao estava ligado em
+//     lugar nenhum, e nenhum lugar do jogo mostrava DPS real)
+// [x] Loja mostra o delta de DPS contra a arma na mao
+// [x] HUD: `maxAmmo` usava o pente cru e ignorava a peca CAPACIDADE; a barra
+//     de recarga dividia pelo tempo base e nunca chegava a zero
+// [x] Raridade/condicao da arma sempre visivel no HUD (antes so num toast
+//     de 2s no ato de equipar)
+
+// ─── FASE 2: ASSETS COM TEXTURA REAL ──────────────────────────
+// [x] Pack Top Down Dungeon (Screaming Brain, CC0) no lugar do Kenney no
+//     chao e na parede. Medido: 453 dos 520 tiles do Kenney sao 100% chapados,
+//     e a costura de 64px visivel vinha dai.
+// [x] tools/extract_tiles.py: fatia os sheets 8x6, remove o magenta e so
+//     pega a linha 0 (piso full). 160 tiles, 1,7MB.
+// [x] Kenney Particle Pack (CC0) redimensionado de 512px para 64px (1,3MB ->
+//     66KB) com 3 familias: muzzle, smoke, spark
+// [x] `drawParticles` era 100% `ctx.arc()`: explosao, tiro e morte de inimigo
+//     tinham a mesma cara
+// [x] Parede deixa de repetir em grade 4x4 (hash sem periodo curto)
+// [x] Capa do menu: era `tile_31` (95% cinza + um tracinho amarelo) repetido
+//     numa grade 20x11. O que aparecia era a trelica de emendas.
+// [x] CREDITS.md com os dois packs novos
+
+// ─── FASE 3: ARMAS QUE SOAM E PARECEM DIFERENTES ──────────────
+// [x] Som de recarga por familia de arma (7 familias, so sintetico: clique, puxa,
+//     encaixa). Nao havia som de recarga nenhum.
+// [x] Condicao audivel: a `enferrujada` range no primeiro disparo, a
+//     `quebrada` falha mais alto, a `suja` so encarece. Uma vez por arma.
+// [x] Adjetivo de condicao por arma: "Metralhadora CORROIDA" em vez do
+//     rotulo generico "Enferrujada"
+// [x] 7 projeteis em vez de 3 cartuchos: foguete na RPG, feixe no Laser,
+//     plasma nos Raios, orbe no Gel, estilhaco na Shotgun.
+//     tools/bullet-family-proof.mjs (11/11)
+// [x] Combos checando `Upgrade.id` em vez do nome de exibicao. Renomear um
+//     upgrade matava o combo em silencio.
+// [x] Teto de dano (2.2) e piso de cadencia (0.5) nos combos empilhados
+// [x] Furia ganhou cadencia (+33%): dano sem cadencia nao muda o ritmo
+
+// ─── FASE 4: A HISTORIA JOGA ──────────────────────────────────
+// [x] `showCutscene()` era chamado so no menu: 62 das 69 linhas nunca jogavam,
+//     incluindo a morte do Fernandes e os 3 finais do epilogue.
+//     tools/story-proof.mjs (11/11)
+// [x] Tabela fase -> cutscene; a cena abre em `leaveShop()`, e o combate so
+//     comeca quando ela acaba
+// [x] Ferreira ganhou voz: o Genesis tinha uma cura que nunca aparecia em tela
+// [x] Fernandes tem aftermath: entrada de diario "Seis segundos"
+// [x] Beat de silencio (linha "---") depois da morte, sem texto e sem retrato
+// [x] Cortadas as falas que anunciavam o HUD ("Cinco ondas em 45 segundos")
+// [x] As 3 escolhas do epilogue falam, nao resumem: cortar o canal / contar
+//     tudo / pedir mais uma missao
+
+// ─── POST-RELEASE ──────────────────────────────────────────────
+// [x] ASHFALL -> SARGENTO RIOS em package.json, index.html, renderer,
+//     SUPPORT_URL e nas 12 chaves de localStorage
+// [x] Migracao de save idempotente: quem jogou como ASHFALL nao perde save,
+//     conquistas, diario, recordes, skins, classe nem volume
+
+// ═══════════════════════════════════════════════════════════════
+// TELA CHEIA NO ITCH.IO (2026-10-10)
+// ═══════════════════════════════════════════════════════════════
+// [x] CAUSA RAIZ: o botão de fullscreen do itch pede fullscreen no IFRAME, no
+//     documento do pai. Dentro do jogo `document.fullscreenElement` é null e
+//     `document.exitFullscreen()` é REJEITADO (TypeError). O jogo não tinha como
+//     detectar que estava em tela cheia, nem como sair.
+// [x] `src/systems/fullscreen.ts`: acha o documento dono subindo a cadeia de
+//     frames (o itch dá allow-same-origin) e pede a saída por ele.
+// [x] ESC em tela cheia sai e não abre a pausa junto (duas ações numa tecla).
+// [x] `fullscreenchange` reajusta o canvas (entrar/sair muda o iframe por um
+//     caminho que nem sempre dispara resize a tempo).
+// [x] Aviso fixo na tela + rodapé da pausa muda quando está em tela cheia.
+// [x] tools/itch-fullscreen-proof.mjs: prova o embed real. Ver
+//     `npm run itch`.
+//     antes: "depois: pai em tela cheia? SIM (BUG)"
+//     depois: "OK: o ESC do jogo saiu da tela cheia dentro do embed do itch"
+
+// ═══════════════════════════════════════════════════════════════
+// SPRINT 0 — A FASE PULA PARA A ÚLTIMA ONDA (2026-10-10)
+// ═══════════════════════════════════════════════════════════════
+// [x] CAUSA RAIZ: `deveFecharFase` e chamado de um bloco que roda todo frame
+//     (main.ts:855), mas respondia `true` para qualquer onda que NAO fosse a
+//     ultima. As ondas 1 e 2 avancavam todo frame: em dois frames a fase chegava
+//     na ultima, `isUltimasOndas` virava true e o chefe nascia com o campo
+//     vazio. Bug introduzido pela propria extracao do predicado (DECISIONS #82),
+//     que tirou `nextWave()` de dentro do `if (waveComplete)` sem levar o portao.
+// [x] `FimDeFase` ganhou `ondaCompleta`; `deveFecharFase` nega sem ele.
+// [x] `ondaCompleta = waveComplete || (bossSpawned && !chefeVivo)` — sem o
+//     segundo termo o fim de fase travava para sempre depois do chefe.
+// [x] 4 testes novos em phaseEnd.test.ts, incluindo 60 chamadas seguidas com a
+//     onda em andamento. Com o portao fora, o teste acusa "expected 60 to be +0".
+// [x] O teste antigo ("onda intermediária fecha assim que o campo limpa")
+//     afirmava o comportamento COM O PORTAO FORA: codificava o bug como
+//     contrato. Corrigido.
+// [x] `tools/onda-proof.mjs` + script `npm run onda`: joga a fase de verdade,
+//     sem pularParaUltimaOnda/invocarChefe. 10/10. Com o bug de volta: 4/10,
+//     com `onda=3/3` e chefe vivo na primeira amostra.
+// [x] Duas camadas, uma regra: prova e teste unitário falham no bug e passam na
+//     correcao. Nenhuma das duas afirma sem a outra.
+//
+// ⚠ POR QUE ISSO PASSOU COM 713 TESTES VERDES
+// As duas camadas de teste cobriam o MESMO caminho — o da última onda. O
+// `fase-proof.mjs` força a última onda para encurtar o caminho até o chefe, e
+// os 8 testes do `deveFecharFase` só descreviam o fim de fase. Quando um
+// harness usa atalho para encurtar o teste, ele para de cobrir o jogo: a
+// prova continuava verde sem que o jogo funcionasse. Regra: um harness que
+// pula etapas tem de ter uma contrapartida que joga o trecho inteiro.
+
+// ═══════════════════════════════════════════════════════════════
+// AS 3 FASES SEM `difficulty` (2026-10-10)
+// ═══════════════════════════════════════════════════════════════
+// [x] `tools/campanha-proof.mjs` mediu o que ninguém tinha medido: Castelo,
+//     Espaço e Bunker Central não declaravam `difficulty` e caíam no default
+//     1.0 de `resetSpawner` — sem ninguém ter escolhido isso. O asteroid
+//     (speed 30, não desvia) a 1.0 tirava 33 do jogador com o lowGravity e
+//     matava em 4 toques: a fase mais letal do jogo era a 8ª, por omissão.
+// [x] Castelo 0.9, Espaço 0.88, Bunker Central 0.88 — a curva volta às 9.
+// [x] asteroid 30 -> 21: tira 19 do jogador (6 toques, na faixa do resto) e
+//     segue o golpe mais forte entre os inimigos comuns (19 x 18 do magmaGolem).
+// [x] O par 0.82 + 23 chegou a ser aplicado e dava o mesmo 19 no jogador, mas
+//     o custo da fase (HP x dificuldade) caía sob o do Vulcão e o balance.test
+//     reprovava a rampa. 0.88 + 21 preserva o resultado E a rampa.
+// [x] Prova: tabela de toques 9/8/6/6/10/6/6/6/6, 9/9 chefes, 9/9 lojas,
+//     717/717 testes, visual sem 404. A sessão do `session.mjs` não cobre
+//     esta mudança: o bot morre na Cidade onda 1 (não desvia).
+
+// ═══════════════════════════════════════════════════════════════
+// PORTÃO ANTI-IA — OS 4 TESTES (2026-10-10)
+// ═══════════════════════════════════════════════════════════════
+// [x] `semIA.test.ts`: 8 tics de texto (tríade, "não X mas Y", "onda de X",
+//     corpo clichê, etiqueta de fala além de "disse", adjetivo vazio,
+//     narração repetindo a UI, palavra em espanhol) com CONTROLES POSITIVOS
+//     de cada um — e a lista de controles tem que bater com a de tics, senão
+//     o portão aprova em silêncio. CONTROLES NEGATIVOS no tic de espanhol:
+//     "aqui é Vale" é português e não pode ser acusado (a 1ª versão acusou —
+//     `\b` do JS é ASCII, o fim virou lookahead Unicode). 3 violações
+//     encontradas e corrigidas: `story.ts` "Cinco ondas", "recibir",
+//     "A.Freeira".
+// [x] `semDesenho.test.ts`: estado NA ENTREGA — 64 sites de desenho no
+//     renderer auditados: 52 permitidos com porquê (UI, efeito, sombra,
+//     fallback) e 12 de débito com TETO por função (cena de cutscene, moeda,
+//     power-up e bot). Débito não cresce; total congelado em 64 até alguém
+//     editar o teste com motivo. (A cena de cutscene foi paga no mesmo dia: a
+//     entrada abaixo baixa o teto para 59.)
+// [x] `semProcedural.test.ts`: extração por contagem de chaves acha as 33
+//     funções sfx*; exatamente as 4 sem arquivo estão declaradas (Reload,
+//     Ferrugem, Condicao, Piece) — a lista encolhe quando o débito é pago.
+// [x] `semAssetQuebrado.test.ts`: a ÁRVORE inteira de public/assets existe
+//     em dist/assets, sem arquivo de 0 byte (as amostras já eram cobertas
+//     por assets/distBuild).
+// [x] Provados mordendo: função de desenho injetada, sfx nova sem arquivo e
+//     arquivo removido do dist reprovaram; restaurados, verde.
+// [x] Regra normativa no AGENTS.md ("Portão Anti-IA", com a lista de tics e
+//     o "não sei escrever sem soar IA: pergunto").
+// 731 testes em 39 arquivos.
+
+// ═══════════════════════════════════════════════════════════════
+// DÉBITO DE DESENHO PAGO — CENA DE CUTSCENE VIRA TILE (2026-10-10)
+// ═══════════════════════════════════════════════════════════════
+// [x] `drawCutsceneScene` não desenha mais nada: as 4 cenas (FLORESTA,
+//     CAVERNA, ESPAÇO, VULCÃO) agora vêm de `buildCutsceneBackdrop`
+//     (terrain.ts), prerenderizadas com o piso e os objetos do próprio bioma
+//     — copa 183/186, cristal 238/239/264, placa 333, lava 316/319, lama 320.
+//     183/186 entraram em TILE_NUMBERS; o 208 foi testado e saiu (sozinho, a
+//     metade de copa lê como arbusto cortado).
+// [x] Véu por cena (`cutsceneVeil`): o 0.15 padrão apagava o céu do Espaço —
+//     as estrelas ficaram invisíveis no primeiro screenshot, medido e
+//     corrigido para 0.4 ali. Sem abrir o PNG, isso ia pro usuário.
+// [x] Débito do `semDesenho`: 12 → 7 sites (total 64 → 59). Restam moeda (2),
+//     item (2) e bot (3): moeda/item seguem SEM asset no disco (nenhum pack tem
+//     moeda — conferido nos 524 tiles do Kenney, no sheet Roguelike e no
+//     dungeon), e o visual do bot é a decisão pendente do FUTURO §1.2.
+// [x] `story-proof` prometia conferir "cada fase" e parava na Fábrica: agora
+//     percorre as 8 fases e as 9 cenas (19/19). Foi ele que pegou as estrelas.
+// [x] Verificação: `npm run visual` sem 404/pageerror, PNGs das 4 cenas abertos
+//     e conferidos, tsc limpo, build ok, 731 testes verdes.
+
+// ═══════════════════════════════════════════════════════════════
+// DÉBITOS PAGOS — MOEDA, GEMAS E OS 4 SONS (2026-10-10)
+// ═══════════════════════════════════════════════════════════════
+// [x] Moeda e power-up viraram sprite (Kenney Platformer Art Deluxe, CC0 —
+//     pack novo, 70px, mesmo estilo flat do pack de personagens). 5 PNGs em
+//     `assets/sprites/items/`; `item_*` no cache de sprites; teste no
+//     `assets.test` trava que existem no disco. Símbolo do power-up foi para
+//     BAIXO da gema (28px): em cima, o glifo cobria a faceta — medido no
+//     harness de composição, não por chute.
+// [x] Os 4 sons sem arquivo viraram 9 chaves CC0 (29 → 38): recarga por
+//     família (7 timbres distintos, um arquivo único perderia a variação que
+//     a síntese dava), ferrugem (`creak1`) e peça (`metalLatch`).
+//     `sfxCondicao` delega para ferrugem e para o `jammed` que já existia.
+//     Fontes: OpenGameArt CC0 (bmaczero, joaken, zer0sol) + Kenney RPG Audio;
+//     mono OGG, picos entre -0.7 e -7.9 dB (banco: tiro a 0, UI em -8).
+// [x] `semProcedural` com débito VAZIO (a lista fica para o próximo débito
+//     entrar com porquê); `semDesenho` com 3 sites (só drawBots).
+// [x] Gate corrigido: contava `ctx.arc()` citado em COMENTÁRIO como desenho
+//     (2 sites falsos) — comentário agora é pulado, total 59 → 58.
+// [x] CREDITS.md: novo pack + tabela com as 9 fontes e os autores.
+// [x] Verificado com prova de tela: moeda em jogo (combate de 25s, kills →
+//     drop → sprite na tela) e composição das 4 gemas no canvas real.
+// 732 testes em 39 arquivos.
+
+// ═══════════════════════════════════════════════════════════════
+// SITE, HISTÓRIA II–IV E TELEMETRIA (2026-10-10)
+// ═══════════════════════════════════════════════════════════════
+// [x] Site estático em `site/`: `index.html` + `conteudo.js` gerado por
+//     `tools/gensite.mjs` lendo o `config.ts` real via Vite — 9 fases, 12
+//     armas, 9 chefes, 31 inimigos, 19 upgrades, zero número escrito à mão.
+//     Estilo do jogo (monospace do sistema, paleta do `palette.ts`, tile de
+//     chão CC0 como textura), sem gradiente/ícone/sombra/emoji. Capturas são
+//     PNGs reais do harness. Verificado por screenshot (regra 16). Falta só
+//     hospedar (FUTURO §3.10).
+// [x] `docs/HISTORIA-II-IV.md`: os 3 arcos da Parte II escritos para avaliação
+//     (patenteado / colônia / montagem 2079), cada um com premissa,
+//     antagonista, escala, convergência dos 3 finais, custo e linha de III–IV.
+//     Falta escolher UM — e decidir o destino do Fernandes.
+// [x] Fix §1.5 (FUTURO): `session.mjs` imprimia `t=undefined` porque pedia o
+//     relógio à telemetria, que devolve estado de jogo, não tempo de sessão.
+
+// ═══════════════════════════════════════════════════════════════
+// BACKDROPS DAS 5 CUTSCENES — §2.2b (2026-10-10)
+// ═══════════════════════════════════════════════════════════════
+// [x] `CENAS_CUTSCENE` (terrain.ts) ganhou as 5 cenas que eram fundo chapado:
+//     PRÓLOGO (cidade), FÁBRICA (fabrica), PÂNTANO (pantano), CASTELO (castelo)
+//     e EPÍLOGO (bunker). Cada uma é uma linha de tabela com tiles que já estão
+//     em `TILE_NUMBERS` (entulho 292/265/260, sucata+caixote+anel 180/129/264,
+//     lama+folhagem 320/134, pedra+espinho 133/268, caixotes 129/156/158) — sem
+//     asset novo, sem `arc`/`fillRect` fabricando objeto (regra 15 intacta).
+// [x] O doc dizia "BUNKER"; o título real que chega ao `buildCutsceneBackdrop` é
+//     EPÍLOGO (fase 8 -> índice 8 em `FASE_PARA_CUTSCENE`, story.ts). Nome errado
+//     nunca desenharia. Corrigido no FUTURO §2.2b.
+// [x] Verificação: `tools/story-proof.mjs` 19/19 (as 9 cenas abrem e avançam),
+//     os PNGs das 5 cenas novas abertos (regra 16) — `historia-2` fábrica,
+//     `historia-3` pântano, `historia-4` castelo, `historia-7` epílogo e
+//     `02-cutscene` prólogo — `npm run visual` sem 404/pageerror, 732 testes
+//     verdes, tsc e build limpos.
+
+// ═══════════════════════════════════════════════════════════════
+// BACKLOG DA SESSÃO ANTERIOR FECHADO (2026-10-10)
+// ═══════════════════════════════════════════════════════════════
+// [x] Clique avança fala: `cutsceneClick` (edge por frame) ligado no mousedown
+//     com dono por estado — só quando a cutscene está ativa e não espera
+//     escolha. Consumido nos 2 pontos de cutscene (menu e playing). Limpo no
+//     resetInput. ENTER/ESPAÇO/clique avançam igual.
+// [x] Eventos aleatórios no diário (3 tipos pedidos + 1): `rollDiaryEvent()`
+//     sorteia 1 por fase entre resgate/casa/sorte/azar (sem repetir), cada um
+//     desbloqueia entrada e muda moedas (+25/+15/+20/-10). Ligado no enterShop.
+//     Substitui o sorteio de NPC solto. diaryEvents.test.ts (3).
+// [x] Progressão de XP → nível → talentos (`systems/progress.ts`): XP é o score
+//     acumulado; cada nível dá 1 ponto; árvore de 3 galhos (Mente/Armas/
+//     Movimento, 2 nós cada) gasta ponto na loja. Persiste no save (talentos).
+//     progress.test.ts (11). PNG da loja aberto (regra 16) via
+//     tools/progress-proof.mjs.
+// [x] semIA endurecido: +3 tells da pesquisa (rótulo de emoção na voz, subtexto
+//     anunciado, fala-terapia) = 11 no total, todos com controle que morde.
+// [ ] Muros quebráveis: NÃO feito — muda colisão/pathfinding/render e o jogador
+//     poderia furar a borda do mapa. Decidido deixar por último (risco).
+
+// ═══════════════════════════════════════════════════════════════
+// PORTA ANTI-IA Nº 5 — "TODO SISTEMA TEM CHAMADOR" (2026-10-11)
+// ═══════════════════════════════════════════════════════════════
+// Os 4 portões pegam FORMA: `arc()` em renderer, tics em story, `sfx*` sem
+// arquivo, asset quebrado no dist. A nº 5 pega SUBSTÂNCIA: código que existe,
+// é vendido ao jogador, e não faz nada. Foi o sweep que a criou que achou 12.
+//
+// [x] `src/__tests__/semOrfao.test.ts` (9 testes): export sem chamador (nem
+//     interno, nem de outro arquivo, nem de teste), export só-de-teste não
+//     declarado, todo StatId com leitor, todo StatId com caminho de escrita, e
+//     a trava específica do `armorMax` (o teto que nunca abria).
+// [x] Lista `SO_DE_TESTE` com 24 entradas e motivo escrito — superfície de
+//     observação dos testes (ler contador, injetar Math.random). Débito novo
+//     entra com porquê; a lista não cresce em silêncio.
+// [x] Auto-mordida provada: um `export function orfaoPlantado()` e um
+//     `'statSemLeitor'` injetados foram accusation e nomeados; restaurados,
+//     verde.
+//
+// ─── OS 12 DEFEITOS QUE ELA ACHOU (todos corrigidos) ───
+// [x] `mente_t3` "Sorte +1" vendia `luck`, e `luck` NÃO TINHA LEITOR: buraco
+//     de 150 moedas. Agora pesa na moeda (+5%/ponto, piso 1), no `rollQuality`
+//     (soma ao boost) e no evento do diário (peso, não booleano).
+// [x] `critMult` no registro, crítico hardcoded 1.5 no `shoot()` (weapons.ts:419):
+//     mexer no stat era inócuo. Agora `getStat('critMult')`.
+// [x] `armorMax` lido por `applyStat` e escrito por NINGUÉM: o teto de 0.5
+//     nunca abria. `corpo_t5` virou "Armadura: teto +10%".
+// [x] A ARMADURA NÃO VALIA CONTRA PROJÉTIL (player.ts:118, comentário
+//     "placa contra corpo a corpo"). 17 dos 31 inimigos atiram: mais da metade
+//     do dano ignorava o eixo CORPO. Agora vale nos dois caminhos.
+// [x] Os 8 combos checavam ids que a escada não produz. 6 remapeados, 2 fora.
+// [x] `getInventorySnapshot`/`restoreInventory`/`getEquippedSnapshot`/
+//     `restoreEquipped`: o save tem o campo `pieces` e o `main.ts:1491` gravava
+//     `[]`/`{}` SEMPRE. As peças NÃO persistiam — e o relatório anterior dizia
+//     que persistiam. Achado pela porta, ligado de verdade.
+// [x] `isSupportUrlVisible`: o `drawSupportFallback` repetia o guard inline.
+// [x] Órfãos sem chamador: `ordenarEventosPorSorte`, `temSortudo` (duplicata de
+//     `temSortudoAtivo`), `sfxHitStop`, `checkEnemyBulletNpcCollision`
+//     (duplicata dentro de `updateNPCs`), `setPlayer2Health` (virou
+//     `matarPlayer2`, que tem chamador).
+//
+// [ ] `main.ts` com 2.452 linhas é a próxima fonte da família: `resetPerks`
+//     ficou 3 sprints importado e nunca chamado. Não é refactor agora (não há
+//     bug à frente), mas é onde a próxima omissão mora.
+// [x] Fase do Núcleo apelona (fúria, tela vermelha, martelo, traje): feito.
+//     Destruidor (arma secreta, 120 dano, explosão 260) em 4 tabelas de assets
+//     + som `launcher`; vinheta vermelha pulsante na fúria (hook no harness);
+//     trajeNucleo (20s, dano ×2, dano recebido ×0.5, vel ×1.3, +3 escudo ao
+//     coletar, forçado no leaveShop da fase 9); boss rush `NUCLEO_RUSH`
+//     (infernoPrime → reiMutante → mothership → nucleo, um por campo vazio;
+//     só o último fecha fase e larga o Destruidor). nucleo.test.ts (8) +
+//     tools/rush-proof.mjs prova a fila rodando (pegou 2 bugs: o 4º chefe
+//     nunca nascia e a onda vazia fechava a fase no meio do rush).
+
+
+//     Agora calcula local: `(Date.now() - t0)` na linha 116.
+
+// ═══════════════════════════════════════════════════════════════
+// BUGS DA PLAYTHROUGH (2026-10-11) — relato do jogador, 12 itens
+// ═══════════════════════════════════════════════════════════════
+// A regra do projeto é que nada muda sem prova de navegador. Cada bug daqui
+// tem um `npm run` que o reproduz ou mede, e o portão morde (provado com
+// violação injetada).
+//
+// [x] HUD GRUDADO (a imagem do jogador). Medido: o rótulo das skills terminava
+//     em y=97 e a dica de tecla começava em y=100 — **3px de folga para fonte
+//     de 11px**, em TODAS as resoluções (`getHudHintsLayout` usava
+//     `skillLabelY + 14` e 14px entre baselines não basta). Virou 21.
+//     `npm run hud` mede `measureText` em 4 resoluções, com bite negativo
+//     provado (voltando a +8, reprova com folga de −3px).
+// [x] ARMAS HERDAM MUNIÇÃO DA FASE ANTERIOR. `leaveShop` limpava balas,
+//     moedas e partículas mas não o pente: a metralhadora (25) chegava com 2.
+//     `refillAmmo()` em weapons.ts — puro, porque `resetWeapons()` zera
+//     damageMult/pierce/critChance/reloadSpeed e estouraria a build na troca.
+//     weaponAmmo.test.ts (5 testes, incl. "não conserta a quebrada de graça").
+// [x] E COM DUAS FUNÇÕES (fúria em main.ts:287 e ciclo de arma em :317).
+//     Decisão do jogador: E só fúria, Q vai pra arma ANTERIOR, sem ciclo pra
+//     frente. `1-9` e Q continuam. O bloco do ciclo foi removido.
+// [x] "ABATES: 0" COM PONTOS ALTOS. `drawGameOver(score, getKillStreak())`
+//     imprimia a melhor SEQUÊNCIA seguida (zera a cada intervalo sem abate)
+//     com o rótulo "Abates". `getTotalKills()` exposto e usado. O PNG do
+//     `espaco-proof` confirma: agora "Abates: 1" com 1 abate.
+// [x] TEXTO DO TRAJE ESTOURANDO O CARD. `POWERUP_DESC['trajeNucleo']` tem
+//     93 caracteres numa linha de 44px de altura. `truncateText` na largura útil
+//     (r.w − 50) e a constante de largura corrigida: 6.6px/char errava ~9% —
+//     `Lanterna` (8 chars) media 53px numa coluna de 44px.
+// [x] NOMES DE SKIN SOBREPOSTOS. "Fita Isolante" (86px) e "Sangue Seco" (73px)
+//     numa coluna de 44px. `npm run loja` mede em `measureText`.
+// [x] BUG NOVO achado no PNG: a 2ª linha de skins ficava ATRÁS de MOEDAS.
+//     `SKIN_ROW_H` media 62px e o conteúdo da linha ocupa 64 (card 44 + nome 11
+//     + preço 11). Virou 74. A prova compara as seções por COLUNA — entre
+//     colunas o Y repetido é de projeto (ARMAS x PERKS) e daria falso positivo.
+// [x] "GAME OVER AO CHEGAR NO ESPAÇO" — REPRODUZIDO com `npm run espaco`:
+//     onda 1, 100 → −50 HP em ~3s com 2 inimigos na tela. `hazard` do Espaço
+//     é `lowGravity`: multiplica o movimento do inimigo por 1.35 E o dano
+//     recebido por 1.10, com `ufo`(6) e `drone`(5) atirando e o `asteroid`
+//     (raio 28, dano 21, o maior do jogo) a 30 px/s — 8 toques matam.
+//     [ ] CORRIGIR o balanceamento: é decisão de design (o `lowGravity` é o que
+//         faz o Espaço se sentir como espaço). Ver `FUTURO` §1.4.
+//
+// ─── PENDENTES DESTA RODADA (feature, não bug) ───
+// [ ] Tutorial de perks + destrinchar os 4 ramos (o jogador não sabe se vale
+//     comprar). [ ] Cores ilustrando lendária/boa/suja durante a partida.
+// [ ] Árvore de talentos inútil quando lotada.
+// [ ] NPC aliado do Castelo (atira, sobrevive, dá arma lendária) — a resposta
+//     ao §1.1 do FUTURO, decided pelo relato do jogador. Fábrica fica intacta
+//     (o Fernandes morre lá, que é o gancho).
+// [ ] Deploy do site na Vercel + aprofundar o conteúdo do site.
+// [ ] Variar tilesets.
+// [ ] Spec completa de história (Parte II, nave destruída) → `HISTORIA-II-IV.md`.
+
+// ═══════════════════════════════════════════════════════════════
+// VARIEDADE DE INIMIGOS POR FASE (2026-11)
+// ═══════════════════════════════════════════════════════════════
+// O pack tem 9 personagens e o jogo tem 24 tipos de inimigo + 9 chefes.
+// Medido no mapa único: `zombie` atendia 9 inimigos, `robot` 4, `manOld` 4.
+// O jogo anunciava 33 inimigos e desenhava 9 silhuetas.
+//
+// [x] `VARIACAO_POR_BIOMA` (sprites.ts): personagem por (tipo, fase). O
+//     `grunt` da Cidade é `zombie`, o da Caverna é `manOld`, o do Espaço é
+//     `manBlue`. Medido: **57%** dos inimigos mudam de silhueta entre fases
+//     vizinhas (era 0% antes), zero estagnação de 4 fases.
+// [x] `drawEnemies` recebe `faseIndex`. A primeira versão criou a tabela e
+//     esqueceu de ligar — a variação existia no código e nunca chegava na
+//     tela. A `variedade-proof.mjs` provou em navegador.
+// [x] `getEnemyCharacter` valida contra `CHARACTER_NAMES`: erro de digitação
+//     seria 404 silencioso com a silhueta sumindo (o `getSprite` devolve null e
+//     o inimigo cai no círculo de fallback).
+// [x] `variedade.test.ts` (18): tabela ligada ao disco, jogador nunca vira
+//     inimigo, chefe nunca varia, 57% de mudança, zero estagnação de 4 fases,
+//     nenhum tipo preso num corpo só.
+// [x] `tools/variedade-check.mjs`: imprime a matriz 22×9 e diz onde está a
+//     estagnação — corrigir só pelo teste é caça-a-caso.
+// [x] `tools/variedad-proof.mjs` (npm run variedade): 3 fases com o MESMO
+//     tipo, print de cada, com a câmera no inimigo. PNGs abertos: Cidade =
+//     zumbi verde, Espaço = corpo azul metálico.
+//
+// [ ] TINT por inimigo (4 cores × 9 personagens × 6 poses = 216 PNGs
+//     pré-renderizados). Hoje o `color` do tipo só pinta o FALLBACK
+//     (`renderer.ts:904-922`), então o sprite é desenhado cru. Medir bytes e
+//     tempo de load antes de gerar; se passar de ~2MB ou 400ms, reduzir a 3.
+// [ ] ARMAS 12 → 20+: sprint própria. Cada arma nova precisa de família
+//     (som CC0), projétil, pose, DPS medido no `balance.test` e PREÇO na curva
+//     de poder. Os 7 sprites do Kay Lousberg estão no disco e não são usados:
+//     são perfil lateral e o jogo é top-down (DECISIONS #91).
+// [ ] Pack CC0 novo de personagens, se o tint não bastar.
+// [ ] Variar tilesets por zona (Bloco 4): mais material por bioma em
+//     `terrain.ts` + `npm run visual`.
+

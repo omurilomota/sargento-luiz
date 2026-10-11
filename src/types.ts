@@ -14,6 +14,10 @@ export interface Bullet {
   x: number;
   /** Posição vertical */
   y: number;
+  /** Posição horizontal no frame anterior (colisão swept) */
+  px: number;
+  /** Posição vertical no frame anterior (colisão swept) */
+  py: number;
   /** Velocidade horizontal */
   vx: number;
   /** Velocidade vertical */
@@ -26,12 +30,26 @@ export interface Bullet {
   isEnemy: boolean;
   /** Cor de renderização do projétil */
   color: string;
+  /** Indica se este projétil acertou crítico */
+  isCrit: boolean;
   /** Indica se o projétil atravessa múltiplos alvos */
   pierce: boolean;
   /** Indica se o projétil é explosivo */
   explosive?: boolean;
   /** Raio da explosão em pixels */
   explosionRadius?: number;
+  /**
+   * Família da sprite de projétil (`small_bullet` | `medium_bullet` |
+   * `large_bullet`). Vem da classe da arma que disparou; o renderer usa para
+   * escolher o asset, e cai no `arc` procedural se a sprite não carregar.
+   */
+  bulletSprite?: string;
+  /** Inimigos já atingidos por esta bala (perfurante não re-hitta o mesmo alvo) */
+  hitBy?: Set<Enemy>;
+  /** Já explodiu — o flag que impede a dupla detonação (pavio × parede × impacto) */
+  detonated?: boolean;
+  /** Fuse da mina plantada: segundos acumulados desde que o inimigo entrou no raio */
+  fuse?: number;
 }
 
 /** Representa um inimigo no campo de batalha */
@@ -94,6 +112,12 @@ export interface Particle {
   radius: number;
   /** Cor da partícula */
   color: string;
+  /**
+   * Sprite do Kenney Particle Pack (CC0). Ausente = usa o círculo de fallback.
+   * Escolhido na criação conforme o evento: muzzle flash, fumaça ou faísca não
+   * são a mesma coisa.
+   */
+  sprite?: string;
 }
 
 /** Representa uma moeda coletável dropada por inimigos */
@@ -150,22 +174,53 @@ export interface Weapon {
   explosionRadius?: number;
   /** Se a arma é secreta (desbloqueada ao completar o jogo) */
   secret?: boolean;
+  /** Armas 'quebradas' encasquilham após N disparos e exigem conserto */
+  broken?: boolean;
   /** Tamanho do pente */
   magazineSize: number;
   /** Tempo de recarga em segundos */
   reloadTime: number;
 }
 
-/** Define um upgrade permanente disponível na loja */
-export interface Upgrade {
-  /** Nome do upgrade exibido na interface */
-  name: string;
-  /** Identificador do efeito aplicado (health, speed, damage, etc.) */
-  effect: string;
-  /** Valor do efeito (absoluto para vida, percentual para dano/velocidade) */
-  value: number;
-  /** Preço em moedas para comprar */
-  price: number;
+/** Ações possíveis de um boss data-driven */
+export type BossAction = 'spread' | 'ring' | 'charge' | 'summon' | 'mines' | 'split' | 'sweep';
+
+/** Uma etapa do padrão de ataque de um boss, ativada quando o HP cruza o limiar */
+export interface BossPatternStep {
+  /** Limiar de HP (0-1) abaixo do qual esta etapa assume */
+  atHp: number;
+  /** Ação executada nesta etapa */
+  action: BossAction;
+  /** Texto curto exibido na telegrafia (opcional) */
+  telegraph?: string;
+}
+
+/** Tipos de hazard por bioma */
+export type HazardKind =
+  | 'none'
+  | 'debris'
+  | 'fog'
+  | 'darkness'
+  | 'electric'
+  | 'mud'
+  | 'spikes'
+  | 'lava'
+  | 'lowGravity';
+
+/** Tipos de objetivo por fase */
+export type ObjectiveKind = 'clear' | 'survive' | 'destroy' | 'protect' | 'reach';
+
+/** Uma zona de objetivo posicionada no mapa (ninho, ponto de extração, NPC) */
+export interface ObjectiveZone {
+  /** Posição no mapa em pixels */
+  x: number;
+  y: number;
+  /** HP do objetivo (ninhos e barreiras) */
+  health?: number;
+  /** Índice do NPC VIP quando objective = protect */
+  npcIndex?: number;
+  /** Raio de alcance quando objective = reach */
+  radius?: number;
 }
 
 /** Define uma fase do jogo com suas configurações visuais e de inimigos */
@@ -180,8 +235,31 @@ export interface Phase {
   gridColor: string;
   /** Tipos de inimigos que aparecem nesta fase */
   enemyTypes: string[];
+  /**
+   * Quantos mutantes entram na onda, quando `mutant` faz parte de `enemyTypes`.
+   * A cota é separada do total: o mutante não é "mais um inimigo", ele
+   * substitui vários. Sem este campo a fase mostraria 4 inimigos comuns.
+   */
+  mutantsPerWave?: number;
   /** Número total de ondas na fase */
   waves: number;
+  /** Chave do mapa em `maps.ts` */
+  map: string;
+  /** Hazard do bioma */
+  hazard: HazardKind;
+  /** Objetivo da fase */
+  objective: ObjectiveKind;
+  /**
+   * Multiplicador de stats dos inimigos da fase (1 = sem ajuste).
+   *
+   * A rampa de dificuldade vem do número de ondas; este campo só corrige os
+   * tipos que fogem dela. Ver `balance.test.ts` para a curva medida.
+   */
+  difficulty?: number;
+  /** Alvo numérico do objetivo (segundos, quantidade de ninhos, etc.) */
+  objectiveTarget: number;
+  /** Chave do tipo de inimigo boss desta fase, se houver */
+  boss?: string;
 }
 
 /** Define as estatísticas e comportamento de um tipo de inimigo */
@@ -210,6 +288,18 @@ export interface EnemyType {
   isBoss?: boolean;
   /** Indica se possui armadura (forma hexagonal) */
   armor?: boolean;
+  /**
+   * Indica que o inimigo caça o NPC protegido em vez do jogador.
+   * Só o objetivo `protect` usa; sem isso o NPC é só alguém que foge de todo
+   * mundo por igual e o jogador não tem agência nenhuma no objetivo.
+   */
+  huntsNpc?: boolean;
+  /**
+   * Mutante: lento, muita vida, dano alto. Aparece em número baixo no lugar de
+   * encher a onda de inimigos comuns. O spawner usa a flag para reservar a cota
+   * mutantsPerWave em vez de contar no total da onda.
+   */
+  isMutant?: boolean;
   /** Indica se dispara múltiplos projéteis em leque */
   spreadShot?: boolean;
   /** Indica se o projétil se divide em 4 direções */
@@ -220,7 +310,13 @@ export interface EnemyType {
   leavesFire?: boolean;
   /** Cor dos projéteis disparados */
   projectileColor?: string;
+  /** Padrão de ataque data-driven (apenas bosses) */
+  pattern?: BossPatternStep[];
+  /** Nome exibido na barra de boss */
+  bossName?: string;
+  /** Duração da telegrafia antes de uma ação (segundos) */
+  telegraph?: number;
 }
 
 /** Estados possíveis do ciclo de vida do jogo */
-export type GameStateType = 'menu' | 'playing' | 'shop' | 'gameover' | 'paused';
+export type GameStateType = 'menu' | 'playing' | 'shop' | 'gameover' | 'paused' | 'credits';

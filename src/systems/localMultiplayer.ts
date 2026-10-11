@@ -5,7 +5,8 @@
  * Último em pé vence.
  */
 
-import { PLAYER_RADIUS, PLAYER_BASE_SPEED, PLAYER_BASE_HEALTH } from '../core/constants';
+import { PLAYER_RADIUS, PLAYER_BASE_SPEED, PLAYER_BASE_HEALTH, BULLET_INVINCIBLE_DURATION } from '../core/constants';
+import { PALETTE } from '../core/palette';
 
 /** Estado do segundo jogador */
 export interface LocalPlayer {
@@ -26,8 +27,6 @@ export interface LocalPlayer {
 /** Estado do multiplayer local */
 let enabled = false;
 let player2: LocalPlayer | null = null;
-let gameOver = false;
-let winner: 1 | 2 | null = null;
 
 /**
  * Retorna se o modo multiplayer local está ativo.
@@ -44,28 +43,10 @@ export function getPlayer2(): LocalPlayer | null {
 }
 
 /**
- * Retorna se o jogo acabou.
- */
-export function isGameOver(): boolean {
-  return gameOver;
-}
-
-/**
- * Retorna o vencedor (1 ou 2).
- */
-export function getWinner(): 1 | 2 | null {
-  return winner;
-}
-
-/**
  * Inicializa o modo multiplayer local.
- * @param canvasWidth - largura do canvas
- * @param canvasHeight - altura do canvas
  */
 export function initLocalMultiplayer(canvasWidth: number, canvasHeight: number): void {
   enabled = true;
-  gameOver = false;
-  winner = null;
   player2 = {
     x: canvasWidth * 0.75,
     y: canvasHeight / 2,
@@ -76,7 +57,7 @@ export function initLocalMultiplayer(canvasWidth: number, canvasHeight: number):
     angle: Math.PI,
     shootCooldown: 0,
     invincible: 0,
-    color: '#3498db',
+    color: PALETTE.stone,
     name: 'P2',
     alive: true,
   };
@@ -84,10 +65,6 @@ export function initLocalMultiplayer(canvasWidth: number, canvasHeight: number):
 
 /**
  * Move o segundo jogador com as setas.
- * @param keys - mapa de teclas pressionadas
- * @param dt - delta time
- * @param canvasWidth - largura do canvas
- * @param canvasHeight - altura do canvas
  */
 export function movePlayer2(
   keys: Record<string, boolean>,
@@ -114,7 +91,7 @@ export function movePlayer2(
   player2.x = Math.max(player2.radius, Math.min(canvasWidth - player2.radius, player2.x));
   player2.y = Math.max(player2.radius, Math.min(canvasHeight - player2.radius, player2.y));
 
-  // Aim toward arrow keys direction
+  // mira na direção das setas
   if (dx || dy) {
     player2.angle = Math.atan2(dy, dx);
   }
@@ -137,32 +114,14 @@ export function shootPlayer2(): { x: number; y: number; vx: number; vy: number; 
     vx: Math.cos(player2.angle) * speed,
     vy: Math.sin(player2.angle) * speed,
     damage: 12,
-    color: '#3498db',
+    color: PALETTE.stone,
     isEnemy: false,
   };
 }
 
 /**
- * Aplica dano ao segundo jogador.
- * @param amount - quantidade de dano
- */
-export function damagePlayer2(amount: number): void {
-  if (!player2 || !player2.alive || player2.invincible > 0) return;
-  player2.health -= amount;
-  player2.invincible = 0.5;
-  if (player2.health <= 0) {
-    player2.health = 0;
-    player2.alive = false;
-    gameOver = true;
-    winner = 1;
-  }
-}
-
-/**
  * Verifica se o segundo jogador colidiu com um inimigo.
  * @param enemyX - posição X do inimigo
- * @param enemyY - posição Y do inimigo
- * @param enemyRadius - raio do inimigo
  * @returns true se colidiu
  */
 export function checkPlayer2EnemyCollision(enemyX: number, enemyY: number, enemyRadius: number): boolean {
@@ -172,11 +131,59 @@ export function checkPlayer2EnemyCollision(enemyX: number, enemyY: number, enemy
 }
 
 /**
+ * Aplica dano ao segundo jogador, com i-frame.
+ *
+ * O módulo tinha isto e `getWinner`, e os dois foram removidos como código
+ * morto porque nada os chamava. Mas sem dano o P2 nunca morre, e "LOCAL 2P"
+ * na página do itch promete versus: precisa de vida e de fim de partida.
+ */
+export function damagePlayer2(damage: number): void {
+  if (!player2 || !player2.alive) return;
+  if (player2.invincible > 0) return;
+  player2.invincible = BULLET_INVINCIBLE_DURATION;
+  player2.health = Math.max(0, player2.health - damage);
+  if (player2.health <= 0) player2.alive = false;
+}
+
+/**
+ * Mata o P2 na hora (usado pelo harness de 2P para provar o fim de partida).
+ * Não é setter de vida: quem escreve a vida é `damagePlayer2`, e um setter
+ * público que nada chamava era porta aberta para o P2 virar invencível por
+ * engano — a mesma classe de bug que a armadura ignorada.
+ */
+export function matarPlayer2(): boolean {
+  if (!player2 || !player2.alive) return false;
+  player2.health = 0;
+  player2.alive = false;
+  return true;
+}
+
+/**
+ * Condição de vitória: um jogador em pé e o outro não.
+ * `null` enquanto os dois estão de pé (partida em andamento) ou os dois caíram.
+ */
+export function getWinner(): 'p1' | 'p2' | null {
+  if (!player2) return null;
+  const p1Vivo = true;
+  if (player2.alive === p1Vivo) return null;
+  return player2.alive ? 'p2' : 'p1';
+}
+
+/** Reposiciona e revive o P2 para uma nova partida. */
+export function resetPlayer2(canvasWidth: number, canvasHeight: number): void {
+  if (!player2) return;
+  player2.x = canvasWidth * 0.75;
+  player2.y = canvasHeight / 2;
+  player2.health = player2.maxHealth;
+  player2.alive = true;
+  player2.invincible = 0;
+  player2.angle = Math.PI;
+}
+
+/**
  * Reseta o multiplayer local.
  */
 export function resetLocalMultiplayer(): void {
   enabled = false;
   player2 = null;
-  gameOver = false;
-  winner = null;
 }
