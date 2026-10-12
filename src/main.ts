@@ -42,7 +42,7 @@ import { loadMap, colAt, rowAt, charAt, isWall, hasPath, moveCircleBy, rebuildFl
 import { initCamera, setViewportSize, setWorldSize, updateCamera, snapCamera, getCamX, getCamY, screenToWorld, drawVoid, isVisible, setShake } from './systems/camera';
 import { initProps, getProps, updateProps, damageProp, detonateProp, getBlast, drawProps, clearProps, collapsesOnHit, Prop } from './systems/props';
 import { buildTerrain, drawTerrain, clearTerrain } from './systems/terrain';
-import { initObjective, updateObjective, peekObjective, vipDown, markVipDown, registerObjectiveDestroyed, cellCenter, ReachZone } from './systems/objectives';
+import { initObjective, updateObjective, peekObjective, vipDown, markVipDown, registerObjectiveDestroyed, cellCenter, ReachZone, forceObjectiveDone } from './systems/objectives';
 import { updateBoss, isBossTelegraphing, getBossTelegraphLabel, clearBossState } from './systems/boss';
 
 import {
@@ -1044,6 +1044,12 @@ function update(dt: number) {
   // calculado depois deste ponto, e mover o `updateObjective` para cima
   // mudaria a ordem em que o objetivo é avaliado dentro do frame.
   const objetivoLiberouChefe = phase.objective === 'clear'
+    // chefe morto É o latch: o chefe só nasce depois do objetivo, então ele
+    // ter caído prova que o objetivo foi cumprido. Ler como re-check vivo
+    // deixava a fase aberta para sempre se o sobrevivente caísse depois do
+    // chefe — o respiro nunca consumia e a quota da última onda seguia
+    // spawnando.
+    || bossKilled
     || peekObjective(p.x, p.y, enemies.length, reachZones).done;
   // A fase do NÚCLEO não tem onda comum, então `getCurrentWave() + 1 >=
   // phase.waves` nunca vira verdadeiro para ela: o `ultimaOnda` do predicado
@@ -1102,15 +1108,29 @@ function update(dt: number) {
     triggerScreenShake(12, 0.6);
     triggerDamageFlash();
     sfxError();
-    pushToast('SOBREVIVENTE PERDIDO — RECOMEÇANDO A FASE', 4, 'aviso');
     // O espelho da conquista de salvar: deixar o sobrevivente cair também é
-    // história. O toast chega junto com o aviso de reinício da fase.
+    // história — conte a fase vença ou perca de novo.
     const lossAch = checkAchievements('vip_lost');
     if (lossAch) pushToast(lossAch.name, 4);
+    if (bossKilled) {
+      // A escolta caiu na janela entre a morte do chefe e a loja. Reiniciar
+      // uma fase vencida devolvia as ondas com `bossSpawned` ainda true —
+      // a wave pós-boss que o dono reportou no Castelo. A fase segue para
+      // a loja; a perda fica registrada na conquista.
+      pushToast('SOBREVIVENTE PERDIDO', 3, 'aviso');
+      return;
+    }
+    pushToast('SOBREVIVENTE PERDIDO — RECOMEÇANDO A FASE', 4, 'aviso');
     resetWave();
     loadPhaseEnvironment();
     enemies.length = 0;
     clearBullets();
+    // A fase renasce inteira: sem zerar o estado de chefe, o reinício herda
+    // `bossSpawned` true e o chefe nunca volta a nascer — só as ondas. É o
+    // mesmo reset que o `pularParaUltimaOnda` do bridge já fazia.
+    bossSpawned = false;
+    bossKilled = false;
+    bossZoomTriggered = false;
     return;
   }
 
@@ -2701,6 +2721,8 @@ window.__ashfall = {
     for (let i = enemies.length - 1; i >= 0; i--) killEnemy(enemies[i], true);
     return enemies.length;
   },
+  /** Marca o sobrevivente como caído sem esperar o dano (prova do Castelo). */
+  matarVip: () => { markVipDown(); },
   zerarVida: () => { player.getPlayer().health = 0; return player.getPlayer().health; },
   /** Teleporta para a zona de extração: cumpre o objetivo `reach`. */
   irParaZona: () => {
@@ -2711,6 +2733,8 @@ window.__ashfall = {
     p.y = z.y;
     return true;
   },
+  /** Cumpre o objetivo da fase sem jogá-lo (harness: o fim exige objetivo). */
+  cumprirObjetivo: () => { forceObjectiveDone(); },
   /** Recomeça a campanha do zero (pula o menu e a cutscene). */
   novaPartida: () => {
     resetPhases();

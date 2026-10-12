@@ -148,6 +148,22 @@ export function markVipDown(): void {
 }
 
 /**
+ * Cumpre o objetivo da fase sem jogá-lo — só para o harness de campanha.
+ *
+ * Desde o B3 do Vulcão o fim de fase exige o objetivo de verdade
+ * (`chefeLiberado` no `deveFecharFase`): o objetivo libera o chefe e o chefe
+ * fecha a fase. A prova de estrutura força o fim (última onda + chefe
+ * invocado), e sem isto ela invocava o chefe de uma fase cujo objetivo nunca
+ * foi cumprido — a fase não fechava mais e a campanha travava na Caverna.
+ */
+export function forceObjectiveDone(): void {
+  if (kind === 'survive') timer = target;
+  if (kind === 'destroy') destroyed = target;
+  if (kind === 'reach') reached = true;
+  sawEnemies = true;
+}
+
+/**
  * true se o sobrevivente do objetivo `protect` morreu nesta fase.
  *
  * Diferente de `vipAlive()`: isto é o latch, então é falso numa fase onde o

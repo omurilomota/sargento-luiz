@@ -71,7 +71,7 @@ const cena = () => page.evaluate(() => window.__ashfall.cena());
 
 const ORDEM_ESPERADA = [
   'Cidade em Ruínas', 'Floresta', 'Caverna', 'Fábrica', 'Pântano',
-  'Castelo', 'Vulcão', 'Espaço', 'Bunker Central',
+  'Castelo', 'Vulcão', 'Espaço', 'NÚCLEO-CENTRAL',
 ];
 
 const relatorio = [];
@@ -160,6 +160,10 @@ async function jogarFase({ curarJogador, forcarApos = 12000, limite = 40000 }) {
     if (!registro.forcado && Date.now() - inicio > forcarApos) {
       registro.forcado = true;
       await page.evaluate(() => {
+        // Desde o B3 do Vulcão o fim exige o objetivo de verdade: forçar
+        // última onda + chefe sem cumprir o objetivo deixava a fase aberta
+        // para sempre (a campanha travava na Caverna, que tem `destroy`).
+        window.__ashfall.cumprirObjetivo();
         window.__ashfall.pularParaUltimaOnda();
         window.__ashfall.invocarChefe();
       });
@@ -261,7 +265,10 @@ for (let i = 0; i < ORDEM_ESPERADA.length; i++) {
   if (!r.fechouNaLoja && !r.morreu) nota(`${r.fase}: não fechou nem na loja nem morrendo`);
   // o sintoma reportado: a fase fecha e o chefe nunca entrou em cena
   if (r.fechouNaLoja && !r.chefeApareceu) nota(`${r.fase}: FECHOU SEM O CHEFE`);
-  if (r.ultimaOndaVista !== r.ondas) {
+  // A fase final é o desfile (NUCLEO_RUSH desde a entrada): não existe onda
+  // comum ali — o que encerra a fase é o último chefe da fila, não a última
+  // onda, então "viu todas as ondas" não se aplica a ela.
+  if (r.ultimaOndaVista !== r.ondas && i < ORDEM_ESPERADA.length - 1) {
     nota(`${r.fase}: viu só até a onda ${r.ultimaOndaVista} de ${r.ondas}`);
   }
   if (r.estadoFinal === 'shop') await sairDaLoja();
