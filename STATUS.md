@@ -123,10 +123,19 @@ nos commits dela, esta frente trabalhou fora do voo desses arquivos:
     distinguia fase decidida de em andamento, e `chefeLiberado` era re-check
     vivo em vez de latch. Prova: `npm run protect` (2 cenários).
   - Barra do alvo = HP em tempo real (`a89922f`): o progress do protect era
-    0/1, só vivo/morto.
+    0/1, só vivo/morto. **Visto em jogo** (`castelo-000.png`): "PROTEGER O
+    SOBREVIVENTE" com barra cheia e detalhe `50/50`, arqueiro caçando o
+    Soldado com flecha em voo.
   - Som de recarga: correto no HEAD (7 famílias, arquivos distintos
     medidos); o relato é do fallback sintetizado do build velho.
   - Tab com `preventDefault`: página de jogo é o canvas.
+- **Regra 16 cumprida com olhos (2026-10-12, fim de sessão)**: os PNGs
+  pendentes foram abertos — Castelo (mapa coerente, espinhos nas bases dos
+  pilares, HUD limpo), hud-1280x720 (zero sobreposição, bate com o
+  hud-proof), 03-jogando (bala com sprite de cartucho, muzzle flash) e
+  06-ficha (TAB: mapa + ficha com DPS efetivo). Nota de direção de arte
+  para o dono: o espinho (tábua+faca, tile 268) fica SUTIL no piso escuro
+  do Castelo — se quiser marcação mais visível, é decisão de arte, não bug.
 - **Conquista `Escolta Perdida`** (`vip_lost`): o espelho de `vip_saved`,
   concedida no latch do `vipDown` junto do aviso de reinício.
 - **Pendência declarada**: os PNGs de `tools/shots/castelo-*.png` e os 8 do
