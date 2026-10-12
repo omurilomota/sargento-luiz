@@ -13,6 +13,7 @@ import { describe, it, expect } from 'vitest';
 import { PHASES, ENEMY_TYPES, NUCLEO_RUSH, WEAPONS, POWERUP_TYPES, POWERUP_DESC, WEAPON_DESC, SPAWN_PROPRIO } from '../config';
 import { spawnBossLoot } from '../systems/loot';
 import { ENEMY_CHARACTER, VARIACAO_POR_BIOMA } from '../systems/sprites';
+import { CUTSCENES, cutsceneForPhase } from '../systems/story';
 
 describe('NUCLEO_RUSH — fila de chefes do Bunker Central', () => {
   it('termina no NÚCLEO (o chefão é o último, não o primeiro)', () => {
@@ -35,6 +36,45 @@ describe('NUCLEO_RUSH — fila de chefes do Bunker Central', () => {
     const fase = PHASES.find(p => p.boss === 'nucleo');
     expect(fase).toBeDefined();
     expect(NUCLEO_RUSH[NUCLEO_RUSH.length - 1]).toBe(fase!.boss);
+  });
+});
+
+describe('o nome da fase final bate com a cutscene que a abre', () => {
+  /**
+   * A fase final tinha dois nomes: `config.ts` dizia "Bunker Central" e a
+   * cutscene dizia Núcleo-Central. A `PREMISSA-V2.md` registra isso como nota
+   * pendente — "a tela e o código precisam concordar". Enquanto não
+   * concordassem, o jogador via um lugar na transição de fase e outro na
+   * cena que abre aquela fase.
+   *
+   * A trava amarra os dois: `cutsceneForPhase` diz qual cena abre a fase, e o
+   * título dessa cena tem que ser o nome da fase. É o contrato que impede a
+   * divergência de voltar por qualquer um dos dois lados.
+   */
+  const FASE_FINAL = PHASES.length - 1;
+  const cenaFinal = CUTSCENES[cutsceneForPhase(FASE_FINAL)];
+
+  it('a cena que abre a fase final existe e não é o epílogo', () => {
+    expect(cenaFinal).toBeDefined();
+    expect(cenaFinal.title).not.toBe('EPÍLOGO');
+  });
+
+  it('o nome da fase é o título da cena que a abre', () => {
+    expect(PHASES[FASE_FINAL].name).toBe(cenaFinal.title);
+  });
+
+  it('o nome bate, ignorando caixa e acento (o nome tem acento na tela)', () => {
+    const base = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    expect(base(PHASES[FASE_FINAL].name).replace(/[^a-z]/g, ''))
+      .toBe(base(cenaFinal.title).replace(/[^a-z]/g, ''));
+  });
+
+  it('nenhuma das 9 fases abre uma cena de título diferente', () => {
+    for (let f = 0; f < PHASES.length; f++) {
+      const c = CUTSCENES[cutsceneForPhase(f)];
+      expect(c, `fase ${f} (${PHASES[f].name}) sem cena`).toBeDefined();
+      expect(c.title, `fase ${f}: config diz "${PHASES[f].name}", a cena diz "${c.title}"`).toBeTruthy();
+    }
   });
 });
 

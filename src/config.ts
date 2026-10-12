@@ -58,7 +58,10 @@ export const PHASES: Phase[] = [
     difficulty: 0.88, objective: 'clear', objectiveTarget: 0, boss: 'mothership',
   },
   {
-    name: 'Bunker Central', bg: '#15161a', bgColor2: '#0a0b0d', gridColor: 'rgba(160,128,80,0.05)',
+    // O nome é o da história (PREMISSA-V2): era "Bunker Central" no config
+    // enquanto a cutscene dizia Núcleo-Central — o mesmo lugar com dois nomes,
+    // e o jogador relendo a fase final sem saber se era a mesma.
+    name: 'NÚCLEO-CENTRAL', bg: '#15161a', bgColor2: '#0a0b0d', gridColor: 'rgba(160,128,80,0.05)',
     enemyTypes: ['grunt', 'runner', 'tank', 'robot'], waves: 8, map: 'bunker', hazard: 'none',
     difficulty: 0.88, objective: 'clear', objectiveTarget: 0, boss: 'nucleo',
   },
