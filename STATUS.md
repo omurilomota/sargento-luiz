@@ -114,6 +114,19 @@ nos commits dela, esta frente trabalhou fora do voo desses arquivos:
 - **Toast com rótulo honesto**: `kind: 'aviso'` sem prefixo. O reinício do
   `protect`, os avisos de diário e o "SEM MEDKIT" renderizavam como
   "CONQUISTA:"/"EQUIPADA:" — o rótulo mentia sobre o que aconteceu.
+- **Rodada de bugs do dono (2026-10-12, tarde)** — os 5 bugs verificados,
+  cada um com o veredito no `TODO.md` (seção RODADA 2026-10-12):
+  - Game Over no Bunker: **não reproduz no HEAD** — campanha 9/9 verde
+    (`campanha-proof`), o repro é do build publicado, anterior aos fixes
+    B1/B2/B6. Ação: republicar o zip.
+  - Wave pós-boss no Castelo (`5e85e90`): reinício do protect não
+    distinguia fase decidida de em andamento, e `chefeLiberado` era re-check
+    vivo em vez de latch. Prova: `npm run protect` (2 cenários).
+  - Barra do alvo = HP em tempo real (`a89922f`): o progress do protect era
+    0/1, só vivo/morto.
+  - Som de recarga: correto no HEAD (7 famílias, arquivos distintos
+    medidos); o relato é do fallback sintetizado do build velho.
+  - Tab com `preventDefault`: página de jogo é o canvas.
 - **Conquista `Escolta Perdida`** (`vip_lost`): o espelho de `vip_saved`,
   concedida no latch do `vipDown` junto do aviso de reinício.
 - **Pendência declarada**: os PNGs de `tools/shots/castelo-*.png` e os 8 do
