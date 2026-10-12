@@ -1,14 +1,14 @@
 # SARGENTO RIOS — Status Geral do Projeto
 
 > Atualizado: 2026-10-12 · branch `develop` (v2 mesclada) ·
-> 919 testes em 49 arquivos · `tsc` limpo · build ok.
+> 923 testes em 50 arquivos · `tsc` limpo · build ok.
 > Este arquivo estava parado na v1.3 (420 testes, nome ASHFALL) e foi
 > reconciliado com o código.
 
 ## Verificação atual
 
 ```
-npm test           # 919 passando em 49 arquivos
+npm test           # 923 passando em 50 arquivos
 npx tsc --noEmit   # 0 erros
 npm run build      # ok
 npm run visual     # 8 screenshots, sem 404/pageerror
@@ -30,30 +30,48 @@ O bot desvia de inimigo e de barril, atira, e não usa dash, escudo nem fúria.
 
 | fase | sobrevive | onda | principal dano |
 |---|---|---|---|
-| Cidade em Ruínas | 45s+ | 2 | evento |
-| Floresta | 45s+ | 2 | contato (grunt) |
-| Caverna | 45s+ | 2 | contato (runner) |
-| Fábrica | 45s+ | 2 | bioma |
-| Pântano | 45s+ | 2 | contato (mosquito) |
-| **Castelo** | **24s** | 2 | **bioma (espinho)** |
-| Vulcão | 45s+ | 2 | evento (inferno) |
-| Espaço | 45s+ | 2 | projetil (ufo) |
-| Bunker Central | 45s+ | 2 | — |
+| Cidade em Ruínas | 45s+ | 2 | contato (mutante) |
+| Floresta | 45s+ | 2 | projetil (spitter) |
+| Caverna | 45s+ | 1 | contato (runner) |
+| Fábrica | 45s+ | 1 | bioma |
+| Pântano | 45s+ | 3 | contato (mosquito) |
+| Castelo | 45s+ | 2 | bioma |
+| Vulcão | 24s | 1 | projetil (inferno) |
+| Espaço | 40s | 2 | projetil (ufo) |
+| NÚCLEO-CENTRAL | 45s+ | 1 | — |
 
-Números crus em `tools/fases-medidas.json`. A linha do Bunker Central acima
-foi medida **antes** do desfile entrar desde a entrada da fase (B6); a da
-fase final será medida de novo quando a reescrita pousar.
+Números crus em `tools/fases-medidas.json`. A linha da fase final acompanha a
+reescrita em andamento (desfile desde a entrada, biomaquina) — medir de novo
+quando pousar.
 
-O Castelo mudou de natureza em 2026-10-12: o tapete de 12 espinhos nas duas
-lanes centrais virou **6 espinhos guardando a base da cobertura** (pilares
-12/15/18 das linhas 7 e 12, `genmaps.py`). No mapa antigo o bot morria nas 2
-medições registradas (32s); no novo, 4 de 5 sessões isoladas chegam aos 45s —
-a morte residual é o bot kiteando **contra** espinho visível (limite do
-instrumento, o bot não lê o chão) e o loop do `protect` (o archer mata o
-VIP, a fase reinicia e o `placePlayer` cura — o `danoTotal` de 120 numa vida
-de 100 HP é o acúmulo entre reinícios). O desenho de verdade da fase depende
-do §1.1 do FUTURO: abrigo / interceptar linha de tiro / vida de escolta —
-decisão do dono, não de código.
+A tabela acima é 1 amostra por fase. Amostras repetidas em 2026-10-12, com o
+custo de hazard no flow: **Castelo 3/3 sessões de 45s**, e em 2 de 3 o
+espinho deixou de ser a fonte principal (o raio do evento passou a doer mais
+que o chão). **Espaço 3/3** — a morte da amostra única não se repetiu (a fase nem
+tem tile de hazard). **Vulcão: 1 morte em 3**, com o dano liderado por lava:
+o inimigo agora contorna a lava, e o bot — que não lê o chão — foi empurrado
+para o tile visível. É o mesmo caso do `espaco-proof`: jogador que não desvia
+não é régua de balanceamento. Se o bot aprender a evitar piso de hazard, a
+régua fecha; é decisão de instrumento, registrada para o dono.
+
+O Castelo foi consertado em duas camadas, cada uma com sua causa:
+
+1. **Mapa** (`ed9a7e0`): o tapete de 12 espinhos nas duas lanes centrais
+   virou 6 espinhos guardando a base da cobertura (pilares 12/15/18 das
+   linhas 7 e 12). No tapete antigo o bot morria nas 2 medições registradas
+   (32s); no mapa novo, 4 de 5 sessões chegavam aos 45s.
+2. **Flow field** (`26a485a`): o Dijkstra tratava célula de hazard como
+   chão de custo zero, então o caminho mais curto — o que todo inimigo
+   segue — atravessava o corredor que fere, e o combate acontecia em cima
+   do tile. Custo 60 ao passo que entra em `^` (finding da IA do Sprint A,
+   `NEGOCIADO.md` §2): o inimigo desvia quando existe rota e atravessa
+   quando não existe. Com as duas camadas, 3/3 sessões de 45s.
+
+O resíduo do Castelo é o loop do `protect` (o archer mata o VIP, a fase
+reinicia e o `placePlayer` cura — `danoTotal` acumula entre reinícios) e o
+bot orbitando cobertura com espinho na base. O desenho de verdade da fase
+depende do §1.1 do FUTURO: abrigo / interceptar linha de tiro / vida de
+escolta — decisão do dono, não de código.
 
 ## Portão Anti-IA — 5 testes
 
@@ -85,6 +103,14 @@ nos commits dela, esta frente trabalhou fora do voo desses arquivos:
   base da cobertura (`genmaps.py` + `maps.ts`, idempotente com o gerador).
   Medido acima. As 3 linhas que mudam no mapa: 7, 12 e 15 (a moeda pulou de
   célula porque o scatter pula hazard).
+- **Custo de hazard no flow field** (`tilemap.ts`): o caminho mais curto
+  atravessava espinho, lava e elétrico de graça; hoje custa 60 desviar quando
+  existe rota. Fila do Dijkstra em array dinâmico (typed array fixo descartava
+  re-enfileiramento em silêncio). Trava: `flowHazard.test.ts` (3).
+- **Pólvora Instável** (`combos.ts`): o primeiro combo cruzado entre ramos —
+  DANO T5 + MENTE T4, +30% de dano por −10% de vida máxima. `exigeTodos` é o
+  AND entre ramos; a trava de combos sem arma virou o contrato do produto de
+  vida dentro do teto.
 - **Toast com rótulo honesto**: `kind: 'aviso'` sem prefixo. O reinício do
   `protect`, os avisos de diário e o "SEM MEDKIT" renderizavam como
   "CONQUISTA:"/"EQUIPADA:" — o rótulo mentia sobre o que aconteceu.
