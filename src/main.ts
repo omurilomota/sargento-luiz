@@ -181,6 +181,12 @@ document.addEventListener('keydown', e => {
   // em qualquer gesto, independente do estado do jogo
   unlockAudio();
 
+  // Tab em página de jogo é da ficha, não do browser: sem preventDefault o
+  // Vivaldi tira o foco do jogo para a barra de busca, e as teclas seguintes
+  // iam para o navegador. A página só tem o canvas — não há outro elemento
+  // focável para o Tab estar fazendo algo útil.
+  if (key === 'Tab') e.preventDefault();
+
   // cutscene: escolhas e avanço
   if (isShowingCutscene()) {
     if (isWaitingForChoiceSafe()) {

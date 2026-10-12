@@ -125,7 +125,23 @@ describe('objectives: protect não termina antes da luta começar', () => {
     spawnNPC(400, 400, 1);
     const r = peekObjective(0, 0, 0, ZONA);
     expect(r.done).toBe(false);
-    expect(r.detail).toContain('aguardando');
+    // o detalhe agora é a vida do alvo — a barra do HUD é o HP em tempo real
+    expect(r.detail).toBe('50/50');
+    expect(r.progress).toBe(1);
+  });
+
+  it('o progresso é a vida do alvo, não 0/1 — a barra acompanha o dano', () => {
+    // o relato do dono: "a barra de vida do sobrevivente não está
+    // sincronizada com a do sobrevivente mesmo na fase". O progresso 0/1
+    // só dizia vivo/morto; o HP dá a leitura de verdade para o jogador
+    // decidir se dá para continuar na frente do sobrevivente.
+    initObjective('protect', 0);
+    spawnNPC(400, 400, 1);
+    getNPCs()[0].health = 20;
+    const r = peekObjective(0, 0, 3, ZONA);
+    expect(r.progress).toBeCloseTo(0.4);
+    expect(r.detail).toBe('20/50');
+    expect(r.done).toBe(false);
   });
 
   it('conclui quando o NPC sobrevive, a área limpa e houve luta', () => {

@@ -92,10 +92,14 @@ export function peekObjective(
       // sem o latch uma fase de protect terminava antes de aparecer inimigo
       // nenhum. A troca: limpar a onda 0 já encerra a fase, pulando as ondas
       // seguintes e o chefe — o mesmo contrato dos outros objetivos não-clear.
+      //
+      // O progresso é a VIDA do alvo, não 0/1: a barra do HUD acompanha o
+      // dano em tempo real. O relato do dono: "a barra de vida do sobrevivente
+      // não está sincronizada com a do sobrevivente mesmo na fase".
       return {
         label: 'PROTEGER O SOBREVIVENTE',
-        progress: alive ? 1 : 0,
-        detail: alive ? (sawEnemies ? 'VIVO' : 'VIVO (aguardando)') : 'PERDIDO',
+        progress: alive && vip ? Math.max(0, vip.health / vip.maxHealth) : 0,
+        detail: alive && vip ? `${Math.max(0, Math.round(vip.health))}/${vip.maxHealth}` : 'PERDIDO',
         done: alive && enemiesAlive === 0 && sawEnemies,
       };
     }
