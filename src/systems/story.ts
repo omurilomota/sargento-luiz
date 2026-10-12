@@ -180,23 +180,38 @@ export const CUTSCENES: Cutscene[] = [
     ],
   },
   {
+    title: 'NÚCLEO-CENTRAL',
+    color: '#8b4040',
+    lines: [
+      { speaker: 'narrador', text: 'O pátio do batalhão do norte está vazio. As tendas continuam montadas.' },
+      { speaker: 'rios', text: 'Vale. Tô chegando. Quantos?' },
+      { speaker: 'narrador', text: 'O rádio devolve estática. Ninguém responde.' },
+      { speaker: 'narrador', text: 'No centro do pátio, uma cratera de doze metros. A borda está vítrea.' },
+      { speaker: 'narrador', text: 'No fundo, a máquina. Quatro andares de metal pulsando.' },
+      { speaker: 'narrador', text: 'O mesmo pulso do cristal que o Arthur carregava na mochila.' },
+      { speaker: 'mensagem', text: '[ FONTE LOCAL — O PAINEL DA MÁQUINA ]' },
+      { speaker: 'mensagem', text: 'Você vai ver só seus trilionários. Vocês estão fudidos.' },
+      { speaker: 'rios', text: 'Eles pilharam o país e fugiram. A máquina ficou ligada.' },
+      { speaker: 'narrador', text: 'No galpão ao lado: um traje de contenção e um martelo. Os dois deixados de propósito.' },
+      { speaker: 'rios', text: 'Então é aqui. É tudo que sobrou.' },
+    ],
+  },
+  {
     title: 'EPÍLOGO',
     color: '#a08050',
     lines: [
-      { speaker: 'narrador', text: 'O MOTHERSHIP cai. A luz do rompimento desce por quarenta minutos e depois some.' },
-      { speaker: 'narrador', text: 'Onde ela estava, não sobra nada. O céu fica quieto pela primeira vez em meses.' },
-      { speaker: 'narrador', text: 'Rios chega no outro batalhão. Não tem batalhão. Tem um buraco no chão e uma máquina dentro.' },
-      { speaker: 'rios', text: 'O núcleo. É você. Você faz eles. Todo zumbi desse país saiu daqui.' },
-      { speaker: 'narrador', text: 'A máquina pulsa. O mesmo pulso do cristal da caverna do Arthur. Só que grande.' },
-      { speaker: 'narrador', text: 'Um painel pisca. Registro de compra, assinatura, data de 2071.' },
+      { speaker: 'narrador', text: 'O NÚCLEO para de pulsar. O metal esfria de fora pra dentro e leva quatro minutos.' },
+      { speaker: 'narrador', text: 'O MOTHERSHIP cai a três quilômetros dali. A luz do rompimento desce por quarenta minutos e depois some.' },
+      { speaker: 'narrador', text: 'O céu fica quieto. É a primeira noite limpa desde que o quartel caiu.' },
+      { speaker: 'narrador', text: 'Rios abre o painel de manutenção. O registro continua na tela.' },
       { speaker: 'mensagem', text: '[ REGISTRO — MEGACORP 2089 — TESTES EM HUMANOS — APROVADO SEM PARECER ]' },
-      { speaker: 'rios', text: 'Gente rica. Fizeram isso com o país. E a máquina não parou.' },
-      { speaker: 'narrador', text: 'Outra linha. Destino. Fora da Terra.' },
+      { speaker: 'rios', text: 'Gente rica. Rodaram o país inteiro e não ficaram pra ver o resultado.' },
+      { speaker: 'narrador', text: 'Outra linha no painel. Destino. Fora da Terra.' },
       { speaker: 'mensagem', text: '[ EVACUAÇÃO DA DIRETORIA — PLANETA HABITÁVEL — COORDENADAS SELADAS ]' },
-      { speaker: 'rios', text: 'A MegaCorp fugiu. Deixou a máquina ligada e foi embora do mundo.' },
-      { speaker: 'narrador', text: 'Rios encosta a mão no metal. Está quente. Pulsa como coisa viva.' },
-      { speaker: 'rios', text: 'Joe. Arthur. Fernandes. Eu vou desligar. Por vocês.' },
-      { speaker: 'narrador', text: 'Ele acha um galpão nos fundos. Uma nave, quebrada. Dava pra consertar. Dava.' },
+      { speaker: 'rios', text: 'Eles pilharam a Terra e venderam a máquina. Depois fugiram do mundo.' },
+      { speaker: 'narrador', text: 'Rios encosta a mão no metal. Ainda morno.' },
+      { speaker: 'rios', text: 'Joe. Arthur. Fernandes. Eu desliguei. Por vocês.' },
+      { speaker: 'narrador', text: 'Ele acha um galpão nos fundos. Uma nave quebrada. Dava pra consertar. Dava.' },
       { speaker: 'rios', text: 'Um dia eu alcanço vocês. Um dia.' },
       {
         speaker: 'narrador', text: 'O canal do Vale fica aberto. O silêncio do outro lado não pergunta.',
@@ -278,9 +293,18 @@ export function showCutscene(): void {
  * jogava: 62 das 69 linhas escritas eram conteúdo morto, e com elas os 3 finais
  * do epílogo. Este mapa liga cada fase à sua cena.
  *
- * Fase 0 abre o PRÓLOGO. Fase 8 (Bunker Central) não tem cena própria: é a
- * chegada, e a resolução é o EPÍLOGO, que vem depois do chefe final.
- * O índice do EPÍLOGO é o último da lista.
+ * Fase 0 abre o PRÓLOGO. A fase 8 (Bunker Central) abre a NÚCLEO-CENTRAL, e
+ * a resolução é o EPÍLOGO, que vem depois do chefe final.
+ *
+ * Antes a fase 8 apontava para o EPÍLOGO: as duas eram a MESMA cena (`8: 8`),
+ * então o jogador lia o fim antes de lutar e lia de novo no fim — e a primeira
+ * linha do epíLOGO era "O MOTHERSHIP cai", sendo que a MOTHERSHIP é a 3ª da
+ * fila do NÚCLEO (`NUCLEO_RUSH`). A abertura passou a ser cena própria e a
+ * linha da MOTHERSHIP foi para o meio do epíLOGO, onde a coisa aconteceu.
+ *
+ * O EPÍLOGO é o ÚLTIMO índice da lista, e essa ordem é contrato: `selectChoice`
+ * insere as linhas do final na cena corrente, e `skipCutscene` só encerra o
+ * jogo na última. `cutscene.test.ts` cobre as duas.
  */
 const FASE_PARA_CUTSCENE: Record<number, number> = {
   0: 0,   // Cidade -> PRÓLOGO
@@ -291,10 +315,10 @@ const FASE_PARA_CUTSCENE: Record<number, number> = {
   5: 5,   // Castelo
   6: 6,   // Vulcão
   7: 7,   // Espaço
-  8: 8,   // Bunker -> o EPÍLOGO fecha depois do chefe final
+  8: 8,   // Bunker -> NÚCLEO-CENTRAL (o EPÍLOGO fecha depois do chefe final)
 };
 
-export const EPILOGUE_CUTSCENE = 8;
+export const EPILOGUE_CUTSCENE = 9;
 
 /** Índice da cutscene que abre a fase, ou -1 se essa fase não abre uma. */
 export function cutsceneForPhase(phaseIndex: number): number {

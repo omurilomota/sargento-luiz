@@ -692,6 +692,10 @@ const CENAS_CUTSCENE: Record<string, CenaCutscene> = {
   'PÂNTANO': { bioma: 'pantano', objetos: [320, 134, 320, 134], escala: 1.1, longe: [134, 320, 134] },
   'CASTELO': { bioma: 'castelo', objetos: [133, 268, 133, 268, 133], escala: 1.2, longe: [268, 133, 268] },
   'EPÍLOGO': { bioma: 'bunker', objetos: [129, 156, 130, 158, 129], escala: 1.3, longe: [130, 129, 156] },
+  // A abertura da fase 9 é o mesmo galpão do epílogo, visto antes da luta:
+  // mesmo bioma, mesma engradagem, mais longe — é o mesmo lugar, outra vez.
+  // Sem esta entrada `buildCutsceneBackdrop` devolve `null` e a cena abre preta.
+  'NÚCLEO-CENTRAL': { bioma: 'bunker', objetos: [129, 156, 130, 158, 129], escala: 1.5, longe: [130, 129, 156] },
 };
 
 /** Alpha com que o renderer desenha a cena (o véu é parte do fundo). */

@@ -2,8 +2,10 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
   CUTSCENES, showCutscene, advanceCutscene, skipCutscene, skipCutsceneText,
   isShowingCutscene, updateCutscene, isLineComplete, isWaitingForChoice,
-  selectChoice, resetStory, getCurrentLine,
+  selectChoice, resetStory, getCurrentLine, cutsceneForPhase,
+  EPILOGUE_CUTSCENE, isEpilogueScene,
 } from '../systems/story';
+import { PHASES } from '../config';
 
 const ULTIMA = CUTSCENES.length - 1;
 
@@ -141,6 +143,65 @@ describe('diálogo: BACKSPACE pula a cutscene inteira', () => {
 
     selectChoice(0);
     expect(isWaitingForChoice()).toBe(false);
+  });
+});
+
+describe('a fase final não abre o epílogo', () => {
+  /**
+   * Bug do jogador: a abertura da fase 9 e o EPÍLOGO eram a MESMA cena.
+   *
+   * `FASE_PARA_CUTSCENE[8]` e `EPILOGUE_CUTSCENE` davam 8, então quem jogava
+   * lia "O MOTHERSHIP cai" ao entrar no Bunker e lia tudo de novo no fim. A
+   * MOTHERSHIP é a 3ª da fila do NÚCLEO, ou seja: a linha da cena de abertura
+   * falava de uma morte que ainda não tinha acontecido.
+   *
+   * A trava é sobre o ÍNDICE, não sobre o texto: reescrever a cena sem
+   * desindexar as duas deixaria o bug voltar com outra frase.
+   */
+  const FASE_FINAL = PHASES.length - 1;
+
+  it('a última fase abre uma cena própria, diferente do epílogo', () => {
+    const abertura = cutsceneForPhase(FASE_FINAL);
+    expect(abertura).toBeGreaterThanOrEqual(0);
+    expect(abertura).not.toBe(EPILOGUE_CUTSCENE);
+  });
+
+  it('a cena de abertura da fase final não é a última da lista', () => {
+    expect(cutsceneForPhase(FASE_FINAL)).toBeLessThan(CUTSCENES.length - 1);
+  });
+
+  it('o epílogo continua sendo a ÚLTIMA cena (o final depende disso)', () => {
+    // `selectChoice` insere as linhas do final na cena corrente e
+    // `skipCutscene` só encerra o jogo na última: se o epílogo não for o
+    // último, os 3 finais somem.
+    expect(EPILOGUE_CUTSCENE).toBe(CUTSCENES.length - 1);
+    expect(CUTSCENES[EPILOGUE_CUTSCENE].title).toBe('EPÍLOGO');
+  });
+
+  it('cada uma das 9 fases abre uma cena, e nenhuma é o epílogo', () => {
+    for (let f = 0; f < PHASES.length; f++) {
+      const idx = cutsceneForPhase(f);
+      expect(idx, `fase ${f} (${PHASES[f].name}) sem cena de abertura`).toBeGreaterThanOrEqual(0);
+      expect(idx, `fase ${f} (${PHASES[f].name}) abre o epílogo`).not.toBe(EPILOGUE_CUTSCENE);
+    }
+  });
+
+  it('a fala da MOTHERSHIP não é a primeira linha do epílogo', () => {
+    // A MOTHERSIP é a 3ª da fila: ela morre NO MEIO da luta, então no roteiro
+    // dela a queda vem depois do NÚCLEO parar — nunca abre a cena.
+    const primeira = CUTSCENES[EPILOGUE_CUTSCENE].lines[0].text;
+    expect(primeira).not.toMatch(/MOTHERSHIP cai/i);
+  });
+
+  it('isEpilogueScene só reconhece a cena do epílogo', () => {
+    resetStory();
+    pularPara(EPILOGUE_CUTSCENE);
+    showCutscene();
+    expect(isEpilogueScene()).toBe(true);
+    resetStory();
+    pularPara(cutsceneForPhase(FASE_FINAL));
+    showCutscene();
+    expect(isEpilogueScene()).toBe(false);
   });
 });
 
