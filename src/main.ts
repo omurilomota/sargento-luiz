@@ -12,7 +12,7 @@
  */
 
 import { normalize } from './utils';
-import { PHASES, ENEMY_TYPES, POWERUP_TYPES, WEAPONS, QUALITIES, PIECE_TYPES, NUCLEO_RUSH, conditionLabel, ehNegativa } from './config';
+import { PHASES, ENEMY_TYPES, POWERUP_TYPES, WEAPONS, QUALITIES, PIECE_TYPES, NUCLEO_RUSH, SPAWN_PROPRIO, conditionLabel, ehNegativa } from './config';
 import { PALETTE } from './core/palette';
 
 // Entities
@@ -61,7 +61,7 @@ import { drawShop, handleShopClick, setShopCoins, getShopCoins, addShopCoins, re
 
 // Modules
 import { shoot, getCurrentWeapon, resetWeapons, refillAmmo, canShoot, startReload, updateReload, getCurrentAmmo, getIsReloading, getReloadTimer, setWeapon, getEffectiveShootRate, setWeaponQuality, getCurrentWeaponIndex, getWeaponQuality, isJammed, getCurrentCapacity, getReloadTimeOf, getWeaponStats, getWeaponFamily, onReloadStarted } from './weapons';
-import { getCurrentPhase, getCurrentWave, getGameState, setGameState, nextWave, nextPhase, resetPhases, resetWave, setCurrentWave, addScore, addScoreFlat, getScore, getCombo, getComboDecay, updateCombo, resetCombo, getKillStreak, getTotalKills, wasGameCompleted, deveFecharFase } from './phases';
+import { getCurrentPhase, getCurrentWave, getGameState, setGameState, nextWave, nextPhase, resetPhases, resetWave, setCurrentWave, addScore, addScoreFlat, getScore, getCombo, getComboDecay, updateCombo, resetCombo, getKillStreak, getTotalKills, wasGameCompleted, deveFecharFase, proximoDoRushNasce } from './phases';
 import { rollLootDrop, spawnBossLoot, updateLoot, getLoot, clearLoot, drawLoot, powerupLabel, ELITE_TYPES } from './systems/loot';
 import { addPieceToInventory, getPieceType, resetPieces, getInventorySnapshot, restoreInventory, getEquippedSnapshot, restoreEquipped } from './systems/pieces';
 import { powerups, spawnPowerUp, spawnPowerUpDeChefe, spawnPowerUpDeTipo, updatePowerUps, hasPowerUp, activePowerups } from './powerups';
@@ -475,6 +475,17 @@ let bossSpawned = false;
 let bossKilled = false;
 /** Posição atual na fila de chefes do NÚCLEO (`NUCLEO_RUSH`). 0 = primeiro. */
 let bossRushIndex = 0;
+/** Segundos desde a última biomaquina costurada pelo NÚCLEO. */
+let biomaquinaTimer = 0;
+/**
+ * Cota e ritmo da máquina.
+ *
+ * A cota é dura (nunca mais que 8 na tela): sem ela, a máquina enche o campo
+ * e o jogador deixa de enxergar o chefe. O intervalo é generoso de propósito —
+ * a biomaquina é pressão de fundo, não a luta.
+ */
+const MAX_BIOMAQUINA = 8;
+const BIOMAQUINA_A_CADA = 4.5;
 /** O versus local já anunciou o vencedor (evita repetir o aviso a cada frame). */
 let localTerminou = false;
 
@@ -619,6 +630,7 @@ function loadPhaseEnvironment(): void {
   bossSpawned = false;
   bossKilled = false;
   bossRushIndex = 0;
+  biomaquinaTimer = 0;
 }
 
 function resetGame() {
@@ -1101,11 +1113,25 @@ function update(dt: number) {
   // o índice dizem qual é o próximo. O fechamento da fase é pulado até o
   // último da fila (ver bloco de morte), então a fase não fecha entre chefes.
   const ehNucleoRush = phase.boss === 'nucleo' && getCurrentMode() === 'campaign';
-  // `bossRushIndex` é a próxima posição a nascer. A condição usa `< length`
-  // (não `< length - 1`): na morte do mothership o índice é 3 e o `nucleo`
-  // ainda é a posição 3 da fila — com `< length - 1` ele nunca nascia.
-  const proximoDoRush = ehNucleoRush && bossSpawned && bossKilled && bossRushIndex < NUCLEO_RUSH.length;
-  if ((!bossSpawned || proximoDoRush) && phase.boss && objetivoLiberouChefe && isUltimasOndas && enemies.length === 0) {
+  // `proximoDoRush` é a função pura em `phases.ts`: o predicado de "a fila
+  // pode andar" é `semChefeVivo`, nunca o flag `bossKilled` (que é setado na
+  // morte de qualquer chefe e nunca é limpo — usá-lo aqui fazia o NÚCLEO
+  // renascer a cada frame; o rush-proof mediu 851 inimigos com os 4 chefes
+  // vivos). Ver `proximoDoRushNasce`.
+  const proximoDoRush = proximoDoRushNasce({
+    ehRush: ehNucleoRush,
+    rushComecou: bossSpawned,
+    chefeVivo,
+    proximaPosicao: bossRushIndex,
+    tamanhoDaFila: NUCLEO_RUSH.length,
+  });
+  // O próximo chefe do rush espera só o chefe ANTERIOR cair — não o campo
+  // ficar vazio. Com a biomaquina nascendo da máquina a fase inteira, o
+  // campo nunca esvazia e a fila travava no primeiro chefe para sempre
+  // (DECISIONS #170). A fase normal continua esperando o campo vazio: lá é a
+  // última onda que define o momento, e não há máquina pulsando.
+  const campoLivre = ehNucleoRush ? true : enemies.length === 0;
+  if ((!bossSpawned || proximoDoRush) && phase.boss && objetivoLiberouChefe && isUltimasOndas && campoLivre) {
     // célula livre mais próxima do centro: o centro do mapa é parede em 3 dos
     // 9 biomas, e o boss nascia lá dentro
     const livre = findFreeSpotNear(worldW / 2, worldH / 2, 46);
@@ -1124,6 +1150,35 @@ function update(dt: number) {
     }
   }
 
+  // A máquina pulsa. Enquanto o NÚCLEO estiver vivo, ele costura gente com
+  // peça de robô — e a fase não pode acabar enquanto ele fizer isso.
+  //
+  // A cota é dura (nunca mais que 8 na tela): sem ela, a máquina enche o
+  // campo e o jogador não enxerga o chefe. E o intervalo é generoso de
+  // propósito — a biomaquina é pressão de fundo, não a luta.
+  if (ehNucleoRush && objetivoLiberouChefe && isUltimasOndas) {
+    const nucleo = enemies.find(e => e.type === 'nucleo');
+    if (nucleo) {
+      // A cota conta por tipo, e o tipo vem de `SPAWN_PROPRIO`: a máquina
+      // costura o que a lista diz, não o que este arquivo sabe de cabeça.
+      const lotado = SPAWN_PROPRIO.some(t => enemies.filter(e => e.type === t).length >= MAX_BIOMAQUINA);
+      if (!lotado) {
+        biomaquinaTimer += dt;
+        if (biomaquinaTimer >= BIOMAQUINA_A_CADA) {
+          biomaquinaTimer = 0;
+          const tipo = SPAWN_PROPRIO[0];
+          // nasce perto do NÚCLEO (é a máquina que costura, não o jogador) e
+          // longe do jogador: nascer em cima dele é o que o spawner evita com
+          // MIN_SPAWN_DISTANCE, e o chefe não pode ser a exceção.
+          const ponto = findFreeSpotNear(nucleo.x, nucleo.y, 19);
+          if (Math.hypot(ponto.x - p.x, ponto.y - p.y) >= 260) {
+            const b = spawnEnemy(tipo, worldW, worldH, 0, ponto.x, ponto.y);
+            if (b) enemies.push(b);
+          }
+        }
+      }
+    }
+  }
   if (phase.objective === 'reach' && objective.done && bossSpawned && getGameState() === 'playing'
       && phaseEndPause <= 0 && !enemies.some(e => ENEMY_TYPES[e.type]?.isBoss)
       && p.health > 0) {

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { existsSync, readFileSync } from 'fs';
 import { inflateSync } from 'zlib';
 import { join } from 'path';
-import { ENEMY_TYPES, PHASES, WEAPONS } from '../config';
+import { ENEMY_TYPES, PHASES, WEAPONS, SPAWN_PROPRIO } from '../config';
 import {
   characterFileExists, weaponFileExists, TILE_NUMBERS, tileFileName,
   POSES, WEAPON_CLASSES, ENEMY_CHARACTER,
@@ -258,9 +258,27 @@ describe('conteúdo: nenhum tipo de inimigo fica órfão', () => {
     // 'shooter' ficou definido meses sem nenhuma fase citar: um inimigo que
     // existe no código e não existe no jogo. Todo tipo que sobra é lixo com
     // stats para balancear.
-    const usados = new Set(PHASES.flatMap(f => [...f.enemyTypes, ...(f.boss ? [f.boss] : [])]));
+    //
+    // `SPAWN_PROPRIO` é o quarto caminho: tipo que NÃO entra no pool de onda e
+    // mesmo assim existe no jogo porque uma máquina específica o costura. Sem
+    // ele na conta, a única forma de satisfazer este teste seria pôr a
+    // biomaquina em `enemyTypes` — e o spawner a jogaria na onda, que é
+    // justamente o que a decisão do jogador proíbe (ela nasce do NÚCLEO,
+    // enquanto ele estiver vivo, e não no ritmo da onda).
+    const usados = new Set([
+      ...PHASES.flatMap(f => [...f.enemyTypes, ...(f.boss ? [f.boss] : [])]),
+      ...SPAWN_PROPRIO,
+    ]);
     const orfaos = Object.keys(ENEMY_TYPES).filter(t => !usados.has(t));
     expect(orfaos, `tipo definido e nunca usado: ${orfaos.join(', ')}`).toEqual([]);
+  });
+
+  it('todo tipo de SPAWN_PROPRIO existe em ENEMY_TYPES', () => {
+    // A lista é um nome solto se ninguém conferir: ela entraria na conta do
+    // órfão e apagaria um tipo que ninguém consome.
+    for (const tipo of SPAWN_PROPRIO) {
+      expect(ENEMY_TYPES[tipo], `SPAWN_PROPRIO cita tipo inexistente: ${tipo}`).toBeDefined();
+    }
   });
 
   it('toda fase cita pelo menos um tipo que existe', () => {

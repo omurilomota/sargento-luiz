@@ -10,8 +10,9 @@
  * sorteado, nem pela caixa de chefe nem pelo pool genérico.
  */
 import { describe, it, expect } from 'vitest';
-import { PHASES, ENEMY_TYPES, NUCLEO_RUSH, WEAPONS, POWERUP_TYPES, POWERUP_DESC, WEAPON_DESC } from '../config';
+import { PHASES, ENEMY_TYPES, NUCLEO_RUSH, WEAPONS, POWERUP_TYPES, POWERUP_DESC, WEAPON_DESC, SPAWN_PROPRIO } from '../config';
 import { spawnBossLoot } from '../systems/loot';
+import { ENEMY_CHARACTER, VARIACAO_POR_BIOMA } from '../systems/sprites';
 
 describe('NUCLEO_RUSH — fila de chefes do Bunker Central', () => {
   it('termina no NÚCLEO (o chefão é o último, não o primeiro)', () => {
@@ -34,6 +35,49 @@ describe('NUCLEO_RUSH — fila de chefes do Bunker Central', () => {
     const fase = PHASES.find(p => p.boss === 'nucleo');
     expect(fase).toBeDefined();
     expect(NUCLEO_RUSH[NUCLEO_RUSH.length - 1]).toBe(fase!.boss);
+  });
+});
+
+describe('biomaquina — a gente costurada que o NÚCLEO faz', () => {
+  const bio = ENEMY_TYPES.biomaquina;
+
+  it('existe com os números da decisão do jogador', () => {
+    expect(bio).toBeDefined();
+    expect(bio.radius).toBe(19);
+    expect(bio.speed).toBe(95);
+    expect(bio.health).toBe(55);
+    expect(bio.damage).toBe(14);
+  });
+
+  it('atira — sem isso a fase final vira melee e o traje perde o sentido', () => {
+    expect(bio.canShoot).toBe(true);
+    expect(bio.shootRate).toBeGreaterThan(0);
+    expect(bio.bulletSpeed).toBeGreaterThan(0);
+    expect(bio.projectileColor).toBeTruthy();
+  });
+
+  it('NÃO é chefe e NÃO entra no pool de onda de fase nenhuma', () => {
+    // Se entrasse em `enemyTypes`, o spawner a jogaria na onda — e a decisão
+    // do jogador é que ela nasce do NÚCLEO, não da cota da horda.
+    expect(bio.isBoss).toBeFalsy();
+    for (const fase of PHASES) {
+      expect(fase.enemyTypes, `biomaquina entrou no pool de ${fase.name}`).not.toContain('biomaquina');
+    }
+  });
+
+  it('é um spawn próprio: existe no jogo por máquina, não por onda', () => {
+    expect(SPAWN_PROPRIO).toContain('biomaquina');
+  });
+
+  it('tem personagem no pack (sem isso cai no fallback zumbi)', () => {
+    expect(ENEMY_CHARACTER.biomaquina).toBeTruthy();
+    expect(VARIACAO_POR_BIOMA.bunker.biomaquina).toBeTruthy();
+  });
+
+  it('é mais forte que o grunt da mesma fase, para a máquina não ser ruído', () => {
+    const grunt = ENEMY_TYPES.grunt;
+    expect(bio.health).toBeGreaterThan(grunt.health);
+    expect(bio.damage).toBeGreaterThan(grunt.damage);
   });
 });
 

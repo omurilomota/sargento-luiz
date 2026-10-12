@@ -272,6 +272,11 @@ export const ENEMY_CHARACTER: Record<string, string> = {
   infernoPrime: 'zombie',      // elemental apodrecido: verde e queimado
   mothership: 'manBlue',       // aço frio do vácuo
   nucleo: 'soldier',           // comando militar do bunker
+  // A biomaquina é gente costurada com peça: o `robot` do Bunker. A entrada
+  // aqui é obrigatória — sem ela o `assets.test.ts` acusa tipo sem sprite, e
+  // sem sprite ela cai no fallback `zombie`, que é o zumbi que ela deveria
+  // parecer ter costurado.
+  biomaquina: 'robot',
 };
 
 /** Os 9 biomas, na ordem das fases. */
@@ -359,6 +364,9 @@ export const VARIACAO_POR_BIOMA: Record<Bioma, Record<string, string>> = {
     grunt: 'soldier', robot: 'robot', drone: 'hitman', tank: 'manOld',
     runner: 'zombie', bat: 'soldier', spitter: 'soldier', alien: 'woman',
     mutante: 'manBlue', slime: 'soldier', mosquito: 'soldier', crystal: 'woman',
+    // A biomaquina é gente costurada com peça: o `robot` do próprio bioma,
+    // que já é a silhueta de máquina do Bunker.
+    biomaquina: 'robot',
   },
 };
 

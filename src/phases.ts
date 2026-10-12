@@ -128,6 +128,44 @@ export interface FimDeFase {
   jogadorMorto: boolean;
 }
 
+/** Estado do rush do NÚCLEO no ponto em que a fila decide avançar. */
+export interface ProximoDoRush {
+  /** A fase é a do NÚCLEO, no modo campanha. */
+  ehRush: boolean;
+  /** A fila já começou (o primeiro chefe nasceu). */
+  rushComecou: boolean;
+  /** Existe algum chefe vivo na tela agora. */
+  chefeVivo: boolean;
+  /** Próxima posição da fila a nascer. `>= length` = fila acabada. */
+  proximaPosicao: number;
+  /** Tamanho da fila. */
+  tamanhoDaFila: number;
+}
+
+/**
+ * O próximo chefe do rush pode nascer agora?
+ *
+ * `semChefeVivo` é o predicado, e é derivado do array de inimigos — nunca de
+ * um flag de "chefe derrotado". Esse flag (`bossKilled`) é setado na morte de
+ * QUALQUER chefe e nunca é limpo, então continua true durante a luta inteira:
+ * usado como se fosse "não há chefe vivo", ele dizia sim para sempre e o NÚCLEO
+ * renascia a cada frame. O `rush-proof.mjs` mediu 851 inimigos na tela com os
+ * 4 chefes vivos ao mesmo tempo — e a fila parecia travava no 3º chefe.
+ *
+ * Antes o `enemies.length === 0` escondia o problema: entre a morte e o
+ * primeiro frame nascia só um. A biomaquina (DECISIONS #170) removeu o campo
+ * vazio como condição, e o defeito apareceu.
+ *
+ * Regra do rush: a fila avança quando o chefe ANTERIOR cai, e não quando o
+ * campo esvazia — com a máquina pulsando, o campo nunca esvazia.
+ */
+export function proximoDoRushNasce(f: ProximoDoRush): boolean {
+  if (!f.ehRush) return false;
+  if (!f.rushComecou) return false;
+  if (f.chefeVivo) return false;
+  return f.proximaPosicao < f.tamanhoDaFila;
+}
+
 /**
  * A fase fecha quando a onda acabou, o respiro acabou, o chefe caiu e é a última.
  *

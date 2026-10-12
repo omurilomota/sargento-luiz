@@ -32,7 +32,7 @@
 import { describe, it, expect } from 'vitest';
 import { ENEMY_TYPES, PHASES } from '../config';
 import { PHASE_END_PAUSE } from '../core/constants';
-import { deveFecharFase } from '../phases';
+import { deveFecharFase, proximoDoRushNasce } from '../phases';
 import { checkEnemyPlayerCollision } from '../systems/collision';
 import type { Enemy } from '../types';
 
@@ -167,6 +167,76 @@ describe('deveFecharFase: a morte vence qualquer transição', () => {
 
   it('a morte vence mesmo com o chefe ainda vivo', () => {
     expect(deveFecharFase({ ...VIVO, chefeVivo: true, jogadorMorto: true })).toBe(false);
+  });
+});
+
+describe('proximoDoRushNasce: o próximo chefe da fila do NÚCLEO', () => {
+  const base = {
+    ehRush: true,
+    rushComecou: true,
+    chefeVivo: false,
+    proximaPosicao: 0,
+    tamanhoDaFila: 4,
+  };
+
+  it('nasce quando a fila começou e nenhum chefe está vivo', () => {
+    expect(proximoDoRushNasce(base)).toBe(true);
+  });
+
+  it('NÃO nasce com chefe vivo na tela', () => {
+    expect(proximoDoRushNasce({ ...base, chefeVivo: true })).toBe(false);
+  });
+
+  it('NÃO nasce fora do rush do NÚCLEO', () => {
+    expect(proximoDoRushNasce({ ...base, ehRush: false })).toBe(false);
+  });
+
+  it('NÃO nasce antes do primeiro chefe (a fila ainda não começou)', () => {
+    expect(proximoDoRushNasce({ ...base, rushComecou: false })).toBe(false);
+  });
+
+  it('NÃO nasce quando a fila acabou — é o que fecha a fase', () => {
+    // `>= length`, não `>`: na posição 4 de uma fila de 4 o NÚCLEO já nasceu e
+    // morreu, e a fase fecha em vez de o chefe renascer.
+    expect(proximoDoRushNasce({ ...base, proximaPosicao: 4 })).toBe(false);
+  });
+
+  it('avança pela fila inteira, uma posição por chefe que cai', () => {
+    // O PRIMEIRO chefe nasce pela outra condição (`!bossSpawned`), que o
+    // predicado não cobre — ele responde só "a fila pode andar". A simulação
+    // roda as duas juntas, como o `update` faz.
+    const vistos: string[] = [];
+    const FILA = ['infernoPrime', 'reiMutante', 'mothership', 'nucleo'];
+    let posicao = 0;
+    let chefeVivo = false;
+    for (let guarda = 0; guarda < 50 && posicao < FILA.length; guarda++) {
+      const primeiro = posicao === 0;
+      const podeNascer = primeiro
+        || proximoDoRushNasce({ ehRush: true, rushComecou: true, chefeVivo, proximaPosicao: posicao, tamanhoDaFila: FILA.length });
+      if (podeNascer) {
+        vistos.push(FILA[posicao]);
+        posicao++;
+        chefeVivo = true;   // o chefe que acabou de nascer
+      } else {
+        chefeVivo = false;  // ele caiu: a fila pode andar
+      }
+    }
+    expect(vistos).toEqual(FILA);
+  });
+
+  it('não depende do campo esvaziar (a biomaquina nunca deixa)', () => {
+    // A máquina pulsa a fase inteira: exigir `enemies.length === 0` travava a
+    // fila no primeiro chefe. O predicado não tem esse termo — é a trava do
+    // deadlock (DECISIONS #170) e a que impede o NÚCLEO de renascer a cada
+    // frame, que o rush-proof mediu como 851 inimigos com os 4 chefes vivos.
+    expect(proximoDoRushNasce({ ...base, proximaPosicao: 1 })).toBe(true);
+  });
+
+  it('o flag de chefe derrotado NÃO entra no predicado', () => {
+    // `bossKilled` é setado na morte de QUALQUER chefe e nunca é limpo, então
+    // ele vale `true` durante a luta inteira. A assinatura não o aceita: é o
+    // que faz o teste não poder regredir para o flag.
+    expect(proximoDoRushNasce.length).toBe(1);
   });
 });
 

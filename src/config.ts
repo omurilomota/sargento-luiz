@@ -73,6 +73,17 @@ export const PHASES: Phase[] = [
  */
 export const NUCLEO_RUSH: string[] = ['infernoPrime', 'reiMutante', 'mothership', 'nucleo'];
 
+/**
+ * Tipos que existem no jogo sem entrar no pool de onda de nenhuma fase.
+ *
+ * A biomaquina é costurada pelo NÚCLEO enquanto ele estiver vivo (ver
+ * `updateBiomaquina` no main.ts), não no ritmo da cota da onda. Sem esta
+ * lista, o teste de órfão só teria duas saídas: deixar o tipo definido sem
+ * consumidor, ou pô-lo em `enemyTypes` e deixar o spawner jogá-lo na onda —
+ * que é o contrário do que a decisão do jogador pediu.
+ */
+export const SPAWN_PROPRIO: string[] = ['biomaquina'];
+
 /** Mapa de todos os tipos de inimigos disponíveis no jogo */
 export const ENEMY_TYPES: Record<string, EnemyType> = {
   grunt: { radius: 16, speed: 80, health: 20, damage: 10, color: '#8b4040', scoreValue: 10, coinDrop: 2 },
@@ -111,6 +122,13 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
   // o golpe mais forte entre os inimigos comuns (19 × 18 do magmaGolem).
   asteroid: { radius: 28, speed: 30, health: 100, damage: 21, color: '#6a6a6a', scoreValue: 50, coinDrop: 8 },
   alien: { radius: 14, speed: 110, health: 20, damage: 8, color: '#5a7a5a', scoreValue: 25, coinDrop: 4, canShoot: true, shootRate: 1.0, bulletSpeed: 400, projectileColor: PALETTE.moss },
+
+  // A biomaquina: gente costurada com peça de robô, feita pela máquina.
+  // Só aparece na fase 9 e não conta na cota da onda — ela nasce do NÚCLEO
+  // enquanto ele estiver vivo (ver `updateBiomaquina`), então o `health` alto
+  // é o que segura o jogador enquanto a fila de chefes anda. Atira, senão a
+  // fase final vira melee puro e o traje de contenção perde o sentido.
+  biomaquina: { radius: 19, speed: 95, health: 55, damage: 14, color: '#6a5a5a', scoreValue: 30, coinDrop: 4, canShoot: true, shootRate: 1.5, bulletSpeed: 320, projectileColor: PALETTE.stone },
 
   // ─── Bosses ────────────────────────────────────────────────
   vigia: {
