@@ -13,7 +13,7 @@ import { isJammed } from '../weapons';
 
 const INSET = 12;
 
-export type ToastKind = 'achievement' | 'equip';
+export type ToastKind = 'achievement' | 'equip' | 'aviso';
 
 /** Ficha da arma, mostrada na tela TAB. */
 export interface WeaponSheet {
@@ -819,7 +819,10 @@ function drawToasts(d: HudData, W: number): void {
     ctx!.fillStyle = PALETTE.panel;
     // O rótulo distingue conquista de troca de arma. Sem isso, anunciar a arma
     // empilhava no mesmo canal e o HUD imprimia "CONQUISTA: ARMANDO: ...".
-    const texto = t.kind === 'achievement' ? `CONQUISTA: ${t.name}` : `EQUIPADA: ${t.name}`;
+    // `aviso` não tem rótulo: aviso de fase e entrada de diário não são
+    // conquista, e o prefixo mentia sobre o que aconteceu.
+    const rotulo = t.kind === 'achievement' ? 'CONQUISTA: ' : t.kind === 'equip' ? 'EQUIPADA: ' : '';
+    const texto = rotulo + t.name;
     ctx!.font = 'bold 12px monospace';
     const w = ctx!.measureText(texto).width + 16;
     ctx!.fillRect(W - INSET - w, y - 11, w, 16);

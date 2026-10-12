@@ -297,7 +297,7 @@ document.addEventListener('keydown', e => {
       player.useMedkit();
       checkAchievements('medkit');
     } else {
-      pushToast('SEM MEDKIT', 1.2, 'equip');
+      pushToast('SEM MEDKIT', 1.2, 'aviso');
     }
   }
   // 1-9 equipam pares (arma + qualidade) já comprados, sem abrir a loja.
@@ -1102,7 +1102,11 @@ function update(dt: number) {
     triggerScreenShake(12, 0.6);
     triggerDamageFlash();
     sfxError();
-    pushToast('SOBREVIVENTE PERDIDO — RECOMEÇANDO A FASE', 4);
+    pushToast('SOBREVIVENTE PERDIDO — RECOMEÇANDO A FASE', 4, 'aviso');
+    // O espelho da conquista de salvar: deixar o sobrevivente cair também é
+    // história. O toast chega junto com o aviso de reinício da fase.
+    const lossAch = checkAchievements('vip_lost');
+    if (lossAch) pushToast(lossAch.name, 4);
     resetWave();
     loadPhaseEnvironment();
     enemies.length = 0;
@@ -1117,7 +1121,7 @@ function update(dt: number) {
     if (objAch) pushToast(objAch.name, 3);
     // sobrevivente escoltado até o fim → entrada reativa do diário
     if (phase.objective === 'protect' && unlockDiaryEvent('npc_saved')) {
-      pushToast('NOVA ENTRADA NO DIÁRIO', 3);
+      pushToast('NOVA ENTRADA NO DIÁRIO', 3, 'aviso');
     }
   }
 
@@ -1496,9 +1500,9 @@ function killEnemy(e: Enemy, award: boolean): void {
     // custava nada e não voltava nunca. Só na fase 3 (Fábrica), que é onde a
     // cutscene mostra a morte — nas outras não houve Fernandes.
     if (getCurrentPhase().name === 'Fábrica' && unlockDiaryEvent('fernandes')) {
-      pushToast('DIÁRIO: SEIS SEGUNDOS', 4);
+      pushToast('DIÁRIO: SEIS SEGUNDOS', 4, 'aviso');
     }
-    if (unlockDiaryEvent('boss_kill')) pushToast('NOVA ENTRADA NO DIÁRIO', 3);
+    if (unlockDiaryEvent('boss_kill')) pushToast('NOVA ENTRADA NO DIÁRIO', 3, 'aviso');
     spawnParticles(e.x, e.y, PALETTE.crit, 50, 400, 'smoke');
     triggerBossKillFlash();
     triggerScreenShake(18, 0.8);

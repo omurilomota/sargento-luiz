@@ -50,6 +50,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'chain_3', name: 'Dominó', desc: 'Derrube 3 caixotes e barris numa explosão só', unlocked: false },
   { id: 'chain_5', name: 'Cascata', desc: 'Derrube 5 caixotes e barris numa explosão só', unlocked: false },
   { id: 'vip_saved', name: 'Escolta', desc: 'Conclua uma fase protegendo o sobrevivente', unlocked: false },
+  { id: 'vip_lost', name: 'Escolta Perdida', desc: 'Perca o sobrevivente numa fase de proteção', unlocked: false },
   { id: 'all_objectives', name: 'Cinco Jeitos', desc: 'Conclua uma fase de cada objetivo: limpar, destruir, sobreviver, proteger e chegar', unlocked: false },
   { id: 'medkit_5', name: 'Primeiros Socorros', desc: 'Use 5 medkits no total', unlocked: false },
   { id: 'medkit_20', name: 'Posto Avançado', desc: 'Use 20 medkits no total', unlocked: false },
@@ -137,6 +138,8 @@ export function checkAchievements(event: string, value?: number): { id: string; 
       break;
     case 'chacina':
       return unlock('chacina');
+    case 'vip_lost':
+      return unlock('vip_lost');
     case 'score':
       if (value && value >= 5000) unlock('score_5000');
       if (value && value >= 20000) unlock('score_20000');

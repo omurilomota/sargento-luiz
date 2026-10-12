@@ -89,6 +89,12 @@ describe('achievements: os gatilhos desbloqueiam o que prometem', () => {
     expect(checkObjectiveAchievement('protect')?.id).toBe('vip_saved');
   });
 
+  it('perder o sobrevivente devolve a conquista de loss, uma vez', () => {
+    expect(ACHIEVEMENTS.some(a => a.id === 'vip_lost')).toBe(true);
+    expect(checkAchievements('vip_lost')?.id).toBe('vip_lost');
+    expect(checkAchievements('vip_lost')).toBeNull();
+  });
+
   it('os 5 tipos de objetivo juntos destravam o lote', () => {
     // 'protect' destrava vip_saved no caminho, então os 4 primeiros não são null
     const primeiros = TIPOS.slice(0, 4).map(t => checkObjectiveAchievement(t)?.id ?? null);
@@ -123,6 +129,7 @@ describe('achievements: nenhum gatilho pode desbloquear duas vezes', () => {
       checkAchievements('boss_kill');
       checkAchievements('combo', 30);
       checkAchievements('chain', 6);
+      checkAchievements('vip_lost');
       for (const t of TIPOS) checkObjectiveAchievement(t);
     };
     dispara();
