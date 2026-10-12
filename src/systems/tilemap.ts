@@ -291,17 +291,14 @@ export function rebuildFlowField(targetCol: number, targetRow: number): void {
   flowTargetCol = tc;
   flowTargetRow = tr;
 
-  const n = map.cols * map.rows;
   flowDist.fill(-1);
   flowDir.fill(0);
 
-  const queue = new Int32Array(n);
+  const queue: number[] = [tr * map.cols + tc];
   let head = 0;
-  let tail = 0;
   flowDist[tr * map.cols + tc] = 0;
-  queue[tail++] = tr * map.cols + tc;
 
-  while (head < tail) {
+  while (head < queue.length) {
     const cur = queue[head++];
     const cx = cur % map.cols;
     const cy = (cur - cx) / map.cols;
@@ -314,11 +311,16 @@ export function rebuildFlowField(targetCol: number, targetRow: number): void {
       // não cortar quina: as duas ortogonais adjacentes precisam estar livres
       if (dx !== 0 && dy !== 0 && (isWall(cx + dx, cy) || isWall(cx, cy + dy))) continue;
       const ni = ny * map.cols + nx;
-      const step = dx !== 0 && dy !== 0 ? 14 : 10;
+      // Hazard custa caro. O custo zero fazia o caminho mais curto do mapa —
+      // o que todo inimigo segue — atravessar espinho, lava e piso elétrico
+      // por dentro, e o combate inteiro acontecia em cima do tile que fere.
+      // Custo alto desvia quando existe rota; quando não existe, paga e
+      // atravessa: hazard continua sendo chão, não parede.
+      const step = (dx !== 0 && dy !== 0 ? 14 : 10) + (charAt(nx, ny) === '^' ? 60 : 0);
       const nd = cd + step;
       if (flowDist[ni] === -1 || nd < flowDist[ni]) {
         flowDist[ni] = nd;
-        queue[tail++] = ni;
+        queue.push(ni);
       }
     }
   }
