@@ -17,21 +17,22 @@ A direção do jogo está em [`docs/DESIGN.md`](docs/DESIGN.md).
 - **Recarregar:** `R` (automático ao esvaziar o pente) · **Pausa:** `Esc`
 - **Som:** `M` música · `S` efeitos (toggle persistente)
 - **Dificuldade:** cada fase tem hazard e objetivo próprios — sobreviver,
-  destruir ninhos ou chegar na zona. Nem toda fase é "mate todo mundo".
+  destruir ninhos, proteger um sobrevivente ou chegar à zona. Nem toda fase é
+  "mate todo mundo".
 
 ## Fases
 
 | # | Fase | Hazard | Objetivo | Boss |
 |---|---|---|---|---|
-| 1 | Cidade em Ruínas | detritos | limpar a área | — |
+| 1 | Cidade em Ruínas | detritos | limpar a área | VIGIA |
 | 2 | Floresta | névoa | limpar a área | ALPHA WOLF |
 | 3 | Caverna | escuridão | destruir 3 ninhos | CRYSTAL QUEEN |
 | 4 | Fábrica | eletricidade | sobreviver 45s | SENTINEL |
 | 5 | Pântano | lama | limpar a área | LEVIATHAN |
-| 6 | Castelo | espinhos | limpar a área | REI MUTANTE |
-| 7 | Vulcão | lava | limpar a área | INFERNO PRIME |
+| 6 | Castelo | espinhos | proteger o sobrevivente | REI MUTANTE |
+| 7 | Vulcão | lava | chegar à zona | INFERNO PRIME |
 | 8 | Espaço | baixa gravidade | limpar a área | MOTHERSHIP |
-| 9 | Bunker Central | — | limpar a área | — |
+| 9 | Bunker Central | — | limpar a área | NÚCLEO (desfile: INFERNO PRIME → REI MUTANTE → MOTHERSHIP) |
 
 ## Modos
 
@@ -40,29 +41,32 @@ A direção do jogo está em [`docs/DESIGN.md`](docs/DESIGN.md).
 
 ## Armas
 
-Todas municiadas, com recarga. A classe de arma define o sprite do cano e o
-timbre do som.
+Todas municiadas, com recarga. A **família** da arma define a pose do
+personagem, o sprite do projétil e o timbre do som; a **condição** (quebrada a
+lendária) muda dano, dispersão, som e preço.
 
 | Arma | Dano | Cadência | Pente | Projéteis | Preço | Especial |
 |---|---|---|---|---|---|---|
-| Pistola | 10 | 0.35s | 10 | 1 | — | inicial |
-| Shotgun | 7 | 0.6s | 8 | 3 | 80 | leque |
-| Gel | 6 | 0.28s | 20 | 2 | 180 | leque |
-| Mina | 40 | 2.8s | 2 | 1 | 200 | explosivo, raio 140 |
-| Metralhadora | 5 | 0.14s | 25 | 1 | 150 | — |
-| Sniper | 40 | 1.2s | 4 | 1 | 200 | pierce |
-| Laser | 3 | 0.06s | 40 | 1 | 250 | pierce |
-| Granada | 40 | 1.4s | 3 | 1 | 250 | explosivo |
-| Raios | 6 | 0.25s | 15 | 2 | 300 | pierce |
-| RPG | 65 | 1.8s | 2 | 1 | 350 | explosivo |
-| BFG | 80 | 2.0s | 1 | 5 | 999 | **secreta** (só após completar o jogo) |
+| Pistola | 12 | 0.35s | 10 | 1 | — | inicial |
+| Shotgun | 9 | 0.6s | 8 | 3 | 80 | leque |
+| Gel | 8 | 0.28s | 20 | 2 | 180 | leque |
+| Mina | 50 | 2.8s | 2 | 1 | 200 | explosivo, raio 140 |
+| Metralhadora | 6 | 0.14s | 25 | 1 | 150 | — |
+| Sniper | 50 | 1.2s | 4 | 1 | 200 | pierce |
+| Laser | 2 | 0.06s | 40 | 1 | 250 | pierce |
+| Granada | 50 | 1.4s | 3 | 1 | 250 | explosivo, raio 110 |
+| Raios | 4 | 0.25s | 15 | 2 | 300 | pierce |
+| RPG | 81 | 1.8s | 2 | 1 | 350 | explosivo, raio 140 |
+| BFG | 100 | 2.0s | 1 | 5 | 999 | **secreta** |
+| M. Quebrada | 5 | 0.3s | 30 | 1 | — | quebrada (encasquilha) |
+| Destruidor | 120 | 1.6s | 3 | 1 | — | **secreta** (entregue na fase final) |
 
 Entre as fases a loja oferece **3 perks por visita**, tirados de uma escada de
 4 ramos (DANO, CORPO, PERNAS, MENTE) com 5 degraus e um especial no fim de cada
 um. O degrau N só destrava depois do N−1, e 1 dos 3 sempre casa com a build que
 você já tem. Também vende skins, peças e medkits.
 
-Certos degraus com certain armas viram **combos** com bônus próprio.
+Certos degraus com certas armas viram **combos** com bônus próprio.
 
 ## Progressão
 
@@ -76,7 +80,7 @@ persiste no save.
 npm install
 npm run dev      # desenvolvimento com hot reload
 npm run build    # build de produção (tsc + vite build)
-npm test         # vitest (856 testes, inclui os 5 portões anti-IA)
+npm test         # vitest (o número atual está no STATUS.md; inclui os 5 portões anti-IA)
 npx tsc --noEmit # type check
 ```
 
@@ -107,7 +111,7 @@ python3 tools/genmusic.py   # 4 faixas OGG (precisa de ffmpeg)
 src/
 ├── main.ts        orquestrador: loop, input, update/draw
 ├── maps.ts        dados dos 9 mapas + paletas de bioma
-├── config.ts      fases, inimigos, armas, upgrades, power-ups
+├── config.ts      fases, inimigos, armas, peças, power-ups
 ├── core/          constantes de balanceamento e paleta
 ├── entities/      player, bullet, coin
 ├── systems/       tilemap, camera, terrain, props, objectives, boss,
@@ -132,6 +136,7 @@ Três coisas que valem saber antes de mexer:
 ## Licença
 
 Código do projeto: uso livre.
-Assets: ver [`public/assets/CREDITS.md`](public/assets/CREDITS.md) — sprites do
-Kenney Top-down Shooter (CC0), música original do projeto (CC0), SFX
-inteiramente procedurais via Web Audio API.
+Assets: ver [`public/assets/CREDITS.md`](public/assets/CREDITS.md) — sprites
+Kenney, Screaming Brain e Kay Lousberg (CC0), música Eric Matyas (soundimage,
+livre com atribuição), SFX em OGG de bancos CC0 e CC-BY (tiros: Vincent
+Sevedge). Síntese procedural existe só como fallback de arquivo ausente.

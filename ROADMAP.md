@@ -1,208 +1,101 @@
-# BubbleGame — Roadmap
+# SARGENTO RIOS — Roadmap
 
-> Atualizado: 2026-10-03 · direção em [`docs/DESIGN.md`](docs/DESIGN.md)
-> estado concreto em [`STATUS.md`](STATUS.md) · pendências em [`TODO.md`](TODO.md)
+> Atualizado: 2026-10-12 · direção em [`docs/DESIGN.md`](docs/DESIGN.md) ·
+> estado concreto em [`STATUS.md`](STATUS.md) · pendências em [`TODO.md`](TODO.md) ·
+> cardápio não-decidido em [`docs/FUTURO.md`](docs/FUTURO.md)
 
-A ordem não é por "o que é mais legal", é por **o que destrava o resto**. Sem
-geometria de campo, troca de paleta, tile novo ou sistema novo não muda nada —
-então geometria vem antes de tudo.
-
----
-
-## v1.3 — o campo de batalha ✅
-
-**Por que primeiro:** o jogo tinha 7 fases e nenhum obstáculo. `collision.ts`
-só tinha circle-circle; não existia parede, cobertura, hazard ou nada que
-fizesse o jogador decidir onde ficar.
-
-- [x] Tilemap 30×20, colisão círculo-vs-grid com deslize por eixo
-- [x] Câmera com follow/clamp e `screenToWorld`
-- [x] Flow field no lugar do seek direto (resolve empilhamento de graça)
-- [x] Prerender do terreno com tint por bioma
-- [x] Props destrutíveis: caixote, barril com cadeia, ninho
-- [x] 9 mapas autorais, com hazard e objetivo próprios
-- [x] Objetivos de fase: clear, survive, destroy, protect, reach
-- [x] Boss data-driven (7 bosses) com telegrafia
-- [x] HUD 100% canvas em grade de 3 colunas
-- [x] Geometria única de loja e menu (draw e hit-test no mesmo layout)
-- [x] Colisão swept de projétil
-- [x] Assets em `public/` (build de produção copia)
-- [x] 4 faixas OGG com crossfade + som por habilidade
-- [x] Screen shake aplicado, ENTER sem cascata, dash com direção
-- [x] 210 testes (swept, câmera, objetivo, executor de boss, asset, layout de loja/menu, dificuldade dinâmica, validação de mapas)
-
-## v1.4 — conteúdo que falta ⏳
-
-Cada item destrava algo maior que ele mesmo.
-
-- [x] **Fases 1 e 9 com boss.** VIGIA na Cidade (a primeira luta é uma aula:
-      telegrafia que diz o que vem, investida como primeira coisa a desviar,
-      praça com cobertura) e NÚCLEO no Bunker (tira uma opção por faixa, sem
-      investida porque a galeria não comporta).
-- [x] **Boss que não morre em cima do jogador.** O contato só mata melee;
-      chefe leva o dano e continua. Um chefe que investia se matava sozinho, e a
-      investida telegrafada virava um presente para quem ficasse parado.
-- [x] **`protect` com inimigo que caça o NPC.** O Castelo é a fase: o `archer`
-      tem `huntsNpc` e ignora o flow field para ir direto no sobrevivente, e
-      atira nele também; `knight` e `mage` continuam no jogador.
-- [x] **`protect` com falha.** O sobrevivente cair reinicia a fase: mesmo mapa,
-      onda zerada, sobrevivente novo. Um objetivo de escolta sem consequência
-      não é escolta.
-- [x] **Marcador de chefe no mundo.** Anel no chão, na linguagem das auras do
-      jogador. Cor única (terracota) e não a do chefe: com a cor dele o anel do
-      NÚCLEO sumia no piso do Bunker.
-- [x] **Cobertura que muda a decisão de rota.** Paleta de props por bioma —
-      madeira na Floresta, chapa na Fábrica, rocha na Caverna, basalto no Vulcão.
-      Antes todo mundo era o mesmo engradado bege.
-- [x] **Balanceamento por bioma.** A rampa agora é o número de ondas
-      (3,4,5,5,6,6,7,7,8) e `Phase.difficulty` só corrige os 4 tipos que fugiam
-      dela. `balance.test.ts` trava que a curva cresce.
-- [x] **Props como cobertura real nas outras fases.** O tiro de inimigo para em
-      prop nas 9. O que continua exclusivo da Cidade é o desmoronamento: entulho
-      não aguenta tiro e cai inteiro com o primeiro.
-- [x] **Achievements expandidos** (13 -> 21, sem sistema de tracking novo).
-
-## v2.0 — o que exige decisão de design, não implementação ⏳
-
-- [ ] **Progressão durante a fase.** Hoje upgrade só entre fases, na loja.
-      É a maior mudança de *sensação* de jogo e mexe em tudo.
-- [ ] **Mapa procedural.** Os 9 são autorais. Geração exigiria decidir o que
-      é "bom mapa" — hoje não existe critério.
-- [ ] **Multiplayer online.** Não é networking, é o modelo de autoridade.
-- [ ] **Áudio posicional.** Hoje tudo é estéreo.
+A ordem não é por "o que é mais legal", é por **o que destrava o resto**.
 
 ---
 
-## Fora de escopo (e por quê)
+## Em andamento — rodada 2026-11 (IA-2)
 
-- **Side-scroller estilo Zombotron** (`docs/archive/MVP-ZOMBOTRON.md`) — direção
-  abandonada quando o jogo virou top-down.
-- **Raycaster** (`docs/archive/compose/`) — plano engine, engine removida.
-- **Gerar mapa por IA.** O plano original citava "gerar os mapas com IA"; o
-  `tools/genmaps.py` faz a parte mecânica (largura, borda, conectividade) e o
-  layout continua escrito à mão. Gerar *layout* com IA produz exatamente a
-  textura de "feito por máquina" que o AGENTS.md proíbe.
+A partida completa relatada pelo dono virou bugs B1–B8 da fase final + tasks
+T1–T6 + a história II–IV. Item a item no `TODO.md` ("RODADA 2026-11").
+Arquivos em voo: `src/main.ts`, `src/systems/loot.ts`, `src/config.ts`,
+`src/systems/sprites.ts` e os docs de história — quem não for desta frente
+evita editar esses arquivos até o commit.
 
----
+- [x] B1 — o epílogo não toca antes da luta final
+- [x] B2 — o Destruidor é entregue na entrada da fase 9, não como loot da loja
+- [ ] B3–B8 — countdown do Vulcão sem chefe, estado do rush vazando entre
+      fases, biomaquina, nome NÚCLEO-CENTRAL, texto do epílogo, cenário
+      destrutivo
+- [ ] T1–T6 — titãs/elites, playlist, disclosure do site, pontos de talento,
+      anúncio, armaduras
 
-# Histórico
+## Frentes aprovadas (plano de 2026-10-12)
 
-O que já foi entregue antes da v1.3, e o que foi entregue nela.
+Executadas em paralelo com a rodada acima, sem tocar nos arquivos dela.
 
-## ✅ CONCLUÍDO NA v1.2
+1. **Base verde + docs** — README, ROADMAP e STATUS reconciliados com o disco;
+    a cada entrega, os três voltam a dizer a verdade.
+2. **Balanceamento mensurável** — o espinho do Castelo (única fase que mata o
+   piso: 32s contra 45s+ das outras 8), dano de barril medido em sessão, curva
+   de dificuldade com passos uniformes, chefe de raio 46 no corredor de 1
+   célula (só **depois** da fase 9 nova, que pode resolver sozinha).
+3. **Dívidas de UX** — tutorial de perks, cores de condição durante a
+   partida, preset de loadout, conquista de loss, combos cruzados entre
+   ramos, objetivo da Fábrica alinhado à cutscene, mural de conquistas e de
+   personagens.
+4. **Decisões do dono** — Castelo `protect` (abrigo / interceptar linha de
+   tiro / vida de escolta), teste de economia (árbitro loja × progressão,
+   destrava as 7 fases novas), poda da árvore de talentos, arco II–IV.
+   Nada disto vira código antes da escolha.
+5. **Conteúdo** — tint por inimigo, tilesets por zona, moral ↔ sorte (Sprint
+   7), armas 12→20, NPC aliado do Castelo, muros quebráveis (por último:
+   colisão, pathfinding e borda do mapa no mesmo risco).
+6. **Polimento** — perf budget, bússola de objetivo, configurações 2.0,
+   SFX por material, paleta daltonismo-safe.
+7. **Publicação** — deploy do site, cápsula + GIFs do itch, versão visível no
+   menu. i18n, touch e Steam ficam DEPOIS por decisão registrada.
 
-### Core Gameplay
-- [x] Sons para cada arma especificamente
-- [x] Armas municiadas com recarga
-- [x] Modo competitivo contra bots
-- [x] Expansão da loja com upgrades
-- [x] Sistema de moedas e skins
-- [x] Combos e sinergias entre armas
-- [x] Buff geral nos inimigos (progressão por onda)
-- [x] Rebalanceamento de armas e preços
-
-### Bugs Corrigidos
-- [x] Bug de inimigos morrendo/dano aleatório
-- [x] Loja com cliques errados
-- [x] R para recarregar, furia movida
-- [x] Dano de eventos ambientais sem visual
-- [x] Tela inicial com itens sobrepondo
-- [x] Diálogo passando rápido demais
-- [x] Timer de cooldown dos poderes
-- [x] Eventos sobrepondo HUD
-
-### Novas Features (v1.2+)
-- [x] Achievements/badges (13 conquistas)
-- [x] Leaderboard local (top 10)
-- [x] Boss com 3 fases de ataque
-- [x] Modo hardcore
-- [x] Arma secreta BFG
-- [x] Animação de morte do jogador
-- [x] Transição animada entre fases
-- [x] Save/load (localStorage)
-- [x] Minimap
-- [x] Power-up drops
-- [x] Dificuldade progressiva dinâmica
-- [x] Escolhas na história (3 finais)
-- [x] Diário de bordo do Rios
-- [x] Tutorial interativo
-- [x] Crítico visual com slow motion
-- [x] Pausa com ESC
-
-### Visual/Melhorias
-- [x] HitFlash visual nos inimigos
-- [x] Sombras no chão
-- [x] Tiles de terreno por fase
-- [x] Cutscenes com animações visuais
-- [x] NPCs integrados ao gameplay
-- [x] Tecla ç para avançar diálogos
-- [x] Screen shake sutil
-- [x] Partículas de poeira no terremoto
-- [x] Zoom no boss
-
-### Balanceamento
-- [x] Nerfar Gel/Raios
-- [x] Buffar Laser/RPG/Granada
-- [x] Regen stacking corrigido
-- [x] Combo health bonus wired
-- [x] Cores ajustadas para paleta pós-apocalíptica
-
-### Limpeza
-- [x] Remover código morto (engine/, imports)
-- [x] Limpar package.json
-- [x] Unificar constantes
-- [x] Mover velocidades para config
-
-### Testes
-- [x] 14 testes unitários (collision, utils)
+A régua por entrega: `tsc` limpo + `npm test` + build; render mudou →
+`npm run visual` com o PNG aberto; HP/onda mudou → `npm run fases`/`sessao`.
 
 ---
 
-## 📋 PENDENTE
+## Fora de escopo (não reabrir sem motivo novo)
 
-### Prioridade ALTA
-- [x] `main.ts`: `update()` foi de 463 para 252 linhas e o `init()` duplicado
-      — que rodava o game loop duas vezes por frame — saiu. Ainda é um arquivo
-      grande, mas agora é um orquestrador de passos nomeados, não um bloco só
-- [ ] `main.ts` ainda concentra input, menu, loja, cutscene e save no mesmo
-      arquivo. Extrair menu/loja é o próximo passo natural, mas é refactor de
-      arquivo sem bug conhecido por trás
-- [x] **`shooter` saiu do dicionário**: cada fase já tem atirador temático
-      (spitter, crystal, robot, frog, archer, fireElemental, ufo), então um
-      atirador genérico só diluiria a identidade da fase
-- [x] **Dificuldade dinâmica de verdade**: `getSkillPressure()` alimenta o ritmo
-      do spawn, com banda de 12% e nada antes de 20 tiros
-- [x] `protect` com inimigo que caça o NPC (Castelo)
-- [x] `reach` com mapa (Vulcão, zona a 15 células do spawn)
-
-### Prioridade MÉDIA
-- [x] Testes para `objectives`, `boss` e `camera` — a lógica que mais mudou na
-      v1.3 era a que menos tinha cobertura
-- [x] Testes para `props` (24) e `terrain` (98)
-- [x] Testes para `balance`, `achievements`, `objectives`, `camera` e `assets`
-- [x] Achievements expandidos (13 -> 21)
-- [ ] Editor de fases visual — é uma ferramenta, não uma fase do jogo
-
-### Prioridade BAIXA
-- [ ] Multiplayer online
-- [ ] Áudio posicional
+- **Coop/competitivo online** — o modelo de autoridade de rede não existe;
+  decidido e adiado em 2026-10-10.
+- **Mapa procedural** — o resultado lê como "feito por máquina", que é
+  exatamente o que a direção proíbe.
+- **Mobile/touch e gamepad** — navegador + teclado/mouse é o alvo decidido.
+- **HUD em DOM** — quebra a regra do canvas único e foi a causa de metade dos
+  overlaps da v1.2.
+- **Progressão durante a fase** — reabrir muda a economia inteira.
+- **Steam agora** — página e validação vêm depois do jogo fechado.
 
 ---
 
-## 📊 MÉTRICAS DO PROJETO
+## Histórico
+
+- **v1.2** — conteúdo de base: armas, upgrades, combos, boss em 3 fases,
+  hardcore, save/load, conquistas, tutorial, minimapa.
+- **v1.3** — o campo de batalha: tilemap com deslize por eixo, câmera com
+  clamp, flow field, terreno prerenderizado, props destrutíveis, 9 mapas
+  autorais, colisão swept, HUD 100% canvas, 4 faixas OGG.
+- **v1.4** — bosses VIGIA e NÚCLEO, `protect` que falha e reinicia, marcador
+  de chefe, cobertura por bioma, curva por número de ondas, 21 conquistas.
+- **v2** — armas com família/condição/peça, XP e nível, escada de 24 perks com
+  4 especiais, portão anti-IA (5 testes), telemetria de dano por fonte,
+  silhueta de inimigo variando por fase, site estático, versus local 2P
+  completo com revanche.
+- **2026-11** — fase final como desfile (`NUCLEO_RUSH`), biomaquina,
+  Destruidor e traje de contenção, telemetria que alcança as 9 fases.
+
+## Métricas (conferidas contra o disco em 2026-10-12)
 
 | Métrica | Valor |
-|---------|-------|
-| Arquivos TypeScript | 54 |
-| Linhas de código | ~11.500 |
-| Testes unitários | 210 |
+|---|---|
+| Arquivos TypeScript (fora de teste) | 55 |
+| Testes | 894 em 49 arquivos |
 | Mapas / fases | 9 |
-| Tipos de inimigos | 22 |
-| Bosses | 9 |
-| Armas | 11 |
-| Upgrades | 19 |
-| Combos | 8 |
-| Achievements | 13 |
+| Tipos de inimigo | 32 (22 comuns + 9 chefes + biomaquina) |
+| Bosses | 9, mais a fila `NUCLEO_RUSH` na fase final |
+| Armas | 13 |
+| Perks | 24 degraus + 4 especiais |
+| Combos | 6 |
+| Conquistas | 21 |
 | Modos de jogo | 4 |
-
-Números conferidos contra o disco em 2026-10-03.

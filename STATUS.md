@@ -1,14 +1,14 @@
 # SARGENTO RIOS — Status Geral do Projeto
 
-> Atualizado: 2026-11 · branch `develop` (v2 mesclada) ·
-> 879 testes em 49 arquivos · `tsc` limpo · build ok.
+> Atualizado: 2026-10-12 · branch `develop` (v2 mesclada) ·
+> 919 testes em 49 arquivos · `tsc` limpo · build ok.
 > Este arquivo estava parado na v1.3 (420 testes, nome ASHFALL) e foi
 > reconciliado com o código.
 
 ## Verificação atual
 
 ```
-npm test           # 879 passando em 49 arquivos
+npm test           # 919 passando em 49 arquivos
 npx tsc --noEmit   # 0 erros
 npm run build      # ok
 npm run visual     # 8 screenshots, sem 404/pageerror
@@ -30,18 +30,30 @@ O bot desvia de inimigo e de barril, atira, e não usa dash, escudo nem fúria.
 
 | fase | sobrevive | onda | principal dano |
 |---|---|---|---|
-| Cidade em Ruínas | 45s+ | 1 | evento (grunt) |
-| Floresta | 45s+ | 2 | contato (spitter) |
-| Caverna | 45s+ | 2 | — |
-| Fábrica | 45s+ | 2 | — |
+| Cidade em Ruínas | 45s+ | 2 | evento |
+| Floresta | 45s+ | 2 | contato (grunt) |
+| Caverna | 45s+ | 2 | contato (runner) |
+| Fábrica | 45s+ | 2 | bioma |
 | Pântano | 45s+ | 2 | contato (mosquito) |
-| **Castelo** | **32s** | 2 | **bioma (espinho)** |
-| Vulcão | 45s+ | 2 | projétil (inferno) |
-| Espaço | 45s+ | 2 | projétil (alien) |
-| Bunker Central | 45s+ | 2 | contato (runner) |
+| **Castelo** | **24s** | 2 | **bioma (espinho)** |
+| Vulcão | 45s+ | 2 | evento (inferno) |
+| Espaço | 45s+ | 2 | projetil (ufo) |
+| Bunker Central | 45s+ | 2 | — |
 
-Números crus em `tools/fases-medidas.json`. O único que mata o bot é o
-Castelo, e é o **hazard de espinho**: não é inimigo, é o chão.
+Números crus em `tools/fases-medidas.json`. A linha do Bunker Central acima
+foi medida **antes** do desfile entrar desde a entrada da fase (B6); a da
+fase final será medida de novo quando a reescrita pousar.
+
+O Castelo mudou de natureza em 2026-10-12: o tapete de 12 espinhos nas duas
+lanes centrais virou **6 espinhos guardando a base da cobertura** (pilares
+12/15/18 das linhas 7 e 12, `genmaps.py`). No mapa antigo o bot morria nas 2
+medições registradas (32s); no novo, 4 de 5 sessões isoladas chegam aos 45s —
+a morte residual é o bot kiteando **contra** espinho visível (limite do
+instrumento, o bot não lê o chão) e o loop do `protect` (o archer mata o
+VIP, a fase reinicia e o `placePlayer` cura — o `danoTotal` de 120 numa vida
+de 100 HP é o acúmulo entre reinícios). O desenho de verdade da fase depende
+do §1.1 do FUTURO: abrigo / interceptar linha de tiro / vida de escolta —
+decisão do dono, não de código.
 
 ## Portão Anti-IA — 5 testes
 
@@ -55,7 +67,33 @@ Castelo, e é o **hazard de espinho**: não é inimigo, é o chão.
 
 Direção do jogo: [`docs/DESIGN.md`](docs/DESIGN.md) ·
 pendências: [`TODO.md`](TODO.md) ·
-decisões autônomas: [`docs/DECISIONS.md`](docs/DECISIONS.md)
+decisões autônomas: [`docs/DECISIONS.md`](docs/DECISIONS.md) ·
+ordem das frentes: [`ROADMAP.md`](ROADMAP.md)
+
+---
+
+## Entregas em paralelo (2026-10-12, frente de bugs/balance/dívidas)
+
+Enquanto a rodada da fase final (B1–B8, T1–T6) corria em `main.ts`/`loot.ts`
+nos commits dela, esta frente trabalhou fora do voo desses arquivos:
+
+- **Docs reconciliados**: README (tabela de fases com VIGIA/NÚCLEO e os
+  objetivos reais de `protect`/`reach`, números reais das 13 armas, licença
+  de SFX/música) e ROADMAP (era "BubbleGame", com métrica da v1.3 e 210
+  testes; agora carrega as frentes aprovadas e o estado real).
+- **Espinho do Castelo**: tapete de 12 tiles nas lanes → 6 tiles guardando a
+  base da cobertura (`genmaps.py` + `maps.ts`, idempotente com o gerador).
+  Medido acima. As 3 linhas que mudam no mapa: 7, 12 e 15 (a moeda pulou de
+  célula porque o scatter pula hazard).
+- **Toast com rótulo honesto**: `kind: 'aviso'` sem prefixo. O reinício do
+  `protect`, os avisos de diário e o "SEM MEDKIT" renderizavam como
+  "CONQUISTA:"/"EQUIPADA:" — o rótulo mentia sobre o que aconteceu.
+- **Conquista `Escolta Perdida`** (`vip_lost`): o espelho de `vip_saved`,
+  concedida no latch do `vipDown` junto do aviso de reinício.
+- **Pendência declarada**: os PNGs de `tools/shots/castelo-*.png` e os 8 do
+  `npm run visual` foram gerados sem erro, mas não foram abertos por leitor
+  de imagem nesta sessão (o modelo não suporta imagem). Quem tiver olho,
+  abra antes de fechar a entrega.
 
 ---
 
