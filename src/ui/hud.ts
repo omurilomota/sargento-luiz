@@ -134,7 +134,7 @@ export function drawHud(d: HudData): void {
   }
   drawWarningStrip(d, W, stackY);
   drawBottomLeft(d, H);
-  drawComboChips(d, W, H);
+  drawFichaMini(d, W, H);
   drawHint(d, W, H);
   drawPhaseEndCountdown(d, W, H);
   drawToasts(d, W);
@@ -421,6 +421,21 @@ export function medirHud(d: HudData): HudMedida[] {
   push(`NV ${d.nivel}`, 'bold 11px monospace', 34, 'antes da barra de XP', 'xpRotuloY', L.xpLabelY - 9, L.xpLabelY + 2);
   push(d.skills.map(s => s.name.toUpperCase()).join(' '), '11px monospace', SIDE_W, 'coluna esquerda', 'skillRotuloY', L.skillLabelY - 9, L.skillLabelY + 2);
   push('1-9: trocar arma · TAB: ficha', '11px monospace', SIDE_W, 'coluna esquerda', 'hintsY', L.hintsY - 9, L.hintsY + 2);
+
+  // ficha mini (canto inferior direito) e painel de combos do TAB: as caixas
+  // vêm da metade direita da tela na resolução atual (o vizinho mais próximo
+  // é a dica central) e da mesma fórmula de largura do draw.
+  const W = c.canvas.width;
+  const meiaDireita = W / 2 - INSET;
+  if (d.weaponStats) {
+    const s = d.weaponStats;
+    push(`DANO ${s.damage}${s.bulletCount > 1 ? ` ×${s.bulletCount}` : ''}`, 'bold 12px monospace', meiaDireita, 'metade direita inferior');
+    push(`QUALIDADE ${s.quality.toUpperCase()}`, '11px monospace', meiaDireita, 'metade direita inferior');
+  }
+  push('NENHUM COMBO ATIVO', '13px monospace', getTabPanelWidth(W), 'painel de combos do TAB');
+  // a descrição mais longa conhecida — combo novo mais largo que esta linha
+  // precisa entrar aqui para a medição pegar.
+  push('RPG/Granada + Dano: +40% dano explosivo', '11px monospace', getTabPanelWidth(W), 'painel de combos do TAB');
   return partes;
 }
 
@@ -470,6 +485,11 @@ export function drawMinimap(d: HudData, x: number, y: number, w: number, h: numb
  * a loja imprimia `damage × qualidade` e ignorava upgrade, combo, classe e
  * peça, então o número mostrado não era o número do tiro.
  */
+/** Largura do painel direito do TAB, partilhada por draw e medição. */
+export function getTabPanelWidth(W: number): number {
+  return Math.min(520, (W - 40 * 3 - 24) / 2);
+}
+
 export function drawTabScreen(d: HudData, W: number, H: number): void {
   ctx!.save();
   // 0.94 e não 0.8: com o mundo aparecendo, a barra de boss, as skills e o
@@ -479,7 +499,7 @@ export function drawTabScreen(d: HudData, W: number, H: number): void {
 
   const pad = 40;
   const gap = 24;
-  const panelW = Math.min(520, (W - pad * 3 - gap) / 2);
+  const panelW = getTabPanelWidth(W);
   const mapW = panelW;
   const mapH = Math.round(mapW * (d.worldSize.h / Math.max(1, d.worldSize.w)));
   const top = Math.max(pad, (H - Math.max(mapH, 300)) / 2);
@@ -491,45 +511,29 @@ export function drawTabScreen(d: HudData, W: number, H: number): void {
   drawMinimap(d, pad, top, mapW, mapH);
 
   const x2 = pad + mapW + gap;
-  const s = d.weaponStats;
-  ctx!.fillText('FICHA DA ARMA', x2, top - 10);
+  ctx!.fillText('COMBOS ATIVOS', x2, top - 10);
 
-  if (!s) {
-    ctx!.font = '13px monospace';
-    ctx!.fillStyle = PALETTE.textDim;
-    ctx!.fillText('NENHUMA ARMA', x2, top + 20);
-    ctx!.restore();
-    return;
-  }
-
-  ctx!.font = 'bold 20px monospace';
-  ctx!.fillStyle = s.qualityColor;
-  ctx!.fillText(s.name.toUpperCase(), x2, top + 24);
-
-  ctx!.font = '12px monospace';
-  ctx!.fillStyle = PALETTE.textOff;
-  ctx!.fillText(s.quality.toUpperCase(), x2, top + 42);
-
-  const linhas: [string, string][] = [
-    ['DANO', `${s.damage}${s.bulletCount > 1 ? ` ×${s.bulletCount}` : ''}`],
-    ['INTERVALO', `${s.shootRate}s`],
-    ['PENTE', `${s.magazine}`],
-    ['RECARGA', `${s.reloadTime}s`],
-    ['DPS EFETIVO', `${s.dps}`],
-    ['DISPERSÃO', `${s.spread}`],
-    ['PERFURA', s.pierce ? 'SIM (-25% DANO)' : 'NÃO'],
-    ['EXPLOSIVA', s.explosive ? 'SIM' : 'NÃO'],
-  ];
+  // Os combos trocaram de lugar com a ficha da arma (rodada do dono
+  // 2026-10-12): a ficha mini ficou no canto inferior direito do HUD, e o
+  // TAB passou a listar o que está ativo — nome, descrição e a cor do combo.
   ctx!.font = '13px monospace';
-  linhas.forEach(([rotulo, valor], i) => {
-    const y = top + 72 + i * 22;
+  if (d.combos.length === 0) {
     ctx!.fillStyle = PALETTE.textDim;
-    ctx!.textAlign = 'left';
-    ctx!.fillText(rotulo, x2, y);
-    ctx!.fillStyle = PALETTE.text;
-    ctx!.textAlign = 'right';
-    ctx!.fillText(valor, x2 + panelW, y);
-  });
+    ctx!.fillText('NENHUM COMBO ATIVO', x2, top + 24);
+    ctx!.font = '11px monospace';
+    ctx!.fillStyle = PALETTE.textOff;
+    ctx!.fillText('DEGRAUS DA ESCADA + A ARMA CERTA ATIVAM', x2, top + 44);
+  } else {
+    d.combos.forEach((c, i) => {
+      const y = top + 30 + i * 34;
+      ctx!.fillStyle = c.color;
+      ctx!.font = 'bold 13px monospace';
+      ctx!.fillText(c.name, x2, y);
+      ctx!.fillStyle = PALETTE.textOff;
+      ctx!.font = '11px monospace';
+      ctx!.fillText(c.description, x2, y + 15);
+    });
+  }
 
   ctx!.textAlign = 'left';
   ctx!.font = '11px monospace';
@@ -718,23 +722,31 @@ function drawBottomLeft(d: HudData, H: number): void {
 }
 
 /** Rodapé direito: chips de combo ativos. */
-function drawComboChips(d: HudData, W: number, H: number): void {
-  if (d.combos.length === 0) return;
+/**
+ * Ficha mini da arma no canto inferior direito.
+ *
+ * Trocou de lugar com os combos (rodada do dono 2026-10-12): a leitura de
+ * "vale a pena esta arma" fica sempre visível durante o combate, e os combos
+ * ativos vão para o TAB, junto do mapa. Só o essencial aqui — o TAB tem a
+ * ficha completa para quem quiser parar e ler.
+ */
+function drawFichaMini(d: HudData, W: number, H: number): void {
+  const s = d.weaponStats;
+  if (!s) return;
   let y = H - INSET - 12;
   ctx!.textAlign = 'right';
-  for (const c of d.combos) {
+  const linha = (texto: string, fonte: string, cor: string) => {
     ctx!.fillStyle = 'rgba(0,0,0,0.5)';
-    ctx!.font = 'bold 13px monospace';
-    const nameW = ctx!.measureText(c.name).width;
-    ctx!.fillRect(W - INSET - nameW - 14, y - 11, nameW + 14, 15);
-    ctx!.fillStyle = c.color;
-    ctx!.fillRect(W - INSET - 8, y - 9, 4, 11);
-    ctx!.fillText(c.name, W - INSET - 12, y);
-    ctx!.fillStyle = PALETTE.textOff;
-    ctx!.font = '11px monospace';
-    ctx!.fillText(c.description, W - INSET - 12, y + 13);
-    y -= 32;
-  }
+    ctx!.font = fonte;
+    const w = ctx!.measureText(texto).width;
+    ctx!.fillRect(W - INSET - w - 14, y - 11, w + 14, 15);
+    ctx!.fillStyle = cor;
+    ctx!.fillText(texto, W - INSET - 8, y);
+    y -= 20;
+  };
+  linha(`DANO ${s.damage}${s.bulletCount > 1 ? ` ×${s.bulletCount}` : ''}`, 'bold 12px monospace', PALETTE.text);
+  linha(`DPS EFETIVO ${s.dps}`, '11px monospace', PALETTE.textOff);
+  linha(`QUALIDADE ${s.quality.toUpperCase()}`, '11px monospace', s.qualityColor);
   ctx!.textAlign = 'left';
 }
 
