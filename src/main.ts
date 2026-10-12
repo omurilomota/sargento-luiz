@@ -990,10 +990,16 @@ function update(dt: number) {
   // ── ondas ──
   const rect = { w: worldW, h: worldH, px: getCamX(), py: getCamY(), viewW: canvas.width, viewH: canvas.height };
   const chefeVivo = phase.boss !== undefined && enemies.some(e => ENEMY_TYPES[e.type]?.isBoss);
+  // A fase do NÚCLEO não tem onda comum: é a fila de 4 chefes desde a entrada
+  // (DECISIONS #169 — o jogador elogiou o ritmo "morre um e vem outro"). Sem
+  // isto o spawner joga horda por cima dos chefes e a fase vira duas coisas ao
+  // mesmo tempo; com isto, a única coisa que decide quando o próximo chefe
+  // nasce é a queda do anterior (`proximoDoRushNasce`).
+  const ehRushDoNucleo = phase.boss === 'nucleo' && getCurrentMode() === 'campaign';
   // Durante a luta contra o chefe o spawner não corre: a última onda já foi
   // zerada pelo `waveComplete` e, sem isto, ele reabastecia a cota dela e
   // jogava reforço na tela enquanto o chefe morria.
-  const waveComplete = chefeVivo ? false : spawnWaveEnemies(dt, enemies, getCurrentWave(), phase.enemyTypes, worldW, worldH, rect, phase.mutantsPerWave ?? 0);
+  const waveComplete = (chefeVivo || ehRushDoNucleo) ? false : spawnWaveEnemies(dt, enemies, getCurrentWave(), phase.enemyTypes, worldW, worldH, rect, phase.mutantsPerWave ?? 0);
   if (waveComplete) {
     ganhaXp(XP_BONUS_ONDA);
     const fechaFase = getCurrentWave() + 1 >= phase.waves;
@@ -1039,9 +1045,15 @@ function update(dt: number) {
   // mudaria a ordem em que o objetivo é avaliado dentro do frame.
   const objetivoLiberouChefe = phase.objective === 'clear'
     || peekObjective(p.x, p.y, enemies.length, reachZones).done;
+  // A fase do NÚCLEO não tem onda comum, então `getCurrentWave() + 1 >=
+  // phase.waves` nunca vira verdadeiro para ela: o `ultimaOnda` do predicado
+  // ficaria false e a fase NUNCA fecharia. O rush se fecha pela fila — é o
+  // ÚLTIMO chefe que arma o respiro na própria morte (bloco de morte), então
+  // aqui o termo precisa dizer "é o fim" em vez de "é a última onda".
+  const ultimaOnda = ehRushDoNucleo ? true : getCurrentWave() + 1 >= phase.waves;
   if (deveFecharFase({
     ondaCompleta: ondaConcluida,
-    ultimaOnda: getCurrentWave() + 1 >= phase.waves,
+    ultimaOnda,
     respiroArmado: phaseEnding,
     chefeLiberado: objetivoLiberouChefe,
     respiroRestante: phaseEndPause,
@@ -1123,7 +1135,7 @@ function update(dt: number) {
   // ele marca que o clímax começou, não que a fila acabou — e `bossKilled` +
   // o índice dizem qual é o próximo. O fechamento da fase é pulado até o
   // último da fila (ver bloco de morte), então a fase não fecha entre chefes.
-  const ehNucleoRush = phase.boss === 'nucleo' && getCurrentMode() === 'campaign';
+  const ehNucleoRush = ehRushDoNucleo;
   // `proximoDoRush` é a função pura em `phases.ts`: o predicado de "a fila
   // pode andar" é `semChefeVivo`, nunca o flag `bossKilled` (que é setado na
   // morte de qualquer chefe e nunca é limpo — usá-lo aqui fazia o NÚCLEO
@@ -1136,13 +1148,16 @@ function update(dt: number) {
     proximaPosicao: bossRushIndex,
     tamanhoDaFila: NUCLEO_RUSH.length,
   });
+  // A fase do NÚCLEO não espera "última onda": a fila começa na entrada. Nas
+  // demais fases a regra é a comum (última onda + objetivo + campo vazio).
+  const horaDoChefe = ehNucleoRush ? true : (objetivoLiberouChefe && isUltimasOndas);
   // O próximo chefe do rush espera só o chefe ANTERIOR cair — não o campo
   // ficar vazio. Com a biomaquina nascendo da máquina a fase inteira, o
   // campo nunca esvazia e a fila travava no primeiro chefe para sempre
   // (DECISIONS #170). A fase normal continua esperando o campo vazio: lá é a
   // última onda que define o momento, e não há máquina pulsando.
   const campoLivre = ehNucleoRush ? true : enemies.length === 0;
-  if ((!bossSpawned || proximoDoRush) && phase.boss && objetivoLiberouChefe && isUltimasOndas && campoLivre) {
+  if ((!bossSpawned || proximoDoRush) && phase.boss && horaDoChefe && campoLivre) {
     // célula livre mais próxima do centro: o centro do mapa é parede em 3 dos
     // 9 biomas, e o boss nascia lá dentro
     const livre = findFreeSpotNear(worldW / 2, worldH / 2, 46);
@@ -1167,7 +1182,12 @@ function update(dt: number) {
   // A cota é dura (nunca mais que 8 na tela): sem ela, a máquina enche o
   // campo e o jogador não enxerga o chefe. E o intervalo é generoso de
   // propósito — a biomaquina é pressão de fundo, não a luta.
-  if (ehNucleoRush && objetivoLiberouChefe && isUltimasOndas) {
+  //
+  // Só quando o NÚCLEO entrou: ele é a ÚLTIMA da fila, e é essa a razão de a
+  // fase não poder esvaziar (DECISIONS #170). Pulsando nos três primeiros, a
+  // máquina seria só pressão comum e o rush perderia o ritmo de "um morre e
+  // vem outro" que o jogador elogiou.
+  if (ehNucleoRush && bossRushIndex >= NUCLEO_RUSH.length - 1) {
     const nucleo = enemies.find(e => e.type === 'nucleo');
     if (nucleo) {
       // A cota conta por tipo, e o tipo vem de `SPAWN_PROPRIO`: a máquina
@@ -1499,7 +1519,13 @@ function killEnemy(e: Enemy, award: boolean): void {
     // Sem a guarda `!phaseEnding`: o respiro já estava armado desde a última
     // onda, e essa guarda tornava o re-arm código morto. O consumo agora é
     // por `deveFecharFase`, que não depende de `waveComplete`.
-    const ultimaOnda = getCurrentWave() + 1 >= getCurrentPhase().waves;
+    //
+    // No rush do NÚCLEO não existe "última onda": a fase não tem onda comum
+    // (DECISIONS #169). O que marca o fim ali é a fila — `ultimoDaFila` já
+    // diz que este era o último dos 4. Com a checagem de onda, o respiro nunca
+    // armava e a fase ficava em `playing` para sempre depois do NÚCLEO cair:
+    // foi o que o `rush-proof.mjs` pegou ao rodar sem `pularParaUltimaOnda`.
+    const ultimaOnda = ehNucleoRush || getCurrentWave() + 1 >= getCurrentPhase().waves;
     if (ultimaOnda) {
       phaseEnding = true;
       phaseEndPause = PHASE_END_PAUSE;

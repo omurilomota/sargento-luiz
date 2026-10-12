@@ -176,6 +176,54 @@ describe('deveFecharFase: a morte vence qualquer transição', () => {
   });
 });
 
+describe('B6: a fase do NÚCLEO é a fila, não a onda', () => {
+  /**
+   * Decisão do jogador (2026-11, DECISIONS #169): os 4 chefes entram desde a
+   * entrada da fase, um morrendo e vindo outro — o ritmo que ele elogiou.
+   * Antes eles entravam no fim da última onda, e a fase tinha duas coisas
+   * acontecendo ao mesmo tempo: a horda da onda 8 e o desfile.
+   *
+   * O risco real (previsto no plano) era o FECHAMENTO: `ultimaOnda` não
+   * governa mais essa fase, então os dois pontos que dependiam dele precisam
+   * de outra fonte — o `deveFecharFase` e o respiro do bloco de morte. Sem os
+   * dois, a fase ficava em `playing` para sempre depois do NÚCLEO cair.
+   */
+  it('o rush não roda o spawner de onda (senão é horda + desfile)', () => {
+    const corpo = readFileSync(join(__dirname, '..', 'main.ts'), 'utf-8');
+    const linha = corpo.split('\n').find(l => l.includes('const waveComplete ='));
+    expect(linha, 'a chamada do spawner não foi encontrada').toBeTruthy();
+    expect(linha).toMatch(/ehRushDoNucleo/);
+  });
+
+  it('o fechamento da fase do rush não depende da última onda', () => {
+    // `getCurrentWave() + 1 >= phase.waves` nunca é verdadeiro na fase 9 (ela
+    // não avança de onda). Se voltar a entrar no `deveFecharFase` sem o `||`,
+    // a fase trava depois do último chefe.
+    const corpo = readFileSync(join(__dirname, '..', 'main.ts'), 'utf-8');
+    const linha = corpo.split('\n').find(l => l.includes('const ultimaOnda ='));
+    expect(linha).toBeTruthy();
+    expect(linha).toMatch(/ehRushDoNucleo\s*\?\s*true/);
+  });
+
+  it('o respiro pós-chefe do rush também não depende da última onda', () => {
+    // O bloco de morte do chefe: é ele que arma o respiro no rush (o caminho
+    // `if (waveComplete)` nunca dispara, porque a fase não tem cota de onda).
+    const corpo = readFileSync(join(__dirname, '..', 'main.ts'), 'utf-8');
+    const linhas = corpo.split('\n').filter(l => l.includes('const ultimaOnda = '));
+    expect(linhas.length).toBeGreaterThanOrEqual(2);
+    expect(linhas[1]).toMatch(/ehNucleoRush\s*\|\|/);
+  });
+
+  it('o rush ainda responde ao último da fila, não à contagem de ondas', () => {
+    // A trava é sobre a LINHA: trocar o nome da variável faria o teste passar
+    // sem o conserto. `ehRushDoNucleo` e `ehNucleoRush` são o mesmo predicado,
+    // declado no bloco do spawner.
+    const corpo = readFileSync(join(__dirname, '..', 'main.ts'), 'utf-8');
+    expect(corpo).toMatch(/const ehRushDoNucleo = phase\.boss === 'nucleo'/);
+    expect(corpo).toMatch(/const ehNucleoRush = ehRushDoNucleo;/);
+  });
+});
+
 describe('B4: a fase final não abre com o estado da anterior', () => {
   /**
    * Relato do jogador: "A última fase abriu 'já sem nada'. Suspeita: estado do

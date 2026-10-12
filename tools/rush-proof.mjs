@@ -76,8 +76,17 @@ await page.evaluate(() => window.__ashfall.irParaFase(8));
 await page.waitForTimeout(800);
 const antes = await f();
 console.log(`fase atual: ${antes.fase} (índice ${antes.indice})`);
-await page.evaluate(() => window.__ashfall.pularParaUltimaOnda());
+// SEM `pularParaUltimaOnda`: a fase 9 não tem onda comum, a fila começa na
+// entrada (DECISIONS #169). Pular para a última onda seria medir uma fase que
+// o jogador nunca vê — e foi exatamente esse pulo que escondia o B6.
 await page.waitForTimeout(500);
+const naEntrada = await f();
+if (naEntrada.chefeVivo) {
+  const t0 = naEntrada.tipos.find(t => FILA_ESPERADA.includes(t));
+  console.log(`chefe na ENTRADA (sem pular onda): ${t0}`);
+} else {
+  console.log(`ATENÇÃO: a fase abriu sem chefe (inimigos=${naEntrada.inimigos})`);
+}
 
 const chefeVistos = [];
 let fechou = false;
