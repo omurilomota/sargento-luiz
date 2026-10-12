@@ -13,7 +13,6 @@
 import { spawnParticles } from './particles';
 import { PALETTE } from '../core/palette';
 import { WEAPONS, POWERUP_TYPES, rollQuality } from '../config';
-import { getCurrentPhase } from '../phases';
 import { pushOutOfWalls } from './tilemap';
 import { PICKUP_RADIUS } from '../core/constants';
 import { getStat } from '../core/stats';
@@ -97,13 +96,11 @@ export function rollLootDrop(x: number, y: number, type?: string): void {
 
 /** Caixa especial do boss: conteúdo resolvido imediatamente */
 export function spawnBossLoot(x: number, y: number): { kind: 'weapon'; index: number; quality: string; x: number; y: number } {
-  // O chefão final (NÚCLEO) sempre entrega o Destruidor de Mundos: é a arma da
-  // vingança do Rios, e a fase já é apelona o suficiente sem o prêmio ser
-  // sorteado. Nos outros chefes, o Destruidor fica FORA do pool (secreto).
-  const faseAtual = getCurrentPhase();
-  if (faseAtual?.boss === 'nucleo') {
-    return { kind: 'weapon', index: WEAPONS.findIndex(w => w.name === 'Destruidor'), quality: 'ascendente', x, y };
-  }
+  // O Destruidor NÃO sai daqui. Ele é entregue na ENTRADA da fase 9, junto com
+  // o traje de contenção: a arma da vingança entrava como caixa sorteada
+  // depois da luta, quando o NÚCLEO já estava no chão — ou seja, quando não
+  // havia mais o que usar. Nos outros chefes o Destruidor segue fora do pool
+  // (é `secret`), então esta caixa sorteia entre as armas comuns.
   const r = Math.random();
   if (r < 0.25) {
     return { kind: 'weapon', index: WEAPONS.findIndex(w => w.name === 'M. Quebrada'), quality: 'quebrada', x, y };
@@ -114,7 +111,10 @@ export function spawnBossLoot(x: number, y: number): { kind: 'weapon'; index: nu
   if (r < 0.75) {
     return { kind: 'weapon', index: WEAPONS.findIndex(w => w.name === 'BFG'), quality: 'ascendente', x, y };
   }
-  const pool = WEAPONS.map((_, i) => i).filter(i => i !== 0);
+  // O `secret` fica fora do sorteio: o Destruidor é entregue na entrada da
+  // fase 9, e uma caixa que o sorteia de novo devolveria o bug que este
+  // conserto tirou — só que agora com "lendária" em cima, o que é pior.
+  const pool = WEAPONS.map((_, i) => i).filter(i => i !== 0 && !WEAPONS[i].secret);
   return { kind: 'weapon', index: pool[Math.floor(Math.random() * pool.length)], quality: 'lendaria', x, y };
 }
 

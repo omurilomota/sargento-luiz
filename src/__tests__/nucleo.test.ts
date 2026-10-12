@@ -6,10 +6,12 @@
  *
  * Os três são dados em config com invariantes que o balance e o loot
  * assumem: a fila só tem chefes que existem, o traje é exclusivo (fora do
- * sorteio comum) e o Destruidor só existe como segredo do chefão final.
+ * sorteio comum) e o Destruidor é entregue na ENTRADA da fase 9 — nunca
+ * sorteado, nem pela caixa de chefe nem pelo pool genérico.
  */
 import { describe, it, expect } from 'vitest';
 import { PHASES, ENEMY_TYPES, NUCLEO_RUSH, WEAPONS, POWERUP_TYPES, POWERUP_DESC, WEAPON_DESC } from '../config';
+import { spawnBossLoot } from '../systems/loot';
 
 describe('NUCLEO_RUSH — fila de chefes do Bunker Central', () => {
   it('termina no NÚCLEO (o chefão é o último, não o primeiro)', () => {
@@ -61,5 +63,31 @@ describe('Destruidor — o martelo destruidor de mundos', () => {
 
   it('tem descrição na loja (as outras armas têm)', () => {
     expect(WEAPON_DESC.Destruidor).toBeTruthy();
+  });
+
+  it('a caixa de chefe NÃO sorteia o martelo, em nenhuma das 4 saídas', () => {
+    // Bug do jogador: o martelo chegava como caixa do NÚCLEO MORTO, ou seja,
+    // na LOJA depois da fase — quando já não havia mais o que usar com ele. Ele
+    // é entregue na ENTRADA da fase 9 agora.
+    //
+    // A trava roda o sorteio muitas vezes porque a caixa tem 4 caminhos e o
+    // último é o pool genérico: um teste que rodasse uma vez só passaria com
+    // 1/16 de chance de pegar o caminho defeituoso.
+    for (let i = 0; i < 500; i++) {
+      const r = spawnBossLoot(100, 100);
+      const nome = WEAPONS[r.index]?.name;
+      expect(nome, `a caixa do chefe sorteou ${nome}`).not.toBe('Destruidor');
+    }
+  });
+
+  it('o martelo é entregável ao jogador na fase 9 (senão ninguém o receberia)', () => {
+    // O `secret` o mantém fora de todo sorteio, então a entrega na entrada é a
+    // ÚNICA caminho dele existir no jogo. Se `WEAPONS` deixar de tê-lo, o
+    // `findIndex` devolve -1 e a entrega vira um par inválido em silêncio.
+    expect(martelo).toBeDefined();
+    const idx = WEAPONS.findIndex(w => w.name === 'Destruidor');
+    expect(idx).toBeGreaterThanOrEqual(0);
+    // e é secreto: fora do pool genérico da caixa E fora da loja
+    expect(WEAPONS[idx].secret).toBe(true);
   });
 });

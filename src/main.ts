@@ -1613,14 +1613,30 @@ function leaveShop(): void {
     return;
   }
   loadPhaseEnvironment();
-  // Fase do NÚCLEO: o traje de contenção espera o Rios na entrada do Bunker.
-  // É a recompensa da campanha — +100% dano, +30% velocidade, +3 escudo e
-  // metade do dano recebido por 20s. Spawnado direto (não no sorteio comum),
-  // à frente do jogador, fora da parede. Fora do campaign não aparece.
+  // Fase do NÚCLEO: o traje de contenção e o martelo esperam o Rios na entrada
+  // do Bunker. É a recompensa da campanha — o traje dá +100% dano, +30%
+  // velocidade, +3 escudo e metade do dano recebido por 20s; o martelo é a arma
+  // que ele tira do coração da máquina.
+  //
+  // O martelo vai para a MOCHILA, não para a mão: equipar aqui trocaria a arma
+  // que o jogador trouxe da fase 8 (a build de 8 fases) por uma arma de 3
+  // tiros. Na mochila ele usa as teclas 1-9 quando quiser — a diferença entre
+  // receber a arma e trocar de arma sem querer.
   if (getGameState() === 'playing' && getCurrentMode() === 'campaign' && getCurrentPhase()?.boss === 'nucleo') {
     const pp = player.getPlayer();
     spawnPowerUpDeTipo(pp.x + 60, pp.y, 'trajeNucleo');
     damageNumbers.push({ x: pp.x, y: pp.y - 40, text: 'TRAJE DE CONTENÇÃO', color: PALETTE.terracotta, life: 2.4, vy: -40 });
+    const martelo = WEAPONS.findIndex(w => w.name === 'Destruidor');
+    // Mochila cheia não pode engolir o martelo: a fase final é apelona e o
+    // jogador precisa dele. Nesse caso ele vai para NOVIDADES — a caixa que
+    // o jogador abre e escolhe entre ativar e vender, que é o mesmo caminho
+    // do prêmio de chefe.
+    if (!addPurchasedWeapon(martelo, 'ascendente')) {
+      pushPendingReveal(martelo, 'ascendente');
+      damageNumbers.push({ x: pp.x, y: pp.y - 70, text: 'DESTRUIDOR — NOVIDADES', color: PALETTE.mustard, life: 2.4, vy: -40 });
+    } else {
+      damageNumbers.push({ x: pp.x, y: pp.y - 70, text: 'DESTRUIDOR — MOCHILA', color: PALETTE.mustard, life: 2.4, vy: -40 });
+    }
   }
   enemies.length = 0;
   clearBullets();
