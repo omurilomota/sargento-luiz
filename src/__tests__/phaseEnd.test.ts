@@ -49,6 +49,10 @@ const VIVO = {
   respiroRestante: 0,
   chefeVivo: false,
   jogadorMorto: false,
+  // O objetivo liberou o chefe. `clear` libera na largada, então quase toda
+  // fase está aqui; as exceções são `reach` (jogador tem de chegar na zona) e
+  // `protect`/`survive`/`destroy`, que só liberam quando cumprem.
+  chefeLiberado: true,
 };
 
 describe('deveFecharFase: o chefe tem de morrer antes da loja', () => {
@@ -99,7 +103,7 @@ describe('deveFecharFase: a onda precisa ter terminado de verdade', () => {
     expect(deveFecharFase({
       ondaCompleta: false, ultimaOnda: false,
       respiroArmado: false, respiroRestante: 0,
-      chefeVivo: false, jogadorMorto: false,
+      chefeVivo: false, jogadorMorto: false, chefeLiberado: true,
     })).toBe(false);
   });
 
@@ -110,7 +114,7 @@ describe('deveFecharFase: a onda precisa ter terminado de verdade', () => {
     const emAndamento = {
       ondaCompleta: false, ultimaOnda: false,
       respiroArmado: false, respiroRestante: 0,
-      chefeVivo: false, jogadorMorto: false,
+      chefeVivo: false, jogadorMorto: false, chefeLiberado: true,
     };
     let framesQueFecham = 0;
     for (let frame = 0; frame < 60; frame++) {
@@ -131,7 +135,7 @@ describe('deveFecharFase: a onda precisa ter terminado de verdade', () => {
     expect(deveFecharFase({
       ondaCompleta: true, ultimaOnda: false,
       respiroArmado: false, respiroRestante: 0,
-      chefeVivo: false, jogadorMorto: false,
+      chefeVivo: false, jogadorMorto: false, chefeLiberado: true,
     })).toBe(true);
   });
 });
@@ -161,12 +165,62 @@ describe('deveFecharFase: a morte vence qualquer transição', () => {
   it('a morte vence também numa onda intermediária', () => {
     expect(deveFecharFase({
       ondaCompleta: true, ultimaOnda: false, respiroArmado: false, respiroRestante: 0,
-      chefeVivo: false, jogadorMorto: true,
+      chefeVivo: false, jogadorMorto: true, chefeLiberado: true,
     })).toBe(false);
   });
 
   it('a morte vence mesmo com o chefe ainda vivo', () => {
     expect(deveFecharFase({ ...VIVO, chefeVivo: true, jogadorMorto: true })).toBe(false);
+  });
+});
+
+describe('deveFecharFase: o chefe que nunca nasceu não conta como derrotado', () => {
+  /**
+   * Bug do jogador, no Vulcão (B3): "horda 7 — o countdown disparou SEM chefe,
+   * veio outra horda, e matar o último foi direto pra loja."
+   *
+   * A causa: o Vulcão é `reach`, que só libera o chefe quando o jogador entra
+   * na zona de extração. Com o countdown da última onda rodado e o objetivo
+   * pendente, o chefe NUNCA nasce — e `!chefeVivo` é verdade por vacuidade.
+   * O predicado lia "não há chefe vivo" como "o chefe morreu" e fechava a fase.
+   *
+   * `chefeLiberado` é o termo que separa as duas coisas.
+   */
+  const SEM_CHEFE_NASCIDO = {
+    ondaCompleta: true,
+    ultimaOnda: true,
+    respiroArmado: true,
+    respiroRestante: 0,
+    chefeVivo: false,
+    jogadorMorto: false,
+    chefeLiberado: false,
+  };
+
+  it('NÃO fecha a última onda quando o chefe ainda não foi liberado', () => {
+    expect(deveFecharFase(SEM_CHEFE_NASCIDO)).toBe(false);
+  });
+
+  it('NÃO fecha mesmo com o countdown rodado e o campo vazio', () => {
+    // As três condições que sobram são exatamente as do relato do jogador.
+    expect(deveFecharFase({ ...SEM_CHEFE_NASCIDO, respiroRestante: 0, respiroArmado: true })).toBe(false);
+  });
+
+  it('fecha assim que o objetivo libera o chefe (mesmo estado, um termo a mais)', () => {
+    // O outro lado do portão: com o objetivo cumprido, o chefe nasce, cai, e
+    // a fase fecha. Se isto devolvesse false, a fase travaria para sempre.
+    expect(deveFecharFase({ ...SEM_CHEFE_NASCIDO, chefeLiberado: true })).toBe(true);
+  });
+
+  it('o objetivo pendente segura a fase mesmo numa onda do meio', () => {
+    // Não é exclusivo da última onda: sem o termo, a fase do meio também
+    // fechava sem chefe.
+    expect(deveFecharFase({ ...SEM_CHEFE_NASCIDO, ultimaOnda: false })).toBe(false);
+  });
+
+  it('a fase `clear` nunca é afetada — ela libera o chefe na largada', () => {
+    // `clear` não depende do objetivo, então as 6 fases common não podem ter
+    // o comportamento mudado por este conserto.
+    expect(PHASES.filter(f => f.objective === 'clear').length).toBeGreaterThan(0);
   });
 });
 

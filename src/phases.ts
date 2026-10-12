@@ -126,6 +126,20 @@ export interface FimDeFase {
   respiroRestante: number;
   chefeVivo: boolean;
   jogadorMorto: boolean;
+  /**
+   * O objetivo da fase já liberou o chefe (ou é `clear`, que libera sempre).
+   *
+   * Bug do jogador, no Vulcão: a última onda acabou, o countdown de 5s rodou,
+   * o chefe NÃO nasceu (porque `reach` exige o jogador dentro da zona de
+   * extração) e a fase foi para a loja assim mesmo. Faltava este termo: com o
+   * objetivo pendente, `!chefeVivo` é verdade por vacuidade — não há chefe
+   * porque ele nunca teve permissão de existir — e o predicado lia isso como
+   * "o chefe foi derrotado".
+   *
+   * `clear` não depende dele (libera na largada); `protect` que reinicia a fase
+   * se o NPC cai, então nunca chega aqui com o objetivo pendente.
+   */
+  chefeLiberado: boolean;
 }
 
 /** Estado do rush do NÚCLEO no ponto em que a fila decide avançar. */
@@ -176,6 +190,11 @@ export function proximoDoRushNasce(f: ProximoDoRush): boolean {
 export function deveFecharFase(f: FimDeFase): boolean {
   if (f.jogadorMorto) return false;
   if (!f.ondaCompleta) return false;
+  // O chefe ainda não pode existir: fechar aqui era a fase indo para a loja
+  // sem a luta que o mapa promete. `!chefeVivo` é verdade por vacuidade
+  // enquanto o objetivo não libera o chefe — ler isso como "derrotado" é o
+  // bug do Vulcão (B3).
+  if (!f.chefeLiberado) return false;
   if (!f.ultimaOnda) return true;
   return f.respiroArmado && f.respiroRestante <= 0 && !f.chefeVivo;
 }

@@ -1028,10 +1028,22 @@ function update(dt: number) {
   // nasceu e caiu — este último não passa pelo spawner, porque a cota foi zerada
   // no frame em que o campo esvaziou para o chefe nascer.
   const ondaConcluida = waveComplete || (bossSpawned && !chefeVivo);
+  // `clear` libera o chefe na largada; os outros, só quando o objetivo é
+  // cumprido. Declarado aqui porque `deveFecharFase` precisa dele: sem o termo,
+  // o Vulcão fechava a última onda com o countdown rodado e o chefe nunca
+  // nascido (o `reach` pede o jogador dentro da zona de extração) — e
+  // `!chefeVivo` é verdade por vacuidade enquanto isso.
+  //
+  // Lê com `peekObjective` e não com o `objective` do bloco de baixo: aquele é
+  // calculado depois deste ponto, e mover o `updateObjective` para cima
+  // mudaria a ordem em que o objetivo é avaliado dentro do frame.
+  const objetivoLiberouChefe = phase.objective === 'clear'
+    || peekObjective(p.x, p.y, enemies.length, reachZones).done;
   if (deveFecharFase({
     ondaCompleta: ondaConcluida,
     ultimaOnda: getCurrentWave() + 1 >= phase.waves,
     respiroArmado: phaseEnding,
+    chefeLiberado: objetivoLiberouChefe,
     respiroRestante: phaseEndPause,
     chefeVivo,
     jogadorMorto: playerDied || p.health <= 0,
@@ -1102,7 +1114,6 @@ function update(dt: number) {
   // primeiro instante encerrava a fase (a `protect` morria na onda 0 de 7, sem
   // chefe), então o objetivo virou o pivot e o chefe o clímax: a fase só acaba
   // quando o chefe cai. `reach` também devolve o chefe agora, não encerra direto.
-  const objetivoLiberouChefe = phase.objective === 'clear' || objective.done;
   // reach nao forca ultima onda: sem o `||`, vale a regra comum (ultima onda +
   // objetivo cumprido + campo vazio). O spawn e no centro do mundo, nao no `B`
   // (extracao no topo do Vulcao = "boss pulou pro espaco").
@@ -2558,6 +2569,10 @@ window.__ashfall = {
     // quais tipos estão na tela: prova se o `asteroid` realmente entra no
     // sorteio do Espaço em vez de só existir no config.
     tipos: [...new Set(enemies.map(e => e.type))].sort(),
+    // O objetivo lido agora: o `objetivo` acima é o TIPO ('reach'), que é dado
+    // do config. O estado do objetivo — se foi cumprido, quanto falta — é o que
+    // decide se o chefe nasce (DECISIONS #170: o objetivo libera o chefe).
+    objetivoAtual: peekObjective(p.x, p.y, enemies.length, reachZones),
     chefeVivo: enemies.some(e => ENEMY_TYPES[e.type]?.isBoss),
     chefeDerrotado: bossKilled,
     respiroRestante: phaseEndPause,
@@ -2655,6 +2670,15 @@ window.__ashfall = {
     return enemies.length;
   },
   zerarVida: () => { player.getPlayer().health = 0; return player.getPlayer().health; },
+  /** Teleporta para a zona de extração: cumpre o objetivo `reach`. */
+  irParaZona: () => {
+    const z = reachZones[0];
+    if (!z) return false;
+    const p = player.getPlayer();
+    p.x = z.x;
+    p.y = z.y;
+    return true;
+  },
   curar: () => { const p = player.getPlayer(); p.health = p.maxHealth; return p.health; },
   // equipa um par com condição específica, para o harness ver o rótulo no HUD
   equiparCondicao: (nome: string, qualidade: string) => {
