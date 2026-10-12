@@ -258,7 +258,7 @@ describe('loja: venda com peças e auto-equip', () => {
  */
 import { PERK_LADDER, PERK_LEGADO, resetPerks } from '../systems/perks';
 import { initPlayer } from '../entities/player';
-import { getComboDamageBonus, getComboCooldownMult, getComboHealthBonus, updateCombos, resetCombos, COMBO_LIMITE_DANO, COMBO_LIMITE_CADENCIA, COMBO_CHECKS, COMBO_DEFINITIONS, ARMAS_DO_COMBO } from '../systems/combos';
+import { getComboDamageBonus, getComboCooldownMult, getComboHealthBonus, updateCombos, resetCombos, COMBO_LIMITE_DANO, COMBO_LIMITE_CADENCIA, COMBO_LIMITE_VIDA, COMBO_CHECKS, COMBO_DEFINITIONS, ARMAS_DO_COMBO } from '../systems/combos';
 
 describe('combos: teto de empilhamento', () => {
   beforeEach(() => { initPlayer(1280, 720); resetShop(); resetWeapons(); resetCombos(); resetPerks(); setShopCoins(99999); });
@@ -306,6 +306,25 @@ describe('combos: teto de empilhamento', () => {
     updateCombos();
     expect(getComboCooldownMult(), 'o combo da Metralhadora não disparou com o degrau certo').toBeLessThan(1);
   });
+
+  it('Pólvora Instável: só dispara com os DOIS ramos, e a troca é real', () => {
+    // cruzado entre ramos: um degrau de DANO + um de MENTE, ao mesmo tempo.
+    // O `exigeTodos` é o AND — sem ele, metade do combo bastaria.
+    setWeapon(idxPistola, 'normal');
+    restoreUpgrades(['dano_t5']);
+    updateCombos();
+    expect(getComboDamageBonus(), 'só DANO T5 não liga a Pólvora').toBe(1);
+    resetShop();
+    restoreUpgrades(['mente_t4']);
+    updateCombos();
+    expect(getComboDamageBonus(), 'só MENTE T4 não liga a Pólvora').toBe(1);
+    resetShop();
+    restoreUpgrades(['dano_t5', 'mente_t4']);
+    updateCombos();
+    // +30% de dano pagando 10% de vida máxima — a troca que o combo promete
+    expect(getComboDamageBonus()).toBeCloseTo(1.3);
+    expect(getComboHealthBonus()).toBeCloseTo(0.9);
+  });
 });
 
 describe('nenhum combo exige id fora da escada', () => {
@@ -313,7 +332,7 @@ describe('nenhum combo exige id fora da escada', () => {
     const degraus = new Set(PERK_LADDER.map(t => t.id));
     const idsLegados = new Set(Object.values(PERK_LEGADO).map(c => c.id));
     for (const c of COMBO_CHECKS) {
-      for (const id of c.ids) {
+      for (const id of [...c.ids, ...(c.exigeTodos ?? [])]) {
         expect(degraus.has(id), `${c.nome} exige "${id}", que não é degrau da escada`).toBe(true);
         expect(idsLegados.has(id), `${c.nome} exige "${id}", que é compra antiga`).toBe(false);
       }
@@ -332,8 +351,13 @@ describe('nenhum combo exige id fora da escada', () => {
       const temArmaDeclarada = Boolean(ARMAS_DO_COMBO[c.nome]);
       expect(c.exigeArma, `${c.nome}: exigeArma discorda da lista de armas`).toBe(temArmaDeclarada);
     }
-    // no máximo 1 sem arma: dois empilhados passariam do teto de vida
-    expect(COMBO_CHECKS.filter(c => !c.exigeArma).length, 'combos sem exigência de arma').toBeLessThanOrEqual(1);
+    // combos sem arma empilham entre si (Couro Duplo + Pólvora Instável).
+    // O contrato não é a contagem: é o produto de vida de todos eles, ativos
+    // de uma vez, respeitando o teto — 1.25 × 0.9 = 1.125 hoje.
+    const semArma = COMBO_DEFINITIONS.filter((_, i) => !COMBO_CHECKS[i].exigeArma);
+    const produtoVida = semArma.reduce((mult, d) => mult * d.healthBonus, 1);
+    expect(semArma.length).toBeGreaterThanOrEqual(1);
+    expect(produtoVida, 'combos sem arma, todos ativos, furam o teto de vida').toBeLessThanOrEqual(COMBO_LIMITE_VIDA);
   });
 
   it('nenhum combo fica inalcançável: todo degrau exigido é comprável na ordem', () => {

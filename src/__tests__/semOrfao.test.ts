@@ -75,6 +75,7 @@ const SO_DE_TESTE: Record<string, string> = {
   CONTAGOS_POR_ESTILO: 'contrato de tamanho de sprite por família; assets.test',
   COMBO_LIMITE_DANO: 'teto de dano exportado SÓ para o teste travar o limite',
   COMBO_LIMITE_CADENCIA: 'piso de cadência exportado SÓ para o teste travar o limite',
+  COMBO_LIMITE_VIDA: 'teto de vida exportado SÓ para o teste travar o limite',
   getAllAchievements: 'estado de desbloqueio; achievements.test conta os marcados',
   getEquippedSnapshot: 'peças equipadas por arma, para o save; gravado no enterShop',
   restoreEquipped: 'reidrata as peças equipadas no round-trip do save',

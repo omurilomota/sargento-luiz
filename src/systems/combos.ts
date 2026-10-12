@@ -15,6 +15,10 @@
  * - Imanência exigia `magnetismo` — a escada não tem eixo de ímã.
  * Nenhum dos dois volta sem o eixo correspondente. Deixá-los com `check: false`
  * seria um combo listado no jogo que nunca dispara.
+ *
+ * O primeiro combo CRUZADO entre ramos é a "Pólvora Instável" (Sprint 6):
+ * exige degrau de DOIS ramos ao mesmo tempo (`exigeTodos`) e o efeito tem
+ * troca real — mais dano por menos vida. Combo que só soma não é escolha.
  */
 
 import { getCurrentWeapon } from '../weapons';
@@ -94,6 +98,14 @@ export const COMBO_DEFINITIONS: {
     cooldownMult: 1,
     healthBonus: 1,
   },
+  {
+    name: 'Pólvora Instável',
+    description: 'Dano T5 + Mente T4: +30% dano, −10% vida máxima',
+    color: PALETTE.danger,
+    damageBonus: 1.3,
+    cooldownMult: 1,
+    healthBonus: 0.9,
+  },
 ];
 
 /**
@@ -111,15 +123,22 @@ export const ARMAS_DO_COMBO: Record<string, string[]> = {
 
 function disparado(def: (typeof COMBO_DEFINITIONS)[number], check: typeof COMBO_CHECKS[number], arma: string, perks: string[]): boolean {
   if (!perks.some(id => check.ids.includes(id))) return false;
+  // combo cruzado entre ramos: `exigeTodos` é o AND que o `some` de cima não
+  // é — um degrau de cada ramo, comprado ao mesmo tempo
+  if (check.exigeTodos && !check.exigeTodos.every(id => perks.includes(id))) return false;
   const armas = ARMAS_DO_COMBO[def.name];
-  // sem entrada em ARMAS_DO_COMBO = combo sem exigência de arma (Couro Duplo)
+  // sem entrada em ARMAS_DO_COMBO = combo sem exigência de arma (Couro Duplo,
+  // Pólvora Instável)
   return !armas || armas.includes(arma);
 }
 
 /**
  * Teto do bônus de vida vindo de combos empilhados (ver getComboHealthBonus).
- * Couro Duplo é hoje o ÚNICO combo sem exigência de arma, então ele não empilha
- * com ninguém — o teto é o que garante isso se um combo sem arma voltar.
+ *
+ * Dois combos hoje não exigem arma — Couro Duplo e Pólvora Instável — e
+ * empilham entre si (1.25 × 0.9 = 1.125). O teto é a rede: qualquer combo sem
+ * arma que volte a somar vida não pode furar 1.5. E como Pólvora SUBTRAI, o
+ * produto pode ser < 1 — o teto corta para cima, nunca empurra para baixo.
  */
 const COMBO_HEALTH_CAP = 1.5;
 /**
@@ -144,13 +163,14 @@ const COMBO_COOLDOWN_FLOOR = 0.5;
  * `gear.test.ts` e a porta `semOrfao` leem, e declará-la aqui impede que o
  * `check` e a trava contem histórias diferentes.
  */
-export const COMBO_CHECKS: { nome: string; ids: string[]; exigeArma: boolean }[] = [
+export const COMBO_CHECKS: { nome: string; ids: string[]; exigeArma: boolean; exigeTodos?: string[] }[] = [
   { nome: 'Tiro Longo',    ids: ['dano_t3'],              exigeArma: true },
   { nome: 'Carvão',        ids: ['dano_t3'],              exigeArma: true },
   { nome: 'Couro Duplo',  ids: ['corpo_t3', 'corpo_t1'], exigeArma: false },
   { nome: 'Rearme Pesado', ids: ['dano_t3'],              exigeArma: true },
   { nome: 'Congelante',    ids: ['pernas_t1'],            exigeArma: true },
   { nome: 'Pancada',       ids: ['dano_t3'],              exigeArma: true },
+  { nome: 'Pólvora Instável', ids: ['dano_t5'], exigeArma: false, exigeTodos: ['mente_t4'] },
 ];
 
 /** Combos ativos no momento */
@@ -214,6 +234,8 @@ export function getComboCooldownMult(): number {
 export const COMBO_LIMITE_DANO = COMBO_DAMAGE_CAP;
 /** Piso de cadência. Exportado para o teste travar o limite. */
 export const COMBO_LIMITE_CADENCIA = COMBO_COOLDOWN_FLOOR;
+/** Teto de vida. Exportado para o teste travar o limite. */
+export const COMBO_LIMITE_VIDA = COMBO_HEALTH_CAP;
 
 /**
  * Retorna o bônus de vida dos combos, com teto.
