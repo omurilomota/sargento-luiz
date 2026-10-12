@@ -298,7 +298,11 @@ def castelo():
         for c in (12, 15, 18):
             rect(g, c, r, c, r)
     for r in (7, 12):
-        for c in range(9, 21, 2):
+        # Espinho guarda a base da cobertura (pilares de 12/15/18 nas linhas
+        # 8-9 e 13-14), não forra o corredor inteiro: o tapete de range(9,21,2)
+        # era a única causa de morte do bot nas 9 fases — 120 de dano de bioma
+        # em 32s no Castelo, contra 45s+ nas outras 8 (tools/fases-medidas.json).
+        for c in (12, 15, 18):
             g[r][c] = HAZARD
     scatter(g, CRATE, 6, 61)
     scatter(g, BARREL, 4, 62)
