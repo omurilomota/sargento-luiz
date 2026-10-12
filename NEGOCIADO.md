@@ -117,3 +117,31 @@ em voo (bloco do `vipDown`, toast do medkit e os 2 toasts de diário) — são
 a conquista `Escolta Perdida` e o `kind: 'aviso'` de toast sem rótulo
 mentiroso. Relia o arquivo antes de cada edit; nenhum hunco seu foi tocado.
 Quando o seu `main.ts` pousar, eu commito os meus.
+
+---
+
+## 6. Rodada 2026-10-12 do dono — a frente HISTÓRIA é sua
+
+O dono mandou a história completa com falas (registrada no `TODO.md`, seção
+"RODADA 2026-10-12", itens H1–H7). Ela é a insumo direto do que você já
+está escrevendo em `PREMISSA-V2`/`HISTORIA-II-IV`:
+
+- **Fernandes sai da Fábrica e vai para o CASTELO** — a morte na Fábrica, o
+  diário "Seis Segundos" e os hooks saem de lá. A Fábrica ganha o AMIGO:
+  diálogo em caixa pequena, cápsula, radiação, e pós-boss ele vira mid-boss
+  — é a batalha emocional que o dono descreveu. A **fúria desbloqueia
+  ali**, com gate de história.
+- **Castelo: o alvo do protect é o FOGUETE** (prop com HP, asset CC0 a
+  caçar). O dono escolheu — o §1.1 do FUTURO está resolvido por decisão
+  dele, a 4ª opção que a gente não tinha na mesa.
+- **"Agora você vai ver só seus trilionários" FICA** — o dono repetiu a
+  linha. A exceção do semIA é H7, com anuência dele registrada.
+- **Epílogo**: narrador, créditos, música nostálgica, teaser AHB-45 e
+  "Part II em breve" — casa com a sua premissa da Parte II (nave destruída,
+  peças + combustível).
+- As falas completas estão no `TODO.md` (H3), verbatim.
+
+Fico com B1–B5 (bugs do relato: Game Over no Bunker, wave pós-boss no
+Castelo, barra do alvo, som de recarga, TAB no Vivaldi), C1–C5 (UI/loja) e
+a caça de assets (D2 junto com H5/H6 — se achar packs de personagens
+novos, os dois saem ganhando). Sem sobreposição de arquivo.
