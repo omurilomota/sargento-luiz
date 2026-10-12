@@ -2610,6 +2610,8 @@ window.__ashfall = {
     playerDied = false;
     bossKilled = false;
     bossSpawned = false;
+    bossRushIndex = 0;
+    biomaquinaTimer = 0;
     phaseEnding = false;
     phaseEndPause = 0;
 
@@ -2678,6 +2680,22 @@ window.__ashfall = {
     p.x = z.x;
     p.y = z.y;
     return true;
+  },
+  /** Recomeça a campanha do zero (pula o menu e a cutscene). */
+  novaPartida: () => {
+    resetPhases();
+    startRun();
+    skipCutscene();
+    setGameState('playing');
+    return getCurrentPhase()?.name ?? 'FIM';
+  },
+  /** Avança para a fase seguinte pulando a loja, como o ENTER faria. */
+  proximaFase: () => {
+    setGameState('shop');
+    leaveShop();
+    skipCutscene();
+    // `nextPhase` passou da última fase: `getCurrentPhase()` é undefined.
+    return getCurrentPhase()?.name ?? 'FIM';
   },
   curar: () => { const p = player.getPlayer(); p.health = p.maxHealth; return p.health; },
   // equipa um par com condição específica, para o harness ver o rótulo no HUD

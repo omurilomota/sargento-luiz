@@ -32,7 +32,9 @@
 import { describe, it, expect } from 'vitest';
 import { ENEMY_TYPES, PHASES } from '../config';
 import { PHASE_END_PAUSE } from '../core/constants';
-import { deveFecharFase, proximoDoRushNasce } from '../phases';
+import { deveFecharFase, proximoDoRushNasce, nextPhase, getCurrentWave, resetPhases, setGameState, setCurrentWave } from '../phases';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { checkEnemyPlayerCollision } from '../systems/collision';
 import type { Enemy } from '../types';
 
@@ -171,6 +173,63 @@ describe('deveFecharFase: a morte vence qualquer transição', () => {
 
   it('a morte vence mesmo com o chefe ainda vivo', () => {
     expect(deveFecharFase({ ...VIVO, chefeVivo: true, jogadorMorto: true })).toBe(false);
+  });
+});
+
+describe('B4: a fase final não abre com o estado da anterior', () => {
+  /**
+   * Relato do jogador: "A última fase abriu 'já sem nada'. Suspeita: estado do
+   * rush vazando entre fases — a mesma família que `irParaFase` já consertou
+   * uma vez para os inimigos."
+   *
+   * A pista era o estado do rush: `loadPhaseEnvironment` zera `bossSpawned`,
+   * `bossKilled`, `bossRushIndex` e `biomaquinaTimer`, mas `irParaFase` (o hook
+   * do harness) só limpava os dois primeiros. Com o rush inteiro passando a
+   * depender do índice, essa assimetria é a forma exata que o vazamento
+   * voltaria.
+   *
+   * Medido no navegador nos dois caminhos (salto direto e playthrough) e não
+   * reproduzido: as 9 fases abrem com 0 inimigos, onda 1 e respiro false. O que
+   * fica aqui é a trava do contrato, não do sintoma — um "não achei o bug"
+   * sem prova escrita volta amanhã igual.
+   */
+  const ZERA_RUSH = ['bossSpawned', 'bossKilled', 'bossRushIndex', 'biomaquinaTimer'];
+
+  it('todo estado do rush é zerado ao carregar a fase', () => {
+    // `loadPhaseEnvironment` é a única função que roda na troca de fase de
+    // qualquer caminho (loja, save, `irParaFase`). Se um destes parar de ser
+    // zerado aqui, o rush da fase 9 começa com o índice da fase anterior.
+    const corpo = readFileSync(join(__dirname, '..', 'main.ts'), 'utf-8');
+    const ini = corpo.indexOf('function loadPhaseEnvironment');
+    const fim = corpo.indexOf('\nfunction ', ini + 10);
+    const bloco = corpo.slice(ini, fim);
+    for (const estado of ZERA_RUSH) {
+      expect(bloco, `${estado} não é zerado ao carregar a fase`).toContain(`${estado} = `);
+    }
+  });
+
+  it('o hook de salto do harness limpa o mesmo conjunto que a troca real', () => {
+    // `irParaFase` é o caminho dos harnesses. Se ele zerar menos que a fase
+    // real, toda prova de tela mede uma fase montada diferente do jogo.
+    const corpo = readFileSync(join(__dirname, '..', 'main.ts'), 'utf-8');
+    const ini = corpo.indexOf('irParaFase: (i: number) =>');
+    const fim = corpo.indexOf('\n  //', ini + 10);
+    const bloco = corpo.slice(ini, fim);
+    for (const estado of ZERA_RUSH) {
+      const temFalse = bloco.includes(`${estado} = false;`);
+      const temZero = bloco.includes(`${estado} = 0;`);
+      expect(temFalse || temZero, `${estado} não é zerado por irParaFase`).toBe(true);
+    }
+  });
+
+  it('trocar de fase zera a onda, senão a fase nasce na onda 2', () => {
+    // `nextPhase` é o que `leaveShop` chama. Sem `resetPhases` antes, a fase
+    // seguinte abriria com a onda de onde o jogador saiu.
+    resetPhases();
+    setGameState('playing');
+    setCurrentWave(4);
+    nextPhase();
+    expect(getCurrentWave()).toBe(0);
   });
 });
 
