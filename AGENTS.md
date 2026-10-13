@@ -235,6 +235,27 @@ Regras que valem para toda IA neste projeto:
 
 ---
 
+## Erros de IA que Viraram Regra
+
+> Nascido em 2026-10-13, de uma sessão autônoma que errou em público: o dono
+> viu o fundo branco de um sprite que o commit dizia estar recortado, e a IA
+> consertou pela hipótese duas vezes antes de reproduzir. A lista cresce:
+> toda sessão que cometer um erro novo, acrescenta a linha aqui — com o custo
+> real que ele teve, não com a intenção.
+
+| Erro cometido | O que custou | A regra |
+|---|---|---|
+| Consertar pela hipótese: aplicou um "realinhamento quando bloqueado" sem repro, e ele não cobria o caso real (inimigo já no centro da célula, espetado no canto da parede) | 1 ciclo de prova falho (3/3) e o band-aid teve que sair depois | Reproduzir no instrumento MENOR antes do fix: Node importando as funções reais (não reescrevê-las). A repro que falha em segundos substitui a teoria que dura uma hora |
+| Prova verde por causa do bug: "30s sem pular de onda" só era verde porque os inimigos TRAVAVAM nas portas e nunca chegavam ao jogador | O onda-proof reprovou o conserto (`passoDeCelula`) como se fosse regressão | Checagem codifica o CONTRATO testemunhável ("a onda só avança depois de campo vazio OBSERVADO"), nunca a ausência de um sintoma |
+| Mudança de mecânica sem varrer os harnesses: o hook `esperandoEscolha` era lido pelo `campanha-proof` (apertava '1'), e o teto do loop era do tamanho do conteúdo antigo (40 toques para 17 linhas) | O teardown teria quebrado a prova; com o epílogo de 29 linhas, a cena deixou de fechar sem ninguém notar | Toda mudança/remoção varre `src/`, `src/__tests__/` E `tools/*.mjs` — harness lê hook, hook é API; caps de loop são proporcionais ao conteúdo que atravessam |
+| Pipe `tail` na saída de prova | Perdeu QUAL verificação falhou (9/10 sem nome) e a prova inteira foi re-rodada à mão | Ler a saída de prova inteira, ou grepar `FALHA`/`OK` — nunca só as últimas linhas |
+| Enquadramento fora da prova: screenshot parado no spawn cortava o objeto (o bico do foguete) fora da tela | O dono viu "sprite torto" que era enquadramento; 2 rodadas de revisão queimadas | Screenshot prova o OBJETO: a prova anda o jogador/câmera até ele antes de fotografar |
+| Processamento de asset afirmado e não feito: o commit dizia "fundo preto recortado" e o PNG era a cena inteira, fundo branco opaco | 3 olhadas do dono + recorte refeito com medição | Prova de processamento de imagem é PIXEL (cantos, canal alfa, silhueta em ASCII) — não a palavra do commit; CREDITS.md descreve o processamento REAL |
+| Relato que descreve a fase errada ("Vulcão é survive+sentinel" — era reach+infernoPrime) | A investigação de B3 começou mirando a fase errada | Conferir o alvo no `config.ts` antes de reproduzir; a descrição do relato é hipótese, não dado |
+| Terminar o turno esperando notificação de job em fundo | O dono perguntou "você parou do nada" duas vezes | Job em fundo não é desculpa para idle: seguir pela próxima frente desbloqueada no MESMO turno; checar o arquivo de saída diretamente quando a notificação não vem |
+
+---
+
 ## Regras para IAs Assistentes
 
 ### Princípio Fundamental
