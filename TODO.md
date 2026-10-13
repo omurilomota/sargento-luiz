@@ -686,7 +686,10 @@
 // ─── SPRINT 11 — FECHAMENTO ───
 // [ ] TODO.md + DECISIONS.md com tudo que foi decidido no lugar do usuario.
 // [ ] tsc --noEmit, npm test, npm run build.
-// [ ] ZIP do dist para o itch — SO QUANDO O USUARIO MANDAR.
+// [x] ZIP do dist para o itch — pedido do dono na rodada 2026-10-12 e feito
+//     em 2026-10-13: `npm run package` → sargento-rios.zip (11MB, 904
+//     arquivos, foguete novo conferido por md5 dentro do zip). Subir no
+//     itch é ação do dono.
 
 // ─── BUGS REPORTADOS EM JOGO (2026-10-09) ───
 // [x] CHEFE MORTO NAO ENCERRAVA A FASE. Tres causas, uma so visivel: o
@@ -1413,4 +1416,7 @@
 //    H2; a fúria deixa de existir desde o início da campanha).
 // ReBuild pedido pelo dono: build + zip de dist para republicar no itch
 // (o zip publicado está velho — os vereditos dos bugs B1/B4 valem só no
-// build novo).
+// build novo). FEITO 2026-10-13: `npm run package` com o HEAD de 0d754d2
+// (foguete + B3) — sargento-rios.zip, 11MB, 904 arquivos, index.html na
+// raiz, visual sem 404/pageerror no build final. Falta o dono subir no
+// itch.

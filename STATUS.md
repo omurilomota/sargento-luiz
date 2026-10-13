@@ -227,7 +227,13 @@ foguete, não uma escolta"), em código:
   navegador nos dois caminhos (salto e playthrough), as 9 fases abrem com 0
   inimigos, onda 1/N, respiro false — `02e7733`, com teste. O "onda=2" da
   suspeita era artefato do harness (media 1,3s após a entrada, quando o
-  `clear` já avançava). Ação pendente do dono: **republicar o zip**.
+  `clear` já avançava).
+- **Zip novo pronto (2026-10-13, fim da sessão)**: `npm run package` no HEAD
+  de `0d754d2` (foguete + B3) → `sargento-rios.zip`, 11MB, 904 arquivos,
+  `index.html` na raiz, foguete novo conferido por md5 dentro do zip,
+  `npm run visual` sem 404/pageerror no build final. Os vereditos "não
+  reproduz no HEAD" (B1, B4, som de recarga) passam a valer no jogo
+  publicado a partir daqui. Subir no itch é ação do dono.
 
 ---
 
