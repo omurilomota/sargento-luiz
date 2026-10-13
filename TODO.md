@@ -1117,8 +1117,21 @@
 //     `lowGravity` agora seria consertar um número que a régua errada produziu.
 //
 // ─── PENDENTES DESTA RODADA (feature, não bug) ───
-// [ ] Tutorial de perks + destrinchar os 4 ramos (o jogador não sabe se vale
-//     comprar). [ ] Cores ilustrando lendária/boa/suja durante a partida.
+// [x] Tutorial de perks + destrinchar os 4 ramos (2026-10-13, 20:26): os 4
+//     ESPECIAIS ganham `desc` (a linha "RAMO X T6" não dizia nada sobre
+//     eles — "Pistola Incandescente" não explica o que faz): "a cada 5
+//     tiros, um incendeia", "abaixo de 30% de vida: 1,5s invulnerável",
+//     "o dash fere quem você atravessa", "sorte pesa eventos e drops".
+//     O rótulo da seção PERKS ensina a regra da escada: "degraus na ordem,
+//     o T2 pede o T1 · 3 ofertas por visita". Os degraus comuns já se
+//     explicam ("Dano +8%" + "RAMO DANO T2").
+// [x] Cores ilustrando lendária/boa/suja durante a partida (2026-10-13,
+//     20:26): a condição da arma agora aparece no HUD para TODA qualidade
+//     exceto normal — antes só as negativas tinham adjetivo e a LENDÁRIA
+//     jogava invisível (o dono não via o que a loja vendeu caro). A cor é
+//     a da própria qualidade (QUALITIES[q].color). `ehNegativa` ficou
+//     órfã e saiu (semOrfao mordeu e a função foi removida, não
+//     aposentada). Provas: loja-proof + hud-proof verdes, 952 testes.
 // [ ] Árvore de talentos inútil quando lotada: quais dos 24 degraus não valem
 //     o preço. Medir antes de podar.
 // [ ] NPC aliado do Castelo (atira, sobrevive, dá arma lendária). NÃO é a

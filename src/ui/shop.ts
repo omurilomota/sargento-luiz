@@ -1153,7 +1153,7 @@ export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: n
   }
 
   // ── PERKS (3 por visita, do restock) ──
-  sectionLabel(ctx, 'PERKS', L.upgrades[0].x, L.sections.upgrades, '#8a7a9a');
+  sectionLabel(ctx, 'PERKS · degraus na ordem, o T2 pede o T1 · 3 ofertas por visita', L.upgrades[0].x, L.sections.upgrades, '#8a7a9a');
   L.upgrades.forEach((r, i) => {
     const t = PERK_LADDER.find(p => p.id === stockPerks[i]);
     if (!t) return;
@@ -1189,7 +1189,11 @@ export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: n
     ctx.fillStyle = PALETTE.textOff;
     ctx.font = '11px monospace';
     ctx.textAlign = 'left';
-    ctx.fillText(`RAMO ${t.ram.toUpperCase()} T${t.tier}`, r.x + 40, r.y + 30);
+    // O tutorial de perks em uma linha: degraus comuns já se explicam
+    // ("Dano +8%" + "RAMO DANO T2" ensinam a ordem da escada); especial
+    // não se explica — "Pistola Incandescente" não diz o que faz, e a
+    // linha do ramo/tier não diz nada de útil sobre ele.
+    ctx.fillText(t.desc ?? `RAMO ${t.ram.toUpperCase()} T${t.tier}`, r.x + 40, r.y + 30);
   });
 
   // ── SKINS ──

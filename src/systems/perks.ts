@@ -8,7 +8,10 @@
 
 import type { StatId } from '../core/stats';
 
-/** Um degrau da escada. `requires` é o id do degrau anterior (`null` = base). */
+/** Um degrau da escada. `requires` é o id do degrau anterior (`null` = base).
+ * `desc` existe só nos especiais: o nome dos degraus comuns já diz o efeito
+ * ("Dano +8%"), mas "Pistola Incandescente" não diz NADA — o jogador não
+ * sabe se a compra vale, e era o buraco do tutorial de perks. */
 export interface PerkTier {
   id: string;
   ram: 'dano' | 'corpo' | 'pernas' | 'mente';
@@ -19,6 +22,7 @@ export interface PerkTier {
   value: number;
   requires: string | null;
   special?: boolean;
+  desc?: string;
 }
 
 export const PERK_LADDER: PerkTier[] = [
@@ -28,7 +32,7 @@ export const PERK_LADDER: PerkTier[] = [
   { id: 'dano_t3', ram: 'dano', tier: 3, name: 'Dano +8%', price: 130, statId: 'damageMult', value: 0.08, requires: 'dano_t2' },
   { id: 'dano_t4', ram: 'dano', tier: 4, name: 'Dano +8%', price: 180, statId: 'damageMult', value: 0.08, requires: 'dano_t3' },
   { id: 'dano_t5', ram: 'dano', tier: 5, name: 'Dano +8%', price: 240, statId: 'damageMult', value: 0.08, requires: 'dano_t4' },
-  { id: 'pistola_incandescente', ram: 'dano', tier: 6, name: 'Pistola Incandescente', price: 400, statId: 'damageMult', value: 0, requires: 'dano_t5', special: true },
+  { id: 'pistola_incandescente', ram: 'dano', tier: 6, name: 'Pistola Incandescente', price: 400, statId: 'damageMult', value: 0, requires: 'dano_t5', special: true, desc: 'a cada 5 tiros, um incendeia' },
   // CORPO — vida, armadura, escudo e regeneração, terminando no TETO da armadura.
 // O T5 levanta o teto (armorMax) em vez de dar mais vida: `armorMax` era lido
 // por `applyStat` e escrito por NINGUÉM, então o teto de 0.5 nunca abria. Com a
@@ -39,21 +43,21 @@ export const PERK_LADDER: PerkTier[] = [
   { id: 'corpo_t3', ram: 'corpo', tier: 3, name: 'Escudo +1', price: 140, statId: 'shield', value: 1, requires: 'corpo_t2' },
   { id: 'corpo_t4', ram: 'corpo', tier: 4, name: 'Regeneração +1', price: 190, statId: 'regen', value: 1, requires: 'corpo_t3' },
   { id: 'corpo_t5', ram: 'corpo', tier: 5, name: 'Armadura: teto +10%', price: 240, statId: 'armorMax', value: 0.1, requires: 'corpo_t4' },
-  { id: 'segundo_folego', ram: 'corpo', tier: 6, name: 'Segundo Fôlego', price: 400, statId: 'health', value: 0, requires: 'corpo_t5', special: true },
+  { id: 'segundo_folego', ram: 'corpo', tier: 6, name: 'Segundo Fôlego', price: 400, statId: 'health', value: 0, requires: 'corpo_t5', special: true, desc: 'abaixo de 30% de vida: 1,5s invulnerável' },
   // PERNAS — velocidade e recarga do dash
   { id: 'pernas_t1', ram: 'pernas', tier: 1, name: 'Velocidade +8%', price: 60, statId: 'speed', value: 0.08, requires: null },
   { id: 'pernas_t2', ram: 'pernas', tier: 2, name: 'Dash -10%', price: 100, statId: 'dashCooldown', value: -0.1, requires: 'pernas_t1' },
   { id: 'pernas_t3', ram: 'pernas', tier: 3, name: 'Velocidade +8%', price: 140, statId: 'speed', value: 0.08, requires: 'pernas_t2' },
   { id: 'pernas_t4', ram: 'pernas', tier: 4, name: 'Dash -10%', price: 190, statId: 'dashCooldown', value: -0.1, requires: 'pernas_t3' },
   { id: 'pernas_t5', ram: 'pernas', tier: 5, name: 'Velocidade +8%', price: 240, statId: 'speed', value: 0.08, requires: 'pernas_t4' },
-  { id: 'passo_fantasma', ram: 'pernas', tier: 6, name: 'Passo Fantasma', price: 400, statId: 'speed', value: 0, requires: 'pernas_t5', special: true },
+  { id: 'passo_fantasma', ram: 'pernas', tier: 6, name: 'Passo Fantasma', price: 400, statId: 'speed', value: 0, requires: 'pernas_t5', special: true, desc: 'o dash fere quem você atravessa' },
   // MENTE — xp, moedas e sorte
   { id: 'mente_t1', ram: 'mente', tier: 1, name: 'XP +15%', price: 60, statId: 'xpMult', value: 0.15, requires: null },
   { id: 'mente_t2', ram: 'mente', tier: 2, name: 'Moedas +15%', price: 100, statId: 'coinMult', value: 0.15, requires: 'mente_t1' },
   { id: 'mente_t3', ram: 'mente', tier: 3, name: 'Sorte +1', price: 150, statId: 'luck', value: 1, requires: 'mente_t2' },
   { id: 'mente_t4', ram: 'mente', tier: 4, name: 'XP +15%', price: 200, statId: 'xpMult', value: 0.15, requires: 'mente_t3' },
   { id: 'mente_t5', ram: 'mente', tier: 5, name: 'Moedas +15%', price: 250, statId: 'coinMult', value: 0.15, requires: 'mente_t4' },
-  { id: 'sortudo', ram: 'mente', tier: 6, name: 'Sortudo', price: 400, statId: 'luck', value: 2, requires: 'mente_t5', special: true },
+  { id: 'sortudo', ram: 'mente', tier: 6, name: 'Sortudo', price: 400, statId: 'luck', value: 2, requires: 'mente_t5', special: true, desc: 'sorte pesa eventos e drops' },
 ];
 
 /** Degraus que ainda dá para comprar dados os já comprados. */

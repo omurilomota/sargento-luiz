@@ -373,6 +373,27 @@ O instrumento que faltava para as decisões pendentes de economia
 
 Gates: 952 testes em 55 arquivos, tsc limpo.
 
+## Entrega: tutorial de perks + condição sempre visível — 2026-10-13 20:26
+
+As duas dívidas de UX da rodada do dono:
+
+- **Os 4 especiais da escada agora se explicam**: a linha do perk (que
+  dizia "RAMO DANO T6" — inútil para um especial) vira a descrição do
+  efeito: "a cada 5 tiros, um incendeia" (Pistola Incandescente),
+  "abaixo de 30% de vida: 1,5s invulnerável" (Segundo Fôlego), "o dash
+  fere quem você atravessa" (Passo Fantasma), "sorte pesa eventos e
+  drops" (Sortudo). O rótulo da seção PERKS ensina a regra da escada:
+  "degraus na ordem, o T2 pede o T1 · 3 ofertas por visita". Os degraus
+  comuns já se explicavam ("Dano +8%").
+- **A condição da arma aparece no HUD para toda qualidade exceto
+  normal**: antes só as NEGATIVAS tinham adjetivo — a LENDÁRIA jogava
+  invisível e o dono não via o que a loja vendeu caro. A cor é a da
+  própria qualidade (mostarda para lendária, musgo para boa).
+- Colateral: `ehNegativa` ficou sem chamador e o semOrfao mordeu — a
+  função foi REMOVIDA, não aposentada (regra 4).
+- Gates: 952 testes, loja-proof + hud-proof verdes (nada estoura a
+  caixa), tsc limpo. PNGs com pendência de leitura (regra 16).
+
 ---
 
 ## Versão anterior: v1.3 (geometria + HUD)

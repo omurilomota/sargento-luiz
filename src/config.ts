@@ -324,10 +324,6 @@ export const CONDITION_WORDS: Record<string, Partial<Record<'quebrada' | 'enferr
 };
 
 /** true quando a qualidade é uma das três condições negativas. */
-export function ehNegativa(qualidade: string): boolean {
-  return qualidade === 'quebrada' || qualidade === 'enferrujada' || qualidade === 'suja';
-}
-
 /** Rótulo da condição para uma arma. Cai no rótulo genérico da qualidade. */
 export function conditionLabel(arma: string, qualidade: string): string {
   return CONDITION_WORDS[arma]?.[qualidade as 'quebrada' | 'enferrujada' | 'suja']?.label

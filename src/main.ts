@@ -12,7 +12,7 @@
  */
 
 import { normalize } from './utils';
-import { PHASES, ENEMY_TYPES, POWERUP_TYPES, WEAPONS, QUALITIES, PIECE_TYPES, NUCLEO_RUSH, SPAWN_PROPRIO, conditionLabel, ehNegativa } from './config';
+import { PHASES, ENEMY_TYPES, POWERUP_TYPES, WEAPONS, QUALITIES, PIECE_TYPES, NUCLEO_RUSH, SPAWN_PROPRIO, conditionLabel } from './config';
 import { PALETTE } from './core/palette';
 
 // Entities
@@ -2122,8 +2122,10 @@ function buildHudData(): HudData {
     enemies: enemies.length,
     weapon: weapon.name,
     // A condição é do PAR equipado, e o adjetivo é o da arma: "Corroída" numa
-    // Metralhadora, "Fosca" numa Sniper.
-    weaponCondition: ehNegativa(getWeaponQuality()) ? conditionLabel(weapon.name, getWeaponQuality()).toUpperCase() : '',
+    // Metralhadora, "Fosca" numa Sniper. Toda qualidade EXCETO normal aparece
+    // — a LENDÁRIA jogava invisível: só as negativas tinham adjetivo, e o
+    // dono não via o que a loja vendeu caro (item "cores de condição").
+    weaponCondition: getWeaponQuality() !== 'normal' ? conditionLabel(weapon.name, getWeaponQuality()).toUpperCase() : '',
     weaponConditionColor: QUALITIES[getWeaponQuality()]?.color ?? PALETTE.textDim,
     ammo: getCurrentAmmo(),
     // Pente EFETIVO: com a peça CAPACIDADE o jogador tem 15 balas, e a barra
