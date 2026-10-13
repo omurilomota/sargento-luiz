@@ -87,6 +87,17 @@ export function buyTalento(id: string): boolean {
   return true;
 }
 
+/**
+ * Vende 1 ponto de talento não gasto (T4 — decisão do dono: por moedas, na
+ * loja). O crédito em moedas fica com quem chama; aqui só o ponto sai — o
+ * mesmo contrato do `buyTalento`, que não aplica efeito nenhum além do gasto.
+ */
+export function venderPonto(): boolean {
+  if (pontosLivres <= 0) return false;
+  pontosLivres--;
+  return true;
+}
+
 /** Restaura talentos comprados a partir do save (sem gastar de novo). */
 export function restoreTalentos(ids: string[]): void {
   talentosComprados = ids.filter((id) => TALENTOS.some((t) => t.id === id));

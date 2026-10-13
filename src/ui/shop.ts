@@ -13,7 +13,7 @@ import { addMaxHealth, addSpeed, addShield, enableRegen, addArmor } from '../ent
 import { PERK_LADDER, PERK_LEGADO, ofertaDePerks, ativarEspecialPerk, degrausCompraveis, type PerkTier } from '../systems/perks';
 import { applyStat, getStat } from '../core/stats';
 import { getUnlockedDiary, unlockDiaryEvent } from '../systems/diary';
-import { TALENTOS, buyTalento as gastarPontoTalento, getTalentos as getTalentosComprados, getPontosLivres, getNivel, progressoNoNivel, getXp, restoreTalentos } from '../systems/progress';
+import { TALENTOS, buyTalento as gastarPontoTalento, getTalentos as getTalentosComprados, getPontosLivres, getNivel, progressoNoNivel, getXp, restoreTalentos, venderPonto } from '../systems/progress';
 import { enablePermanentMagnet } from '../entities/coin';
 import { getAllSkins, buySkin, equipSkin, Skin } from '../systems/skins';
 import { canWatchAd, startWatchingAd, getIsWatchingAd, getAdProgress, getAdCooldown, getNextAdReward, getAdsWatched, getAdsRemaining, updateAd } from '../systems/ads';
@@ -295,6 +295,15 @@ export const SHOP_SERVICES = [
   { id: 'repair',   name: 'Reparar Arma',         price: 50, desc: 'conserta arma quebrada/encasquilhada' },
 ];
 
+/**
+ * Moedas que a loja paga por 1 ponto de talento não gasto (T4 — decisão do
+ * dono: "vender pontos: por moedas"). O ponto é a unidade mais escassa do
+ * jogo (1 por nível, curva de patamar): paga mais que qualquer serviço
+ * (30-70) e fica na faixa do primeiro degrau da escada de perks — vender
+ * tem que pesar na decisão, sem virar a jogada dominante.
+ */
+const MOEDAS_POR_PONTO = 100;
+
 export function isServiceAvailable(id: string): boolean {
   if (id === 'reroll') return !rerolledThisVisit;
   if (id === 'discount') return !nextDiscount;
@@ -425,6 +434,25 @@ export function buyTalento(id: string): boolean {
 }
 
 /**
+ * Vende 1 ponto de talento não gasto por moedas (T4 — decisão do dono:
+ * "por moedas"). O crédito entra aqui: o `progress.venderPonto` só tira o
+ * ponto, este é o lado da loja. Sem ponto livre, o aviso diz o que falta —
+ * o mesmo contrato de feedback do `buyTalento`.
+ */
+export function venderPontoTalento(): boolean {
+  if (getPontosLivres() <= 0) {
+    flashNotice('SEM PONTO LIVRE', PALETTE.danger);
+    sfxError();
+    return false;
+  }
+  if (!venderPonto()) return false;
+  shopCoins += MOEDAS_POR_PONTO;
+  flashNotice(`PONTO VENDIDO: +${MOEDAS_POR_PONTO}`, PALETTE.moss);
+  sfxBuy();
+  return true;
+}
+
+/**
  * Reaplica os efeitos de talentos já comprados (continue do save), sem gastar
  * ponto. `restoreTalentos` marca quais existem; aqui só o efeito entra no jogador.
  */
@@ -539,6 +567,8 @@ export interface ShopLayout {
   pieces: Rect[];
   /** Linhas da árvore de talentos (6 = 3 galhos × 2) */
   talentos: Rect[];
+  /** O botão "vender ponto por moedas", última linha da coluna direita (T4) */
+  venderPonto: Rect;
 }
 
 const ROW_H = 48;
@@ -602,6 +632,13 @@ export function getShopLayout(width: number, height: number): ShopLayout {
   const talentos: Rect[] = TALENTOS.map((_, i) => ({
     x: rightX, y: talentosY + 20 + i * ROW_H, w: colW, h: 44,
   }));
+
+  // ── vender ponto de talento (T4): a última linha da coluna direita, colada
+  // abaixo da árvore — o ponto não gasto vira moeda na mão de quem prefere
+  // equipamento a stat permanente ──
+  const venderPonto: Rect = {
+    x: rightX, y: talentosY + 20 + TALENTOS.length * ROW_H + 8, w: colW, h: 44,
+  };
 
   // inventário do jogador: linhas para equipar/vender
   const inventoryY = powerupsY + (3 > 0 ? 20 + 3 * ROW_H : 0) + SECTION_GAP;
@@ -669,7 +706,7 @@ export function getShopLayout(width: number, height: number): ShopLayout {
     contentHeight,
     maxScroll,
     powerups, novidades, services, inventory,
-    equippedPieces, pieces, talentos,
+    equippedPieces, pieces, talentos, venderPonto,
   };
 }
 
@@ -974,6 +1011,32 @@ export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: n
       ctx.fillText(comprado ? 'ATIVO' : '1 PT', r.x + r.w - 10, r.y + 16);
       ctx.textAlign = 'left';
     });
+
+    // T4: vender ponto por moedas — a última linha da seção, o contrário do
+    // "1 PT": aqui o ponto vira moeda na mão. Desabilitado sem ponto livre,
+    // para o jogador ver que a opção existe antes de ter ponto.
+    const r = L.venderPonto;
+    const podeVender = getPontosLivres() > 0;
+    const hoverVenda = hit(r, mouseX, scrollY) && podeVender;
+    ctx.fillStyle = hoverVenda ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.02)';
+    ctx.fillRect(r.x, r.y, r.w, r.h);
+    ctx.strokeStyle = podeVender ? 'rgba(160,128,80,0.5)' : 'rgba(255,255,255,0.05)';
+    ctx.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1);
+    ctx.fillStyle = PALETTE.mustard;
+    ctx.fillRect(r.x + 6, r.y + 6, 30, 30);
+    ctx.fillStyle = '#111';
+    ctx.font = 'bold 14px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('$', r.x + 6 + 15, r.y + 6 + 20);
+    ctx.textAlign = 'left';
+    ctx.fillStyle = podeVender ? PALETTE.text : PALETTE.textOff;
+    ctx.font = 'bold 13px monospace';
+    ctx.fillText('VENDER PONTO', r.x + 40, r.y + 16);
+    ctx.textAlign = 'right';
+    ctx.font = '11px monospace';
+    ctx.fillStyle = podeVender ? PALETTE.mustard : PALETTE.textOff;
+    ctx.fillText(podeVender ? `+${MOEDAS_POR_PONTO} MOEDAS` : 'SEM PONTO', r.x + r.w - 10, r.y + 16);
+    ctx.textAlign = 'left';
   }
 
   // ── INVENTÁRIO ──
@@ -1461,6 +1524,12 @@ export function handleShopClick(mouseX: number, mouseY: number) {
       buyTalento(TALENTOS[i].id);
       return;
     }
+  }
+
+  // T4: vender ponto de talento por moedas — o contrário da árvore
+  if (hit(L.venderPonto, mouseX, y)) {
+    venderPontoTalento();
+    return;
   }
 
   for (let i = 0; i < L.inventory.length; i++) {

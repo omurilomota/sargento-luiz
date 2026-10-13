@@ -257,3 +257,19 @@ describe('getShopLayout: os dois botões de monetização', () => {
     });
   }
 });
+
+describe('vender ponto (T4): a linha não pisa na árvore', () => {
+  it('o botão fica ABAIXO da última linha de talento, sem sobreposição', () => {
+    const L = getShopLayout(W, H);
+    const ultima = L.talentos[L.talentos.length - 1];
+    expect(L.venderPonto.y).toBeGreaterThanOrEqual(ultima.y + ultima.h);
+    for (const r of L.talentos) {
+      expect(overlaps(L.venderPonto, r), `sobrepõe a linha em y=${r.y}`).toBe(false);
+    }
+  });
+
+  it('o conteúdo rolável cobre o botão de venda', () => {
+    const L = getShopLayout(W, H);
+    expect(L.contentHeight).toBeGreaterThan(L.venderPonto.y + L.venderPonto.h);
+  });
+});
