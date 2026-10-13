@@ -1008,6 +1008,24 @@ function update(dt: number) {
   // zerada pelo `waveComplete` e, sem isto, ele reabastecia a cota dela e
   // jogava reforço na tela enquanto o chefe morria.
   const waveComplete = (chefeVivo || ehRushDoNucleo) ? false : spawnWaveEnemies(dt, enemies, getCurrentWave(), phase.enemyTypes, worldW, worldH, rect, phase.mutantsPerWave ?? 0);
+  // `clear` libera o chefe na largada; os outros, só quando o objetivo é
+  // cumprido. Declarado aqui porque o respiro da última onda (logo abaixo)
+  // e o `deveFecharFase` precisam dele: sem o termo, o Vulcão fechava a
+  // última onda com o countdown rodado e o chefe nunca nascido (o `reach`
+  // pede o jogador dentro da zona de extração) — e `!chefeVivo` é verdade
+  // por vacuidade enquanto isso.
+  //
+  // Lê com `peekObjective` e não com o `objective` do bloco de baixo: aquele
+  // é calculado depois deste ponto, e mover o `updateObjective` para cima
+  // mudaria a ordem em que o objetivo é avaliado dentro do frame.
+  const objetivoLiberouChefe = phase.objective === 'clear'
+    // chefe morto É o latch: o chefe só nasce depois do objetivo, então ele
+    // ter caído prova que o objetivo foi cumprido. Ler como re-check vivo
+    // deixava a fase aberta para sempre se o sobrevivente caísse depois do
+    // chefe — o respiro nunca consumia e a quota da última onda seguia
+    // spawnando.
+    || bossKilled
+    || peekObjective(p.x, p.y, enemies.length, reachZones).done;
   if (waveComplete) {
     ganhaXp(XP_BONUS_ONDA);
     const fechaFase = getCurrentWave() + 1 >= phase.waves;
@@ -1023,7 +1041,14 @@ function update(dt: number) {
     // fila arma na própria morte (bloco de morte do chefe).
     const ehNucleoRush = phase.boss === 'nucleo' && getCurrentMode() === 'campaign';
     const rushPorAndar = ehNucleoRush && bossRushIndex < NUCLEO_RUSH.length;
-    if (fechaFase && !phaseEnding && !rushPorAndar) {
+    // B3 (Vulcão, relato do dono — "horda 7: o countdown disparou sem
+    // chefe, veio outra horda, e matar o último foi direto pra loja"): sem
+    // o `objetivoLiberouChefe` aqui, o countdown armava com o objetivo
+    // pendente e expirava sozinho; se o jogador entrasse na zona DEPOIS, a
+    // fase fechava no primeiro frame liberado — `!chefeVivo` é verdade por
+    // vacuidade, porque o chefe só nasce no bloco abaixo do fechamento — e
+    // a loja vinha sem a luta que o mapa promete.
+    if (fechaFase && !phaseEnding && !rushPorAndar && objetivoLiberouChefe) {
       phaseEnding = true;
       phaseEndPause = PHASE_END_PAUSE;
       ganhaXp(XP_BONUS_FASE);
@@ -1042,23 +1067,6 @@ function update(dt: number) {
   // nasceu e caiu — este último não passa pelo spawner, porque a cota foi zerada
   // no frame em que o campo esvaziou para o chefe nascer.
   const ondaConcluida = waveComplete || (bossSpawned && !chefeVivo);
-  // `clear` libera o chefe na largada; os outros, só quando o objetivo é
-  // cumprido. Declarado aqui porque `deveFecharFase` precisa dele: sem o termo,
-  // o Vulcão fechava a última onda com o countdown rodado e o chefe nunca
-  // nascido (o `reach` pede o jogador dentro da zona de extração) — e
-  // `!chefeVivo` é verdade por vacuidade enquanto isso.
-  //
-  // Lê com `peekObjective` e não com o `objective` do bloco de baixo: aquele é
-  // calculado depois deste ponto, e mover o `updateObjective` para cima
-  // mudaria a ordem em que o objetivo é avaliado dentro do frame.
-  const objetivoLiberouChefe = phase.objective === 'clear'
-    // chefe morto É o latch: o chefe só nasce depois do objetivo, então ele
-    // ter caído prova que o objetivo foi cumprido. Ler como re-check vivo
-    // deixava a fase aberta para sempre se o sobrevivente caísse depois do
-    // chefe — o respiro nunca consumia e a quota da última onda seguia
-    // spawnando.
-    || bossKilled
-    || peekObjective(p.x, p.y, enemies.length, reachZones).done;
   // A fase do NÚCLEO não tem onda comum, então `getCurrentWave() + 1 >=
   // phase.waves` nunca vira verdadeiro para ela: o `ultimaOnda` do predicado
   // ficaria false e a fase NUNCA fecharia. O rush se fecha pela fila — é o

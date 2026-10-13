@@ -18,6 +18,7 @@ npm run loja       # 3 scrolls, texto e seções sem sobreposição
 npm run local2p    # 8 checagens — tela de fim, revanche, P2 na MESMA tela
 npm run protect    # 2 cenários — chefe morto/vivo × alvo cai: sem onda pós-boss
 npm run foguete    # o protect do Castelo defende o FOGUETE: HUD e ondas no alvo
+npm run vulcao     # B3: o countdown não arma com objetivo pendente; loja só após a luta
 npm run variedade  # personagem de inimigo muda por fase (57% entre vizinhas)
 npm run fases      # MEDE as 9 fases — número por fase (FUTURO §1.4 ✅)
 npm run diagnostico# nenhum inimigo dentro de parede, dodge afasta em 360°
@@ -203,6 +204,30 @@ foguete, não uma escolta"), em código:
   foguete próprio e troca (registrado no TODO/H6).
 - **Achado registrado** (não é do voo): o caçador do alvo trava na parede
   em 2 de 3 amostras — pendência medida no `TODO.md`.
+
+---
+
+## Entrega: bugs B3 e B4 da rodada 2026-11 (2026-10-13)
+
+- **B3 — Vulcão, countdown sem chefe: REPRODUZIDO no HEAD e consertado.** O
+  relato do dono ("horda 7: o countdown disparou sem chefe, veio outra
+  horda, e matar o último foi direto pra loja") reproduziu com 3 falhas na
+  prova nova: o respiro de 5s armava na limpeza da última onda **sem checar
+  o objetivo**. O Vulcão é `reach`: com o jogador fora da zona de extração,
+  o countdown expirava com o chefe proibido de existir, o spawner
+  reabastecia a cota (a "outra horda"), e pisar na zona depois fechava a
+  fase no primeiro frame liberado — `!chefeVivo` é verdade por vacuidade,
+  o chefe nasce no bloco que roda depois do fechamento. **Fix**: o
+  armamento do respiro exige `objetivoLiberouChefe` (a declaração subiu
+  para antes do bloco de onda). Prova: `npm run vulcao` — cenário A: o
+  countdown não arma com o objetivo pendente; cenário B: o chefe nasce ao
+  liberar e a loja vem depois da luta. Regressão verde: campanha 9/9,
+  onda 10/10, protect 2/2, rush em ordem, 931 testes.
+- **B4 — última fase "abriu já sem nada": NÃO REPRODUZ.** Medido no
+  navegador nos dois caminhos (salto e playthrough), as 9 fases abrem com 0
+  inimigos, onda 1/N, respiro false — `02e7733`, com teste. O "onda=2" da
+  suspeita era artefato do harness (media 1,3s após a entrada, quando o
+  `clear` já avançava). Ação pendente do dono: **republicar o zip**.
 
 ---
 

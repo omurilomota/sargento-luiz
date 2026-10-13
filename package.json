@@ -24,6 +24,7 @@
     "local2p": "npm run build && node tools/local2p-proof.mjs",
     "protect": "npm run build && node tools/castelo-wave-proof.mjs",
     "foguete": "npm run build && node tools/castelo-foguete-shot.mjs",
+    "vulcao": "npm run build && node tools/vulcao-proof.mjs",
     "itch": "node tools/itch-fullscreen-proof.mjs"
   },
   "devDependencies": {

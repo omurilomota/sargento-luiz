@@ -1224,12 +1224,27 @@
 // [ ] NOME DA FASE 9: a história chama de NÚCLEO-CENTRAL, o `config.ts` e a
 //     tela chamam de BUNKER CENTRAL. A fase final vai ser reescrita de qualquer
 //     forma (B1–B8) — aproveitar e acertar o nome.
-// [ ] B3. VULCÃO, horda 7: o countdown disparou SEM chefe, veio outra horda, e
-//     matar o último foi direto pra loja. O Vulcão é `survive 45s` + chefe
-//     `sentinel`. Investigar `isUltimasOndas` × `objetivoLiberouChefe`.
-// [ ] B4. A última fase abriu "já sem nada". Suspeita: estado do rush
-//     (`bossRushIndex`/`bossSpawned`) vazando entre fases — a mesma família que
-//     `irParaFase` já consertou uma vez para os inimigos.
+// [x] B3. VULCÃO, horda 7: o countdown disparou SEM chefe, veio outra horda,
+//     e matar o último foi direto pra loja. O Vulcão é `reach` + chefe
+//     `infernoPrime` (o "survive 45s + sentinel" que esta linha dizia era a
+//     FÁBRICA). REPRODUZIDO no HEAD (tools/vulcao-proof.mjs: 3 falhas) e
+//     consertado: o respiro de 5s armava na limpeza da última onda SEM
+//     checar o objetivo — o countdown expirava com o chefe proibido de
+//     existir, o spawner reabastecia a cota (a "outra horda" do relato) e,
+//     se o jogador pisasse na zona depois, `deveFecharFase` fechava a fase
+//     no primeiro frame liberado: `!chefeVivo` é verdade por vacuidade,
+//     porque o chefe nasce no bloco que roda DEPOIS do fechamento.
+//     Fix: o armamento do respiro exige `objetivoLiberouChefe` (main.ts).
+//     Prova verde: countdown não arma pendente, o chefe nasce ao liberar,
+//     a loja vem depois da luta. Regressão: campanha 9/9, onda 10/10,
+//     protect 2/2, rush ok, 931 testes.
+// [x] B4. A última fase abriu "já sem nada". VEREDITO: NÃO REPRODUZ no
+//     HEAD — medido no navegador nos dois caminhos (salto `irParaFase` e
+//     playthrough completo), os primeiros frames das 9 fases abrem com 0
+//     inimigos, onda 1/N e respiro false (commit 02e7733, com teste). O
+//     "onda=2" que gerou a suspeita era artefato do harness, que media 1,3s
+//     depois da entrada, quando o `clear` já tinha avançado. Ação:
+//     republicar o zip do dist (o publicado é anterior aos fixes).
 // [ ] B5. O fim da Parte I lê como MOTHERSHIP, não como NÚCLEO. É o texto do
 //     epílogo (B1) + a decisão de onde o martelo entra (B2).
 // [ ] B7. Cenário da última fase pouco destrutivo. Quer explosão por todo lado:

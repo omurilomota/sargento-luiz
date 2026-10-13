@@ -18,9 +18,13 @@ evita editar esses arquivos até o commit.
 
 - [x] B1 — o epílogo não toca antes da luta final
 - [x] B2 — o Destruidor é entregue na entrada da fase 9, não como loot da loja
-- [ ] B3–B8 — countdown do Vulcão sem chefe, estado do rush vazando entre
-      fases, biomaquina, nome NÚCLEO-CENTRAL, texto do epílogo, cenário
-      destrutivo
+- [x] B3 — countdown do Vulcão sem chefe: reproduzido, consertado e provado
+      (`npm run vulcao`, 2026-10-13)
+- [x] B4 — estado do rush: NÃO reproduz no HEAD (`02e7733`); ação = republicar
+- [x] B6 + biomaquina + nome NÚCLEO-CENTRAL — pagos na própria rodada 2026-11
+      (`3e7458f`, `56395c8`, DECISIONS #169/#170)
+- [ ] B5/B7 — o epílogo que "lia como MOTHERSHIP" foi resolvido por B1+B2 e a
+      reescrita dele é o H4 (DECISIONS #174); resta o cenário destrutivo (B7)
 - [ ] T1–T6 — titãs/elites, playlist, disclosure do site, pontos de talento,
       anúncio, armaduras
 
