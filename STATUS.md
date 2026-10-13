@@ -235,6 +235,23 @@ foguete, não uma escolta"), em código:
   reproduz no HEAD" (B1, B4, som de recarga) passam a valer no jogo
   publicado a partir daqui. Subir no itch é ação do dono.
 
+## Entrega: medições §1.9 e do barril (2026-10-13, sessão autônoma)
+
+Os dois "medir antes de mexer" do TODO, respondidos com número e porta:
+
+- **§1.9 — chefe de raio 46 × corredor de 1 célula: NÃO MEXER.** Nenhum
+  dos 4 chefes do rush cabe (raios 46-54 > meia célula, por projeto #158) e
+  o corredor de baixo do Bunker é reto: os 4 atiram com linha limpa até um
+  acampado e a biomaquina entra. `rushCorredor.test.ts` trava as duas
+  propriedades — um rebalanceamento que esvazie o corredor ou desarme o
+  chefe acusa no `npm test` (DECISIONS #180).
+- **Barril 45/96: ACEITAR ASSIM.** `session.mjs --fase 0` (180s na Cidade):
+  o piso que desvia de barril aceso tomou **zero** de dano de barril — os
+  40 da sessão vieram do raio do evento, e o barril nunca foi fonte
+  principal nas 9 fases. O pavio de 0,9s é o aviso; nerf tiraria do barril
+  o papel de limpar `grunt` de uma vez (DECISIONS #181). Reabrir só com
+  relato de dano de barril em jogo real.
+
 ---
 
 ## Versão anterior: v1.3 (geometria + HUD)

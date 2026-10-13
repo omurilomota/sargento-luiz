@@ -1188,15 +1188,26 @@
 //     origem da classe de bug acima. DECISIONS #157.
 // [x] `presoNaParede.test.ts` (11) + `tools/sessao-diagnostico.mjs`.
 //
-// [ ] Chefe de raio 46 numa passagem de 64px (FUTURO §1.9). O Bunker tem
-//     parede de 1 célula e o NÚCLEO tem diâmetro maior que a célula. Medir se
-//     o chefe alcança o jogador no corredor de baixo ANTES de mexer: pode ser
-//     arena, raio ou mapa.
-// [ ] Barril: 45 de dano e 96px de raio contra um jogador de 100 HP. Um
-//     `grunt` (20 HP) morre com um; o jogador perde quase metade da vida. E
-//     `explosivos.test` diz que explosivo de ARMA não fere o jogador — o
-//     barril fere. Medir a taxa em que um jogador humano toma dano de barril
-//     antes de decidir entre nerf, aviso visual ou aceitar assim.
+// [x] Chefe de raio 46 numa passagem de 64px (FUTURO §1.9). MEDIDO
+//     (2026-10-13, rushCorredor.test.ts): nenhum dos 4 chefes do rush CABE
+//     em corredor de 1 célula — raios 46-54 contra meia célula (32), por
+//     projeto (DECISIONS #158; o presoNaParede já os excluía por isso) — e o
+//     corredor de baixo do Bunker não é queijo: ele é RETO, os 4 atiram
+//     (canShoot, 300-340 px/s, linha limpa até o acampado) e a biomaquina
+//     (raio 19) entra e pressiona. VEREDITO: não mexer — nem arena, nem
+//     raio, nem mapa. O teste trava as duas propriedades que sustentam o
+//     veredito (ninguém espreme, todos atiram): um rebalanceamento que
+//     baixe raio para <= 32 ou tire o tiro muda a geometria em silêncio.
+// [x] Barril: 45 de dano e 96px de raio contra um jogador de 100 HP. MEDIDO
+//     (2026-10-13, session.mjs --fase 0, 180s na Cidade): o piso que DESVIA
+//     de barril aceso (DECISIONS #153) tomou ZERO de dano de barril em 3
+//     minutos — os 40 de dano da sessão vieram todos do raio do evento, e
+//     o barril não apareceu como fonte principal em nenhuma das 9 linhas
+//     do `npm run fases`. O instrumento não mede jogador humano, mas mede
+//     o piso: o risco do barril é escolha de quem atira perto dele, com
+//     0,9s de pavio como aviso. VEREDITO: aceitar assim — sem nerf, sem
+//     aviso novo (o pavio é o aviso). Reabrir só se o dono relatar dano
+//     de barril em jogo real.
 
 // ═══════════════════════════════════════════════════════════════
 // RODADA 2026-11 — RELATO DO JOGADOR: FASE FINAL, HISTÓRIA E BUGS
