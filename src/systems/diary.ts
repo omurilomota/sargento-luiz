@@ -48,7 +48,10 @@ const DIARY_ENTRIES: DiaryEntry[] = [
   {
     phase: 3,
     title: 'Dia 7',
-    text: 'O Fernandes segurou a porta pra eu passar. Seis segundos. Ele disse que pensei que ninguém vinha, e eu disse pra ele ficar atrás de mim. Era ordem. Não obedeci a mim mesmo.',
+    // A Fábrica perdeu a morte do Fernandes na rodada 2026-10-12 do dono: ele
+    // estava no Castelo ("é lá onde ele está"), e a fábrica ganhou o amigo da
+    // cápsula (H2). A contagem do sacrifício ficou na entrada reativa.
+    text: 'A fábrica da BioGen parou no meio do turno, peça pela metade no braço da máquina. Alguém cuspiu na placa. No fim do corredor tem uma escada descendo, e o ar que sobe é quente. Tem alguma coisa viva no subsolo. Eu vou descer saber.',
     unlocked: false,
   },
   {

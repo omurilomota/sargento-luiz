@@ -75,7 +75,7 @@ checar('o prólogo fecha ao pular', st?.ativa === false);
 // o EPÍLOGO fechar.
 const fases = [
   'Floresta', 'Caverna', 'Fábrica', 'Pântano',
-  'Castelo', 'Vulcão', 'Espaço', 'Bunker Central',
+  'Castelo', 'Vulcão', 'Espaço', 'NÚCLEO-CENTRAL',
 ];
 let indice = 0;
 for (const nome of fases) {

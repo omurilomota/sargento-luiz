@@ -35,11 +35,11 @@ a Parte II, que é a lista de missão do navio (peça, combustível, energia).
 | 2 | **Rodovia / Pedágio** ‹nova› | O comboio do norte parou aqui. Rios acha o rádio do caminhão com a última fala do Vale: *"não venham, não tem mais batalhão"*. Duas xícaras no banco da frente. Ele bebe uma |
 | 3 | **Floresta** | Já passou por ali. A casa do velho amigo **Joe** ainda está de pé, com duas xícaras na mesa. Criatividade/juventude perdida |
 | 4 | **Caverna** | Onde o amigo de infância **Arthur** escavava cristal. Rios o encontra **morto**, sentado de costas, mochila cheia. Leva o crachá |
-| 5 | **Fábrica** | **Fernandes morre** aqui, segurando a porta do subsolo. O beat mantido: seis segundos |
+| 5 | **Fábrica** | O amigo **Fernando**: a cápsula, a radiação (todos infectados, Rios imune sem saber) e a virada em mid-boss depois do chefe. **A fúria desbloqueia aqui** (gate de história, decisão do dono) |
 | 6 | **Hospital de campanha** ‹nova› | Corpos com braçadeira e número no braço: a primeira prova de que alguém decidiu. Rios leva remédio e um prontuário assinado MegaCorp 2089 |
 | 7 | **Pântano** | Terreno desconhecido. Bússola não serve. Corpo boiando sem distintivo — "não reconheço, isso é pior" |
 | 8 | **Pátio de trens** ‹nova› | O trem era o plano. Vagões parados, um descarrilhado, o trilho continua para o norte. Rios dorme no banco de madeira pela primeira vez em meses |
-| 9 | **Castelo** | Governo apodrecido: fortaleza montada com osso dos seus. O sobrevivente é isca; Rios sobe o muro assim mesmo |
+| 9 | **Castelo** | Governo apodrecido: fortaleza montada com osso dos seus. **O Cabo Fernandes está aqui e morre segurando o portão — seis segundos.** O jogador protege o **foguete** (decisão do dono); na saída, conserta o motor e voa |
 | 10 | **Ponte** ‹nova› | A única passagem sobre o rio. Os dois lados querem a ponte. Rios fica no meio até o que sobrou do comboio passar |
 | 11 | **Vulcão** | Nunca imaginaria vivo ali. Fala da irmã, do pai sargento, do legado. "Não é coragem, é teimosia" |
 | 12 | **Refinaria** ‹nova› ‹dupla› | Fogo que não apaga desde o começo. Rios enche tambores de combustível e entende que vai precisar de mais |

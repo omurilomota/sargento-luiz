@@ -1521,11 +1521,11 @@ function killEnemy(e: Enemy, award: boolean): void {
     bossKilled = true;
     const bossAch = checkAchievements('boss_kill');
     if (bossAch) pushToast(bossAch.name, 3);
-    // A cutscene da Fábrica mata o Fernandes em cena. O diário é o registro que
-    // essa morte deixa no jogador: sem ele, o beat mais forte do roteiro não
-    // custava nada e não voltava nunca. Só na fase 3 (Fábrica), que é onde a
-    // cutscene mostra a morte — nas outras não houve Fernandes.
-    if (getCurrentPhase().name === 'Fábrica' && unlockDiaryEvent('fernandes')) {
+    // A cutscene do Castelo mata o Fernandes em cena ("é lá onde ele está",
+    // decisão do dono de 2026-10-12). O diário é o registro que essa morte
+    // deixa: sem ele, o beat mais forte do roteiro não custava nada e não
+    // voltava nunca. Só nesta fase — nas outras não houve Fernandes.
+    if (getCurrentPhase().name === 'Castelo' && unlockDiaryEvent('fernandes')) {
       pushToast('DIÁRIO: SEIS SEGUNDOS', 4, 'aviso');
     }
     if (unlockDiaryEvent('boss_kill')) pushToast('NOVA ENTRADA NO DIÁRIO', 3, 'aviso');

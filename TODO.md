@@ -1263,9 +1263,13 @@
 //   AHB-45) precisa casar com os 3 arcos do HISTORIA-II-IV.md.
 //
 // ─── H — HISTÓRIA (Sprint A) ───
-// [ ] H1. Fernandes sai da Fábrica (morte, diário "Seis Segundos", hooks de
-//     conquista) e vai para o CASTELO — "é lá onde ele está". Cutscene da
-//     Fábrica perde o beat; FASE_PARA_CUTSCENE e story-proof acompanham.
+// [x] H1. Fernandes sai da Fábrica (morte, diário "Seis Segundos", hook do
+//     diário no main.ts) e vai para o CASTELO — "é lá onde ele está". A cena
+//     do Castelo reescrita com o sacrifício no portão (o beat "---" e o
+//     "Fernandes." migram junto); a Fábrica fica com a chegada e a ponta do
+//     subsolo, que o H2 abre. story-proof 19/19, PNGs da Fábrica e do
+//     Castelo abertos. Hooks de conquista: NÃO EXISTEM — nenhum achievement
+//     cita o Fernandes; o hook real era o do diário, que migrou.
 // [ ] H2. Fábrica: sequência do AMIGO — diálogo em CAIXA PEQUENA (modo novo
 //     de diálogo, não a caixa grande), cápsula, radiação (todos infectados,
 //     player imune sem saber), pós-boss o amigo vira MID-BOSS (forte, vários
@@ -1299,7 +1303,11 @@
 //     cápsula, risada — CC0/CC-BY + CREDITS.md + tela de créditos.
 // [ ] H6. Asset do foguete (sprite CC0 — procurar nos packs de espaço antes
 //     de buscar pack novo).
-// [ ] H7. Exceção do "Agora" no semIA com justificativa no DECISIONS.
+// [x] H7. VEREDITO: a exceção não é necessária. As 16 falas verbatim do dono
+//     (incluindo "Agora você vai ver só seus trilionários") rodam VERDES nas
+//     regexes reais do semIA — o portão acusa `ahora` (espanhol), não `agora`
+//     (português). A crença contrária veio do NEGOCIADO §3b, lido errado.
+//     Portão NÃO enfraquecido; prova registrada no DECISIONS #173.
 //
 // ─── B — BUGS DO RELATO (frente de bugs; verificação antes de mexer) ───
 // [x] B1. GAME OVER AO ENTRAR NO BUNKER: NÃO REPRODUZ no HEAD. O
@@ -1330,8 +1338,8 @@
 // [x] B5. TAB NO VIVALDI: preventDefault no keydown (`a89922f`) — página de
 //     jogo é o canvas, não há outro elemento focável. Testar no Vivaldi é
 //     do dono (Playwright é Chromium); M não serve de alternativa (é música).
-// [ ] B6. Diálogo do Cabo Fernandes na Fábrica "na hora errada" =
-//     consequência do H1 (ele está no Castelo). Frente HISTÓRIA.
+// [x] B6. Diálogo do Cabo Fernandes na Fábrica "na hora errada" — resolvido
+//     pelo H1: ele saiu da cena da Fábrica e está no Castelo (onde morre).
 //
 // ─── C — UI / LOJA / HUD ───
 // [ ] C1. HUD trocado: canto inferior direito = ficha da ARMA; perks saem
