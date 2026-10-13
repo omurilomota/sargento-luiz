@@ -92,25 +92,44 @@ await page.keyboard.press('Backspace');    // pula o prólogo
 await page.waitForTimeout(900);
 
 // ── CENÁRIO 1: 30s de fase natural ──
-console.log('\n=== CENÁRIO 1: a fase tem de começar na onda 1 ===');
+// O contrato é "a onda só avança depois que o campo esvazia DE VERDADE" —
+// testemunhado por uma amostra de campo vazio no ciclo de polls. O bug do
+// Sprint 0 avançava as ondas em 2 frames SEM campo vazio nenhum; é isso que
+// este cenário tem que pegar.
+//
+// A checagem ANTIGA ("30s sem pular de onda") codificava uma assunção que
+// só era verdade enquanto os inimigos TRAVAVAM nas portas: melee que
+// encosta num jogador que se cura morre na briga de contato (design de
+// 2026-10-05 — quem não atira apanha metade do próprio dano por toque), e
+// com o passoDeCelula os inimigos passaram a CHEGAR. A onda 1 completou
+// sozinha, legitimamente, com o jogador parado — medido em 2026-10-13.
+console.log('\n=== CENÁRIO 1: a onda só avança com o campo vazio ===');
 const inicial = await f();
 checar('começa na onda 1', inicial.onda === 1, `onda=${inicial.onda}/${inicial.ondas}`);
 checar('não começa com chefe', inicial.chefeVivo === false, `chefeVivo=${inicial.chefeVivo}`);
 
 let maxOnda = 1;
 let viuInimigo = false;
-for (let i = 0; i < 30; i++) {
+let pollsDesdeVazio = 99;   // polls desde a última amostra de campo vazio
+let avancosSemVazio = 0;
+for (let i = 0; i < 100; i++) {
   await curar();                            // segura o jogador vivo: o teste é
-  await page.waitForTimeout(1000);          // sobre ondas, não sobre sobrevivência
+  await page.waitForTimeout(300);           // sobre ondas, não sobre sobrevivência
   const s = await f();
   if (s.inimigos > 0) viuInimigo = true;
-  if (s.onda > maxOnda) maxOnda = s.onda;
+  if (s.inimigos === 0) pollsDesdeVazio = 0; else pollsDesdeVazio++;
+  if (s.onda > maxOnda) {
+    // avançou: precisa ter visto campo vazio há pouco (a onda nova leva
+    // >=1,2s para nascer o primeiro inimigo — 4 polls de folga; 6 é margem)
+    if (pollsDesdeVazio > 6) avancosSemVazio++;
+    maxOnda = s.onda;
+  }
   if (s.estado !== 'playing') break;
 }
 
 const depois = await f();
 checar('a onda do spawner rodou', viuInimigo, `inimigos=${depois.inimigos}`);
-checar('30s sem pular de onda', maxOnda === 1, `maior onda vista=${maxOnda}`);
+checar('nenhum avanço de onda sem campo vazio', avancosSemVazio === 0, `${avancosSemVazio} pulo(s) sem vazio; maior onda vista=${maxOnda}`);
 checar('nenhum chefe apareceu', depois.chefeVivo === false, `chefeVivo=${depois.chefeVivo}`);
 checar('ainda jogando, não foi para a loja', depois.estado === 'playing', `estado=${depois.estado}`);
 

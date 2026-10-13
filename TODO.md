@@ -653,15 +653,32 @@
 //     12 DPS. Prova: npm run protect (2 cenarios verdes no mundo do
 //     foguete) + npm run foguete (HUD "PROTEGER O FOGUETE 300/300" e as
 //     ondas chegando nele).
-// [ ] Cacador do alvo trava na parede: o huntsNpc anda em linha reta (o
-//     comportamento legado, sem flow field) e contra o foguete — parado
-//     atras das paredes da camara — desliza na parede em vez de achar a
-//     porta. Medido 2026-10-13 em amostras isoladas do Castelo: em 2 de 3
-//     o foguete ficou 41s intacto com inimigos vivos na fase; na terceira,
-//     UM achou o caminho e derrubou o alvo em ~28s (12 DPS sem oposicao).
-//     A ameaca da fase e loteria de spawn. Caminho provavel: flow field
-//     proprio para o alvo (o atual aponta so para o jogador) — unidade
-//     separada, nao fix de voo.
+// [x] Cacador do alvo trava na parede: o huntsNpc andava em linha reta
+//     (legado, sem flow field) e contra o foguete — parado atras das paredes
+//     da camara — deslizava na parede em vez de achar a porta. Medido
+//     2026-10-13: em 2 de 3 amostras isoladas o foguete ficou 41s intacto
+//     com inimigos vivos; a ameaca era loteria de spawn. CONsertado em DUAS
+//     camadas, cada uma com sua causa:
+//     (1) FLOW FIELD DO ALVO (tilemap.ts): o mesmo Dijkstra do jogador
+//         (hazard caro, descida por gradiente), apontado para a celula do
+//         foguete. O alvo e estatico: um campo por fase, cache por celula.
+//         `flowAlvo.test.ts` (6): a descida chega ao foguete dos 4 cantos
+//         por onde os cacadores realmente chegam, sem pisar em hazard, e o
+//         campo do alvo nao e o do jogador (na porta da camara um sobe e
+//         o outro desce).
+//     (2) PASSO DE CELULA (main.ts, passoDeCelula): a prova continuou
+//         falhando 3/3 com o campo pronto — o vetor por celula nao carrega
+//         o alinhamento sub-celula que porta de 1 celula exige. Reproduzido
+//         em Node puro com as funcoes reais (cacadorPorta.test.ts): um
+//         archer 1800/1800 frames parado na LATERAL da porta norte
+//         (896,371), e outro 994 frames espetado no CANTO da parede do
+//         corredor sul. Mirar no CENTRO da proxima celula da descida
+//         realinha o corpo com o vão — vale para os DOIS campos (jogador
+//         e alvo): e a mesma familia de trava que os inimigos comuns
+//         sofriam.
+//     Prova: npm run cacador — 3/3 amostras com o cacador chegando (6s,
+//     34s, 8s; antes: 3/3 intactos). Regressao: campanha 9/9, onda 10/10,
+//     protect 2/2, 942 testes, fases re-medidas.
 // [x] Conquista de loss ("amigo morto"): hoje so existe vip_saved (salvou).
 //     Falta a conquista pelo loss, apresentada com peso de narrativa.
 

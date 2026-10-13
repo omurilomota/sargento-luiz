@@ -38,7 +38,7 @@ let wasJammed = false;
 const killTimes: number[] = [];
 import { checkBulletEnemyCollisions, checkEnemyPlayerCollision, checkEnemyBulletPlayerCollision, bulletHitsCircle } from './systems/collision';
 import { createExplosion, updateExplosions, clearExplosions } from './systems/explosions';
-import { loadMap, colAt, rowAt, charAt, isWall, hasPath, moveCircleBy, rebuildFlowField, sampleFlowDir, pushOutOfWalls, findAll, segmentHitsWall, findFreeSpotNear } from './systems/tilemap';
+import { loadMap, colAt, rowAt, charAt, isWall, hasPath, moveCircleBy, rebuildFlowField, rebuildFlowFieldAlvo, sampleFlowDir, sampleFlowDirAlvo, pushOutOfWalls, findAll, segmentHitsWall, findFreeSpotNear } from './systems/tilemap';
 import { initCamera, setViewportSize, setWorldSize, updateCamera, snapCamera, getCamX, getCamY, screenToWorld, drawVoid, isVisible, setShake } from './systems/camera';
 import { initProps, getProps, updateProps, damageProp, detonateProp, getBlast, drawProps, clearProps, collapsesOnHit, getRocket, getAnyRocket, ROCKET_CONTACT_DPS, Prop } from './systems/props';
 import { buildTerrain, drawTerrain, clearTerrain } from './systems/terrain';
@@ -891,6 +891,10 @@ function update(dt: number) {
 
   // ── flow field (IA dos inimigos) ──
   rebuildFlowField(colAt(p.x), rowAt(p.y));
+  // O campo do alvo do protect: o foguete é estático e o cache por célula faz
+  // isto custar uma comparação depois da primeira chamada da fase.
+  const alvoProtect = getRocket();
+  if (alvoProtect) rebuildFlowFieldAlvo(alvoProtect.col, alvoProtect.row);
 
   // ── local 2P ──
   if (isLocalEnabled()) {
@@ -2226,6 +2230,22 @@ function damageTaken(raw: number): number {
   return Math.floor(raw * getDamageTakenMultiplier() * biomeModifiers(getCurrentPhase()).takenMult);
 }
 
+/**
+ * Passo de célula: o vetor de descida do flow field diz a DIREÇÃO média da
+ * célula, mas porta de 1 célula exige alinhamento que o vetor não carrega.
+ * Um corpo deslocado do centro chega na lateral do vão, o deslize por eixo
+ * não tem componente para corrigir e o inimigo trava — reproduzido com as
+ * funções reais (1800/1800 frames parado na porta norte do Castelo, e 994
+ * travados espetados no canto da parede do corredor sul). Mirar no CENTRO
+ * da próxima célula da descida realinha o corpo com o vão antes de
+ * atravessá-lo — o mesmo passeio célula a célula que os testes de flow
+ * fazem, e por isso os testes chegavam onde o jogo travava.
+ */
+function passoDeCelula(x: number, y: number, dir: { x: number; y: number }) {
+  const proxima = cellCenter(colAt(x) + Math.round(dir.x), rowAt(y) + Math.round(dir.y));
+  return normalize({ x: proxima.x - x, y: proxima.y - y });
+}
+
 function updateEnemyAi(dt: number, p: ReturnType<typeof player.getPlayer>, phase: ReturnType<typeof getCurrentPhase>): void {
 // ── IA dos inimigos: flow field + separação ──
 const tendency = getPlayerTendency();
@@ -2246,10 +2266,14 @@ for (const e of enemies) {
     // boss não entra no empilhamento
     if (e.hitFlash > 0) continue;
   } else {
-    // O caçador do alvo (huntsNpc, ou todo mundo na fase de protect) ignora o
-    // flow field, que aponta para o jogador, e vai direto no alvo: o foguete
-    // quando o mapa tem um, senão o sobrevivente. Sem isso o objetivo protect
-    // é só "não deixe o alvo morrer" contra inimigos que nem procuram nele.
+    // O caçador do alvo (huntsNpc, ou todo mundo na fase de protect) persegue
+    // o alvo — o foguete quando o mapa tem um, senão o sobrevivente. Sem
+    // isso o objetivo protect é só "não deixe o alvo morrer" contra inimigos
+    // que nem procuram nele. Longe do FOGUETE segue o flow field dele (o do
+    // jogador aponta para outra fonte); perto, seek direto — o gradiente é
+    // ruidoso na célula-fonte, o mesmo critério do campo do jogador. O NPC
+    // legado não tem campo: ele se MEXE, um campo estático apontaria para
+    // onde ele não está mais.
     const fogueteNoMapa = phase.objective === 'protect' ? getRocket() : undefined;
     const prey = fogueteNoMapa ?? ((def?.huntsNpc || phase.objective === 'protect') ? getNPCs().find(n => n.alive) : undefined);
     const flow = sampleFlowDir(e.x, e.y);
@@ -2258,16 +2282,25 @@ for (const e of enemies) {
     let seekX: number;
     let seekY: number;
     if (prey) {
-      const caça = normalize({ x: prey.x - e.x, y: prey.y - e.y });
-      seekX = caça.x;
-      seekY = caça.y;
+      const distAoAlvo = Math.hypot(prey.x - e.x, prey.y - e.y);
+      const flowAlvo = fogueteNoMapa ? sampleFlowDirAlvo(e.x, e.y) : null;
+      if (flowAlvo && distAoAlvo >= 140 && (flowAlvo.x !== 0 || flowAlvo.y !== 0)) {
+        const passo = passoDeCelula(e.x, e.y, flowAlvo);
+        seekX = passo.x;
+        seekY = passo.y;
+      } else {
+        const caça = normalize({ x: prey.x - e.x, y: prey.y - e.y });
+        seekX = caça.x;
+        seekY = caça.y;
+      }
     } else if (distToPlayer < 140) {
       const direct = normalize({ x: p.x + tendency.h * 60 - e.x, y: p.y + tendency.v * 60 - e.y });
       seekX = direct.x;
       seekY = direct.y;
     } else if (flow.x !== 0 || flow.y !== 0) {
-      seekX = flow.x;
-      seekY = flow.y;
+      const passo = passoDeCelula(e.x, e.y, flow);
+      seekX = passo.x;
+      seekY = passo.y;
     } else {
       const direct = normalize({ x: p.x - e.x, y: p.y - e.y });
       seekX = direct.x;

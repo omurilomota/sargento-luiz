@@ -32,6 +32,21 @@ let flowDir: Float32Array | null = null;
 let flowTargetCol = -1;
 let flowTargetRow = -1;
 
+/**
+ * Flow field do ALVO do protect (o foguete): mesma estrutura do campo do
+ * jogador, apontada para a célula do prop parado.
+ *
+ * O caçador que ia em seek direto deslizava na parede da câmara do Castelo
+ * para sempre — 2 de 3 amostras isoladas terminaram com o foguete intacto
+ * 41s a fio e os caçadores vivos do lado de fora da parede. O alvo é
+ * estático, então este campo é construído uma vez por fase e o cache de
+ * célula faz as chamadas por frame custarem uma comparação.
+ */
+let alvoDist: Int32Array | null = null;
+let alvoDir: Float32Array | null = null;
+let alvoTargetCol = -1;
+let alvoTargetRow = -1;
+
 const NEIGHBORS: readonly (readonly [number, number])[] = [
   [1, 0], [-1, 0], [0, 1], [0, -1],
   [1, 1], [1, -1], [-1, 1], [-1, -1],
@@ -49,6 +64,10 @@ export function loadMap(rows: string[]): Tilemap {
   flowDir = new Float32Array(c * r * 2);
   flowTargetCol = -1;
   flowTargetRow = -1;
+  alvoDist = new Int32Array(c * r);
+  alvoDir = new Float32Array(c * r * 2);
+  alvoTargetCol = -1;
+  alvoTargetRow = -1;
   return map;
 }
 
@@ -265,13 +284,18 @@ export function segmentHitsWall(x0: number, y0: number, x1: number, y1: number):
 // ─── Flow field ───────────────────────────────────────────────
 
 /**
- * Recalcula o flow field a partir de uma célula alvo. Só refaz o trabalho
- * quando a célula alvo muda, então o custo real é desprezível.
+ * Dijkstra a partir da célula alvo + descida por gradiente, escrevendo nos
+ * arrays dados. Compartilhado pelo campo do jogador e pelo do alvo do
+ * protect. Devolve a célula resolvida (a alvo pode ser parede — a busca
+ * em espiral acha o chão mais próximo) ou null quando não há chão perto.
  */
-export function rebuildFlowField(targetCol: number, targetRow: number): void {
-  if (!map || !flowDist || !flowDir) return;
-  if (targetCol === flowTargetCol && targetRow === flowTargetRow) return;
-
+function construirCampo(
+  dist: Int32Array,
+  dir: Float32Array,
+  targetCol: number,
+  targetRow: number,
+): { col: number; row: number } | null {
+  if (!map) return null;
   let tc = targetCol;
   let tr = targetRow;
   if (isWall(tc, tr)) {
@@ -286,23 +310,21 @@ export function rebuildFlowField(targetCol: number, targetRow: number): void {
         }
       }
     }
-    if (!found) return;
+    if (!found) return null;
   }
-  flowTargetCol = tc;
-  flowTargetRow = tr;
 
-  flowDist.fill(-1);
-  flowDir.fill(0);
+  dist.fill(-1);
+  dir.fill(0);
 
   const queue: number[] = [tr * map.cols + tc];
   let head = 0;
-  flowDist[tr * map.cols + tc] = 0;
+  dist[tr * map.cols + tc] = 0;
 
   while (head < queue.length) {
     const cur = queue[head++];
     const cx = cur % map.cols;
     const cy = (cur - cx) / map.cols;
-    const cd = flowDist[cur];
+    const cd = dist[cur];
     for (const [dx, dy] of NEIGHBORS) {
       const nx = cx + dx;
       const ny = cy + dy;
@@ -318,8 +340,8 @@ export function rebuildFlowField(targetCol: number, targetRow: number): void {
       // atravessa: hazard continua sendo chão, não parede.
       const step = (dx !== 0 && dy !== 0 ? 14 : 10) + (charAt(nx, ny) === '^' ? 60 : 0);
       const nd = cd + step;
-      if (flowDist[ni] === -1 || nd < flowDist[ni]) {
-        flowDist[ni] = nd;
+      if (dist[ni] === -1 || nd < dist[ni]) {
+        dist[ni] = nd;
         queue.push(ni);
       }
     }
@@ -329,8 +351,8 @@ export function rebuildFlowField(targetCol: number, targetRow: number): void {
   for (let row = 0; row < map.rows; row++) {
     for (let col = 0; col < map.cols; col++) {
       const i = row * map.cols + col;
-      if (flowDist[i] === -1) continue;
-      let best = flowDist[i];
+      if (dist[i] === -1) continue;
+      let best = dist[i];
       let bx = 0;
       let by = 0;
       for (const [dx, dy] of NEIGHBORS) {
@@ -338,17 +360,46 @@ export function rebuildFlowField(targetCol: number, targetRow: number): void {
         const ny = row + dy;
         if (nx < 0 || ny < 0 || nx >= map.cols || ny >= map.rows) continue;
         const ni = ny * map.cols + nx;
-        if (flowDist[ni] === -1 || flowDist[ni] >= best) continue;
-        best = flowDist[ni];
+        if (dist[ni] === -1 || dist[ni] >= best) continue;
+        best = dist[ni];
         bx = dx;
         by = dy;
       }
       if (bx === 0 && by === 0) continue;
       const len = Math.hypot(bx, by) || 1;
-      flowDir[i * 2] = bx / len;
-      flowDir[i * 2 + 1] = by / len;
+      dir[i * 2] = bx / len;
+      dir[i * 2 + 1] = by / len;
     }
   }
+
+  return { col: tc, row: tr };
+}
+
+/**
+ * Recalcula o flow field a partir de uma célula alvo. Só refaz o trabalho
+ * quando a célula alvo muda, então o custo real é desprezível.
+ */
+export function rebuildFlowField(targetCol: number, targetRow: number): void {
+  if (!map || !flowDist || !flowDir) return;
+  if (targetCol === flowTargetCol && targetRow === flowTargetRow) return;
+  const resolvido = construirCampo(flowDist, flowDir, targetCol, targetRow);
+  if (!resolvido) return;
+  flowTargetCol = resolvido.col;
+  flowTargetRow = resolvido.row;
+}
+
+/**
+ * Recalcula o flow field DO ALVO do protect a partir da célula dele. Mesmo
+ * cache do campo do jogador: o foguete é estático, então depois da primeira
+ * chamada por fase o resto é uma comparação de inteiros.
+ */
+export function rebuildFlowFieldAlvo(targetCol: number, targetRow: number): void {
+  if (!map || !alvoDist || !alvoDir) return;
+  if (targetCol === alvoTargetCol && targetRow === alvoTargetRow) return;
+  const resolvido = construirCampo(alvoDist, alvoDir, targetCol, targetRow);
+  if (!resolvido) return;
+  alvoTargetCol = resolvido.col;
+  alvoTargetRow = resolvido.row;
 }
 
 /**
@@ -359,6 +410,17 @@ export function sampleFlowDir(px: number, py: number): { x: number; y: number } 
   if (!map || !flowDir) return { x: 0, y: 0 };
   const i = rowAt(py) * map.cols + colAt(px);
   return { x: flowDir[i * 2], y: flowDir[i * 2 + 1] };
+}
+
+/**
+ * Direção de descida do flow field DO ALVO numa posição em pixels.
+ * {x:0,y:0} quando não há campo do alvo (fase sem foguete) ou a célula é
+ * inalcançável — o chamador cai no seek direto, como antes.
+ */
+export function sampleFlowDirAlvo(px: number, py: number): { x: number; y: number } {
+  if (!map || !alvoDir) return { x: 0, y: 0 };
+  const i = rowAt(py) * map.cols + colAt(px);
+  return { x: alvoDir[i * 2], y: alvoDir[i * 2 + 1] };
 }
 
 /** Verifica se uma célula é alcançável a partir do alvo do flow field. */

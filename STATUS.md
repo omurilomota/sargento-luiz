@@ -33,15 +33,22 @@ O bot desvia de inimigo e de barril, atira, e não usa dash, escudo nem fúria.
 
 | fase | sobrevive | onda | principal dano |
 |---|---|---|---|
-| Cidade em Ruínas | 45s+ | 2 | contato (mutante) |
-| Floresta | 45s+ | 2 | projetil (spitter) |
-| Caverna | 45s+ | 1 | contato (runner) |
-| Fábrica | 45s+ | 1 | bioma |
-| Pântano | 45s+ | 3 | contato (mosquito) |
-| Castelo | 16s | 1 | bioma |
-| Vulcão | 24s | 1 | projetil (inferno) |
-| Espaço | 40s | 2 | projetil (ufo) |
+| Cidade em Ruínas | 45s+ | 2 | contato (grunt) |
+| Floresta | 45s+ | 3 | contato (runner) |
+| Caverna | 45s+ | 1 | contato (crystal) |
+| Fábrica | 45s+ | 1 | bioma (robot) |
+| Pântano | 45s+ | 3 | contato (frog) |
+| Castelo | 45s+ | 1 | bioma |
+| Vulcão | 45s+ | 1 | projetil (inferno) |
+| Espaço | 45s+ | 2 | projetil (ufo) |
 | NÚCLEO-CENTRAL | 45s+ | 1 | — |
+
+Medição pós-`passoDeCelula` (2026-10-13, noite): as ondas avançam mais
+ nas fases de contato — o melee agora CHEGA no bot parado e morre na briga
+ de contato, limpando a onda de verdade (o onda-proof registra o contrato
+ novo). Pântano: 1 morte em 3 amostras (40s, frog); as outras duas em 45s+.
+ Castelo: o bot sobrevive — a nota de instrumento do protect continua
+ valendo (o bot não defende o alvo).
 
 Números crus em `tools/fases-medidas.json`. A linha da fase final acompanha a
 reescrita em andamento (desfile desde a entrada, biomaquina) — medir de novo
@@ -64,7 +71,8 @@ bioma entre 8 e 31. O bot não lê o chão E não entende "proteger o alvo": a
 linha do Castelo mede patrulha, não a fase. Na amostra em que um inimigo
 achou o caminho, o foguete sem defesa caiu em ~28s (1 encostado × 12 DPS);
 nas outras duas o alvo ficou intacto 41s com inimigos vivos — o caçador
-anda em linha reta e trava na parede (pendência medida no TODO).
+travava na parede a caminho do foguete. CONsertado na mesma noite (ver a
+entrega "o caçador chega", abaixo): `npm run cacador` 3/3.
 
 O Castelo foi consertado em duas camadas, cada uma com sua causa:
 
@@ -81,8 +89,7 @@ O Castelo foi consertado em duas camadas, cada uma com sua causa:
 
 O resíduo do Castelo depois do foguete: `danoTotal` ainda acumula entre
 reinícios (confirmado na amostra isolada de 2026-10-13: 8 → 18 com a cura
-do restart no meio), o bot ainda orbita cobertura com espinho na base, e o
-caçador do alvo anda em linha reta e trava na parede a caminho do foguete.
+do restart no meio) e o bot ainda orbita cobertura com espinho na base.
 O desenho de verdade da fase estava no §1.1 do FUTURO — decidido pelo dono
 (2026-10-12) e entregue (2026-10-13): o alvo é o FOGUETE.
 
@@ -251,6 +258,38 @@ Os dois "medir antes de mexer" do TODO, respondidos com número e porta:
   principal nas 9 fases. O pavio de 0,9s é o aviso; nerf tiraria do barril
   o papel de limpar `grunt` de uma vez (DECISIONS #181). Reabrir só com
   relato de dano de barril em jogo real.
+
+## Entrega: o caçador chega — flow field do alvo + passo de célula (2026-10-13, noite)
+
+A pendência medida de manhã ("2 de 3 amostras com o foguete intacto 41s")
+fechou em DUAS camadas, cada uma com sua causa:
+
+- **Flow field do alvo** (`tilemap.ts`): o mesmo Dijkstra do jogador
+  (hazard caro, descida por gradiente), apontado para a célula do foguete.
+  O alvo é estático: um campo por fase, e o cache por célula faz as
+  chamadas por frame valerem uma comparação. `flowAlvo.test.ts` (6): a
+  descida chega ao foguete dos 4 cantos do Castelo sem pisar em hazard, e
+  o campo do alvo não é o do jogador (na porta da câmara, um sobe e o
+  outro desce).
+- **Passo de célula** (`main.ts`, `passoDeCelula`): com o campo pronto, a
+  prova `cacador` AINDA falhava 3/3 — o vetor por célula não carrega o
+  alinhamento sub-célula que porta de 1 célula exige. Reproduzido em Node
+  puro com as funções reais (`cacadorPorta.test.ts`): um archer
+  **1800/1800 frames** parado na lateral da porta norte, e outro 994
+  frames espetado no canto da parede do corredor sul. Mirar no CENTRO da
+  próxima célula da descida realinha o corpo com o vão — aplicado aos
+  DOIS campos (jogador e alvo), é a mesma família de trava que os inimigos
+  comuns sofriam.
+- **Lição da prova** (`onda-proof.mjs`): a checagem antiga ("30s parado =
+  onda não avança") só era verde POR CAUSA da trava — melee que encosta
+  num jogador que se cura morre na briga de contato (design de
+  2026-10-05), e com o passo de célula os inimigos passaram a CHEGAR: a
+  onda 1 completou sozinha, legitimamente. A checagem nova testemunha o
+  campo vazio e pega o pulo-do-Sprint-0 (avanço sem vazio) sem acusar a
+  briga legítima. 10/10.
+- **Provas**: `npm run cacador` 3/3 (6s/34s/8s; antes 3/3 intactos);
+  campanha 9/9; protect 2/2; onda 10/10; 942 testes; `npm run fases`
+  re-medido (Pântano: 1 morte em 3 amostras, as outras duas a 45s+).
 
 ---
 
