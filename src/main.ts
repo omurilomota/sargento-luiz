@@ -21,7 +21,7 @@ import { applyRegen, resetRegen } from './entities/player';
 import { getBullets, spawnBullet, updateBullets, updateMines, clearBullets } from './entities/bullet';
 import { getSprite, BULLET_FAMILY, getEnemyCharacter } from './systems/sprites';
 import { getCoins, spawnCoins, updateCoins, clearCoins, setMagnetActive, resetPermanentMagnet } from './entities/coin';
-import { PHASE_END_PAUSE, PLAYER_BASE_HEALTH } from './core/constants';
+import { PHASE_END_PAUSE, PLAYER_BASE_HEALTH, PERIGO_NAVE_SEGUNDOS } from './core/constants';
 import type { Toast, ToastKind, WeaponSheet } from './ui/hud';
 import { updateSupportUrl, drawSupportFallback, hideSupportUrl } from './systems/support';
 
@@ -542,6 +542,11 @@ let pausaTiros = false;
  */
 let phaseEndPause = 0;
 let phaseEnding = false;
+/**
+ * Segundos restantes de "nave em perigo" na entrada do Espaço (H3): a tela
+ * vermelha pulsando dos primeiros instantes, que dá peso à fala do Bot #89.
+ */
+let perigoNave = 0;
 /** Objetivos já contabilizados na partida, para o toast de conquista sair uma vez só. */
 const objectiveCounted = new Set<string>();
 let worldW = 1280;
@@ -627,6 +632,7 @@ function loadPhaseEnvironment(): void {
   bossKilled = false;
   bossRushIndex = 0;
   biomaquinaTimer = 0;
+  perigoNave = phase.name === 'Espaço' ? PERIGO_NAVE_SEGUNDOS : 0;
 }
 
 function resetGame() {
@@ -821,6 +827,7 @@ function update(dt: number) {
 
   if (phaseTransitionTimer > 0) phaseTransitionTimer -= dt;
   if (phaseEndPause > 0) phaseEndPause = Math.max(0, phaseEndPause - dt);
+  if (perigoNave > 0) perigoNave = Math.max(0, perigoNave - dt);
   phaseElapsed += dt;
   setPhaseTime(phaseElapsed);
 
@@ -1961,6 +1968,20 @@ function draw() {
     const g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.32, W / 2, H / 2, Math.max(W, H) * 0.72);
     g.addColorStop(0, 'rgba(90,10,10,0)');
     g.addColorStop(1, `rgba(120,16,16,${0.32 + pulso * 0.16})`);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  // H3 (relato do dono): a nave em perigo — a tela vermelha dos primeiros
+  // segundos do Espaço. Pulso mais rápido que o da fúria: é alarme, não
+  // ódio. Dá peso à cena de entrada ("INIMIGO DETECTADO!" do Bot #89) e
+  // some sozinha — quem chega atrasado na fase não vê nada.
+  if (perigoNave > 0) {
+    const W = canvas.width, H = canvas.height;
+    const pulso = 0.5 + 0.5 * Math.sin(Date.now() / 90);
+    const g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.30, W / 2, H / 2, Math.max(W, H) * 0.70);
+    g.addColorStop(0, 'rgba(90,10,10,0)');
+    g.addColorStop(1, `rgba(120,16,16,${0.26 + pulso * 0.14})`);
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
   }

@@ -6,7 +6,7 @@
 import { PALETTE } from '../core/palette';
 
 /** Personagens da história */
-export type Character = 'narrador' | 'rios' | 'comandante' | 'cientista' | 'mensagem' | 'medico';
+export type Character = 'narrador' | 'rios' | 'comandante' | 'cientista' | 'mensagem' | 'medico' | 'bot' | 'viajante';
 
 /** Uma fala na cutscene */
 export interface DialogueLine {
@@ -37,6 +37,8 @@ const PORTRAITS: Record<Character, { name: string; color: string; sprite: string
   cientista: { name: 'DRA. FERREIRA', color: '#608090', sprite: 'woman_hold' },
   mensagem: { name: 'MENSAGEM INTERCEPTADA', color: '#a08050', sprite: '' },
   medico: { name: 'CABO FERNANDES', color: PALETTE.stone, sprite: 'manBlue_hold' },
+  bot: { name: 'BOT #89', color: PALETTE.stone, sprite: 'robot_hold' },
+  viajante: { name: 'VIAJANTE #23', color: '#a08050', sprite: 'manOld_hold' },
 };
 
 /**
@@ -77,6 +79,10 @@ export const CUTSCENES: Cutscene[] = [
       { speaker: 'rios', text: 'Joe. Seu velho teimoso. Você plantou essas árvores e agora elas te enterraram.' },
       { speaker: 'narrador', text: 'Duas xícaras na mesa da cozinha. Uma virada, a bebida secou faz tempo.' },
       { speaker: 'rios', text: 'Duas xícaras. Você tava esperando alguém, Joe.' },
+      { speaker: 'narrador', text: 'Mais pro fundo tem uma cabana que ninguém visitava. Os meninos falavam que era de bruxa.' },
+      { speaker: 'rios', text: 'O Joe jurava que era mentira. Certeza que era mentira. Ele é que não deixava ninguém chegar perto.' },
+      { speaker: 'rios', text: 'As trilhas daqui não levavam a nada. A gente seguia do mesmo jeito, atrás do riacho.' },
+      { speaker: 'rios', text: 'O balanço dele ainda tá pendurado na árvore. Criança criava mundo do nada aqui. Agora só tem zumbis.' },
       { speaker: 'narrador', text: 'Movimento entre os troncos. Sempre a uns quarenta metros, sempre parando quando ele para.' },
       { speaker: 'rios', text: 'Eles ainda usam roupa. Eram gente. Gente como o Joe.' },
       { speaker: 'narrador', text: 'Ele senta na varanda e bebe da xícara virada. Não tem nada dentro. Fica assim um tempo.' },
@@ -93,6 +99,8 @@ export const CUTSCENES: Cutscene[] = [
       { speaker: 'narrador', text: 'A mochila do lado está cheia. Ele tava enchendo pra levar embora. Não deu tempo.' },
       { speaker: 'rios', text: 'Treze anos. Você me trouxe aqui e falou que aqui embaixo ninguém mandava na gente.' },
       { speaker: 'narrador', text: 'Três pontos de luz pulsam no fundo, no mesmo ritmo. Não é mineral. Tá se reproduzindo.' },
+      { speaker: 'rios', text: 'Os zumbis estão evoluindo rapidamente. O Arthur tava aqui embaixo quando isso começou.' },
+      { speaker: 'narrador', text: 'Grr… vem do túnel de baixo. Perto.' },
       { speaker: 'rios', text: 'Você ficou com o lugar. Eu levo o crachá.' },
       { speaker: 'narrador', text: 'Guarda no bolso da farda, do lado de dentro. Do lado do peito.' },
     ],
@@ -119,6 +127,10 @@ export const CUTSCENES: Cutscene[] = [
       { speaker: 'rios', text: 'Só quero sair. Só quero sair desse buraco.' },
       { speaker: 'narrador', text: 'Um corpo boia de bruços, de uniforme. O distintivo foi polido até sumir.' },
       { speaker: 'rios', text: '...Não é do meu batalhão. Não reconheço. Isso é pior.' },
+      { speaker: 'rios', text: 'Nada mais me surpreende. Daqui a pouco estão saindo do chão.' },
+      { speaker: 'narrador', text: 'A lama estala e cede meio palmo sob a bota. O barulho vem antes do tombo.' },
+      { speaker: 'rios', text: 'Ohoa…! Quase engoliu a bota junto.' },
+      { speaker: 'rios', text: 'Tenho que tomar cuidado com o que falo nesse lugar.' },
       { speaker: 'narrador', text: 'A água sobe mais um palmo sem que tenha chovido.' },
       { speaker: 'rios', text: 'Esse lugar tá engolindo gente. E eu tô no meio.' },
     ],
@@ -135,6 +147,7 @@ export const CUTSCENES: Cutscene[] = [
       { speaker: 'medico', text: 'Sargento! Cabo Fernandes, esquadrão Beta. Sobrevivi ao ataque e me tranquei aqui dentro.' },
       { speaker: 'rios', text: 'Fernandes? O comandante enterrou o Beta inteiro no relatório.' },
       { speaker: 'medico', text: 'Quase, senhor. Conheço as galerias. Posso te levar ao topo.' },
+      { speaker: 'medico', text: 'De acordo com a coordenada daquela cápsula, o antigo abrigo deles era aqui.' },
       { speaker: 'medico', text: 'E tem mais: no pátio interno tem um foguete de pé. O rei guarda ele como troféu. É a saída daqui.' },
       { speaker: 'rios', text: 'Então o foguete fica inteiro. Quem encostar nele encontra comigo.' },
       { speaker: 'rios', text: 'Fica atrás de mim, cabo. É ordem.' },
@@ -162,6 +175,7 @@ export const CUTSCENES: Cutscene[] = [
       { speaker: 'narrador', text: 'Elementais de fogo sobem do chão junto com a brasa.' },
       { speaker: 'rios', text: 'Meu pai foi sargento. Aguentou trinta anos sem reclamar. Dizia que a gente segue por teimosia.' },
       { speaker: 'rios', text: 'Não é coragem. É teimosia. É o que me trouxe até aqui.' },
+      { speaker: 'rios', text: 'Continua em frente, pra manter o legado. É o que ele deixou pra eu fazer.' },
       { speaker: 'narrador', text: 'No fim do corredor, o INFERNO PRIME se levanta do magma.' },
       { speaker: 'rios', text: 'A zona fica do outro lado. Eu não limpo. Eu passo.' },
     ],
@@ -176,6 +190,9 @@ export const CUTSCENES: Cutscene[] = [
       { speaker: 'rios', text: 'MOTHERSHIP. A Vale usava esse nome. É ela que espalha eles pro resto do mundo.' },
       { speaker: 'rios', text: 'O núcleo faz. Ela joga longe. Enquanto ela voar, não adianta eu ter chegado.' },
       { speaker: 'narrador', text: 'Aqui não tem chão pra se cobrir. Nenhuma parede pra parar tiro.' },
+      { speaker: 'bot', text: 'INIMIGO DETECTADO! ATIRAR PROJÉTEIS.' },
+      { speaker: 'rios', text: 'Não tão antes que eu já estou aqui!' },
+      { speaker: 'narrador', text: 'A primeira salva raspa o casco. A explosão de trás joga Rios contra a parede do corredor.' },
       { speaker: 'rios', text: 'Joe. Arthur. Fernandes. Se vocês tão em algum lugar, olha.' },
       { speaker: 'narrador', text: 'O casco central abre a porta de carga. Não pra receber. Pra descer.' },
       { speaker: 'rios', text: 'Última esperança. Eu não posso decepcionar.' },
@@ -194,7 +211,12 @@ export const CUTSCENES: Cutscene[] = [
       { speaker: 'mensagem', text: '[ FONTE LOCAL — O PAINEL DA MÁQUINA ]' },
       { speaker: 'mensagem', text: 'Você vai ver só seus trilionários. Vocês estão fudidos.' },
       { speaker: 'rios', text: 'Eles pilharam o país e fugiram. A máquina ficou ligada.' },
-      { speaker: 'narrador', text: 'No galpão ao lado: um traje de contenção e um martelo. Os dois deixados de propósito.' },
+      { speaker: 'narrador', text: 'Um homem sai do galpão pela porta dos fundos. Mochila de viajante, crachá número vinte e três.' },
+      { speaker: 'viajante', text: 'Calma, sargento. Eu entrei pela porta dos fundos, como todo mundo que ainda vive por aqui.' },
+      { speaker: 'viajante', text: 'Tem um traje de contenção aí e um martelo. O martelo é AI-ON. Os dois foram deixados de propósito.' },
+      { speaker: 'rios', text: 'E você? Quem te mandou?' },
+      { speaker: 'viajante', text: 'Ninguém me manda desde 2087. Vai primeiro, sargento. Eu fecho a porta.' },
+      { speaker: 'mensagem', text: '[ NÚCLEO — INTRUSO AVISTADO! MODO NEUTRALIZADOR ATIVO ]' },
       { speaker: 'rios', text: 'Então é aqui. É tudo que sobrou.' },
     ],
   },
@@ -203,6 +225,9 @@ export const CUTSCENES: Cutscene[] = [
     color: '#a08050',
     lines: [
       { speaker: 'narrador', text: 'O NÚCLEO para de pulsar. O metal esfria de fora pra dentro e leva quatro minutos.' },
+      { speaker: 'mensagem', text: '[ INSTABILIDADE REGISTRADA… MODO CRÍ-CRÍ-CRÍ-TICOOOOO ]' },
+      { speaker: 'narrador', text: 'A risada sai do painel antes do silêncio. Metálica, curta, sem dono nenhum.' },
+      { speaker: 'mensagem', text: '[ OS RESPONSÁVEIS AINDA PRECISAM TER UMA CONVERSA COMIGO ]' },
       { speaker: 'narrador', text: 'O MOTHERSHIP cai a três quilômetros dali. A luz do rompimento desce por quarenta minutos e depois some.' },
       { speaker: 'narrador', text: 'O céu fica quieto. É a primeira noite limpa desde que o quartel caiu.' },
       { speaker: 'narrador', text: 'Rios abre o painel de manutenção. O registro continua na tela.' },

@@ -69,6 +69,9 @@ export const WAVE_HEAL_ON_COMPLETE = 15;
  * Sem ela o loot do último abate some sob a tela da loja antes de ser visto.
  */
 export const PHASE_END_PAUSE = 5;
+/** Segundos de "nave em perigo" na entrada do Espaço: a tela vermelha dos
+ * primeiros instantes, que dá peso à fala do Bot #89 (H3, relato do dono). */
+export const PERIGO_NAVE_SEGUNDOS = 5;
 /** Fator de escala de stats dos inimigos por onda */
 export const WAVE_SCALE_PER_LEVEL = 0.15;
 /** Fator de escala de velocidade dos inimigos por onda */
