@@ -304,7 +304,10 @@ Receber tarefa
   → Implementar a mudança mínima necessária
   → Verificar: npm run build passa?
   → Se mexeu render: npm run visual e ABRIR os screenshots (regra 16)
-  → Reportar o que foi feito
+  → Reportar o que foi feito — em docs de entrega (STATUS/TODO/DECISIONS),
+    registrar data E HORA com o hash do commit: "2026-10-13 19:19, `c6230e1`".
+    O dia sozinho não separa a manhã da noite de uma sessão longa, e o hash
+    amarra o registro ao momento exato do git
   → Parar
 ```
 

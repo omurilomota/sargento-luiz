@@ -165,7 +165,7 @@ nos commits dela, esta frente trabalhou fora do voo desses arquivos:
 
 ---
 
-## Entrega: o protect do Castelo defende o foguete (2026-10-13)
+## Entrega: o protect do Castelo defende o foguete (2026-10-13 16:40, `21d0cce`)
 
 A 4ª opção do §1.1, decidida pelo dono em 2026-10-12 ("as ondas atacam o
 foguete, não uma escolta"), em código:
@@ -214,7 +214,7 @@ foguete, não uma escolta"), em código:
 
 ---
 
-## Entrega: bugs B3 e B4 da rodada 2026-11 (2026-10-13)
+## Entrega: bugs B3 e B4 da rodada 2026-11 (2026-10-13 17:18, `0d754d2`)
 
 - **B3 — Vulcão, countdown sem chefe: REPRODUZIDO no HEAD e consertado.** O
   relato do dono ("horda 7: o countdown disparou sem chefe, veio outra
@@ -242,7 +242,7 @@ foguete, não uma escolta"), em código:
   reproduz no HEAD" (B1, B4, som de recarga) passam a valer no jogo
   publicado a partir daqui. Subir no itch é ação do dono.
 
-## Entrega: medições §1.9 e do barril (2026-10-13, sessão autônoma)
+## Entrega: medições §1.9 e do barril (2026-10-13 18:58, `4519a5f`)
 
 Os dois "medir antes de mexer" do TODO, respondidos com número e porta:
 
@@ -259,7 +259,7 @@ Os dois "medir antes de mexer" do TODO, respondidos com número e porta:
   o papel de limpar `grunt` de uma vez (DECISIONS #181). Reabrir só com
   relato de dano de barril em jogo real.
 
-## Entrega: o caçador chega — flow field do alvo + passo de célula (2026-10-13, noite)
+## Entrega: o caçador chega — flow field do alvo + passo de célula (2026-10-13 19:19, `c6230e1`)
 
 A pendência medida de manhã ("2 de 3 amostras com o foguete intacto 41s")
 fechou em DUAS camadas, cada uma com sua causa:
@@ -291,7 +291,7 @@ fechou em DUAS camadas, cada uma com sua causa:
   campanha 9/9; protect 2/2; onda 10/10; 942 testes; `npm run fases`
   re-medido (Pântano: 1 morte em 3 amostras, as outras duas a 45s+).
 
-## Entrega: o epílogo da Parte I (H4, 2026-10-13, noite)
+## Entrega: o epílogo da Parte I (H4, 2026-10-13 19:34, `00ac94e`)
 
 Decidido pelo dono no planejamento (DECISIONS #174) e entregue:
 
@@ -318,6 +318,34 @@ Decidido pelo dono no planejamento (DECISIONS #174) e entregue:
 - **Gates**: 943 testes (semIA verde no texto novo, semOrfao limpo nas
   remoções), tsc limpo, story-proof e campanha-proof verdes. PNGs do
   `visual` com pendência de leitura declarada (regra 16).
+
+## Entrega: as falas do dono por fase (H3) + vender ponto (T4a) — 2026-10-13 19:59
+
+- **H3 — as falas verbatim suas, costuradas nas cenas que já existiam**:
+  Floresta ganha a cabana da bruxa ("certeza que era mentira"), as trilhas
+  que não levavam a nada, o balanço e o "agora só tem zumbis"; Caverna, o
+  "Os zumbis estão evoluindo rapidamente" e o "Grr…" do túnel; Pântano, as
+  três verbatim ("Nada mais me surpreende…", "Ohoa…", "tenho que tomar
+  cuidado com o que falo"); Vulcão, o "continua em frente pra manter o
+  legado"; Espaço, o **Bot #89** (retrato novo) com "INIMIGO DETECTADO!
+  ATIRAR PROJÉTEIS", o "Não tão antes que eu já estou aqui!", a explosão e
+  a **tela vermelha dos 5s iniciais** (vinheta de alarme, mesmo molde da
+  fúria); NÚCLEO-CENTRAL, o **Viajante #23** entregando o martelo pela
+  porta dos fundos + o NÚCLEO "INTRUSO AVISTADO! MODO NEUTRALIZADOR
+  ATIVO"; e o pós-morte no epílogo: "INSTABILIDADE REGISTRADA… MODO
+  CRÍ-CRÍ-CRÍ-TICOOOOO" + "OS RESPONSÁVEIS AINDA PRECISAM TER UMA CONVERSA
+  COMIGO". Castelo: a coordenada da cápsula. Pendências de ARTE: o voo do
+  foguete pós-missão (espera a arte própria do dono) e a risada (asset do
+  H5).
+- **T4a — vender ponto de talento por moedas** (decisão sua: "por moedas"):
+  linha "VENDER PONTO" colada abaixo da árvore, 1 ponto = 100 moedas
+  (pesa mais que qualquer serviço, na faixa do 1º degrau da escada);
+  sem ponto livre, a linha fica cinza com "SEM PONTO". Talento comprado
+  continua permanente. O preço é arbitrável pelo teste de economia.
+- **Gates**: 948 testes (semIA verde nas verbatim + nas linhas de costura;
+  5 testes novos), story-proof 19/19, campanha 9/9, loja-proof verde
+  (nenhum texto estoura, o botão novo incluso), tsc limpo. PNGs do visual
+  com pendência de leitura declarada (regra 16).
 
 ---
 

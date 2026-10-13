@@ -1290,8 +1290,18 @@
 //     decisão.
 // [ ] T2. PLAYLIST de músicas mais elaborada (hoje são 4 faixas com crossfade).
 // [ ] T3. Tirar auxílio de IA da parte final do site (`site/conteudo.js`).
-// [ ] T4. Vender PONTOS de talento (qualquer ponto), mais coisas para upar,
-//     mais níveis e mais perks na loja.
+// [x] T4a. Vender PONTOS de talento por moedas (decisão do dono: "por
+//     moedas, padrão" — a ambiguidade do C4 já estava respondida). Linha
+//     "VENDER PONTO" na coluna direita da loja, colada abaixo da árvore:
+//     1 ponto não gasto vira 100 moedas (MOEDAS_POR_PONTO no shop.ts —
+//     paga mais que qualquer serviço, fica na faixa do 1º degrau da
+//     escada). Sem ponto livre, a linha fica cinza com "SEM PONTO" — o
+//     jogador vê que a opção existe. Portas: venderPonto.test.ts (3) +
+//     shopLayout (2: sem pisar na árvore, coberta pelo scroll) + loja-proof
+//     verde. O preço é arbitrável pelo teste de economia quando ele existir.
+// [ ] T4b. Mais coisas para upar, mais níveis e mais perks na loja —
+//     depende do teste de economia (o árbitro) e do formato da árvore
+//     (C2). Não implementar antes de medir.
 // [ ] T5. Mais moedas por anúncio (`ads.ts`).
 // [ ] T6. Armaduras no jogo (com peso × velocidade, que já está no FUTURO §2.4).
 //
@@ -1337,28 +1347,36 @@
 //     player imune sem saber), pós-boss o amigo vira MID-BOSS (forte, vários
 //     ataques), Rios vence, morre → FÚRIA DESBLOQUEIA AQUI (hoje existe
 //     desde o início; passa a ter gate de história).
-// [ ] H3. Falas por fase contra o texto do dono (verbatim na sessão, e o
-//     semIA verde do primeiro ao último):
-//     Floresta: Joe, casa da cabana sombria/bruxa ("certeza que era
-//       mentira"), trilhas que não levavam a nada, balanço — criatividade
-//       perdida, "agora só tem zumbis".
-//     Caverna: Arthur (amigo de infância) encontrado MORTO na fase.
-//       "Os zumbis estão evoluindo rapidamente", "Grr…".
-//     Pântano: "Nada mais me surpreende, daqui a pouco estão saindo do
-//       chão", lama engolindo (barulho + "Ohoa…"), "tenho que tomar
-//       cuidado com o que falo".
-//     Vulcão: reflexão da jornada, família viva ou não, "continua em
-//       frente para manter o legado".
-//     Espaço: Bot#89 "Inimigo detectado! Atirar projéteis" / "Não tão
-//       antes que eu já estou aqui!" + explosão + TELA VERMELHA nos 5s
-//       iniciais (a nave em perigo).
-//     Núcleo-Central: Núcleo "Intruso avistado! Modo neutralizador ativo";
-//       Viajante #23 (entrou pela porta dos fundos) entrega o martelo
-//       AI-ON; pós-morte "Instabilidade registrada… modo crí-crí-crí-ticooooo";
-//       risada + "os responsáveis ainda precisam ter uma conversa comigo".
-//     Castelo: "de acordo com a coordenada daquela cápsula, o antigo abrigo
-//       deles era aqui"; pós-missão: conserta o motor (ferramenta + tela
-//       piscando) e VOAR (foguete — asset H6, é o que o player protege).
+// [x] H3. Falas por fase contra o texto do dono (verbatim na sessão, e o
+//     semIA verde do primeiro ao último) — ENTREGUE em 2026-10-13, noite:
+//     Floresta: a cabana da bruxa ("certeza que era mentira"), as trilhas
+//       que não levavam a nada, o balanço na árvore e "agora só tem
+//       zumbis" — costuradas nas falas do Joe que já existiam.
+//     Caverna: "Os zumbis estão evoluindo rapidamente" + o "Grr…" do
+//       túnel, junto do Arthur morto que a cena já contava.
+//     Pântano: as três verbatim — "Nada mais me surpreende, daqui a pouco
+//       estão saindo do chão", o "Ohoa…" da lama cedendo, "tenho que
+//       tomar cuidado com o que falo".
+//     Vulcão: "continua em frente pra manter o legado", fechando a
+//       reflexão de pai/irmã que a cena já tinha.
+//     Espaço: Bot #89 (retrato novo, sprite robot_hold) com "INIMIGO
+//       DETECTADO! ATIRAR PROJÉTEIS", o "Não tão antes que eu já estou
+//       aqui!" do Rios, a explosão — e a TELA VERMELHA dos 5s iniciais
+//       (vinheta de alarme, `PERIGO_NAVE_SEGUNDOS`, mesmo molde da fúria
+//       com pulso mais rápido).
+//     Núcleo-Central: o Viajante #23 (retrato novo, manOld_hold) entrega o
+//       martelo AI-ON pela porta dos fundos; o NÚCLEO fala "INTRUSO
+//       AVISTADO! MODO NEUTRALIZADOR ATIVO"; pós-morte no EPÍLOGO:
+//       "INSTABILIDADE REGISTRADA… MODO CRÍ-CRÍ-CRÍ-TICOOOOO", a risada
+//       (descrita — o SOM é o H5) e "OS RESPONSÁVEIS AINDA PRECISAM TER
+//       UMA CONVERSA COMIGO".
+//     Castelo: "de acordo com a coordenada daquela cápsula, o antigo
+//       abrigo deles era aqui" (Fernandes, antes do anúncio do foguete).
+//     PENDÊNCIAS DE ARTE (não de texto): o "conserta o motor e VOAR"
+//       pós-missão pede animação de voo — o dono vai desenhar o foguete
+//       próprio, o voo espera a arte dele; a risada do NÚCLEO é asset do
+//       H5. Provas: semIA verde (as 16 verbatim + as linhas de costura),
+//       story-proof 19/19, campanha 9/9, 948 testes.
 // [x] H4. Epílogo: NARRADOR, créditos de toda a jornada, música nostálgica
 //     (asset livre), teaser AHB-45 "Part II em breve!". Reescrito do zero em
 //     2026-10-13 (DECISIONS #174): a cena mantém a abertura forte (NÚCLEO
@@ -1431,9 +1449,10 @@
 //     estados comprado/comprável/bloqueado. Geometria única; semDesenho.
 // [ ] C3. TRAVAR ARMA na loja: pin na oferta para não sumir no restock;
 //     comprar depois, preço cheio.
-// [ ] C4. VENDER PONTOS DE TALENTO (T4 confirmado 2×): AMBIGUIDADE — vender
-//     pontos não gastos por moedas (proposta) vs respecc. Depende do teste
-//     de economia (o árbitro).
+// [x] C4. VENDER PONTOS DE TALENTO: resolvido pela decisão do dono
+//     (2026-10-12: "por MOEDAS, padrão") — entregue no T4a acima. O
+//     respecc (devolver pontos gastos) ficou registrado como task separada
+//     se um dia for pedido.
 // [ ] C5. PULAR WAVE com recompensa (waves devagar, sobretudo Vulcão):
 //     chama a próxima onda antes; recompensa proporcional ao tempo restante.
 //     Toca na RENDA → medir com fases/sessao + teste de economia.
