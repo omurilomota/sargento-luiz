@@ -1302,7 +1302,12 @@
 // [ ] T4b. Mais coisas para upar, mais níveis e mais perks na loja —
 //     depende do teste de economia (o árbitro) e do formato da árvore
 //     (C2). Não implementar antes de medir.
-// [ ] T5. Mais moedas por anúncio (`ads.ts`).
+// [x] T5. Mais moedas por anúncio (`ads.ts`): resgate 15 -> 20 moedas. O
+//     número não é chute — é a sentença do árbitro da economia
+//     (economia.test.ts): com o teto de 2 resgates por fase, 2×20=40
+//     ficam em ~23% da renda média de abate por fase (172), dentro da
+//     guarda de 25% que mantém o resgate como renda secundária sem
+//     reabrir a faucet do Sprint 0.
 // [ ] T6. Armaduras no jogo (com peso × velocidade, que já está no FUTURO §2.4).
 //
 // ─── CONTEÚDO APROVADO, NÃO EXECUTADO ───

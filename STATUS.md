@@ -347,6 +347,32 @@ Decidido pelo dono no planejamento (DECISIONS #174) e entregue:
   (nenhum texto estoura, o botão novo incluso), tsc limpo. PNGs do visual
   com pendência de leitura declarada (regra 16).
 
+## Entrega: o teste de economia (o árbitro) + T5 — 2026-10-13 20:12
+
+O instrumento que faltava para as decisões pendentes de economia
+(`economia.test.ts`, 4 portas):
+
+- **O modelo**: renda esperada de abate por fase, determinística do
+  `config` — cota de onda × coinDrop médio dos tipos (mutante com cota
+  própria) × 0,6 + chefe. Fases 0..7: a 9 não tem loja depois nem onda
+  comum, fica fora por construção.
+- **O achado**: a escada de perks custa **328% da renda de abate de uma
+  campanha** (4.520 × 1.377). Lido como o roguelite que o jogo é — o
+  `restoreUpgrades` do save continua os degraus entre partidas — a banda
+  travada é **2,5× a 4,5×**: menos devolve a queixa antiga ("a fase 4 já
+  comprava tudo"), mais esconde os 4 especiais para sempre.
+- **As outras sentenças**: toda fase paga pelo menos o 1º degrau (60
+  moedas — a Cidade rende 61+30 de resgate); e os resgates ficam em no
+  máximo 25% da renda média por fase.
+- **T5 arbitrado**: resgate de moedas **15 → 20** — o valor máximo que a
+  guarda de 25% permite (2×20 = 40 ≈ 23% da média de 172). O dono pediu
+  mais por anúncio; a sentença diz quanto mais sem reabrir a faucet do
+  Sprint 0.
+- Isso **destrava** a decisão das 7 fases novas (PREMISSA-V2) e a poda da
+  árvore: qualquer mudança de preço/renda agora acusa no `npm test`.
+
+Gates: 952 testes em 55 arquivos, tsc limpo.
+
 ---
 
 ## Versão anterior: v1.3 (geometria + HUD)

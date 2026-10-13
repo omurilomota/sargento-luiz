@@ -511,9 +511,11 @@ estão no §0. As conversas que continuam abertas:
    (patenteado / colônia / montagem 2079), cada um com premissa, antagonista,
    escala, convergência dos 3 finais, custo e linha de III–IV. Falta escolher
    UM — e decidir o destino do Fernandes, que é o único fio dos três.
-2. **O teste de economia.** Qual é a renda-alvo por fase (moedas ganhas ×
-   custo do que a loja oferece × valor do XP)? O teste trava qual dos dois
-   lados pode apertar o outro.
+2. **O teste de economia.** RESPONDIDO (2026-10-13): o árbitro existe
+   (`economia.test.ts`) e sentenciou — a escada é alvo de VÁRIAS campanhas
+   (2,5-4,5× a renda de abate de uma run, banda travada), toda fase paga
+   ≥ 1 degrau e os resgates ficam ≤ 25% da renda média por fase. Isso
+   destrava a decisão das 7 fases novas e a poda da árvore.
 3. **O desenho do Castelo (§1.1).** FECHADO: o dono escolheu a 4ª opção
    (2026-10-12) — o alvo é o foguete, prop de 300 HP que as ondas atacam — e
    foi entregue em 2026-10-13. Ver o item do Sprint 9 no `TODO.md`.

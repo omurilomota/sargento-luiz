@@ -25,7 +25,14 @@ const watchDuration = 5;
 let lastReward = 0;
 
 const AD_COOLDOWN = 30;
-const AD_REWARD_BASE = 15;
+/**
+ * Valor por resgate (T5: o dono pediu mais moedas por anúncio). 20 é o teto
+ * que o árbitro da economia permite: com o máximo de 2 resgates por fase, os
+ * 40 moedas ficam em ~23% da renda média de abate por fase (172) — renda
+ * secundária, como a guarda do Sprint 0 manda, sem reabrir a faucet.
+ * Ver `economia.test.ts`.
+ */
+const AD_REWARD_BASE = 20;
 
 /**
  * Resgates por fase.
