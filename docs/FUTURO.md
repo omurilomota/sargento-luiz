@@ -488,8 +488,8 @@ para as imagens), `config.ts`.
 
 1. **Portão anti-IA** — destrava confiança em todo o resto.
 2. **Dívidas 1.1–1.4** — Castelo, 2P, fim de fase, telemetria (são as que o
-   jogador sente). **Só o Castelo (§1.1) resta**: 2P, fim de fase e telemetria
-   foram pagos em 2026-11.
+   jogador sente). Pagas: telemetria, 2P e fim de fase em 2026-11; o Castelo
+   em 2026-10-13 — o §1.1 virou o foguete de 300 HP (decisão do dono).
 3. **Som + arte das cutscenes + texto** — o trio que tira a "cara de IA".
 4. **Progressão (2.4)** — o maior destrave de sensação de roguelite.
 5. **Campo 2.0 (muros + salas) e rejogabilidade (semente do dia, boss rush).**
@@ -514,8 +514,9 @@ estão no §0. As conversas que continuam abertas:
 2. **O teste de economia.** Qual é a renda-alvo por fase (moedas ganhas ×
    custo do que a loja oferece × valor do XP)? O teste trava qual dos dois
    lados pode apertar o outro.
-3. **O desenho do Castelo (§1.1).** Abrigo do NPC, interceptação da linha de
-   tiro ou vida de escolta — escolher uma para desenhar e testar.
+3. **O desenho do Castelo (§1.1).** FECHADO: o dono escolheu a 4ª opção
+   (2026-10-12) — o alvo é o foguete, prop de 300 HP que as ondas atacam — e
+   foi entregue em 2026-10-13. Ver o item do Sprint 9 no `TODO.md`.
 4. **A ordem do "tudo" (§5).** A régua vira cronograma: qual frente puxa a
    fila quando duas estiverem prontas ao mesmo tempo?
 5. **Site + itch (§3.10).** Decidido em 10/10: itch decorado + site que

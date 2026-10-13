@@ -249,7 +249,7 @@ export const BIOMES: Record<string, Biome> = {
       '#......#..,.^..^..^...#......#',
       '#...E..#.,..#..#..#...#......#',
       '#......#....#..#..#..b#......#',
-      '#......#.,............#....,.#',
+      '#......#.,...F........#....,.#',
       '#......#######.########...c..#',
       '#.....b#....^..^..^...#......#',
       '#......#....#..#..#...#..E...#',
@@ -358,7 +358,8 @@ export const BIOMES: Record<string, Biome> = {
 
 /**
  * Converte um caractere da legenda no tipo de tile correspondente.
- * `P`, `E`, `B`, `N` e `R` são chão andável por cima do seu conteúdo.
+ * `P`, `E`, `B`, `N`, `R` e `F` são chão andável por cima do seu conteúdo
+ * (`F` é o pad do foguete que o protect do Castelo defende).
  */
 export function tileKindAt(ch: string): TileKind {
   switch (ch) {

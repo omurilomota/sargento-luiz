@@ -9,6 +9,7 @@
 import { ObjectiveKind } from '../types';
 import { CELL_SIZE } from '../maps';
 import { getNPCs } from './npcs';
+import { getAnyRocket } from './props';
 
 export interface ObjectiveProgress {
   /** Rótulo curto exibido no HUD */
@@ -83,24 +84,23 @@ export function peekObjective(
       };
     }
     case 'protect': {
+      // O alvo é o foguete quando o mapa o trouxe (Castelo, decisão do dono
+      // de 2026-10-12); sem ele, cai no sobrevivente legado. `getAnyRocket` e
+      // não `getRocket`: mesmo caído, o rótulo não pode mudar no mesmo frame.
+      //
+      // O contrato não muda com o alvo: concluir é estar de pé, a área limpa
+      // (`enemiesAlive === 0` — verdade nos 0.8s antes do primeiro spawn, por
+      // isso o latch `sawEnemies`) e o HP como barra em tempo real.
+      const foguete = getAnyRocket();
       const vip = getNPCs()[0];
-      const alive = !deadNpc && !!vip && vip.alive;
-      // Concluir é: o NPC sobreviveu, a área está limpa, e a luta aconteceu.
-      //
-      // O terceiro predicado é o que impede a fase de acabar no primeiro frame:
-      // `enemiesAlive === 0` é verdade nos 0.8s antes do primeiro spawn, então
-      // sem o latch uma fase de protect terminava antes de aparecer inimigo
-      // nenhum. A troca: limpar a onda 0 já encerra a fase, pulando as ondas
-      // seguintes e o chefe — o mesmo contrato dos outros objetivos não-clear.
-      //
-      // O progresso é a VIDA do alvo, não 0/1: a barra do HUD acompanha o
-      // dano em tempo real. O relato do dono: "a barra de vida do sobrevivente
-      // não está sincronizada com a do sobrevivente mesmo na fase".
+      const hpdoAlvo = foguete ? foguete.health : vip?.health ?? 0;
+      const hpMaxDoAlvo = foguete ? foguete.maxHealth : vip?.maxHealth ?? 1;
+      const dePe = !deadNpc && (foguete ? foguete.health > 0 : !!vip && vip.alive);
       return {
-        label: 'PROTEGER O SOBREVIVENTE',
-        progress: alive && vip ? Math.max(0, vip.health / vip.maxHealth) : 0,
-        detail: alive && vip ? `${Math.max(0, Math.round(vip.health))}/${vip.maxHealth}` : 'PERDIDO',
-        done: alive && enemiesAlive === 0 && sawEnemies,
+        label: foguete ? 'PROTEGER O FOGUETE' : 'PROTEGER O SOBREVIVENTE',
+        progress: dePe ? Math.max(0, hpdoAlvo / hpMaxDoAlvo) : 0,
+        detail: dePe ? `${Math.max(0, Math.round(hpdoAlvo))}/${hpMaxDoAlvo}` : 'PERDIDO',
+        done: dePe && enemiesAlive === 0 && sawEnemies,
       };
     }
     case 'reach': {

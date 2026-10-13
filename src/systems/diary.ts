@@ -95,6 +95,13 @@ const DIARY_ENTRIES: DiaryEntry[] = [
   },
   {
     phase: -1,
+    event: 'rocket_saved',
+    title: 'Motor vivo',
+    text: 'Protegi o foguete no pátio do castelo. Cada flecha que não chegou nele é motor que sobra. Quando ele subir, eu vou estar dentro.',
+    unlocked: false,
+  },
+  {
+    phase: -1,
     event: 'shop_choice',
     title: 'Troca justa',
     text: 'Troquei o pente do Sniper por carregador e quarenta de munição de troca. Duas horas de mapa na mão para não recarregar no meio de uma investida. Compensa.',

@@ -137,7 +137,7 @@ describe('terrain: o contrato do tilemap', () => {
   it.each(KEYS)('%s: só usa caracteres que tileKindAt conhece', (key) => {
     // caractere desconhecido cai no `default` do drawFloor e vira mais um tile
     // de chão sem querer
-    const CONHECIDOS = ['#', ',', '^', '.', 'c', 'b', 'N', 'P', 'E', 'B', 'R'];
+    const CONHECIDOS = ['#', ',', '^', '.', 'c', 'b', 'N', 'P', 'E', 'B', 'R', 'F'];
     for (const row of BIOMES[key].rows) {
       for (const ch of row) {
         expect(CONHECIDOS, `caractere '${ch}' sem tratamento`).toContain(ch);

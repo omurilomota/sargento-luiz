@@ -4,6 +4,7 @@ import {
   markVipDown, cellCenter, ReachZone,
 } from '../systems/objectives';
 import { resetNPCs, spawnNPC, getNPCs, updateNPCs } from '../systems/npcs';
+import { initProps, clearProps, getProps, damageProp } from '../systems/props';
 import { PHASES } from '../config';
 
 const ZONA: ReachZone[] = [{ x: 500, y: 500, radius: 60 }];
@@ -48,7 +49,9 @@ describe('objectives: peekObjective é leitura pura', () => {
 });
 
 describe('objectives: cada tipo sabe quando termina', () => {
-  beforeEach(() => resetNPCs());
+  // o protect agora lê o mundo de props (o foguete): sem zerar os dois, um
+  // teste deixa um alvo morto vazando para o seguinte
+  beforeEach(() => { resetNPCs(); clearProps(); });
 
   it('survive conclui quando o tempo bate o alvo', () => {
     initObjective('survive', 5);
@@ -115,8 +118,58 @@ describe('objectives: cellCenter', () => {
     expect(cellCenter(15, 22)).toEqual({ x: 992, y: 1440 });
   });
 });
+describe('objectives: protect com o foguete como alvo (Castelo)', () => {
+  // O alvo do protect no Castelo é o foguete (`F` no mapa), decisão do dono de
+  // 2026-10-12: "as ondas atacam o foguete, não uma escolta". O contrato do
+  // objetivo não muda: barra = HP do alvo, conclui de pé + área limpa.
+  const COM_FOGUETE = () => {
+    const cells = Array.from({ length: 20 }, () => Array<string>(30).fill('.'));
+    cells[10][13] = 'F';
+    initProps(cells);
+  };
+
+  beforeEach(() => {
+    clearProps();
+    resetNPCs();
+    initObjective('protect', 0);
+    COM_FOGUETE();
+  });
+
+  it('o rótulo e a barra vêm do foguete, não de um NPC inexistente', () => {
+    const r = peekObjective(0, 0, 3, ZONA);
+    expect(r.label).toBe('PROTEGER O FOGUETE');
+    expect(r.detail).toBe('300/300');
+    expect(r.progress).toBe(1);
+    expect(getNPCs()).toHaveLength(0);
+  });
+
+  it('a barra acompanha o HP do foguete em tempo real', () => {
+    damageProp(getProps()[0], 180);
+    const r = peekObjective(0, 0, 3, ZONA);
+    expect(r.progress).toBeCloseTo(120 / 300);
+    expect(r.detail).toBe('120/300');
+    expect(r.done).toBe(false);
+  });
+
+  it('conclui com o foguete de pé, a área limpa e a luta acontecida', () => {
+    updateObjective(0, 0, 0, 3, ZONA);
+    expect(updateObjective(0, 0, 0, 0, ZONA).done).toBe(true);
+  });
+
+  it('o foguete caído trava a conclusão MESMO com a área limpa — e o rótulo não muda', () => {
+    updateObjective(0, 0, 0, 3, ZONA);
+    damageProp(getProps()[0], 9999);
+    markVipDown();
+    const r = peekObjective(0, 0, 0, ZONA);
+    expect(r.done).toBe(false);
+    expect(r.detail).toBe('PERDIDO');
+    expect(r.label).toBe('PROTEGER O FOGUETE');
+  });
+});
+
 describe('objectives: protect não termina antes da luta começar', () => {
-  beforeEach(() => resetNPCs());
+  // o protect lê o mundo de props (o foguete) além do NPC: os dois zram aqui
+  beforeEach(() => { resetNPCs(); clearProps(); });
 
   it('com a área limpa no primeiro frame, a fase NÃO encerra', () => {
     // `enemiesAlive === 0` é verdade nos 0.8s antes do primeiro spawn: sem o

@@ -1,14 +1,14 @@
 # SARGENTO RIOS — Status Geral do Projeto
 
-> Atualizado: 2026-10-12 · branch `develop` (v2 mesclada) ·
-> 923 testes em 50 arquivos · `tsc` limpo · build ok.
+> Atualizado: 2026-10-13 · branch `develop` (v2 mesclada) ·
+> 931 testes em 50 arquivos · `tsc` limpo · build ok.
 > Este arquivo estava parado na v1.3 (420 testes, nome ASHFALL) e foi
 > reconciliado com o código.
 
 ## Verificação atual
 
 ```
-npm test           # 923 passando em 50 arquivos
+npm test           # 931 passando em 50 arquivos
 npx tsc --noEmit   # 0 erros
 npm run build      # ok
 npm run visual     # 8 screenshots, sem 404/pageerror
@@ -16,6 +16,8 @@ npm run perks      # 13/13 — escada de perks na loja
 npm run hud        # 4 resoluções, texto cabe na caixa
 npm run loja       # 3 scrolls, texto e seções sem sobreposição
 npm run local2p    # 8 checagens — tela de fim, revanche, P2 na MESMA tela
+npm run protect    # 2 cenários — chefe morto/vivo × alvo cai: sem onda pós-boss
+npm run foguete    # o protect do Castelo defende o FOGUETE: HUD e ondas no alvo
 npm run variedade  # personagem de inimigo muda por fase (57% entre vizinhas)
 npm run fases      # MEDE as 9 fases — número por fase (FUTURO §1.4 ✅)
 npm run diagnostico# nenhum inimigo dentro de parede, dodge afasta em 360°
@@ -35,7 +37,7 @@ O bot desvia de inimigo e de barril, atira, e não usa dash, escudo nem fúria.
 | Caverna | 45s+ | 1 | contato (runner) |
 | Fábrica | 45s+ | 1 | bioma |
 | Pântano | 45s+ | 3 | contato (mosquito) |
-| Castelo | 45s+ | 2 | bioma |
+| Castelo | 16s | 1 | bioma |
 | Vulcão | 24s | 1 | projetil (inferno) |
 | Espaço | 40s | 2 | projetil (ufo) |
 | NÚCLEO-CENTRAL | 45s+ | 1 | — |
@@ -54,6 +56,15 @@ para o tile visível. É o mesmo caso do `espaco-proof`: jogador que não desvia
 não é régua de balanceamento. Se o bot aprender a evitar piso de hazard, a
 régua fecha; é decisão de instrumento, registrada para o dono.
 
+**2026-10-13, mundo do foguete:** a linha do Castelo acima é 1 amostra da
+suíte em que o bot passou 16s sobre espinho (120 de dano, zero de inimigo) —
+não se reproduz isolado: **3/3 amostras de 45s** entrando com 100 HP, dano de
+bioma entre 8 e 31. O bot não lê o chão E não entende "proteger o alvo": a
+linha do Castelo mede patrulha, não a fase. Na amostra em que um inimigo
+achou o caminho, o foguete sem defesa caiu em ~28s (1 encostado × 12 DPS);
+nas outras duas o alvo ficou intacto 41s com inimigos vivos — o caçador
+anda em linha reta e trava na parede (pendência medida no TODO).
+
 O Castelo foi consertado em duas camadas, cada uma com sua causa:
 
 1. **Mapa** (`ed9a7e0`): o tapete de 12 espinhos nas duas lanes centrais
@@ -67,11 +78,12 @@ O Castelo foi consertado em duas camadas, cada uma com sua causa:
    `NEGOCIADO.md` §2): o inimigo desvia quando existe rota e atravessa
    quando não existe. Com as duas camadas, 3/3 sessões de 45s.
 
-O resíduo do Castelo é o loop do `protect` (o archer mata o VIP, a fase
-reinicia e o `placePlayer` cura — `danoTotal` acumula entre reinícios) e o
-bot orbitando cobertura com espinho na base. O desenho de verdade da fase
-depende do §1.1 do FUTURO: abrigo / interceptar linha de tiro / vida de
-escolta — decisão do dono, não de código.
+O resíduo do Castelo depois do foguete: `danoTotal` ainda acumula entre
+reinícios (confirmado na amostra isolada de 2026-10-13: 8 → 18 com a cura
+do restart no meio), o bot ainda orbita cobertura com espinho na base, e o
+caçador do alvo anda em linha reta e trava na parede a caminho do foguete.
+O desenho de verdade da fase estava no §1.1 do FUTURO — decidido pelo dono
+(2026-10-12) e entregue (2026-10-13): o alvo é o FOGUETE.
 
 ## Portão Anti-IA — 5 testes
 
@@ -142,6 +154,55 @@ nos commits dela, esta frente trabalhou fora do voo desses arquivos:
   `npm run visual` foram gerados sem erro, mas não foram abertos por leitor
   de imagem nesta sessão (o modelo não suporta imagem). Quem tiver olho,
   abra antes de fechar a entrega.
+
+---
+
+## Entrega: o protect do Castelo defende o foguete (2026-10-13)
+
+A 4ª opção do §1.1, decidida pelo dono em 2026-10-12 ("as ondas atacam o
+foguete, não uma escolta"), em código:
+
+- **O alvo** (`props.ts`): o char `F` do mapa vira o prop `rocket` — 300 HP,
+  parado na câmara do meio, colado às portas da coluna 14 (gerador
+  idempotente, `genmaps.py` com assert da célula). Sprite Saturn V (CC-BY
+  3.0, commit `6090b8f`), **sem tint** — o alvo não pode mudar de cara com o
+  bioma. Barra de vida acima da ponta, não no meio do corpo.
+- **O contrato** (`objectives.ts`): rótulo `PROTEGER O FOGUETE`, barra = HP
+  em tempo real (`300/300`), conclui de pé + área limpa + luta havida. Com
+  `getAnyRocket` o rótulo não vira "SOBREVIVENTE" no frame em que ele cai.
+  Sem foguete no mapa, cai no sobrevivente legado — o contrato é do alvo.
+- **A luta** (`main.ts`): todo inimigo da fase caça o alvo (foguete
+  primeiro); flecha/bala inimiga o fere, tiro do jogador só faz fagulha —
+  derrubar a própria proteção puniria a mira, não a defesa; cada inimigo
+  encostado tira 12 DPS. Caiu: o latch do `vipDown` reinicia a fase (o
+  mesmo do sobrevivente — `npm run protect` prova os 2 cenários no mundo
+  novo).
+- **Narrativa**: a cutscene do Castelo ganhou o anúncio do foguete
+  (Fernandes: "no pátio interno tem um foguete de pé... É a saída daqui") e
+  o diário ganhou "Motor vivo" (`rocket_saved`). Conquistas
+  `vip_saved`/`vip_lost` descrevem "o alvo", não o sobrevivente.
+- **Provas**: 931 testes (8 novos: objectives ×4, props ×3, mapa ×1);
+  `npm run foguete` (script novo) mostra o HUD `300/300` e as ondas
+  chegando; `npm run protect` 2/2; `npm run fases` — Castelo na nota de
+  instrumento acima.
+- **Regra 16 pegou de verdade — em três olhadas do dono**: (1) fundo branco
+  atrás do sprite; (2) foguete "torto" no bico e no rabo; (3) cauda cortada
+  na direita e bico fora da tela. Causa raiz das duas primeiras: o asset do
+  commit `6090b8f` era a CENA DE LANÇAMENTO inteira reduzida (445×1641 →
+  104×384, mesma proporção) — o "corpo" era um prédio da torre em primeiro
+  plano e o bico era só a agulha no topo; o recorte "fundo preto" anotado
+  lá nunca existiu. A terceira: a janela do recorte era estreita demais
+  para a saia (que vai até x=315) e misturava as pernas da torre — e o
+  "bico alto" era o ENQUADRAMENTO da prova: a câmera segue o jogador, que
+  nasce 8 células abaixo do foguete, e o screenshot parado no spawn cortava
+  o topo do sprite fora da tela. Corrigido: recorte só do foguete
+  (x 100-320, y 48-452 → 220×404, saia simétrica em torno do eixo) +
+  flood-fill que preenche a silhueta selada pelos contornos, e o harness
+  `npm run foguete` anda o jogador até o pátio do foguete antes das fotos.
+  O dono avaliou o estilo do asset como **placeholder** — ele desenha o
+  foguete próprio e troca (registrado no TODO/H6).
+- **Achado registrado** (não é do voo): o caçador do alvo trava na parede
+  em 2 de 3 amostras — pendência medida no `TODO.md`.
 
 ---
 

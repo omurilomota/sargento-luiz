@@ -3,6 +3,7 @@ import { TILE_NUMBERS } from '../systems/sprites';
 import {
   initProps, clearProps, getProps, getNests, getBlockingProps, getBlast,
   damageProp, igniteBarrel, detonateProp, updateProps, collapsesOnHit, PROP_SPRITES,
+  getRocket, getAnyRocket,
 } from '../systems/props';
 import { CELL_SIZE, BIOMES } from '../maps';
 import { PHASES } from '../config';
@@ -81,6 +82,29 @@ describe('props: dano', () => {
     damageProp(ninho, ninho.maxHealth);
     expect(getBlockingProps()).toHaveLength(2);
     expect(getNests()).toHaveLength(0);
+  });
+});
+
+describe('props: o foguete do protect (Castelo)', () => {
+  it('é lido do caractere F, com HP próprio e centro da célula', () => {
+    initProps(mapa({ F: [13, 10] }));
+    const foguete = getRocket()!;
+    expect(foguete.kind).toBe('rocket');
+    expect(foguete.maxHealth).toBe(300);
+    expect(foguete.x).toBe(em(13, 10).x);
+    expect(foguete.y).toBe(em(13, 10).y);
+  });
+
+  it('getRocket some quando ele cai; getAnyRocket continua achando (o HUD não troca de rótulo)', () => {
+    initProps(mapa({ F: [13, 10] }));
+    damageProp(getProps()[0], 9999);
+    expect(getRocket()).toBeUndefined();
+    expect(getAnyRocket()?.health).toBe(0);
+  });
+
+  it('o foguete não explode: a onda que o ataca não ganha explosão de graça', () => {
+    initProps(mapa({ F: [13, 10] }));
+    expect(getBlast(getProps()[0]).radius).toBe(0);
   });
 });
 

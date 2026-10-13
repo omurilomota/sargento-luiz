@@ -644,10 +644,24 @@
 // [x] Vender pecas na mochila: hoje so da pra vender ARMA
 //     (sellInventoryWeapon). Peca (pieces.ts) so equipa, nunca vende, e
 //     acumula sem utilidade.
-// [ ] Fase protect (Castelo) inviagivel: o arqueiro huntsNpc mata o
-//     sobrevivente rapido demais. A solucao NAO e tornar o NPC invencivel —
-//     precisa de design (o NPC se abaixa/atras de cobertura, ou o jogador
-//     intercpta a linha de tiro).
+// [x] Fase protect (Castelo) inviagivel: o arqueiro huntsNpc matava o
+//     sobrevivente rapido demais. Resolvido pela 4a opcao (decisao do dono,
+//     2026-10-12): o alvo deixou de ser a escolta de 50 HP — e o FOGUETE,
+//     prop parado de 300 HP na camara do meio (char `F` no mapa). As ondas
+//     caçam ele (huntsNpc acha o alvo do protect, foguete primeiro), tiro do
+//     jogador nao fere a propria protecao, e cada inimigo encostado tira
+//     12 DPS. Prova: npm run protect (2 cenarios verdes no mundo do
+//     foguete) + npm run foguete (HUD "PROTEGER O FOGUETE 300/300" e as
+//     ondas chegando nele).
+// [ ] Cacador do alvo trava na parede: o huntsNpc anda em linha reta (o
+//     comportamento legado, sem flow field) e contra o foguete — parado
+//     atras das paredes da camara — desliza na parede em vez de achar a
+//     porta. Medido 2026-10-13 em amostras isoladas do Castelo: em 2 de 3
+//     o foguete ficou 41s intacto com inimigos vivos na fase; na terceira,
+//     UM achou o caminho e derrubou o alvo em ~28s (12 DPS sem oposicao).
+//     A ameaca da fase e loteria de spawn. Caminho provavel: flow field
+//     proprio para o alvo (o atual aponta so para o jogador) — unidade
+//     separada, nao fix de voo.
 // [x] Conquista de loss ("amigo morto"): hoje so existe vip_saved (salvou).
 //     Falta a conquista pelo loss, apresentada com peso de narrativa.
 
@@ -1253,6 +1267,8 @@
 // ─── O QUE O RELATO RESOLVE ───
 // - O §1.1 (Castelo protect) ganhou 4ª opção: o alvo é o FOGUETE (prop com
 //   HP que as ondas atacam), não uma escolta. Barra de vida de verdade (B3).
+//   ENTREGUE 2026-10-13: mapa `F`, prop de 300 HP, ondas caçando o alvo —
+//   registrado como [x] no Sprint 9 e no H6.
 // - A linha "Agora você vai ver só seus trilionários" FICA (o dono repetiu) —
 //   o semIA ganha exceção registrada: "agora" é português, o portão
 //   falso-positiva (H7).
@@ -1301,8 +1317,13 @@
 //     (asset CC0), teaser AHB-45 "Part II em breve!".
 // [ ] H5. Assets de som narrativos: foguete, ferrutura, explosão de
 //     cápsula, risada — CC0/CC-BY + CREDITS.md + tela de créditos.
-// [ ] H6. Asset do foguete (sprite CC0 — procurar nos packs de espaço antes
-//     de buscar pack novo).
+// [x] H6. Asset do foguete (sprite CC0 — procurar nos packs de espaço antes
+//     de buscar pack novo). O CC0 nao existia no disco: Saturn V Pixel
+//     Rocket (Michael J Pierce @ IsometricRobot, CC-BY 3.0), atribuicao no
+//     CREDITS.md e na tela de creditos. Commit 6090b8f.
+//     AVISO DO DONO (2026-10-13): o estilo nao e o que ele quer seguir —
+//     o asset fica como PLACEHOLDER de teste e ele mesmo desenha e troca
+//     depois. Nao investir em polimento deste PNG.
 // [x] H7. VEREDITO: a exceção não é necessária. As 16 falas verbatim do dono
 //     (incluindo "Agora você vai ver só seus trilionários") rodam VERDES nas
 //     regexes reais do semIA — o portão acusa `ahora` (espanhol), não `agora`

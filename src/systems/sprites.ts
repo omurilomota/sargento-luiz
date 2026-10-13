@@ -151,6 +151,7 @@ export const BULLET_FAMILY: Record<string, string> = {
 
 /** Base dos projéteis que não são do pack de armas. */
 const BULLET_EXTRA_BASE = 'assets/sprites/bullets';
+const PROP_BASE = 'assets/sprites/props';
 
 /**
  * Itens (Kenney "Platformer Art Deluxe", CC0): moeda e gemas de power-up.
@@ -167,6 +168,9 @@ export const ITEM_SPRITES = ['coinGold', 'gemRed', 'gemGreen', 'gemBlue', 'gemYe
 
 /** Projéteis fora do pack Kay Lousberg. */
 export const BULLET_EXTRA = ['foguete', 'plasma', 'orbe', 'feixe', 'estilhaco'];
+
+/** Props com sprite próprio (não vem do tileset): hoje só o foguete do Castelo. */
+export const PROP_EXTRA = ['foguete'];
 
 /**
  * Sprite de arma por nome, para a loja e o HUD. 6 famílias para 12 armas: as
@@ -408,6 +412,9 @@ function buildSpriteList(): [string, string][] {
   }
   for (const b of BULLET_EXTRA) {
     out.push([`bullet_${b}`, `${BULLET_EXTRA_BASE}/${b}.png`]);
+  }
+  for (const pr of PROP_EXTRA) {
+    out.push([`prop_${pr}`, `${PROP_BASE}/${pr}.png`]);
   }
   for (const w of WEAPON_SPRITES) {
     out.push([`gun_${w}`, `${WEAPON_BASE}/${w}.png`]);

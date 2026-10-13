@@ -137,6 +137,8 @@ export const CUTSCENES: Cutscene[] = [
       { speaker: 'medico', text: 'Sargento! Cabo Fernandes, esquadrão Beta. Sobrevivi ao ataque e me tranquei aqui dentro.' },
       { speaker: 'rios', text: 'Fernandes? O comandante enterrou o Beta inteiro no relatório.' },
       { speaker: 'medico', text: 'Quase, senhor. Conheço as galerias. Posso te levar ao topo.' },
+      { speaker: 'medico', text: 'E tem mais: no pátio interno tem um foguete de pé. O rei guarda ele como troféu. É a saída daqui.' },
+      { speaker: 'rios', text: 'Então o foguete fica inteiro. Quem encostar nele encontra comigo.' },
       { speaker: 'rios', text: 'Fica atrás de mim, cabo. É ordem.' },
       { speaker: 'medico', text: 'Sim, senhor. ...Obrigado por vir. Pensei que ninguém vinha.' },
       { speaker: 'narrador', text: 'O portão do pátio range sozinho. Um cavaleiro de quatro metros desce da ameia, espada de osso em riste.' },

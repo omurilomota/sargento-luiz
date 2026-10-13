@@ -53,7 +53,16 @@ Pierce @ IsometricRobot.com")
 
 - `assets/sprites/props/foguete.png` — o foguete do Castelo: o alvo que o
   jogador protege na fase (decisão do dono de 2026-10-12) e que voa na saída.
-  Fundo preto recortado para transparência, altura reduzida para 384px.
+  O original é uma CENA de lançamento inteira (445×1641: foguete + torre de
+  serviço + decks + pedestal, line-art cinza sobre branco). O primeiro corte
+  era a cena INTEIRA reduzida (104×384, mesma proporção) — o dono viu o
+  fundo branco e o "foguete torto": o corpo era um prédio em primeiro plano,
+  e o bico era só a agulha no topo. Corrigido: recorte só do foguete
+  (x 100-320, y 48-452 do original, 220×404 — a saia larga simétrica, cortada
+  antes das pernas da torre e da retratação do lado direito) + flood-fill do
+  fundo branco — os contornos de line-art selam o cone e o interior
+  preenche, virando silhueta sólida. Asset PLACEHOLDER: o dono vai desenhar
+  o foguete próprio e trocar.
 
 A busca olhou primeiro os packs de espaço já no disco (Kenney Top-down
 Shooter não tem foguete/forno de lançamento; o `foguete.png` de `bullets/` é

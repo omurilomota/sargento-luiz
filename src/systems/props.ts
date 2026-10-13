@@ -48,8 +48,9 @@ export interface Prop {
   x: number;
   y: number;
   radius: number;
-  /** `nest` é o objetivo destrutível das fases com objetivo `destroy` */
-  kind: 'crate' | 'barrel' | 'nest';
+  /** `nest` é o objetivo destrutível do `destroy`; `rocket` é o alvo vivo do
+   * `protect` do Castelo (as ondas atacam ELE, não um NPC que foge) */
+  kind: 'crate' | 'barrel' | 'nest' | 'rocket';
   health: number;
   maxHealth: number;
   hitFlash: number;
@@ -78,6 +79,17 @@ const BARREL_RADIUS = 26;
 const BARREL_BLAST_RADIUS = 96;
 const BARREL_BLAST_DAMAGE = 45;
 
+/**
+ * O foguete que o Castelo protege (decisão do dono de 2026-10-12: "o alvo do
+ * protect é o FOGUETE com HP, não uma escolta"). 300 HP contra contato de 12
+ * DPS por inimigo encostado e a flecha do arqueiro: dá para errar e chegar,
+ * ao contrário do VIP de 50 HP que dois toques já derrubavam.
+ */
+const ROCKET_HEALTH = 300;
+const ROCKET_RADIUS = 30;
+/** Dano por segundo de CADA inimigo encostado no foguete. */
+export const ROCKET_CONTACT_DPS = 12;
+
 let props: Prop[] = [];
 
 /**
@@ -89,16 +101,17 @@ export function initProps(cells: string[][]): void {
   for (let row = 0; row < cells.length; row++) {
     for (let col = 0; col < cells[row].length; col++) {
       const ch = cells[row][col];
-      if (ch !== 'c' && ch !== 'b' && ch !== 'N') continue;
+      if (ch !== 'c' && ch !== 'b' && ch !== 'N' && ch !== 'F') continue;
       const isBarrel = ch === 'b';
       const isNest = ch === 'N';
-      const hp = isNest ? NEST_HEALTH : isBarrel ? BARREL_HEALTH : CRATE_HEALTH;
+      const isRocket = ch === 'F';
+      const hp = isRocket ? ROCKET_HEALTH : isNest ? NEST_HEALTH : isBarrel ? BARREL_HEALTH : CRATE_HEALTH;
       props.push({
         col, row,
         x: col * CELL_SIZE + CELL_SIZE / 2,
         y: row * CELL_SIZE + CELL_SIZE / 2,
-        radius: isNest ? CELL_SIZE * 0.46 : isBarrel ? BARREL_RADIUS : CELL_SIZE * 0.38,
-        kind: isNest ? 'nest' : isBarrel ? 'barrel' : 'crate',
+        radius: isRocket ? ROCKET_RADIUS : isNest ? CELL_SIZE * 0.46 : isBarrel ? BARREL_RADIUS : CELL_SIZE * 0.38,
+        kind: isRocket ? 'rocket' : isNest ? 'nest' : isBarrel ? 'barrel' : 'crate',
         health: hp,
         maxHealth: hp,
         hitFlash: 0,
@@ -111,6 +124,19 @@ export function initProps(cells: string[][]): void {
 /** Lista os ninhos (objetivos destrutíveis) ainda de pé. */
 export function getNests(): Prop[] {
   return props.filter(p => p.kind === 'nest' && p.health > 0);
+}
+
+/** O foguete do Castelo ainda de pé, se o mapa trouxe um (char `F`). */
+export function getRocket(): Prop | undefined {
+  return props.find(p => p.kind === 'rocket' && p.health > 0);
+}
+
+/**
+ * O foguete do mapa, vivo OU derrubado. O HUD não pode trocar o rótulo de
+ * "PROTEGER O FOGUETE" para "SOBREVIVENTE" no frame em que ele cai.
+ */
+export function getAnyRocket(): Prop | undefined {
+  return props.find(p => p.kind === 'rocket');
 }
 
 export function getProps(): Prop[] {
@@ -270,6 +296,35 @@ export function drawProps(
       ctx.beginPath();
       ctx.arc(p.x, p.y, 7 + Math.sin(Date.now() / 400 + p.col) * 1.5, 0, Math.PI * 2);
       ctx.fill();
+    } else if (p.kind === 'rocket') {
+      // O alvo do protect do Castelo: sprite Saturn V (Michael J Pierce,
+      // CC-BY 3.0) em pé sobre a base. Sem tint — o foguete é o ÚNICO objeto
+      // da fase que não pode mudar de cara com o bioma.
+      const img = getSprite('prop_foguete');
+      const altura = p.radius * 5.2;
+      const baseY = p.y + p.radius * 0.35;
+      if (img) {
+        const largura = altura * (img.width / img.height);
+        ctx.drawImage(img, p.x - largura / 2, baseY - altura, largura, altura);
+        if (p.hitFlash > 0) {
+          ctx.save();
+          ctx.globalAlpha = 0.65;
+          ctx.filter = 'brightness(2.4) saturate(0.5)';
+          ctx.drawImage(img, p.x - largura / 2, baseY - altura, largura, altura);
+          ctx.restore();
+        }
+      } else {
+        // fallback só se o asset não carregar (regra 15): silhueta de torre
+        // com a ponta terracota, para o alvo continuar lendo como alvo
+        ctx.fillStyle = p.hitFlash > 0 ? PALETTE.crit : '#b8b8b0';
+        ctx.fillRect(p.x - p.radius * 0.42, baseY - altura, p.radius * 0.84, altura);
+        ctx.fillStyle = PALETTE.terracotta;
+        ctx.beginPath();
+        ctx.moveTo(p.x - p.radius * 0.42, baseY - altura);
+        ctx.lineTo(p.x, baseY - altura - p.radius * 0.9);
+        ctx.lineTo(p.x + p.radius * 0.42, baseY - altura);
+        ctx.fill();
+      }
     } else if (p.kind === 'barrel') {
       ctx.fillStyle = p.hitFlash > 0 ? PALETTE.crit : paleta.barrel;
       ctx.beginPath();
@@ -320,10 +375,12 @@ export function drawProps(
 
     if (p.health < p.maxHealth) {
       const barW = p.radius * 2;
+      // no foguete a barra fica acima da ponta, não no meio do corpo
+      const barY = p.kind === 'rocket' ? p.y - p.radius * 6.2 : p.y - p.radius - 9;
       ctx.fillStyle = 'rgba(0,0,0,0.6)';
-      ctx.fillRect(p.x - barW / 2, p.y - p.radius - 9, barW, 4);
+      ctx.fillRect(p.x - barW / 2, barY, barW, 4);
       ctx.fillStyle = PALETTE.mustard;
-      ctx.fillRect(p.x - barW / 2, p.y - p.radius - 9, barW * (p.health / p.maxHealth), 4);
+      ctx.fillRect(p.x - barW / 2, barY, barW * (p.health / p.maxHealth), 4);
     }
   }
 }

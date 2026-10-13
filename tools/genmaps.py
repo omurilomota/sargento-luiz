@@ -307,6 +307,14 @@ def castelo():
     scatter(g, CRATE, 6, 61)
     scatter(g, BARREL, 4, 62)
     scatter(g, DECOR, 8, 63)
+    # O foguete que o protect defende (decisão do dono de 2026-10-12): a câmara
+    # do meio, colada às duas portas da coluna 14. Não A porta: a coluna 14 é o
+    # corredor norte-sul que o `ensure_connected` escava TODO run (as linhas 6
+    # e 11 são parede cheia), então o (10,14) sempre termina chão. O foguete
+    # fica na (10,13): um passo à esquerda do corredor — quem desce pela porta
+    # tromba nele.
+    assert g[10][13] == FLOOR
+    g[10][13] = 'F'
     return finish(g, 'castelo', (18, 14), [(3, 14), (16, 3), (16, 26), (8, 4), (13, 25), (18, 10)],
                   boss=(18, 6))
 

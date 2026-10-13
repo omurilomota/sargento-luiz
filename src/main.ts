@@ -40,7 +40,7 @@ import { checkBulletEnemyCollisions, checkEnemyPlayerCollision, checkEnemyBullet
 import { createExplosion, updateExplosions, clearExplosions } from './systems/explosions';
 import { loadMap, colAt, rowAt, charAt, isWall, hasPath, moveCircleBy, rebuildFlowField, sampleFlowDir, pushOutOfWalls, findAll, segmentHitsWall, findFreeSpotNear } from './systems/tilemap';
 import { initCamera, setViewportSize, setWorldSize, updateCamera, snapCamera, getCamX, getCamY, screenToWorld, drawVoid, isVisible, setShake } from './systems/camera';
-import { initProps, getProps, updateProps, damageProp, detonateProp, getBlast, drawProps, clearProps, collapsesOnHit, Prop } from './systems/props';
+import { initProps, getProps, updateProps, damageProp, detonateProp, getBlast, drawProps, clearProps, collapsesOnHit, getRocket, getAnyRocket, ROCKET_CONTACT_DPS, Prop } from './systems/props';
 import { buildTerrain, drawTerrain, clearTerrain } from './systems/terrain';
 import { initObjective, updateObjective, peekObjective, vipDown, markVipDown, registerObjectiveDestroyed, cellCenter, ReachZone, forceObjectiveDone } from './systems/objectives';
 import { updateBoss, isBossTelegraphing, getBossTelegraphLabel, clearBossState } from './systems/boss';
@@ -622,11 +622,13 @@ function loadPhaseEnvironment(): void {
   const spawn = findAll('P')[0] ?? { col: 1, row: 1 };
   const pos = cellCenter(spawn.col, spawn.row);
 
-  // O objetivo protect precisa de um sobrevivente determinístico: os NPCs que
-  // aparecem na loja são aleatórios e podem não existir nenhum. Nasce do lado
-  // do jogador, e o índice 0 é o que o objectives.ts lê.
+  // O objetivo protect precisa de um alvo determinístico. No Castelo o alvo
+  // é o FOGUETE (decisão do dono, 2026-10-12: "as ondas atacam o foguete,
+  // não uma escolta") — o prop `F` entra com o mapa. Sem foguete no mapa,
+  // cai no sobrevivente legado: nasce do lado do jogador, e o índice 0 é o
+  // que o objectives.ts lê.
   resetNPCs();
-  if (phase.objective === 'protect') {
+  if (phase.objective === 'protect' && !getRocket()) {
     const vipCell = findVipCell(spawn);
     const vip = cellCenter(vipCell.col, vipCell.row);
     spawnNPC(vip.x, vip.y, 1);
@@ -1119,14 +1121,17 @@ function update(dt: number) {
     const lossAch = checkAchievements('vip_lost');
     if (lossAch) pushToast(lossAch.name, 4);
     if (bossKilled) {
-      // A escolta caiu na janela entre a morte do chefe e a loja. Reiniciar
+      // O alvo caiu na janela entre a morte do chefe e a loja. Reiniciar
       // uma fase vencida devolvia as ondas com `bossSpawned` ainda true —
       // a wave pós-boss que o dono reportou no Castelo. A fase segue para
       // a loja; a perda fica registrada na conquista.
-      pushToast('SOBREVIVENTE PERDIDO', 3, 'aviso');
+      pushToast(getAnyRocket() ? 'O FOGUETE CAIU' : 'SOBREVIVENTE PERDIDO', 3, 'aviso');
       return;
     }
-    pushToast('SOBREVIVENTE PERDIDO — RECOMEÇANDO A FASE', 4, 'aviso');
+    pushToast(
+      getAnyRocket() ? 'O FOGUETE CAIU — RECOMEÇANDO A FASE' : 'SOBREVIVENTE PERDIDO — RECOMEÇANDO A FASE',
+      4, 'aviso'
+    );
     resetWave();
     loadPhaseEnvironment();
     enemies.length = 0;
@@ -1145,9 +1150,11 @@ function update(dt: number) {
     objectiveCounted.add(phase.objective);
     const objAch = checkObjectiveAchievement(phase.objective);
     if (objAch) pushToast(objAch.name, 3);
-    // sobrevivente escoltado até o fim → entrada reativa do diário
-    if (phase.objective === 'protect' && unlockDiaryEvent('npc_saved')) {
-      pushToast('NOVA ENTRADA NO DIÁRIO', 3, 'aviso');
+    // alvo protegido até o fim → entrada reativa do diário (o foguete tem a
+    // dele; o sobrevivente legado mantém a "Um a um")
+    if (phase.objective === 'protect') {
+      const evt = getAnyRocket() ? 'rocket_saved' : 'npc_saved';
+      if (unlockDiaryEvent(evt)) pushToast('NOVA ENTRADA NO DIÁRIO', 3, 'aviso');
     }
   }
 
@@ -1405,6 +1412,17 @@ function updateBulletProps(bullets: ReturnType<typeof getBullets>): void {
     for (const prop of getProps()) {
       if (prop.health <= 0) continue;
       if (!bulletHitsCircle(b, prop.x, prop.y, prop.radius)) continue;
+      // O foguete é cobertura para os DOIS lados, mas só tiro inimigo o fere:
+      // errar a própria proteção puniria a mira, não a defesa (a fase já cobra
+      // isso com as ondas). Se cair, o protect perdeu o alvo: tranca a fase no
+      // mesmo latch do sobrevivente.
+      if (prop.kind === 'rocket') {
+        spawnParticles(b.x, b.y, PALETTE.mustard, 3, 120);
+        if (b.isEnemy && damageProp(prop, b.damage)) markVipDown();
+        if (b.explosive && b.explosionRadius) detonateBullet(b);
+        if (!b.pierce) b.life = 0;
+        break;
+      }
       let destroyed: boolean;
       if (collapsing) {
         detonateProp(prop);
@@ -2220,11 +2238,12 @@ for (const e of enemies) {
     // boss não entra no empilhamento
     if (e.hitFlash > 0) continue;
   } else {
-    // O caçador do NPC (huntsNpc) ignora o flow field, que aponta para o
-    // jogador, e vai direto no sobrevivente. Sem isso o objetivo protect é só
-    // "não deixe o NPC morrer", e o NPC foge de todo mundo por igual — o
-    // jogador não teria nada a fazer além de limpar a fase como sempre.
-    const prey = (def?.huntsNpc || phase.objective === 'protect') ? getNPCs().find(n => n.alive) : undefined;
+    // O caçador do alvo (huntsNpc, ou todo mundo na fase de protect) ignora o
+    // flow field, que aponta para o jogador, e vai direto no alvo: o foguete
+    // quando o mapa tem um, senão o sobrevivente. Sem isso o objetivo protect
+    // é só "não deixe o alvo morrer" contra inimigos que nem procuram nele.
+    const fogueteNoMapa = phase.objective === 'protect' ? getRocket() : undefined;
+    const prey = fogueteNoMapa ?? ((def?.huntsNpc || phase.objective === 'protect') ? getNPCs().find(n => n.alive) : undefined);
     const flow = sampleFlowDir(e.x, e.y);
     // perto do jogador o flow field é ruidoso: aí vai o seek direto
     const distToPlayer = Math.hypot(p.x - e.x, p.y - e.y);
@@ -2291,8 +2310,9 @@ for (const e of enemies) {
 
   if (e.canShoot && !ENEMY_TYPES[e.type]?.isBoss) {
     e.shootTimer -= dt;
-    // o caçador atira no sobrevivente, não no jogador
-    const preyAlvo = (def?.huntsNpc || phase.objective === 'protect') ? getNPCs().find(n => n.alive) : undefined;
+    // o caçador atira no alvo do protect (foguete primeiro), não no jogador
+    const fogueteAqui = phase.objective === 'protect' ? getRocket() : undefined;
+    const preyAlvo = fogueteAqui ?? ((def?.huntsNpc || phase.objective === 'protect') ? getNPCs().find(n => n.alive) : undefined);
     if (e.shootTimer <= 0) shootEnemyAt(e, preyAlvo ? preyAlvo.x : p.x, preyAlvo ? preyAlvo.y : p.y);
   }
 
@@ -2476,6 +2496,24 @@ updatePowerUps(dt, p.x, p.y, p.radius, (type) => {
 });
 
 updateNPCs(dt, p.x, p.y, enemies, getBullets());
+
+// ── o foguete do protect apanha de quem encosta ──
+// O alvo do Castelo é um objeto parado: cada inimigo que alcança a base tira
+// ROCKET_CONTACT_DPS por segundo. 300 HP dá janela de chegar limpando; a barra
+// do HUD lê o HP em tempo real (contrato do B3, vale para prop e NPC igual).
+{
+  const alvoFoguete = getRocket();
+  if (alvoFoguete) {
+    let tocando = 0;
+    for (const e of enemies) {
+      if (e.health <= 0 || e.spawnDelay > 0) continue;
+      if (Math.hypot(e.x - alvoFoguete.x, e.y - alvoFoguete.y) < alvoFoguete.radius + e.radius) tocando++;
+    }
+    if (tocando > 0 && damageProp(alvoFoguete, ROCKET_CONTACT_DPS * tocando * dt)) {
+      markVipDown();
+    }
+  }
+}
 
 const lootReward = updateLoot(dt, p.x, p.y, p.radius);
 if (lootReward) {
