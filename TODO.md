@@ -1180,3 +1180,193 @@
 //     `explosivos.test` diz que explosivo de ARMA não fere o jogador — o
 //     barril fere. Medir a taxa em que um jogador humano toma dano de barril
 //     antes de decidir entre nerf, aviso visual ou aceitar assim.
+
+// ═══════════════════════════════════════════════════════════════
+// RODADA 2026-11 — RELATO DO JOGADOR: FASE FINAL, HISTÓRIA E BUGS
+// ═══════════════════════════════════════════════════════════════
+// Tudo aqui saiu de uma partida completa contada pelo dono do projeto, em
+// 2026-11-11. História aprovada e registrada em `PREMISSA-V2.md` (Parte I) e
+// `HISTORIA-II-IV.md` (Partes II–IV).
+//
+// ─── BUGS ───
+// [ ] B1. EPÍLOGO toca na ABERTURA da fase 9 e de novo no fim. CAUSA
+//     CONHECIDA: `FASE_PARA_CUTSCENE[8] = 8` e `EPILOGUE_CUTSCENE = 8` são a
+//     MESMA cena. A primeira linha dela é "O MOTHERSHIP cai" — a mothership é
+//     o 3º chefe do `NUCLEO_RUSH`, então o jogador via o fim antes de lutar e
+//     via duas vezes. Conserto: cutscene própria da fase 9 (`NÚCLEO-CENTRAL`) e
+//     a linha da mothership movida para o meio do epílogo.
+// [ ] B2. O martelo (`Destruidor`) chegava como loot do NÚCLEO MORTO, e o
+//     jogador o recebia na LOJA. Decisão do jogador: martelo e traje de
+//     contenção são entregues NA ENTRADA da fase, como o traje já fazia.
+//     `spawnBossLoot` deixa de entregar o martelo.
+// [ ] B6. Os 4 chefes do rush entravam no fim das ondas. Decisão do jogador:
+//     entram desde a entrada da fase, um morrendo e vindo outro — o ritmo que
+//     ele elogiou. A fase passa a não ter onda comum: só chefes e biomaquina.
+// [ ] B8. BIOMAQUINA: o Núcleo solta inimigos dele a fase inteira. Pedido do
+//     jogador: "robôs humanoides zumbis bizarros de apelão". Proposta de stat
+//     no `PREMISSA-V2.md` e decisão no DECISIONS #170. A fase não pode
+//     esvaziar (senão o próximo chefe do rush nunca nasce): o nascer do próximo
+//     chefe passa a depender de "não há chefe vivo", não de "campo vazio".
+// [ ] NOME DA FASE 9: a história chama de NÚCLEO-CENTRAL, o `config.ts` e a
+//     tela chamam de BUNKER CENTRAL. A fase final vai ser reescrita de qualquer
+//     forma (B1–B8) — aproveitar e acertar o nome.
+// [ ] B3. VULCÃO, horda 7: o countdown disparou SEM chefe, veio outra horda, e
+//     matar o último foi direto pra loja. O Vulcão é `survive 45s` + chefe
+//     `sentinel`. Investigar `isUltimasOndas` × `objetivoLiberouChefe`.
+// [ ] B4. A última fase abriu "já sem nada". Suspeita: estado do rush
+//     (`bossRushIndex`/`bossSpawned`) vazando entre fases — a mesma família que
+//     `irParaFase` já consertou uma vez para os inimigos.
+// [ ] B5. O fim da Parte I lê como MOTHERSHIP, não como NÚCLEO. É o texto do
+//     epílogo (B1) + a decisão de onde o martelo entra (B2).
+// [ ] B7. Cenário da última fase pouco destrutivo. Quer explosão por todo lado:
+//     barril estourando sozinho, fogo no chão, parede rachando.
+//
+// ─── TASKS APROVADAS ───
+// [ ] T1. TITÃS/ELITES nas fases, para o chefão parecer mais fraco. JÁ EXISTE
+//     UM PRÉ-TITÃ: `ELITE_TYPES` (`loot.ts:73` = tank, magmaGolem, crystal,
+//     knight, drone) dá loot melhor e 25% de chance de peça no drop. FALTA o
+//     titã de verdade: flag `isElite`, mais vida/dano/raio que o tipo comum,
+//     visual maior e aparecimento por fase. Pedido do jogador marcado como
+//     decisão.
+// [ ] T2. PLAYLIST de músicas mais elaborada (hoje são 4 faixas com crossfade).
+// [ ] T3. Tirar auxílio de IA da parte final do site (`site/conteudo.js`).
+// [ ] T4. Vender PONTOS de talento (qualquer ponto), mais coisas para upar,
+//     mais níveis e mais perks na loja.
+// [ ] T5. Mais moedas por anúncio (`ads.ts`).
+// [ ] T6. Armaduras no jogo (com peso × velocidade, que já está no FUTURO §2.4).
+//
+// ─── CONTEÚDO APROVADO, NÃO EXECUTADO ───
+// 7 fases novas em `PREMISSA-V2.md`: Rodovia/Pedágio, Hospital de campanha,
+// Pátio de trens, Ponte, Refinaria, Subestação, Porto. Cada uma custa mapa
+// validado, paleta, cutscene, chefe/objetivo, spawn e balanceamento. A campanha
+// passaria de 9 para 16 fases, o que mexe no teste de economia ainda pendente —
+// por isso entram DEPOIS da economia medida.
+// Partes II–IV em `HISTORIA-II-IV.md`, com 3 cenas-amostra escritas.
+
+// ═══════════════════════════════════════════════════════════════
+// RODADA 2026-10-12 — HISTÓRIA COMPLETA + 15 BUGS/TASKS DO DONO
+// ═══════════════════════════════════════════════════════════════
+// Relato direto do dono: a história das 9 fases com falas, e 15 bugs/tasks.
+// Registrado pela frente de bugs/balance. A frente HISTÓRIA é território
+// do Sprint A (story.ts/PREMISSA em voo) — roteada no NEGOCIADO.md §6.
+//
+// ─── O QUE O RELATO RESOLVE ───
+// - O §1.1 (Castelo protect) ganhou 4ª opção: o alvo é o FOGUETE (prop com
+//   HP que as ondas atacam), não uma escolta. Barra de vida de verdade (B3).
+// - A linha "Agora você vai ver só seus trilionários" FICA (o dono repetiu) —
+//   o semIA ganha exceção registrada: "agora" é português, o portão
+//   falso-positiva (H7).
+// - O que já está pago e NÃO refaz: Núcleo apelão (NUCLEO_RUSH desde a
+//   entrada + traje + Destruidor + fúria vermelha), epílogo sem tocar antes
+//   da luta, biomaquina, martelo na entrada da fase 9.
+// - Parte II do dono (nave destruída, missão de peças + combustível, planeta
+//   AHB-45) precisa casar com os 3 arcos do HISTORIA-II-IV.md.
+//
+// ─── H — HISTÓRIA (Sprint A) ───
+// [ ] H1. Fernandes sai da Fábrica (morte, diário "Seis Segundos", hooks de
+//     conquista) e vai para o CASTELO — "é lá onde ele está". Cutscene da
+//     Fábrica perde o beat; FASE_PARA_CUTSCENE e story-proof acompanham.
+// [ ] H2. Fábrica: sequência do AMIGO — diálogo em CAIXA PEQUENA (modo novo
+//     de diálogo, não a caixa grande), cápsula, radiação (todos infectados,
+//     player imune sem saber), pós-boss o amigo vira MID-BOSS (forte, vários
+//     ataques), Rios vence, morre → FÚRIA DESBLOQUEIA AQUI (hoje existe
+//     desde o início; passa a ter gate de história).
+// [ ] H3. Falas por fase contra o texto do dono (verbatim na sessão, e o
+//     semIA verde do primeiro ao último):
+//     Floresta: Joe, casa da cabana sombria/bruxa ("certeza que era
+//       mentira"), trilhas que não levavam a nada, balanço — criatividade
+//       perdida, "agora só tem zumbis".
+//     Caverna: Arthur (amigo de infância) encontrado MORTO na fase.
+//       "Os zumbis estão evoluindo rapidamente", "Grr…".
+//     Pântano: "Nada mais me surpreende, daqui a pouco estão saindo do
+//       chão", lama engolindo (barulho + "Ohoa…"), "tenho que tomar
+//       cuidado com o que falo".
+//     Vulcão: reflexão da jornada, família viva ou não, "continua em
+//       frente para manter o legado".
+//     Espaço: Bot#89 "Inimigo detectado! Atirar projéteis" / "Não tão
+//       antes que eu já estou aqui!" + explosão + TELA VERMELHA nos 5s
+//       iniciais (a nave em perigo).
+//     Núcleo-Central: Núcleo "Intruso avistado! Modo neutralizador ativo";
+//       Viajante #23 (entrou pela porta dos fundos) entrega o martelo
+//       AI-ON; pós-morte "Instabilidade registrada… modo crí-crí-crí-ticooooo";
+//       risada + "os responsáveis ainda precisam ter uma conversa comigo".
+//     Castelo: "de acordo com a coordenada daquela cápsula, o antigo abrigo
+//       deles era aqui"; pós-missão: conserta o motor (ferramenta + tela
+//       piscando) e VOAR (foguete — asset H6, é o que o player protege).
+// [ ] H4. Epílogo: NARRADOR, créditos de toda a jornada, música nostálgica
+//     (asset CC0), teaser AHB-45 "Part II em breve!".
+// [ ] H5. Assets de som narrativos: foguete, ferrutura, explosão de
+//     cápsula, risada — CC0/CC-BY + CREDITS.md + tela de créditos.
+// [ ] H6. Asset do foguete (sprite CC0 — procurar nos packs de espaço antes
+//     de buscar pack novo).
+// [ ] H7. Exceção do "Agora" no semIA com justificativa no DECISIONS.
+//
+// ─── B — BUGS DO RELATO (frente de bugs; verificação antes de mexer) ───
+// [x] B1. GAME OVER AO ENTRAR NO BUNKER: NÃO REPRODUZ no HEAD. O
+//     campanha-proof atravessa as 9 fases: Espaço fecha na loja → cutscene
+//     → NÚCLEO-CENTRAL existe, tem chefe e fecha sozinha ("Nenhum problema
+//     estrutural"). O repro do dono é do BUILD PUBLICADO, anterior aos fixes
+//     B1/B2/B6 do Sprint A. AÇÃO: republicar o zip do dist.
+// [x] B2. WAVE PÓS-BOSS NO CASTELO: consertado em `5e85e90`, prova em
+//     `npm run protect` (2 cenários verdes: chefe morto + VIP cai → loja sem
+//     onda; chefe vivo + VIP cai → fase renasce inteira e o chefe volta pelo
+//     caminho NATURAL). Causa raiz em 2 metades: o reinício não distinguia
+//     fase decidida de em andamento (bossSpawned herdado) e o chefeLiberado
+//     era re-check vivo em vez de latch (bossKilled é a prova de que o
+//     objetivo foi cumprido). Colateral: a campanha-proof ganhou
+//     `cumprirObjetivo` no caminho de força — desde o B3 do Vulcão o fim
+//     exige objetivo de verdade, e a prova invocava chefe de fase pendente
+//     (a campanha travava na Caverna, que é `destroy`).
+// [x] B3. BARRA DO ALVO DO PROTECT: agora é o HP em tempo real (progress =
+//     hp/maxHp, detalhe '72/100'), `a89922f`. Trava em objectives.test (2
+//     assertos: 20/50 = 0.4) + hud-proof verde nas 4 resoluções. Serve para o
+//     foguete da frente HISTÓRIA sem mudar nada: o contrato é do alvo.
+// [x] B4. SOM DE RECARGA: VERIFICADO correto no HEAD — call site passa a
+//     família (`sfxReload(getWeaponFamily())`), 7 arquivos OGG distintos no
+//     disco (ffprobe: 0.21s a 1.59s, pistola ≠ metralhadora ≠ escopeta).
+//     O relato ("igual para todos e péssimo") é do build publicado, que
+//     tinha o fallback sintetizado ÚNICO. AÇÃO: re-testar no build novo; se
+//     ainda soar ruim, é curadoria de samples CC0 (task nova).
+// [x] B5. TAB NO VIVALDI: preventDefault no keydown (`a89922f`) — página de
+//     jogo é o canvas, não há outro elemento focável. Testar no Vivaldi é
+//     do dono (Playwright é Chromium); M não serve de alternativa (é música).
+// [ ] B6. Diálogo do Cabo Fernandes na Fábrica "na hora errada" =
+//     consequência do H1 (ele está no Castelo). Frente HISTÓRIA.
+//
+// ─── C — UI / LOJA / HUD ───
+// [ ] C1. HUD trocado: canto inferior direito = ficha da ARMA; perks saem
+//     dali e vão para o TAB (troca com a ficha). hudLayout + npm run hud.
+// [ ] C2. ÁRVORE VISUAL de perks: tela canvas, 4 ramos × 5 + 4 especiais,
+//     estados comprado/comprável/bloqueado. Geometria única; semDesenho.
+// [ ] C3. TRAVAR ARMA na loja: pin na oferta para não sumir no restock;
+//     comprar depois, preço cheio.
+// [ ] C4. VENDER PONTOS DE TALENTO (T4 confirmado 2×): AMBIGUIDADE — vender
+//     pontos não gastos por moedas (proposta) vs respecc. Depende do teste
+//     de economia (o árbitro).
+// [ ] C5. PULAR WAVE com recompensa (waves devagar, sobretudo Vulcão):
+//     chama a próxima onda antes; recompensa proporcional ao tempo restante.
+//     Toca na RENDA → medir com fases/sessao + teste de economia.
+//
+// ─── D — CONTEÚDO / SISTEMAS (confirmados pelo relato) ───
+// [ ] D1. ARMAS 12 → 20+ (sprint própria: família, som CC0, projétil, pose,
+//     DPS medido, preço na curva).
+// [ ] D2. SPRITE POR FUNÇÃO, não reciclado por fase — o dono pediu assets
+//     NOVOS ("urgentemente"), não tint. Caça de packs CC0 de personagens.
+//     Destrava o sprite único do mid-boss da Fábrica.
+// [ ] D3. EVENTOS ALEATÓRIOS (Sprint 7 moral ↔ sorte + estado `event`).
+// [ ] D4. PAREDES QUEBRÁVEIS (§2.6): pedido de novo, sai do "por último".
+//     Risco menor hoje: o Dijkstra já tem modelo de custo (hazard custa 60,
+//     commit 26a485a) — muro rachado vira célula cara que pode ficar barata.
+//
+// ─── DECISÕES DO DONO — RESPONDIDAS EM 2026-10-12 (tarde) ───
+// 1. Alvo do protect no Castelo: FOGUETE com HP — SIM, confirmado.
+//    Fernandes é NPC de diálogo, não alvo.
+// 2. O amigo da Fábrica (mid-boss) se chama FERNANDO.
+// 3. Vender pontos: por MOEDAS (padrão). O dono perguntou o que é respecc
+//    (devolver pontos gastos para redistribuir) — explicado; se um dia
+//    quiser, é task separada.
+// 4. FÚRIA TRANCADA até a Fábrica — SIM, confirmado (o gate de história do
+//    H2; a fúria deixa de existir desde o início da campanha).
+// ReBuild pedido pelo dono: build + zip de dist para republicar no itch
+// (o zip publicado está velho — os vereditos dos bugs B1/B4 valem só no
+// build novo).
