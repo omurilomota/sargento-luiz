@@ -291,6 +291,34 @@ fechou em DUAS camadas, cada uma com sua causa:
   campanha 9/9; protect 2/2; onda 10/10; 942 testes; `npm run fases`
   re-medido (Pântano: 1 morte em 3 amostras, as outras duas a 45s+).
 
+## Entrega: o epílogo da Parte I (H4, 2026-10-13, noite)
+
+Decidido pelo dono no planejamento (DECISIONS #174) e entregue:
+
+- **O epílogo reescrito**: mantém a abertura forte (o NÚCLEO esfriando, a
+  MOTHERSHIP caindo no meio, o registro da MegaCorp 2089) e troca a
+  ESCOLHA dos 3 finais pelo **roll da jornada** — o quartel da Cidade, a
+  cabana do Joe, a Caverna do Arthur, a cápsula, o portão onde o Fernandes
+  segurou a linha, Ferreira e Vale no rádio — fechando com
+  `[ PART II EM BREVE — AHB-45 ]`, plantado no destino selado que o painel
+  já mostrava.
+- **A maquinaria de escolhas saiu junto** (senão o semOrfao reprova):
+  `selectChoice`/`isWaitingForChoice`/`ENDINGS`/`storyChoices`, as teclas
+  1-3, o render das opções e o campo `esperandoEscolha` do hook. O
+  `cutscene.test` ganhou os contratos novos: o roll cita os nomes, o
+  teaser existe, e a cena atravessa só com ENTER.
+- **Música nostálgica**: "Autumn Changes (Looping)" de Eric Matyas
+  (soundimage.org) — a mesma fonte das outras 3 faixas, tese literal do
+  fim da Parte I; toca no epílogo e sob a tela de fim (DECISIONS #184).
+  `MusicTrack` ganhou 'epilogo'; 1:46 de loop, 1,6MB.
+- **Atribuição corrigida nos créditos**: a linha do jogo dizia "faixas
+  originais do projeto (CC0)" — falso (só o menu é CC0; as demais são RF
+  com atribuição obrigatória). As duas telas agora dizem a verdade, e a
+  lista ganhou Autumn Changes.
+- **Gates**: 943 testes (semIA verde no texto novo, semOrfao limpo nas
+  remoções), tsc limpo, story-proof e campanha-proof verdes. PNGs do
+  `visual` com pendência de leitura declarada (regra 16).
+
 ---
 
 ## Versão anterior: v1.3 (geometria + HUD)

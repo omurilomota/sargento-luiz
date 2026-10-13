@@ -1359,8 +1359,24 @@
 //     Castelo: "de acordo com a coordenada daquela cápsula, o antigo abrigo
 //       deles era aqui"; pós-missão: conserta o motor (ferramenta + tela
 //       piscando) e VOAR (foguete — asset H6, é o que o player protege).
-// [ ] H4. Epílogo: NARRADOR, créditos de toda a jornada, música nostálgica
-//     (asset CC0), teaser AHB-45 "Part II em breve!".
+// [x] H4. Epílogo: NARRADOR, créditos de toda a jornada, música nostálgica
+//     (asset livre), teaser AHB-45 "Part II em breve!". Reescrito do zero em
+//     2026-10-13 (DECISIONS #174): a cena mantém a abertura forte (NÚCLEO
+//     esfriando, MOTHERSHIP no meio, o registro da MegaCorp 2089) e troca a
+//     ESCOLHA dos 3 finais pelo roll da jornada — quartel, Joe, Arthur,
+//     cápsula, Fernandes no portão, Ferreira e Vale no rádio — fechando com
+//     "[ PART II EM BREVE — AHB-45 ]". A maquinaria de escolhas saiu JUNTO
+//     (selectChoice/isWaitingForChoice/ENDINGS/storyChoices, teclas 1-3,
+//     render das opções e o campo `esperandoEscolha` do hook), senão o
+//     semOrfao reprova; o cutscene.test ganhou o contrato novo (o roll cita
+//     os nomes, o teaser existe, a cena atravessa só com ENTER).
+//     Música: "Autumn Changes (Looping)" de Eric Matyas — a mesma fonte das
+//     outras 3 faixas (RF com atribuição, regra 14 do AGENTS.md: crédito
+//     resolve; a pedido dizia "CC0", mas consistência de fonte/estilo
+//     pesou mais que pureza de licença — DECISIONS #184). Toca no
+//     epílogo e sob a tela de fim; atribuição corrigida nos créditos do
+//     jogo (a linha antiga dizia "faixas originais do projeto (CC0)",
+//     que era falso).
 // [ ] H5. Assets de som narrativos: foguete, ferrutura, explosão de
 //     cápsula, risada — CC0/CC-BY + CREDITS.md + tela de créditos.
 // [x] H6. Asset do foguete (sprite CC0 — procurar nos packs de espaço antes

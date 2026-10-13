@@ -17,7 +17,7 @@ let musicGain: GainNode | null = null;
 let sfxGain: GainNode | null = null;
 
 /** Faixas de música disponíveis por contexto de jogo */
-export type MusicTrack = 'menu' | 'combat' | 'boss' | 'shop';
+export type MusicTrack = 'menu' | 'combat' | 'boss' | 'shop' | 'epilogo';
 
 interface TrackDef {
   file: string;
@@ -31,6 +31,7 @@ const TRACKS: Record<MusicTrack, TrackDef> = {
   combat: { file: 'assets/music/combat.ogg', loopStart: 0, loopEnd: 0 },
   boss: { file: 'assets/music/boss.ogg', loopStart: 0, loopEnd: 0 },
   shop: { file: 'assets/music/shop.ogg', loopStart: 0, loopEnd: 0 },
+  epilogo: { file: 'assets/music/epilogo.ogg', loopStart: 0, loopEnd: 0 },
 };
 
 const CROSSFADE = 0.8;

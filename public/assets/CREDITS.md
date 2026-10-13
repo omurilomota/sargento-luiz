@@ -128,6 +128,8 @@ Detalhes do pack que já custaram bug e estão guardados em teste:
 - `assets/music/combat.ogg` — Automation (loop de combate)
 - `assets/music/boss.ogg` — The Darkness Below (loop de boss)
 - `assets/music/shop.ogg` — Puzzle Dreams (loop de loja)
+- `assets/music/epilogo.ogg` — Autumn Changes (loop do epílogo e da tela de
+  fim; MP3 original transcoded para OGG)
 
 Ver `assets/music/CREDITS.md` para as URLs exatas e a forma de atribuição.
 As versões antigas sintetizadas por `tools/genmusic.py` continuam disponíveis

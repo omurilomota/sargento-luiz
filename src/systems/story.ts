@@ -14,8 +14,6 @@ export interface DialogueLine {
   speaker: Character;
   /** Texto da fala */
   text: string;
-  /** Opções de escolha (opcional) */
-  choices?: { text: string; effect: string }[];
 }
 
 /** Uma cutscene completa */
@@ -217,15 +215,20 @@ export const CUTSCENES: Cutscene[] = [
       { speaker: 'rios', text: 'Joe. Arthur. Fernandes. Eu desliguei. Por vocês.' },
       { speaker: 'narrador', text: 'Ele acha um galpão nos fundos. Uma nave quebrada. Dava pra consertar. Dava.' },
       { speaker: 'rios', text: 'Um dia eu alcanço vocês. Um dia.' },
-      {
-        speaker: 'narrador', text: 'O canal do Vale fica aberto. O silêncio do outro lado não pergunta.',
-        choices: [
-          { text: 'Cortar o canal. Ficar com o que sobrou.', effect: 'home' },
-          { text: 'Contar tudo. Cada nome, cada rosto.', effect: 'search' },
-          { text: 'Pedir mais uma missão. Ainda tem nave pra construir.', effect: 'rebuild' },
-        ],
-      },
+      { speaker: 'narrador', text: 'O canal do Vale fica aberto. O silêncio do outro lado não pergunta.' },
+      { speaker: 'narrador', text: 'Rios desce a rampa com o registro no bolso e o Bunker nas costas.' },
+      { speaker: 'narrador', text: 'A jornada passa na cabeça dele enquanto anda.' },
+      { speaker: 'narrador', text: 'O quartel da Cidade, que caiu primeiro. A cabana do Joe na Floresta, com o balanço parado na varanda.' },
+      { speaker: 'narrador', text: 'A Caverna onde o Arthur ficou. A Fábrica com a cápsula vaga. O Pântano que engolia sem pressa.' },
+      { speaker: 'narrador', text: 'O portão do Castelo onde o Cabo Fernandes segurou a linha pra ele passar.' },
+      { speaker: 'narrador', text: 'O Vulcão, a estação no Espaço. E o Núcleo, que agora é metal frio.' },
+      { speaker: 'narrador', text: 'O Ferreira ainda transmite pela 4.7. O Vale responde quando pode.' },
+      { speaker: 'rios', text: 'Deu. Chegamos até aqui e ainda tem gente no rádio.' },
+      { speaker: 'narrador', text: 'Na tela do painel, antes de sair, o destino piscava devagar.' },
+      { speaker: 'mensagem', text: '[ DESTINO DA DIRETORIA — PLANETA AHB-45 — VERIFICAÇÃO PENDENTE ]' },
+      { speaker: 'rios', text: 'AHB-45. Anota aí, Vale. Um dia a gente vai até eles.' },
       { speaker: 'narrador', text: 'FIM DA PARTE I.' },
+      { speaker: 'mensagem', text: '[ PART II EM BREVE — AHB-45 ]' },
     ],
   },
 ];
@@ -241,8 +244,6 @@ let fadeAlpha = 0;
 let fadingIn = true;
 /** Tempo restante do beat de silêncio (linha "---"). */
 let holdingBeat = 0;
-let waitingForChoice = false;
-let storyChoices: Record<string, string> = {};
 
 /** Velocidade do texto (caracteres por segundo) */
 const TEXT_SPEED = 40;
@@ -287,7 +288,6 @@ export function showCutscene(): void {
   lineComplete = false;
   fadeAlpha = 0;
   fadingIn = true;
-  waitingForChoice = false;
 }
 
 /**
@@ -306,9 +306,11 @@ export function showCutscene(): void {
  * fila do NÚCLEO (`NUCLEO_RUSH`). A abertura passou a ser cena própria e a
  * linha da MOTHERSHIP foi para o meio do epíLOGO, onde a coisa aconteceu.
  *
- * O EPÍLOGO é o ÚLTIMO índice da lista, e essa ordem é contrato: `selectChoice`
- * insere as linhas do final na cena corrente, e `skipCutscene` só encerra o
- * jogo na última. `cutscene.test.ts` cobre as duas.
+ * O EPÍLOGO é o ÚLTIMO índice da lista, e essa ordem é contrato:
+ * `skipCutscene` só encerra o jogo na última. `cutscene.test.ts` cobre.
+ * O epílogo não tem mais escolhas: a reescrita de 2026-10-13 (DECISIONS
+ * #174) trocou os 3 finais por NARRADOR + créditos da jornada + teaser
+ * AHB-45, e a maquinaria de escolhas saiu junto (semOrfao limpo).
  */
 const FASE_PARA_CUTSCENE: Record<number, number> = {
   0: 0,   // Cidade -> PRÓLOGO
@@ -346,34 +348,6 @@ export function isEpilogueScene(): boolean {
   return currentCutsceneIndex === EPILOGUE_CUTSCENE;
 }
 
-export function isWaitingForChoice(): boolean {
-  return waitingForChoice;
-}
-
-export function selectChoice(index: number): void {
-  if (!waitingForChoice) return;
-  const line = getCurrentLine();
-  if (line.choices && index < line.choices.length) {
-    const effect = line.choices[index].effect;
-    storyChoices[`scene_${currentCutsceneIndex}_line_${currentLineIndex}`] = effect;
-    waitingForChoice = false;
-
-    // linhas do final conforme a escolha
-    const scene = getCurrentCutscene();
-    const endingLines = ENDINGS[effect];
-    if (endingLines) {
-      const insertAt = currentLineIndex + 1;
-      for (let i = endingLines.length - 1; i >= 0; i--) {
-        scene.lines.splice(insertAt, 0, { speaker: 'narrador', text: endingLines[i] });
-      }
-    }
-
-    currentLineIndex++;
-    textProgress = 0;
-    lineComplete = false;
-  }
-}
-
 export function advanceCutscene(): boolean {
   if (!showingCutscene) return false;
 
@@ -384,12 +358,6 @@ export function advanceCutscene(): boolean {
   if (!lineComplete) {
     lineComplete = true;
     textProgress = getCurrentLine().text.length;
-    return false;
-  }
-
-  const line = getCurrentLine();
-  if (line.choices && line.choices.length > 0) {
-    waitingForChoice = true;
     return false;
   }
 
@@ -418,12 +386,9 @@ export function skipCutsceneText(): void {
  * Pula a cutscene inteira.
  *
  * @returns true se isso encerrou o jogo (última cutscene)
- *
- * Não atravessa escolha pendente: pular o epílogo deixaria o jogador sem
- * final nenhum.
  */
 export function skipCutscene(): boolean {
-  if (!showingCutscene || waitingForChoice) return false;
+  if (!showingCutscene) return false;
   showingCutscene = false;
   currentCutsceneIndex++;
   currentLineIndex = 0;
@@ -474,24 +439,3 @@ export function getBeatRestante(): number {
 export function getPortraitInfo(speaker: Character): { name: string; color: string; sprite: string } {
   return PORTRAITS[speaker];
 }
-
-const ENDINGS: Record<string, string[]> = {
-  home: [
-    'Rios desligou o núcleo e voltou pela estrada, sem pressa.',
-    'O céu ficou quieto. Nenhum deles descia mais do alto.',
-    'Ele achou a casa do Joe no caminho. A porta ainda abria. Sentou na varanda.',
-    'Duas xícaras. Dessa vez ele encheu as duas.',
-  ],
-  rebuild: [
-    'Rios ficou no buraco onde estava o batalhão. Não tinha mais ninguém.',
-    'Ele começou a juntar as peças da nave. Sem pressa. Peça por peça.',
-    'A nave não voa, mas o casco segura o vento. Dá pra dormir dentro.',
-    'O rádio chia na 4.7. Ele deixa ligado, por via das dúvidas.',
-  ],
-  search: [
-    'Rios seguiu sozinho, atrás de boato de gente.',
-    'Meses depois achou um acampamento: doze almas que não desistiam.',
-    'Ele contou da MegaCorp 2089. Cada nome, cada rosto que perdeu.',
-    'A nave quebrada ainda está no galpão. Quando tiver peça, eles vão atrás deles.',
-  ],
-};

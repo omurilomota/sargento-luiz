@@ -87,12 +87,16 @@ async function limparCena() {
   return true;
 }
 
-/** Avança o diálogo até acabar, escolhendo a 1ª opção se houver escolha. */
+/** Avança o diálogo até acabar. */
 async function fecharCenaPorTeclas() {
-  for (let i = 0; i < 40; i++) {
+  // O teto é 2 toques por linha (um completa, um avança) + margem: o epílogo
+  // da Parte I tem 29 linhas e o teto antigo (40) deixava a cena aberta no
+  // meio dela — a prova passava porque o epílogo não está no contrato de
+  // fases, mas a cena deixava de ser atravessada de verdade.
+  for (let i = 0; i < 160; i++) {
     const c = await cena();
     if (!c.ativa) return;
-    await page.keyboard.press(c.esperandoEscolha ? '1' : 'Enter');
+    await page.keyboard.press('Enter');
     await page.waitForTimeout(160);
   }
 }

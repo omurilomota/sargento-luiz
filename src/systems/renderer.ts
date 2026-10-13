@@ -18,7 +18,7 @@ import { isSkillActive } from './skills';
 import { getSprite, getEnemyCharacter, poseKey, drawSpriteFit, Pose, isSpritesEnabled } from './sprites';
 import { buildCutsceneBackdrop, cutsceneVeil } from './terrain';
 import { getIsReloading, getWeaponFamily, WeaponFamily } from '../weapons';
-import { getCurrentCutscene, getCurrentLine, isLineComplete, getTextProgress, getPortraitInfo, isWaitingForChoice, getBeatRestante } from './story';
+import { getCurrentCutscene, getCurrentLine, isLineComplete, getTextProgress, getPortraitInfo, getBeatRestante } from './story';
 import { estaEmTelaCheia } from './fullscreen';
 import { getEquippedSkin } from './skins';
 import { hasSave } from './saveSystem';
@@ -395,7 +395,7 @@ export function drawMenu(selectedMode: string = 'campaign', selectedClass: Class
   // crédito das faixas — obrigatório por licença
   ctx.fillStyle = PALETTE.textOff;
   ctx.font = '11px monospace';
-  ctx.fillText('Música: faixas originais do projeto (CC0) — assets/music/CREDITS.md', W / 2, H - 12);
+  ctx.fillText('Música: Juhani Junkala (CC0) e Eric Matyas (soundimage.org) — assets/music/CREDITS.md', W / 2, H - 12);
 }
 
 // ─── Cutscene ───────────────────────────────────────────────────
@@ -465,32 +465,14 @@ export function drawCutscene(): void {
     wrapText(ctx, displayedText, portraitX + portraitR + 16, portraitY + 10, canvas.width * 0.6, 22);
   }
 
-  if (isWaitingForChoice() && line.choices) {
-    ctx.fillStyle = 'rgba(0,0,0,0.7)';
-    ctx.beginPath();
-    ctx.roundRect(canvas.width / 2 - 200, canvas.height / 2 + 30, 400, line.choices.length * 40 + 20, 5);
-    ctx.fill();
-    line.choices.forEach((choice, i) => {
-      ctx.fillStyle = PALETTE.mustard;
-      ctx.font = '14px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText(`${i + 1}. ${choice.text}`, canvas.width / 2, canvas.height / 2 + 50 + i * 40);
-    });
-    ctx.fillStyle = PALETTE.textDim;
-    ctx.font = '11px monospace';
-    ctx.fillText('Pressione 1, 2 ou 3', canvas.width / 2, canvas.height / 2 + 50 + line.choices.length * 40 + 10);
-  }
-
-  if (!isWaitingForChoice()) {
-    // Sempre visível: antes o prompt só aparecia DEPOIS de a linha terminar,
-    // então quem não sabia o truque ficava preso vendo o texto digitar.
-    ctx.fillStyle = PALETTE.textOff;
-    ctx.font = '12px monospace';
-    ctx.textAlign = 'right';
-    ctx.globalAlpha = complete ? 0.3 + Math.sin(Date.now() / 500) * 0.3 : 0.55;
-    ctx.fillText('ENTER: avançar  ·  BACKSPACE: pular', canvas.width - 30, canvas.height - 30);
-    ctx.globalAlpha = 1;
-  }
+  // Sempre visível: antes o prompt só aparecia DEPOIS de a linha terminar,
+  // então quem não sabia o truque ficava preso vendo o texto digitar.
+  ctx.fillStyle = PALETTE.textOff;
+  ctx.font = '12px monospace';
+  ctx.textAlign = 'right';
+  ctx.globalAlpha = complete ? 0.3 + Math.sin(Date.now() / 500) * 0.3 : 0.55;
+  ctx.fillText('ENTER: avançar  ·  BACKSPACE: pular', canvas.width - 30, canvas.height - 30);
+  ctx.globalAlpha = 1;
 
   ctx.strokeStyle = 'rgba(255,255,255,0.06)';
   ctx.beginPath();
@@ -682,7 +664,7 @@ export function drawCredits(): void {
   const linhas: { texto: string; cor: string; tamanho: string; peso: string }[] = [
     { texto: 'MÚSICA', cor: PALETTE.mustard, tamanho: '13px', peso: 'bold ' },
     { texto: 'Juhani Junkala / SubspaceAudio (CC0) — Post Apocalyptic Wastelands (menu)', cor: PALETTE.text, tamanho: '12px', peso: '' },
-    { texto: 'Eric Matyas (soundimage.org) — Automation, Darkness Below, Puzzle Dreams', cor: PALETTE.text, tamanho: '12px', peso: '' },
+    { texto: 'Eric Matyas (soundimage.org) — Automation, Darkness Below, Puzzle Dreams, Autumn Changes', cor: PALETTE.text, tamanho: '12px', peso: '' },
     { texto: 'Uso gratuito com atribuição desta tela e do CREDITS.md', cor: PALETTE.textDim, tamanho: '11px', peso: '' },
     { texto: '', cor: PALETTE.textDim, tamanho: '11px', peso: '' },
     { texto: 'SFX', cor: PALETTE.mustard, tamanho: '13px', peso: 'bold ' },

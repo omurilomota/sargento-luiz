@@ -187,14 +187,8 @@ document.addEventListener('keydown', e => {
   // focável para o Tab estar fazendo algo útil.
   if (key === 'Tab') e.preventDefault();
 
-  // cutscene: escolhas e avanço
+  // cutscene: avanço
   if (isShowingCutscene()) {
-    if (isWaitingForChoiceSafe()) {
-      if (key === '1') selectChoiceSafe(0);
-      if (key === '2') selectChoiceSafe(1);
-      if (key === '3') selectChoiceSafe(2);
-      return;
-    }
     if (k === 'backspace' || key === 'ç') {
       if (skipCutscene()) startRun();
     }
@@ -377,10 +371,10 @@ canvas.addEventListener('mousedown', e => {
   if (state === 'playing') mouse.down = true;
 
   // cutscene tem dono próprio: clique avança a fala, sem roubar o tiro nem o
-  // menu por baixo. Enquanto espera escolha, o clique não faz nada — escolher
-  // é 1/2/3, e um clique sem alvo não pode selecionar a opção errada.
+  // menu por baixo. Um clique sem alvo não pode selecionar nada errado —
+  // dentro de cutscene o clique só avança a fala.
   if (isShowingCutscene()) {
-    if (!isWaitingForChoice()) cutsceneClick = true;
+    cutsceneClick = true;
     e.preventDefault();
     return;
   }
@@ -556,12 +550,6 @@ let worldH = 720;
 let wallRects: { x: number; y: number; w: number; h: number }[] = [];
 let mapDensity = 0;
 let reachZones: ReachZone[] = [];
-
-/** Importações tardias para evitar ciclo com o estado local acima. */
-import { isWaitingForChoice, selectChoice } from './systems/story';
-
-function isWaitingForChoiceSafe(): boolean { return isWaitingForChoice(); }
-function selectChoiceSafe(i: number): void { selectChoice(i); }
 
 /**
  * Acha uma célula andável a 8–12 células do spawn, para o sobrevivente do
@@ -1761,6 +1749,10 @@ function leaveShop(): void {
     if (wasGameCompleted()) {
       setGameState('playing');
       showCutsceneAt(EPILOGUE_CUTSCENE);
+      // A música nostálgica da reescrita (DECISIONS #174): Autumn Changes,
+      // de Eric Matyas — a mesma fonte das 4 faixas. Ela segue tocando sob a
+      // tela de fim; o menu troca para a faixa dele quando o jogador volta.
+      void playMusic('epilogo');
     }
     return;
   }
@@ -2852,7 +2844,6 @@ window.__ashfall = {
     ativa: isShowingCutscene(),
     titulo: getCurrentCutscene().title,
     linha: getCurrentLine().text.slice(0, 40),
-    esperandoEscolha: isWaitingForChoice(),
   }),
   // avança de fase direto, sem passar pela loja (harness de narrativa)
   pularParaProximaFase: () => { leaveShop(); return getCurrentPhase().name; },

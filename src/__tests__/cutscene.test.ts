@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   CUTSCENES, showCutscene, advanceCutscene, skipCutscene, skipCutsceneText,
-  isShowingCutscene, updateCutscene, isLineComplete, isWaitingForChoice,
-  selectChoice, resetStory, getCurrentLine, cutsceneForPhase,
+  isShowingCutscene, updateCutscene, isLineComplete,
+  resetStory, getCurrentLine, cutsceneForPhase,
   EPILOGUE_CUTSCENE, isEpilogueScene,
 } from '../systems/story';
 import { PHASES } from '../config';
@@ -42,8 +42,7 @@ function toquesInertes(): number {
     if (terminou) break;
     const mudouAlgo =
       getCurrentLine() !== antesLinha ||
-      isLineComplete() !== antesCompleta ||
-      isWaitingForChoice();
+      isLineComplete() !== antesCompleta;
     if (!mudouAlgo) inertes++;
   }
   return inertes;
@@ -85,7 +84,6 @@ describe('diálogo: ENTER nunca fica inerte', () => {
       let guarda = 0;
       while (isShowingCutscene() && guarda++ < 900) {
         advanceCutscene();
-        if (isWaitingForChoice()) { selectChoice(0); break; }
       }
       cenas++;
       if (cenas > CUTSCENES.length + 2) break;
@@ -130,19 +128,22 @@ describe('diálogo: BACKSPACE pula a cutscene inteira', () => {
     expect(skipCutscene()).toBe(false);
   });
 
-  it('não atravessa escolha pendente — senão o epílogo não teria final', () => {
+  it('o epílogo atravessa só com ENTER e pula com BACKSPACE (sem escolhas)', () => {
+    // A reescrita de 2026-10-13 (DECISIONS #174) trocou os 3 finais por
+    // NARRADOR + créditos da jornada + teaser AHB-45. O contrato novo:
+    // nenhuma tela espera tecla que não seja ENTER/BACKSPACE — a
+    // maquinaria de escolhas (selectChoice/isWaitingForChoice) saiu junto,
+    // e este teste atravessa a última cena inteira para provar que ela
+    // termina sozinha.
     resetStory();
     pularPara(ULTIMA);
     showCutscene();
     let guarda = 0;
-    while (guarda++ < 900 && !isWaitingForChoice()) advanceCutscene();
-    expect(isWaitingForChoice()).toBe(true);
-
-    expect(skipCutscene()).toBe(false);
-    expect(isWaitingForChoice()).toBe(true);
-
-    selectChoice(0);
-    expect(isWaitingForChoice()).toBe(false);
+    while (isShowingCutscene() && guarda++ < 900) {
+      advanceCutscene();
+    }
+    expect(guarda).toBeLessThan(900);
+    expect(isShowingCutscene()).toBe(false);
   });
 });
 
@@ -191,6 +192,20 @@ describe('a fase final não abre o epílogo', () => {
     // dela a queda vem depois do NÚCLEO parar — nunca abre a cena.
     const primeira = CUTSCENES[EPILOGUE_CUTSCENE].lines[0].text;
     expect(primeira).not.toMatch(/MOTHERSHIP cai/i);
+  });
+
+  it('o epílogo fecha com o roll da jornada e o teaser da Parte II', () => {
+    // H4 (DECISIONS #174): NARRADOR + créditos da jornada + música nostálgica
+    // + teaser AHB-45. O roll cita quem a jornada perdeu e quem ficou no
+    // rádio — é o conteúdo do pedido do dono, travado aqui para um texto
+    // futuro não apagar a homenagem sem notar.
+    const texto = CUTSCENES[EPILOGUE_CUTSCENE].lines.map(l => l.text).join(' ');
+    for (const nome of ['Joe', 'Arthur', 'Fernandes', 'Ferreira', 'Vale']) {
+      expect(texto, `o roll da jornada não cita ${nome}`).toContain(nome);
+    }
+    expect(texto).toContain('FIM DA PARTE I');
+    expect(texto).toContain('AHB-45');
+    expect(texto).toContain('PART II EM BREVE');
   });
 
   it('isEpilogueScene só reconhece a cena do epílogo', () => {

@@ -4,7 +4,7 @@
 
 **Mista:**
 - `menu.ogg` — **CC0** (domínio público; crédito é cortesia, não obrigação)
-- `combat.ogg`, `boss.ogg`, `shop.ogg` — **Royalty-Free com atribuição obrigatória** — Eric Matyas / soundimage.org
+- `combat.ogg`, `boss.ogg`, `shop.ogg`, `epilogo.ogg` — **Royalty-Free com atribuição obrigatória** — Eric Matyas / soundimage.org
 
 ## Origem
 
@@ -14,10 +14,16 @@
 | `combat.ogg` | Automation.ogg | soundimage.org/looping-music/ | RF com atribuição |
 | `boss.ogg` | The-Darkness-Below_Looping.ogg | soundimage.org/looping-music/ | RF com atribuição |
 | `shop.ogg` | Puzzle-Dreams.ogg | soundimage.org/looping-music/ | RF com atribuição |
+| `epilogo.ogg` | Autumn-Changes_Looping.mp3 (transcodado MP3→OGG, libvorbis q5) | soundimage.org/introspective/ | RF com atribuição |
 
 `menu.ogg` é "Post Apocalyptic Wastelands [Loop Ready]" de
 Juhani Junkala / SubspaceAudio, da página "Horror Atmosphere"
 do OpenGameArt — CC0, loop perfeito de 5:23, temática pós-apocalíptica.
+
+`epilogo.ogg` é "Autumn Changes (Looping)" de Eric Matyas — a faixa
+nostálgica do epílogo reescrito (DECISIONS #174): "as the chilly autumn
+wind whisks summer away, a chapter closes in our lives as another one
+begins". 1:46 de loop, tocada no epílogo e sob a tela de fim.
 
 Os 4 arquivos originais sintetizados por `tools/genmusic.py` foram preservados
 em `/tmp/{menu,combat,boss,shop}_synth.ogg` durante o desenvolvimento para
