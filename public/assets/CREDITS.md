@@ -46,6 +46,21 @@ personagens, então pertencem à camada de objetos do jogo; o chão/parede
 continua sendo o Screaming Brain. O símbolo do power-up ficou como legenda
 abaixo da gema — ele é texto de UI, e é o que distingue `botas` de `reflexos`.
 
+**Michael J Pierce / IsometricRobot — Saturn V Pixel Rocket** ·
+[opengameart.org/content/saturn-v-pixel-rocket](https://opengameart.org/content/saturn-v-pixel-rocket) ·
+**CC-BY 3.0** (atribuição obrigatória: "Saturn V Pixel Rocket by Michael J
+Pierce @ IsometricRobot.com")
+
+- `assets/sprites/props/foguete.png` — o foguete do Castelo: o alvo que o
+  jogador protege na fase (decisão do dono de 2026-10-12) e que voa na saída.
+  Fundo preto recortado para transparência, altura reduzida para 384px.
+
+A busca olhou primeiro os packs de espaço já no disco (Kenney Top-down
+Shooter não tem foguete/forno de lançamento; o `foguete.png` de `bullets/` é
+o projétil da RPG, não um veículo). O candidato "Damaged rocket" (CC-BY 4.0)
+foi rejeitado por estilo: cartoon vetorial com aro roxo, incompatível com o
+flat do jogo.
+
 **Kenney — Top-down Shooter** · [kenney.nl](https://kenney.nl) · **CC0 1.0 Universal**
 (domínio público: sem atribuição obrigatória, atribuída aqui por cortesia)
 
