@@ -202,29 +202,43 @@ def finish(g, name, player_target, spawns, boss=None, nests=(), reach=None):
 # ───────────────────────── cada mapa ─────────────────────────
 
 def rodovia():
-    """A estrada norte — um corredor de asfalto com o pedágio no meio."""
+    """A estrada norte: pistas, canteiro com passagens e a praça de pedágio.
+
+    Redesenho de 2026-10-14 — o relato do Murilo foi "umas das piores
+    rodovias já feitas", e era: um corredor com uma mureta no meio não é
+    uma estrada. Agora o asfalto atravessa o mapa inteiro em duas pistas
+    com canteiro, o guarda-corpo vaza para o campo pelos acostamentos, a
+    cancela é o vão entre as cabines do pedágio e os carros pararam em
+    fila nas faixas — cobertura de verdade no lugar de `scatter` aleatório.
+    """
     g = blank()
-    # a estrada corre horizontal, com o pedágio (mureta) no centro
+    # asfalto: as pistas ocupam as linhas 6..15, com o acostamento marcado
     for c in range(1, W - 1):
-        g[3][c] = ','; g[16][c] = ','
-    # mureta do pedágio (cobertura)
-    for r in range(4, 16):
-        for c in range(12, 15):
+        for r in range(6, 16):
+            g[r][c] = DECOR if r in (6, 15) else FLOOR
+    # canteiro central (mureta dupla) com passagens
+    for c in range(1, W - 1):
+        if c not in (3, 8, 13, 18, 23, 27):
+            g[10][c] = WALL
+            g[11][c] = WALL
+    # guarda-corpo com aberturas — o acostamento vaza para o campo
+    for c in range(1, W - 1):
+        if c not in (2, 7, 12, 17, 22):
+            g[5][c] = WALL
+        if c not in (4, 9, 14, 19, 24):
+            g[16][c] = WALL
+    # praça de pedágio: as cabines nas duas pistas, a cancela é o vão
+    for r in (7, 8, 12, 13):
+        for c in (12, 17):
             g[r][c] = WALL
-    for r in range(4, 16):
-        for c in range(16, 18):
-            g[r][c] = WALL
-    g[9][12] = FLOOR; g[10][12] = FLOOR  # vão da cancela
-    g[9][16] = FLOOR; g[10][16] = FLOOR
-    # carros abandonados como cobertura
-    scatter(g, CRATE, 5, 61)
-    scatter(g, BARREL, 3, 62)
-    scatter(g, DECOR, 6, 63)
-    # hazard: destroços na pista
-    for r, c in ((5, 8), (7, 22), (12, 6), (14, 25)):
-        g[r][c] = HAZARD
-    return finish(g, 'rodovia', (18, 14), [(3, 14), (16, 3), (16, 26), (8, 4)],
-                  boss=(9, 20), reach=None)
+    # carros abandonados: parados em fila nas faixas
+    for r, c in ((8, 5), (8, 6), (9, 20), (13, 4), (13, 5), (14, 22), (8, 24), (13, 18)):
+        g[r][c] = CRATE
+    # barris no acostamento
+    for r, c in ((6, 10), (15, 3), (15, 26), (6, 18)):
+        g[r][c] = BARREL
+    return finish(g, 'rodovia', (17, 15), [(2, 4), (2, 15), (2, 26), (17, 4), (17, 26)],
+                  boss=(9, 15), reach=None)
 
 def hospital():
     """Corredores de hospital — salas que saem de um corredor central."""
@@ -260,10 +274,15 @@ def hospital():
 def trens():
     """Pátio de trens — trilhos paralehos com vagões entre eles."""
     g = blank()
-    # trilhos horizontais (linhas de hazard elétrico)
+    # trilhos horizontais (hazard elétrico). Medido (2026-10-14): 3 linhas
+    # cheias, depois 3 segmentadas, matavam no hazard — o elétrico é o tick
+    # mais caro do jogo (14). Ficam DOIS trilhos, em segmentos curtos: pátio
+    # de manobras tem desvio, não cerca elétrica.
     for c in range(1, W - 1):
-        if c not in (5, 15, 25):
-            g[4][c] = HAZARD; g[10][c] = HAZARD; g[14][c] = HAZARD
+        if c % 7 < 4:
+            g[4][c] = HAZARD
+            if c % 8 < 4:
+                g[14][c] = HAZARD
     # vagões (blocos de parede)
     for r0 in (5, 11, 15):
         for c0 in (3, 10, 17, 24):

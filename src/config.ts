@@ -78,12 +78,14 @@ export const PHASES: Phase[] = [
     // O foguete do Castelo precisa de combustível. Esta refinaria tem.
     // O fogo aqui é de trabalho: elementais, infernos e a lama que queima.
     name: 'Refinaria', bg: '#2a1e14', bgColor2: '#150f08', gridColor: 'rgba(180,100,60,0.08)',
-    enemyTypes: ['fireElemental', 'inferno', 'lavaSlime'], waves: 6, map: 'refinaria', hazard: 'lava',
-    // 0.80 (não 0.90): medido — o inferno (tiro a cada 0,6s + spread) matava
-    // o bot às 32s em 2 de 2 amostras a 0.90; a Refinaria é fogo de cenário,
-    // não a caldeira do Vulcão. O custo segue na janela do balance (Pântano
-    // 2197 < 2484 < Castelo 2864).
-    difficulty: 0.80, objective: 'clear', objectiveTarget: 0, boss: 'torre',
+    enemyTypes: ['runner', 'lavaSlime', 'robot'], waves: 6, map: 'refinaria', hazard: 'lava',
+    // (runner, lavaSlime, robot) a 0.78 (2026-10-14): medido — o inferno
+    // (tiro a cada 0,6s + spread) matava às 32s em 3/4 amostras, e o
+    // fireElemental ALFORRAFAVA o chão de fogo (leavesFire: cada morte vira
+    // poça) — a Refinaria virava um mini-Vulcão no meio da campanha. Sem os
+    // dois, o enxame de runner ainda prendia no bot às 24-32s a 0.86: 0.78
+    // deixa o pátio respirável e o custo na janela (2197 < 2472 < 2864).
+    difficulty: 0.78, objective: 'clear', objectiveTarget: 0, boss: 'torre',
   },
   {
     name: 'Castelo', bg: '#2e2e1a', bgColor2: '#1a1a0d', gridColor: 'rgba(150,150,100,0.1)',
