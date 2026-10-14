@@ -1,14 +1,14 @@
-# SARGENTO RIOS — Status Geral do Projeto
+# SARGENTO LUIZ — Status Geral do Projeto
 
-> Atualizado: 2026-10-14 · branch `develop` (v2 mesclada) ·
-> 969 testes em 56 arquivos · `tsc` limpo · build ok.
-> Este arquivo estava parado na v1.3 (420 testes, nome ASHFALL) e foi
-> reconciliado com o código.
+> Atualizado: 2026-10-14 · branch `develop` · 1167 testes em 58 arquivos ·
+> `tsc` limpo · build ok.
+> (antes: SARGENTO RIOS, e antes disso ASHFALL — o jogo trocou de nome duas
+> vezes e o save migra as duas gerações de prefixo)
 
 ## Verificação atual
 
 ```
-npm test           # 969 passando em 56 arquivos
+npm test           # 1167 passando em 58 arquivos
 npx tsc --noEmit   # 0 erros
 npm run build      # ok
 npm run visual     # 8 screenshots, sem 404/pageerror
@@ -20,7 +20,7 @@ npm run protect    # 2 cenários — chefe morto/vivo × alvo cai: sem onda pós
 npm run foguete    # o protect do Castelo defende o FOGUETE: HUD e ondas no alvo
 npm run vulcao     # B3: o countdown não arma com objetivo pendente; loja só após a luta
 npm run variedade  # personagem de inimigo muda por fase (57% entre vizinhas)
-npm run fases      # MEDE as 9 fases — número por fase (FUTURO §1.4 ✅)
+npm run fases      # MEDE as 16 fases — número por fase (FUTURO §1.4 ✅)
 npm run diagnostico# nenhum inimigo dentro de parede, dodge afasta em 360°
 npm run espaco     # reproduz, MAS só contra jogador que não desvia (ver §1.4)
 npm run sessao     # sessão longa com telemetria de dano por fonte
@@ -113,6 +113,48 @@ Direção do jogo: [`docs/DESIGN.md`](docs/DESIGN.md) ·
 pendências: [`TODO.md`](TODO.md) ·
 decisões autônomas: [`docs/DECISIONS.md`](docs/DECISIONS.md) ·
 ordem das frentes: [`ROADMAP.md`](ROADMAP.md)
+
+---
+
+## Entrega: 16 fases, SARGENTO LUIZ, e os encontros em jogo (2026-10-14 15:13, `ab4c7b0`)
+
+A atualização que o Murilo trouxe: a história com nome de gente, a ordem das
+fases mantida, e os bugs do relato. A campanha dobra (9 → 16 fases) com as 7
+que ele aprovou — Rodovia, Hospital, Pátio de Trens, Ponte, Refinaria,
+Subestação, Porto — cada uma com mapa validado no `genmaps.py`, bioma no pack,
+cutscene com as falas dele e chefe na curva.
+
+- **Rename RIOS → LUIZ em tudo** (título, chaves, falas, site, itch). A
+  migração de save cobre as DUAS gerações: `ashfall.*` e `rios.*` → `luiz.*`,
+  a mais recente vence.
+- **O Castelo sem sacrifício fixo**: o Júlio (ex-Fernandes) é bônus — o
+  `protect` defende o FOGUETE. A morte dele não reinicia a fase (o glitch
+  "onda 1/6"); sobreviver paga a chave do quarto 4B e o diário dele.
+- **O Hospital do doutor Fernando**: a conversa do Zombonic-24 na onda 1, o
+  Nando-01 na virada (o doutor É o chefe — FERNANDO INFECTADO, buffado), o
+  mapa da região no abate.
+- **A cápsula existe desde o início da Fábrica**: cobre tiro sem quebrar, o
+  estouro é no lugar dela, o véu verde de radiação dura 14s e 5 zumbis saem.
+- **Bugs do relato**: a bala nunca sai mais lenta que quem atira (medido:
+  744px/s de corrida contra balas de 400); a caixa anda com clique do mouse;
+  cada NPC veste o PRÓPRIO sprite (todos eram `survivor`); o foguete degrada
+  com dano (inclina + fumaça do pack).
+- **Balance recalibrado para 16 fases**: a curva de custo é monotônica com
+  salto < 110%; a escada de perks subiu nos degraus altos (4.520 → 6.510) —
+  o árbitro de economia volta à banda 2,5-4,5× a renda de abate.
+- **Provas**: story-proof 37/37 (joga as ondas de verdade — o check da
+  Fábrica passava por coincidência do acumulador do spawner, DECISIONS #203);
+  campanha 16/16 com os 7 chefes novos; castelo-wave PROVA VERDE; cacador
+  3/3; vulcao ok. Fases medidas: 13/16 aguentam 45s+, Pântano era ruído de
+  amostra, Refinaria re-calibrada (0.90 → 0.80: o inferno matava em 2/2).
+
+Pendências para a IA de imagens revisar: os PNGs de `tools/shots/` (visual +
+as 16 cenas + encontro-júlio/encontro-doutor + foguete t1/t8) e os picks de
+tile das 7 cenas novas (`CENAS_CUTSCENE` — âncoras semânticas, não curadoria
+final).
+
+O itch precisa da página nova: `sargento-luiz` (o link do site e do
+SUPPORT_URL apontam para ela).
 
 ---
 
