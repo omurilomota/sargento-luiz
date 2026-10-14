@@ -297,11 +297,11 @@ document.addEventListener('keydown', e => {
   if (key === ' ') { if (useSkill('dash')) { limparDashFantasma(); sfxDash(); } }
   if (k === 'f') { if (useSkill('shield')) sfxShield(); }
   if (k === 'e') {
-    if (useSkill('fury')) sfxFury();
     // H2: a fúria começa travada — o gate é a história da Fábrica do
-    // Fernando. Apertar E antes precisa dizer POR QUÊ não sai, senão a
-    // tecla parece quebrada (o jogador não lê TODO.md).
-    else if (!furiaDesbloqueada()) pushToast('FÚRIA TRAVADA — ELA ABRE NA HISTÓRIA', 3, 'aviso');
+    // Fernando. Murilo (2026-10-14): a liberação é SEGREDO — apertar E
+    // antes da hora não avisa nada, a tecla é só silêncio. O grito
+    // "FÚRIA DESBLOQUEADA" na morte do Fernando é a surpresa inteira.
+    if (useSkill('fury')) sfxFury();
   }
   if (k === 'r') startReload();
   if (k === 'j') toggleNpcFollow();
@@ -2466,10 +2466,14 @@ function buildHudData(): HudData {
     weaponStats: buildWeaponSheet(),
     combo: getCombo(),
     comboDecay: getComboDecay(),
+    // Murilo (2026-10-14): a fúria é SEGREDO até a Fábrica — enquanto
+    // travada, ela não existe no HUD (nem a caixa, nem o rótulo). O
+    // "FÚRIA DESBLOQUEADA" na morte do Fernando é a primeira vez que o
+    // jogador vê que ela existe.
     skills: [
       { key: 'SPC', name: 'Dash', cooldown: getSkillCooldown('dash'), maxCooldown: getSkillMaxCooldown('dash'), active: isSkillActive('dash') },
       { key: 'F', name: 'Escudo', cooldown: getSkillCooldown('shield'), maxCooldown: getSkillMaxCooldown('shield'), active: isSkillActive('shield') },
-      { key: 'E', name: 'Furia', cooldown: getSkillCooldown('fury'), maxCooldown: getSkillMaxCooldown('fury'), active: isSkillActive('fury') },
+      ...(furiaDesbloqueada() ? [{ key: 'E', name: 'Furia', cooldown: getSkillCooldown('fury'), maxCooldown: getSkillMaxCooldown('fury'), active: isSkillActive('fury') }] : []),
     ],
     activePowerups,
     powerupMeta: Object.fromEntries(Object.entries(POWERUP_TYPES).map(([k, v]) => [k, { color: v.color, symbol: v.symbol }])),

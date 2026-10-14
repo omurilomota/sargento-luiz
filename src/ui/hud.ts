@@ -560,12 +560,23 @@ function drawTopRight(d: HudData, W: number, _H: number): void {
   ctx!.font = 'bold 14px monospace';
   ctx!.fillText(`HOSTIS ${d.enemies}`, W - INSET, mmY + 26);
 
+  // Murilo (2026-10-14): as skills aparecem como TEXTO no topo-direita —
+  // tecla + nome + cooldown em linha única, na mesma coluna das moedas
+  // e dos hostis. A caixa de cooldown continua na coluna esquerda.
+  const ativo = (s: HudSkill) => s.cooldown <= 0 && !s.active;
+  const texto = d.skills.map(s =>
+    `${s.key}: ${s.name.toUpperCase()}${s.active ? ' ●' : s.cooldown > 0 ? ` ${Math.ceil(s.cooldown)}s` : ativo(s) ? ' ✓' : ''}`
+  ).join(' · ');
+  ctx!.fillStyle = PALETTE.textDim;
+  ctx!.font = '11px monospace';
+  ctx!.fillText(texto, W - INSET, mmY + 40);
+
   // minimapa: agora mapeia mundo → minimapa, então é informativo de verdade
-  drawMinimap(d, mmX, mmY + 36, mmW, mmH);
+  drawMinimap(d, mmX, mmY + 50, mmW, mmH);
 
   // timers de power-up ativo, logo abaixo do minimapa
   let px = W - INSET - 10;
-  const py = mmY + 36 + mmH + 14;
+  const py = mmY + 50 + mmH + 14;
   for (const key of Object.keys(d.activePowerups)) {
     const meta = d.powerupMeta[key];
     if (!meta) continue;

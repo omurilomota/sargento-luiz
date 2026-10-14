@@ -1673,4 +1673,24 @@
 // [ ] O VOO DO FOGUETE (pós-missão do Castelo): o beat hoje é texto +
 //     som. A animação do foguete subindo precisa de decisão de arte.
 // [ ] REPUBLICAR O ZIP NO ITCH — Murilo faz depois ("faço depois").
+
+// ─── AJUSTES PÓS-PUSH (2026-10-14, relatos do Murilo) ───
+// [x] A FÚRIA É SEGREDO (relato: "não gostei de ter avisado que a fúria
+//     vai ser liberada, ela tem que ser um segredo até a hora de ser
+//     liberada"): o toast "FÚRIA TRAVADA" saiu — apertar E antes da
+//     Fábrica é só silêncio; e o BOTÃO da fúria some do HUD enquanto
+//     travada (a caixa de cooldown não aparece, o jogador não sabe que
+//     ela existe). O "FÚRIA DESBLOQUEADA — TECLA E" na morte do Fernando
+//     é a primeira vez que o jogador vê que ela existe.
+// [x] AS SKILLS COMO TEXTO NO TOPO-DIREITA (relato: "vale um espaço na
+//     parte superior direita nos textos fúria, dash, etc."): o canto
+//     superior direito ganhou a linha "SPC: DASH · F: ESCUDO · E:
+//     FÚRIA" (com cooldown em segundos), na mesma coluna das moedas e
+//     dos hostis. O minimapa desceu 14px para abrir espaço.
+// [x] PISTOLA DE GRAÇA NA LOJA (relato: "a pistola sempre está de graça
+//     na loja, em todas as raridades, isso é muito roubado"): a causa
+//     era price: 0 no config — o preço zero era "você começa com ela",
+//     mas a loja usava o MESMO valor pra VENDER: uma Pistola Lendária
+//     saía de graça. Corrigido: price: 30 (a mais barata da loja, mas
+//     não grátis).
 //     Rebuild: npm run package com o HEAD de 872422a.
