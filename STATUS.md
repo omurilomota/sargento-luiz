@@ -156,6 +156,12 @@ final).
 O itch precisa da página nova: `sargento-luiz` (o link do site e do
 SUPPORT_URL apontam para ela).
 
+Calibração pós-push (`db0992b`, 15:44): medição do bot em 3 rodadas — a
+Rodovia redesenhada e o Trens com 2 trilhos aguentam 45s+; a Refinaria
+calibrou em 0.78 com mix (runner, lavaSlime, robot) a 3/5 amostras, a
+mesma faixa do Vulcão (o limite aceito). Pântano/Vulcão/Espaço seguem
+borderline por projeto — o "sofrida" que o Murilo pediu no fim da campanha.
+
 ---
 
 ## Entregas em paralelo (2026-10-12, frente de bugs/balance/dívidas)
