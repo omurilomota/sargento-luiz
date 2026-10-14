@@ -81,10 +81,12 @@ src/
 tools/
 ├── genmaps.py           # Gera e valida os 16 mapas (largura, borda, BFS)
 ├── genmusic.py          # Sintetiza as 4 faixas OGG (precisa de ffmpeg)
+├── extract_tiles.py     # Extrai pisos/paredes do pack Top Down Dungeon (CC0)
+├── montage.py           # Folha-contato rotulada de N screenshots (ver regra 16)
 ├── visual.mjs           # Harness Playwright: screenshots + 404/pageerror
 ├── session.mjs          # Sessão longa com telemetria (HP/onda/inimigos)
-├── bullet-proof.mjs     # Prova de orientação dos projéteis
-└── tilemap-proof.mjs    # Prova de colisão contra o grid
+└── *-proof.mjs          # Provas focadas: piso, story, onda, campanha, hud,
+                         # loja, fases, tilemap, bullet, castelo, vulcão...
 
 public/assets/           # Assets estáticos (Vite copia public/ → dist/)
 ├── sprites/topdown-shooter/PNG/  # Kenney Top-down Shooter, CC0
@@ -294,6 +296,8 @@ Regras que valem para toda IA neste projeto:
 15. **Visual vem de asset, nunca de código.** O usuário **odeia desenho procedural**. O pack em `public/assets/` é o visual; desenhar forma com `arc`/`fillRect`/`stroke`/`ellipse` em vez de usar o sprite é fazer arte no editor de código, e o resultado é lido como IA, não como jogo. Vale para parede, chão, inimigo, item, ícone e árvore. Antes de escrever código que desenha alguma coisa, procurar o tile correspondente. Procedural é permitido **só como fallback** de um asset que falhou ao carregar, e essa intenção tem que estar dita no comentário. Em dúvida entre "tile do pack" e "desenho meu": tile.
 
 16. **Mudança de render não é verificada por `npm test`.** A suíte testa geometria (números de `getShopLayout`, `getHudCenterLayout`), nunca pixels. É possível ter `tsc` limpo, 646 testes verdes, build ok e o HUD ilegível com texto sobre texto. Toda alteração em `renderer.ts`, `hud.ts`, `shop.ts`, `terrain.ts`, `props.ts`, `sprites.ts`, `audio.ts` ou `maps.ts` **exige** rodar `npm run visual` e **abrir os PNGs de `tools/shots/` com a ferramenta de leitura de imagem** — screenshot não lido é screenshot inexistente. Se o ambiente não tiver Chrome, isso entra no relatório como pendência explícita, nunca como "está funcionando". Vale o mesmo para `npm run sessao` quando a mudança mexe em balanceamento de HP/onda.
+
+    **Limite de imagens por input.** O modelo recebe no máximo 8 imagens por mensagem, e provas como a do piso geram 16+ shots. A resposta é a folha-contato: `python3 tools/montage.py shots/*.png --cols 4 --crop L,T,W,H --scale 0.55 --out folha.png` junta N shots numa grade rotulada — recortar a região do objeto antes de montar, porque a tela cheia com HUD desperdiça resolução na leitura. O PNG que esta regra manda abrir é a folha, não os shots soltos. Métrica automática de pixel serve só de filtro para decidir o que merece olho: a tentativa de medir a costura do piso por número aprovou/reprovou errado, porque a métrica confundia o rejunte assado na textura com a costura do render.
 
 ### Fluxo de Trabalho
 
