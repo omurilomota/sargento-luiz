@@ -511,6 +511,63 @@ pediu:
 
 ---
 
+## Auditoria de assets e tilesets — 2026-10-14, árvore de trabalho sobre `develop` @ `51be5c2`
+
+Entrega de **documento**, não de código: `docs/ASSETS.md`. Nada foi alterado em
+`src/` — é o inventário do que está errado, com a medição que sustenta cada
+linha, para o trabalho ser feito com a imagem aberta.
+
+O pedido foi revisar as imagens de assets/tilesets porque **a IA que fez esta
+base não é multimodal**: ela curou tile por número, sem olhar. O resultado é um
+tileset que nenhum gate pega — `tsc` limpo, 969 testes verdes, `npm run visual`
+sem 404, e o chão é um papel quadriculado.
+
+**Achados, por gravidade:**
+
+- **P0 — piso com costura.** `sprites.ts:74` diz que o pack é *"seamless"*.
+  Medido: os 64 tiles têm faixa escura assada de ~2px em 2+ lados
+  (`piso_pedra_01` tem `col63 = 0.0`, preto puro, contra miolo 128).
+  Ladrilhado, vira grade de 64px. Causa: `extract_tiles.py:26` fatia
+  `LINHAS_PISO = (0,)`, que no pack é a faixa de BORDA do autotile, não o
+  miolo.
+- **P0 — parede com altura duplicada.** Os 96 tiles são blocos 3D com topo e
+  frente assados, e `drawWallEdges` desenha cumeeira + claraboia + beiral +
+  face de 14px por cima. No `castelo-000.png` isso vira barra cinza
+  atravessando o mapa.
+- **P1 — a Rodovia não parece uma rodovia** (relato do dono). Medido em
+  `docs/ASSETS.md` §4: (a) `rodovia` é `cidade` byte-idêntico em piso, parede
+  e tiles, mudando só o tint em 4% — o bloco foi escrito hoje ("Unidade A",
+  `maps.ts:357`) copiando o da cidade, linha `floorTiles` inclusive; (b) os 6
+  tiles que ela declara são laje terracota e preenchimento laranja — **nenhum é
+  asfalto**; (c) o mapa é labirinto de salas, sem pista contínua. E o pack **já
+  tem** asfalto, eixo amarelo, eixo branco, guarda-corpo e carro abandonado —
+  nenhum carregado.
+- **P1 — 16 biomas, 8 pisos, 6 paredes.** `piso_metal` em 5 biomas,
+  `parede_concreto` em 7, tijolo vermelho em pântano e castelo. Cidade e
+  rodovia saem idênticas; fábrica e trens também.
+- **P1 — saturação invertida.** Cenário 55-84%, personagens 22-57%, terreno
+  9-30%. A coisa mais saturada da tela é o fundo. E o objeto mais claro do
+  jogo é o quadrado bege `133` (84%), usado de decor no castelo.
+- **P2 — 4 tabelas apontam para o tile errado.** `WALL_TILES` (6 de 8
+  conjuntos são cantos em L laranja ou frestas; e o caminho é inalcançável —
+  órfão com consumidor só de teste), `spriteFor` (floresta = avião de papel),
+  `HAZARD_SPRITES` (fog e mud dividem uma mancha cinza; electric = cristal),
+  `CENAS_CUTSCENE`.
+- **P2 — cutscene vazia por construção.** 85% da tela é preto puro, o
+  "retrato" é um anel vazio desenhado por `arc`.
+- **P3 — dívida.** `public/assets/sprites/tiles/` com zero chamadores;
+  `biome.floorTiles` apontando para verde `#00c020` e laranja neon.
+
+**Nenhuma correção foi aplicada.** O backlog T1-T9 foi para o `TODO.md`,
+começando pelo portão `tiles.test.ts` (T3) — que pega sozinho a costura, o tile
+de papel errado e a saturação fora de hierarquia, e é o que falta para o
+próximo ciclo não repetir este.
+
+Evidência visual em `/tmp/opencode/assets-audit/` (efêmero; §0 do doc traz o
+script de reprodução).
+
+---
+
 ## Versão anterior: v1.3 (geometria + HUD)
 
 A v1.2 tinha 7 fases, 11 armas, 19 upgrades, 3 habilidades e 4 modos — e era

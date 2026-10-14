@@ -178,6 +178,13 @@ Identidade: **terra, cinza, ferrugem, verde morto**. Um elemento visual
 marcante, consistente: granulação e bordas irregulares sobre tudo. Nada de
 sparkle.
 
+> **Atenção (2026-10-14).** A auditoria em `docs/ASSETS.md` mediu que estas
+> regras **não descrevem o que está no disco**: o pack de terreno não é
+> seamless (o chão é papel quadriculado de 64px), a parede tem altura
+> duplicada, e a saturação está invertida — cenário a 55-84% contra terreno a
+> 9-30%. As regras continuam válidas como direção; o que está em
+> `public/assets/sprites/` não as cumpre. Backlog em `TODO.md` (T1-T9).
+
 ## 7. Direção de áudio
 
 - **SFX 100% procedurais** (Web Audio API). Cada arma e cada ação tem timbre

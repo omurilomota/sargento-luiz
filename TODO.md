@@ -1674,6 +1674,59 @@
 //     som. A animação do foguete subindo precisa de decisão de arte.
 // [ ] REPUBLICAR O ZIP NO ITCH — Murilo faz depois ("faço depois").
 
+// ─── TILESET (2026-10-14, auditoria em docs/ASSETS.md) ───
+// A IA que fez esta base não é multimodal: curou tile por número, sem
+// olhar. A auditoria mediu pixel e achou o que nenhum gate pegava.
+//     docs/ASSETS.md  — a evidência completa, com reprodução.
+// [ ] T1 (P0) PISO COM COSTURA: os 64 tiles de piso têm faixa escura
+//     assada de ~2px em 2+ lados (piso_pedra_01 tem col63 = 0.0 preto
+//     puro contra miolo 128). Ladrilhado, vira papel quadriculado de
+//     64px. Causa: extract_tiles.py:26 fatia LINHAS_PISO = (0,), que no
+//     pack é a faixa de BORDA do autotile, não o miolo. sprites.ts:74
+//     afirma "seamless" e está errado.
+//     Reproduzir antes do fix (docs/ASSETS.md §0), cortar a borda na
+//     extração, e provar por pixel.
+// [ ] T2 (P0) PAREDE COM ALTURA DUPLICADA: os 96 tiles de parede são
+//     blocos 3D com topo+frente+virada assados, e drawWallEdges
+//     (terrain.ts:497) desenha cumeeira+claraboia+beiral+face de 14px
+//     POR CIMA. Sai barra cinza atravessando o mapa (castelo-000.png).
+//     Uma única fonte de altura; remover a claraboia.
+// [ ] T3 (P1) tiles.test.ts — o portão que faltava: costura (borda não
+//     pode ser mais escura que miolo − 30), papel (tile de
+//     preenchimento com ≥85% de cobertura) e hierarquia (teto de
+//     saturação p/ decor e cutscene). Pega T1, T5, T6 e T7 sozinho.
+// [ ] T4 (P1) 16 PARES (PISO, PAREDE) DISTINTOS: hoje piso_metal cobre
+//     5 biomas, parede_concreto cobre 7, e cidade/rodovia e
+//     fabrica/trens saem byte-idênticos. 8×6 = 48 combinações sobrando.
+// [ ] T5 (P1) RODOVIA (relato do dono: "parece tudo menos uma
+//     rodovia"): 3 causas medidas em docs/ASSETS.md §4 — (a) o bioma foi
+//     escrito hoje ("Unidade A", maps.ts:357) copiando o da Cidade: piso,
+//     parede e floorTiles byte-idênticos, só o tint muda em 4%;
+//     (b) os 6 tiles declarados [13,15,349,350,376,377] são laje
+//     terracota e preenchimento laranja, nenhum é asfalto;
+//     (c) o mapa é labirinto de salas sem pista contínua. O pack JÁ TEM
+//     asfalto (29,35,36,41,66), eixo amarelo (30,55-58), eixo branco
+//     (34,37,60,61), guarda-corpo (307-314) e carro abandonado (474-479)
+//     — nenhum carregado.
+// [ ] T6 (P2) REESCREVER AS 4 TABELAS POR CURATURA VISUAL:
+//     WALL_TILES (6 de 8 conjuntos são cantos em L laranja ou frestas
+//     azuis — e o caminho é inalcançável, órfão com consumidor só de
+//     teste), spriteFor (floresta=avião de papel 134, castelo=quadrado
+//     bege 133 a 84% de saturação), HAZARD_SPRITES (fog e mud dividem
+//     o 320, mancha cinza; electric=264 é cristal), CENAS_CUTSCENE.
+//     Regra: nenhum tile entra sem ter sido visto com zoom.
+// [ ] T7 (P1) CUTSCENE COM PROFUNDIDADE: 85% da tela é preto puro e o
+//     "retrato" é um anel vazio desenhado por arc. 3 camadas com valor
+//     decrescente + atmosfera; anel sai ou vira sprite.
+// [ ] T8 (P2) DÍVIDA: remover public/assets/sprites/tiles/ (dirt1,
+//     dirt2, grass1, grass2, water1 — zero chamadores); remover
+//     WALL_TILES ou torná-lo alcançável; reescrever biome.floorTiles
+//     (o fallback aponta p/ verde #00c020, azul e laranja neon).
+// [ ] T9 (P1) PERSPECTIVA — decisão do dono, não dá para adiar: os
+//     personagens Kenney são vista de cima, o Screaming Brain é
+//     oblíquo com altura visível. Incompatíveis, e nenhum tint
+//     resolve. Ou troca o terreno, ou troca o pack de personagem.
+
 // ─── AJUSTES PÓS-PUSH (2026-10-14, relatos do Murilo) ───
 // [x] A FÚRIA É SEGREDO (relato: "não gostei de ter avisado que a fúria
 //     vai ser liberada, ela tem que ser um segredo até a hora de ser
