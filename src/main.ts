@@ -46,7 +46,7 @@ import { initObjective, updateObjective, peekObjective, vipDown, markVipDown, re
 import { updateBoss, isBossTelegraphing, getBossTelegraphLabel, clearBossState } from './systems/boss';
 
 import {
-  initRenderer, drawMenu, drawCutscene, drawGameOver, drawVictory, drawFimLocal, drawCredits, drawCoins as renderCoins,
+  initRenderer, drawMenu, drawCutscene, drawDialogo, drawGameOver, drawVictory, drawFimLocal, drawCredits, drawCoins as renderCoins,
   drawPlayer2 as renderPlayer2,
   drawPowerUps as renderPowerUps, drawParticles as renderParticles, drawBullets as renderBullets, drawFires as drawFiresWorld,
   drawEnemies as renderEnemies, drawPlayer as renderPlayer, drawDamageNumbers, drawPhaseTransition,
@@ -71,12 +71,12 @@ import {
   sfxGameOver, sfxEnemyShoot, sfxDash, sfxShield, sfxFury, sfxMenuMove, sfxMenuSelect, sfxError, sfxJammed, sfxPiece,
   startMusic, playMusic, setMusicEnabled, setSfxEnabled, isMusicEnabled, isSfxEnabled, unlockAudio,
   getMasterVolume, getMusicVolume, getSfxVolume, WEAPON_SOUNDS,
-  sfxReload, sfxCondicao, resetFerrugem,
+  sfxReload, sfxCondicao, resetFerrugem, sfxRisada, sfxFerramenta, sfxFogueteLancamento,
 } from './systems/audio';
 import { getFuryCooldownMult } from './systems/skills';
 import { triggerScreenShake, triggerDamageFlash, triggerBossKillFlash, triggerLevelUpFlash, updateFlash, updateSlowMotion, triggerSlowMotion, triggerHitStop, updateHitStop, resetEffects, updateScreenShake, triggerBossZoom, updateBossZoom } from './systems/effects';
 
-import { useSkill, isSkillActive, updateSkills, resetSkills, getDamageMultiplier, getDamageTakenMultiplier, getSkillCooldown, getSkillMaxCooldown, setMoveDirection } from './systems/skills';
+import { useSkill, isSkillActive, updateSkills, resetSkills, getDamageMultiplier, getDamageTakenMultiplier, getSkillCooldown, getSkillMaxCooldown, setMoveDirection, furiaDesbloqueada, desbloquearFuria, restoreFuria, resetFuria } from './systems/skills';
 import { toggleNpcFollow } from './systems/npcs';
 import { getCurrentClass, setCurrentClass, getClassDamageMult, getClassSpeedMult, getClassReloadMult, getClassHealthPerSecond, loadClass, saveClass, resetClass, ClassId, CLASSES } from './systems/classes';
 import { updateEnvironmentEvents, resetEnvironmentEvents, getEnvironmentWarnings } from './systems/environment';
@@ -99,6 +99,7 @@ import { spawnNPC, updateNPCs, getNPCs, resetNPCs, npcBark, isNpcFollowing } fro
 import { getBots, createBot, updateBots, removeDeadBots, resetBots, addBot, BotDifficulty } from './systems/bots';
 import { isEnabled as isLocalEnabled, initLocalMultiplayer, movePlayer2, shootPlayer2, getPlayer2, resetLocalMultiplayer, checkPlayer2EnemyCollision, damagePlayer2, resetPlayer2, getWinner, getPlacarLocal, matarPlayer2 } from './systems/localMultiplayer';
 import { showCutscene, showCutsceneAt, cutsceneForPhase, advanceCutscene, skipCutscene, isShowingCutscene, updateCutscene, resetStory, isEpilogueScene, EPILOGUE_CUTSCENE, getCurrentCutscene, getCurrentLine } from './systems/story';
+import { dialogoAtivo, avancarDialogo, abrirDialogo, setEfeitoDialogo, resetDialogo, EntradaDialogo } from './systems/dialogo';
 import { getCurrentMode, setGameMode, GameMode, GAME_MODES } from './systems/gameModes';
 import { BIOMES, CELL_SIZE } from './maps';
 import { loadAllSprites } from './systems/sprites';
@@ -295,7 +296,13 @@ document.addEventListener('keydown', e => {
 
   if (key === ' ') { if (useSkill('dash')) { limparDashFantasma(); sfxDash(); } }
   if (k === 'f') { if (useSkill('shield')) sfxShield(); }
-  if (k === 'e') { if (useSkill('fury')) sfxFury(); }
+  if (k === 'e') {
+    if (useSkill('fury')) sfxFury();
+    // H2: a fúria começa travada — o gate é a história da Fábrica do
+    // Fernando. Apertar E antes precisa dizer POR QUÊ não sai, senão a
+    // tecla parece quebrada (o jogador não lê TODO.md).
+    else if (!furiaDesbloqueada()) pushToast('FÚRIA TRAVADA — ELA ABRE NA HISTÓRIA', 3, 'aviso');
+  }
   if (k === 'r') startReload();
   if (k === 'j') toggleNpcFollow();
   // H usa medkit do inventário. Não existe "curar por 50 moedas durante o
@@ -573,6 +580,16 @@ let fireTick = 0;
  */
 let instabilidadeTimer = 0;
 const INSTABILIDADE_A_CADA = 11;
+/** H2: o Fernando já apareceu nesta passada pela Fábrica? */
+let amigoApareceu = false;
+/** Textos: o Cabo Fernandes já chegou nesta passada pelo Castelo? */
+let fernandesApareceu = false;
+/** Textos: o sacrifício do Fernandes já contou (o rei levantou)? */
+let sacrificioFeito = false;
+/** H2: o Fernando já virou (o sentinel caiu)? */
+let fernandoVirou = false;
+/** Segundos que a linha atual da caixa pequena está na tela (auto-avanço). */
+let tempoDaLinha = 0;
 /** Objetivos já contabilizados na partida, para o toast de conquista sair uma vez só. */
 const objectiveCounted = new Set<string>();
 let worldW = 1280;
@@ -659,6 +676,10 @@ function loadPhaseEnvironment(): void {
   bossRushIndex = 0;
   biomaquinaTimer = 0;
   instabilidadeTimer = 0;
+  amigoApareceu = false;
+  fernandoVirou = false;
+  fernandesApareceu = false;
+  sacrificioFeito = false;
   perigoNave = phase.name === 'Espaço' ? PERIGO_NAVE_SEGUNDOS : 0;
   clearFires();
 }
@@ -676,6 +697,11 @@ function resetGame() {
   resetSpawner();
   resetEffects();
   resetSkills();
+  // H2: a fúria começa travada em toda partida nova (decisão do Murilo) e a
+  // caixa pequena não vaza estado entre partidas — o continue da Fábrica é o
+  // único caminho que abre a fúria de novo.
+  resetFuria();
+  resetDialogo();
   resetEnvironmentEvents();
   resetPermanentMagnet();
   resetCombos();
@@ -744,6 +770,9 @@ function startFromSave() {
   // Save antigo sem o campo entra vazio.
   restoreInventory(save.pieces ?? []);
   restoreEquipped(save.equippedPieces ?? {});
+  // H2: a fúria viaja no save. Save antigo sem o campo entra TRAVADO — a
+  // decisão do Murilo: o gate é a história, vale igual para novos e antigos.
+  restoreFuria(save.furia === true);
   setGameState('playing');
   loadAchievements();
   loadDiary();
@@ -826,6 +855,20 @@ function update(dt: number) {
         if (eraEpilogo) setGameState('gameover');
         else resetInput();
       }
+    }
+    return;
+  }
+
+  // A caixa pequena da Fábrica (H2): PAUSADO POR LINHA (decisão do Murilo) —
+  // o mundo congela atrás, o ENTER avança. O auto-avanço de 10s existe para
+  // quem soltou o teclado (e para os harnesses): a caixa nunca prende, mas
+  // os 10s dão leitura tranquila — a caixa é pausada por linha, não um
+  // modo sem saída.
+  if (state === 'playing' && dialogoAtivo()) {
+    tempoDaLinha += dt;
+    if (consumeEnter() || tempoDaLinha >= 10) {
+      tempoDaLinha = 0;
+      avancarDialogo();
     }
     return;
   }
@@ -1144,6 +1187,22 @@ function update(dt: number) {
     if (!hard) player.healOnWaveComplete();
     sfxWaveStart();
     npcBark();
+    // H2: a SEGUNDA onda da Fábrica traz o Fernando — o amigo do relato
+    // do Murilo. O NPC nasce do lado do jogador e a caixa pequena conta
+    // a cápsula. O mundo congela na hora (a caixa é pausada por linha).
+    if (phase.name === 'Fábrica' && getCurrentWave() === 1 && getCurrentMode() === 'campaign' && !amigoApareceu) {
+      amigoApareceu = true;
+      spawnNPC(p.x + 60, p.y, 0);
+      abrirDialogo(SEQUENCIA_AMIGO);
+    }
+    // O CASTELO (textos, 2026-10-14): o encontro do CABO FERNANDES era
+    // cutscene — decisão do Murilo: o cabo existe EM JOGO. Chega na segunda
+    // onda como NPC e a caixa pequena conta quem ele é.
+    if (phase.name === 'Castelo' && getCurrentWave() === 1 && getCurrentMode() === 'campaign' && !fernandesApareceu) {
+      fernandesApareceu = true;
+      spawnNPC(p.x + 60, p.y, 0);
+      abrirDialogo(SEQUENCIA_FERNANDES);
+    }
     const waveAch = checkAchievements('wave', getCurrentWave());
     if (waveAch) pushToast(waveAch.name, 3);
     if (getGameState() === 'shop') enterShop();
@@ -1271,6 +1330,17 @@ function update(dt: number) {
       boss.health = boss.maxHealth;
       enemies.push(boss);
       bossSpawned = true;
+      // O CASTELO (textos): o REI MUTANTE levantou — o sacrifício do Cabo
+      // Fernandes conta em jogo (a caixa pequena congela a luta) e o
+      // FECHAMENTO dela tira o NPC de campo + registra o diário. Antes o
+      // gatilho do diário morava na cutscene que não existe mais.
+      if (phase.name === 'Castelo' && getCurrentMode() === 'campaign' && !sacrificioFeito) {
+        sacrificioFeito = true;
+        abrirDialogo(SEQUENCIA_SACRIFICIO, () => {
+          resetNPCs();
+          if (unlockDiaryEvent('fernandes')) pushToast('DIÁRIO: SEIS SEGUNDOS', 4, 'aviso');
+        });
+      }
       if (ehNucleoRush && bossRushIndex > 0) {
         damageNumbers.push({ x: boss.x, y: boss.y - 60, text: `CHEFE ${bossRushIndex + 1}/${NUCLEO_RUSH.length}`, color: PALETTE.terracotta, life: 2.4, vy: -30 });
       }
@@ -1627,9 +1697,10 @@ function killEnemy(e: Enemy, award: boolean): void {
     // MENTE T1/T4 levantam o ganho via xpMult (stats.ts).
     ganhaXp(Math.round(e.scoreValue * getStat('xpMult')));
     // O titã (T1) paga 3× moedas e cobra a taxa elite no loot: o corpo
-    // grande da onda tem que valer o risco.
+    // grande da onda tem que valer o risco. A COLETA da Fábrica (H2) engrossa
+    // os dois — "os zumbis droparão mais coisas e com mais facilidade".
     if (def?.coinDrop) {
-      const multMoedas = e.isElite ? 3 : 1;
+      const multMoedas = (e.isElite ? 3 : 1) * (getCurrentPhase().coleta ? 1.5 : 1);
       spawnCoins(e.x, e.y, Math.max(1, Math.floor(def.coinDrop * multMoedas * 0.6)));
     }
     spawnParticles(e.x, e.y, e.color, 20, 300);
@@ -1646,14 +1717,45 @@ function killEnemy(e: Enemy, award: boolean): void {
     // B7: o chefe cai e o chão onde ele caiu queima — na fase do NÚCLEO o
     // próprio campo é o cenário destrutivo que o dono pediu.
     acenderFogoDaFase(e.x, e.y, 64);
+    // H2 — o sentinel caiu e a Fábrica tem um SEGUNDO chefe esperando: a
+    // caixa pequena conta a virada, e o FECHAMENTO dela nasce o Fernando
+    // infectado no lugar do amigo. O respiro do sentinel fica congelado
+    // enquanto a caixa está aberta (o timer mora no update), e o chefe novo
+    // bloqueia o fechamento até cair.
+    if (e.type === 'sentinel' && getCurrentPhase().name === 'Fábrica' && getCurrentMode() === 'campaign' && !fernandoVirou) {
+      fernandoVirou = true;
+      const amigo = getNPCs().find(n => n.alive);
+      abrirDialogo(SEQUENCIA_VIRADA, () => {
+        resetNPCs();
+        const nascimento = findFreeSpotNear(amigo ? amigo.x : e.x, amigo ? amigo.y : e.y, 30);
+        const fernando = spawnEnemy('fernandoInf', worldW, worldH, 0, nascimento.x, nascimento.y);
+        if (fernando) {
+          fernando.spawnDelay = 0;
+          fernando.health = fernando.maxHealth;
+          enemies.push(fernando);
+          triggerBossZoom();
+          void playMusic('boss');
+        }
+      });
+    }
+    // H2 — o FERNANDO INFECTADO caiu: o fim da Fábrica é a história dele.
+    // A recompensa não é caixa: é o luto e a FÚRIA, que desbloqueia aqui —
+    // o gate de história que a decisão do Murilo pediu.
+    if (e.type === 'fernandoInf') {
+      desbloquearFuria();
+      pushToast('FÚRIA DESBLOQUEADA — TECLA E', 4);
+      abrirDialogo(SEQUENCIA_POS_MORTE);
+    }
     const bossAch = checkAchievements('boss_kill');
     if (bossAch) pushToast(bossAch.name, 3);
-    // A cutscene do Castelo mata o Fernandes em cena ("é lá onde ele está",
-    // decisão do dono de 2026-10-12). O diário é o registro que essa morte
-    // deixa: sem ele, o beat mais forte do roteiro não custava nada e não
-    // voltava nunca. Só nesta fase — nas outras não houve Fernandes.
-    if (getCurrentPhase().name === 'Castelo' && unlockDiaryEvent('fernandes')) {
-      pushToast('DIÁRIO: SEIS SEGUNDOS', 4, 'aviso');
+    // O PÓS-MISSÃO DO CASTELO (textos, 2026-10-14): o REI MUTANTE caiu e o
+    // motor do foguete espera conserto — o relato do Murilo: "os danos são
+    // mínimos no motor devido aos zumbis, agora vou consertar (barulho de
+    // ferramenta + pisca a tela) e voar (barulho de foguete)". A morte do
+    // Fernandes EM JOGO (não mais em cutscene — decisão dele) registrou o
+    // diário na hora do sacrifício, no bloco da virada do chefe.
+    if (e.type === 'reiMutante' && getCurrentPhase().name === 'Castelo' && getCurrentMode() === 'campaign') {
+      abrirDialogo(SEQUENCIA_POS_MISSAO_CASTELO);
     }
     if (unlockDiaryEvent('boss_kill')) pushToast('NOVA ENTRADA NO DIÁRIO', 3, 'aviso');
     spawnParticles(e.x, e.y, PALETTE.crit, 50, 400, 'smoke');
@@ -1687,6 +1789,10 @@ function killEnemy(e: Enemy, award: boolean): void {
       phaseEnding = true;
       phaseEndPause = PHASE_END_PAUSE;
     }
+    // O FERNANDO (H2) não cai como chefe padrão: a caixa e o power-up são
+    // o vocabulário do chefe de fase — o fim dele é o diálogo, a FÚRIA e o
+    // respiro. A caixa da NOVIDADES ficaria girando em cima do luto.
+    if (e.type === 'fernandoInf') return;
     spawnPowerUpDeChefe(e.x, e.y);
     spawnPowerUp(e.x - 20, e.y + 20);
     const bossLoot = spawnBossLoot(e.x, e.y - 20);
@@ -1703,7 +1809,9 @@ function killEnemy(e: Enemy, award: boolean): void {
       void playMusic('combat');
     }
   } else if (award) {
-    rollLootDrop(e.x, e.y, e.type, e.isElite === true);
+    // A coleta da Fábrica (H2) dobra a chance de loot: "os zumbis droparão
+    // mais coisas e com mais facilidade" (relato do Murilo).
+    rollLootDrop(e.x, e.y, e.type, e.isElite === true, getCurrentPhase().coleta ? 2 : 1);
     // elites têm 25% de chance de dropar peça/acessório direto no inventário.
     // O TITÃ (T1) entra na mesma conta: ele é o corpo grande da onda, a
     // chance é do tamanho — não do nome do tipo dele.
@@ -1783,6 +1891,107 @@ function announceWeapon(index: number): void {
 }
 
 /** Entra na loja: salva, inventa NPC e troca a música. */
+// ─── O roteiro da Fábrica do Fernando (H2) ─────────────────────
+// O texto é o relato verbatim do Murilo (2026-10-13) e a caixa é a
+// PEQUENA (dialogo.ts) — "caixa de diálogo pequena, não gigante igual aos
+// outros níveis". O mundo congela por linha (decisão dele), o ENTER avança
+// e o auto-avanço de 10s impede a caixa de prender quem soltou o teclado.
+
+const SEQUENCIA_CHEGADA: EntradaDialogo[] = [
+  { speaker: 'rios', text: 'Era exatamente aqui onde eles escravizavam o povo.' },
+  { speaker: 'rios', text: 'Malditos… Agora eles estão longe daqui…' },
+  { speaker: 'narrador', text: 'O chão ainda cheira a remédio. Os zumbis daqui carregam mais coisa que os de fora — catar tudo vale a pena.' },
+  { speaker: 'rios', text: 'Vou aproveitar para coletar o máximo de recursos que der!' },
+];
+
+const SEQUENCIA_AMIGO: EntradaDialogo[] = [
+  { speaker: 'fernando', text: 'Ei você! Me ajude! Eles estão vindo em monte.' },
+  { speaker: 'rios', text: 'Quem é você? Está infectado?' },
+  { speaker: 'fernando', text: 'N-não… Nunca…' },
+  { speaker: 'narrador', text: 'Ele dobra ao meio, tossindo. A frase não termina.' },
+  { speaker: 'rios', text: 'Hmm… O que está havendo aqui?' },
+  { speaker: 'fernando', text: 'Uma das cápsulas deles acabou de atacar a terra e caiu exatamente aqui e além di-' },
+  { speaker: 'rios', text: 'O quê? Que cápsulas são essas? Não foi uma mutação da natureza toda essa infecção?' },
+  { speaker: 'fernando', text: 'Não cara, isso é o que eles querem que você acredite. Sabe os trilionários? Eles querem destruir a terra com zumbis pra cobrar pra morar no espaço, no suposto novo planeta deles.' },
+  { speaker: 'rios', text: 'Você está bem? Que merda de história de filme é essa?' },
+  { speaker: 'narrador', text: 'A cápsula range no subsolo. A tampa cede.', efeito: 'explosaoCapsula' },
+  { speaker: 'fernando', text: 'ESSA NÃO, NÓS VAMOS MORRER!' },
+  { speaker: 'rios', text: 'Merda!' },
+  { speaker: 'narrador', text: 'A radiação cobre o pátio. O corpo do Fernando aceita; o seu recusa. Você não sabe disto ainda.' },
+];
+
+const SEQUENCIA_VIRADA: EntradaDialogo[] = [
+  { speaker: 'fernando', text: 'Merda mano, corre!' },
+  { speaker: 'rios', text: 'Eu não posso te deixar aqui nem a pau!' },
+  { speaker: 'fernando', text: 'Quer–o–o-o o seu cerébrO!!!' },
+];
+
+const SEQUENCIA_POS_MORTE: EntradaDialogo[] = [
+  { speaker: 'rios', text: 'Eu não queria te matar, amigo. Mas esses trilionários vão pagar!' },
+  { speaker: 'fernando', text: 'Brains…' },
+];
+
+// ─── As sequências do CASTELO (textos, 2026-10-14) ──────────────
+// O Fernandes morre EM JOGO (decisão do Murilo): o encontro vem na segunda
+// onda, o sacrifício quando o REI MUTANTE levanta, o pós-missão quando ele
+// cai. O texto do encontro e do sacrifício é o da cena antiga (aprovado em
+// 2026-10-12); o do pós-missão é o relato novo verbatim.
+
+const SEQUENCIA_FERNANDES: EntradaDialogo[] = [
+  { speaker: 'medico', text: 'Sargento! Cabo Fernandes, esquadrão Beta. Sobrevivi ao ataque e me tranquei aqui dentro.' },
+  { speaker: 'rios', text: 'Fernandes? O comandante enterrou o Beta inteiro no relatório.' },
+  { speaker: 'medico', text: 'Quase, senhor. Conheço as galerias. Posso te levar ao topo.' },
+  { speaker: 'medico', text: 'E tem mais: no pátio interno tem um foguete de pé. O rei guarda ele como troféu. É a saída daqui.' },
+  { speaker: 'rios', text: 'Então o foguete fica inteiro. Quem encostar nele encontra comigo.' },
+  { speaker: 'rios', text: 'Fica atrás de mim, cabo. É ordem.' },
+  { speaker: 'medico', text: 'Sim, senhor. ...Obrigado por vir. Pensei que ninguém vinha.' },
+];
+
+const SEQUENCIA_SACRIFICIO: EntradaDialogo[] = [
+  { speaker: 'narrador', text: 'O portão do pátio range sozinho. O cavaleiro de quatro metros desce da ameia, espada de osso em riste.' },
+  { speaker: 'medico', text: 'Vai, senhor! Eu seguro ele! VAI!' },
+  { speaker: 'narrador', text: 'Fernandes avança. Metal contra osso. Quando Rios olha de volta, o cabo está junto ao portão, de olhos abertos.' },
+  { speaker: 'rios', text: '...Cabo. Cabo, não. Não era obrigado.' },
+  { speaker: 'narrador', text: 'Rios fica olhando o portão. Ele ainda treme nas dobradiças. Hoje ninguém reacende as torres.' },
+];
+
+const SEQUENCIA_POS_MISSAO_CASTELO: EntradaDialogo[] = [
+  { speaker: 'rios', text: 'Ótimo. Após a review, os danos são mínimos no motor devido aos zumbis.' },
+  { speaker: 'narrador', text: 'Ele abre o painel do foguete e vai fundo na chave.', efeito: 'ferramenta' },
+  { speaker: 'narrador', text: 'A tela do painel pisca verde. O motor ronca de primeira.', efeito: 'lancamentoFoguete' },
+  { speaker: 'rios', text: 'Lá vou eu! Vocês pagam!' },
+];
+
+/**
+ * A cápsula explode no meio do diálogo do amigo (o efeito dispara junto com
+ * a linha dele). Sem dano — é a radiação da história, que infecta o Fernando
+ * e não o jogador (imunidade que o Rios não sabe que tem). Os efeitos do
+ * CASTELO (textos, 2026-10-14): a chave de roda do conserto do motor e o
+ * lançamento do foguete — o beat "consertar + voar" do relato do Murilo.
+ */
+function efeitoDaCapsula(efeito: 'explosaoCapsula' | 'ferramenta' | 'lancamentoFoguete'): void {
+  const p = player.getPlayer();
+  if (efeito === 'ferramenta') {
+    sfxFerramenta();
+    triggerScreenShake(2, 0.15);
+    return;
+  }
+  if (efeito === 'lancamentoFoguete') {
+    sfxFogueteLancamento();
+    triggerDamageFlash();
+    triggerScreenShake(10, 1.2);
+    return;
+  }
+  const amigo = getNPCs().find(n => n.alive);
+  const x = amigo ? amigo.x : p.x + 80;
+  const y = amigo ? amigo.y : p.y;
+  createExplosion(x, y, 90, 0, enemies, PALETTE.mustard);
+  triggerScreenShake(8, 0.5);
+  triggerDamageFlash();
+  sfxExplosion();
+  spawnParticles(x, y, PALETTE.mustard, 30, 260, 'smoke');
+}
+
 function enterShop(): void {
   if (getCurrentMode() === 'hardcore') {
     leaveShop();
@@ -1819,6 +2028,7 @@ function enterShop(): void {
     getEquippedSnapshot(),
     getTalentos(),
     getXp(),
+    furiaDesbloqueada(),
   );
   void playMusic('shop');
 }
@@ -1863,7 +2073,12 @@ function leaveShop(): void {
       // A música nostálgica da reescrita (DECISIONS #174): Autumn Changes,
       // de Eric Matyas — a mesma fonte das 4 faixas. Ela segue tocando sob a
       // tela de fim; o menu troca para a faixa dele quando o jogador volta.
+      // A RISADA (textos, 2026-10-14): o dono corrigiu a autoria — o
+      // "HAHAHAHA!" do fim é do RIOS, não do painel da máquina. O som
+      // (risada.ogg, H5) entra junto com a música: é o grito de quem
+      // terminou a primeira parte.
       void playMusic('epilogo');
+      sfxRisada();
     }
     return;
   }
@@ -1915,8 +2130,13 @@ function leaveShop(): void {
   // morte do Fernandes e os 3 finais do epílogo. `nextPhase()` já rodou acima,
   // então a fase atual é a que acabou de começar.
   if (getGameState() === 'playing' && getCurrentMode() === 'campaign') {
-    const cena = cutsceneForPhase(PHASES.indexOf(getCurrentPhase()));
+    const fase = PHASES.indexOf(getCurrentPhase());
+    const cena = cutsceneForPhase(fase);
     if (cena >= 0) showCutsceneAt(cena);
+    // A Fábrica do Fernando (H2): a chegada corre na CAIXA PEQUENA, não na
+    // cutscene — pedido do Murilo. As próximas sequências (o amigo na onda
+    // 2, a virada pós-sentinel) disparam pelos gatilhos da fase.
+    else if (fase === 3) abrirDialogo(SEQUENCIA_CHEGADA);
   }
 }
 
@@ -2089,6 +2309,9 @@ function draw() {
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
   }
+
+  // A caixa pequena da Fábrica por cima do mundo congelado (H2)
+  drawDialogo();
 
   if (phaseTransitionTimer > 0) {
     drawPhaseTransition(phaseTransitionTimer, getCurrentWave(), getCurrentPhase()?.name);
@@ -2294,6 +2517,10 @@ function loop(time: number) {
 }
 
 // ─── Boot ──────────────────────────────────────────────────────
+
+// H2: o efeito da cápsula (a explosão da radiação no diálogo do amigo) liga
+// aqui — os sistemas de mundo moram no main, o dialogo só conta as linhas.
+setEfeitoDialogo(efeitoDaCapsula);
 
 async function init() {
   // o jogo foi publicado como ASHFALL e as 12 chaves de localStorage mudaram
@@ -3018,6 +3245,9 @@ window.__ashfall = {
     titulo: getCurrentCutscene().title,
     linha: getCurrentLine().text.slice(0, 40),
   }),
+  /** H2: a caixa pequena de diálogo — os harnesses (bot/provas) precisam
+   * atravessá-la com ENTER, senão a Fábrica congela a medição. */
+  dialogo: () => dialogoAtivo(),
   // avança de fase direto, sem passar pela loja (harness de narrativa)
   pularParaProximaFase: () => { leaveShop(); return getCurrentPhase().name; },
   // entra na loja e dá XP de uma vez, para o harness de progressão tirar o

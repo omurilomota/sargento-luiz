@@ -19,6 +19,7 @@ import { getSprite, getEnemyCharacter, poseKey, drawSpriteFit, Pose, isSpritesEn
 import { buildCutsceneBackdrop, cutsceneVeil } from './terrain';
 import { getIsReloading, getWeaponFamily, WeaponFamily } from '../weapons';
 import { getCurrentCutscene, getCurrentLine, isLineComplete, getTextProgress, getPortraitInfo, getBeatRestante } from './story';
+import { getDialogo, retratoDoDialogo } from './dialogo';
 import { estaEmTelaCheia } from './fullscreen';
 import { getEquippedSkin } from './skins';
 import { hasSave } from './saveSystem';
@@ -395,7 +396,7 @@ export function drawMenu(selectedMode: string = 'campaign', selectedClass: Class
   // crédito das faixas — obrigatório por licença
   ctx.fillStyle = PALETTE.textOff;
   ctx.font = '11px monospace';
-  ctx.fillText('Música: Juhani Junkala (CC0) e Eric Matyas (soundimage.org) — assets/music/CREDITS.md', W / 2, H - 12);
+  ctx.fillText('Música: Juhani Junkala (CC0) e Eric Matyas (soundimage.org) — veja os créditos no menu', W / 2, H - 12);
 }
 
 // ─── Cutscene ───────────────────────────────────────────────────
@@ -479,6 +480,46 @@ export function drawCutscene(): void {
   ctx.moveTo(canvas.width * 0.15, canvas.height * 0.82);
   ctx.lineTo(canvas.width * 0.85, canvas.height * 0.82);
   ctx.stroke();
+}
+
+/**
+ * A caixa de diálogo PEQUENA da fase (H2 — a Fábrica do Fernando): faixa na
+ * base da tela, o mundo congelado atrás (decisão do Murilo: pausado por
+ * linha). O retrato é o MESMO das cutscenes — um vocabulário só de rosto.
+ * Os 2 sítios de chrome (caixa + moldura) estão no PERMITIDAS do semDesenho:
+ * é UI de diálogo, a mesma categoria dos painéis da cutscene.
+ */
+export function drawDialogo(): void {
+  const entrada = getDialogo();
+  if (!entrada) return;
+  const info = retratoDoDialogo(entrada);
+  const W = canvas.width, H = canvas.height;
+  const boxW = Math.min(720, W - 120);
+  const boxH = 96;
+  const x = (W - boxW) / 2;
+  const y = H - boxH - 28;
+  ctx.fillStyle = 'rgba(10,10,10,0.92)';
+  ctx.fillRect(x, y, boxW, boxH);
+  ctx.strokeStyle = 'rgba(160,128,80,0.5)';
+  ctx.strokeRect(x + 0.5, y + 0.5, boxW - 1, boxH - 1);
+  const img = getSprite(info.sprite);
+  if (img && img.complete && img.naturalWidth > 0) {
+    ctx.drawImage(img, x + 12, y + 16, 56, 56);
+  }
+  ctx.fillStyle = info.color;
+  ctx.font = 'bold 11px monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText(info.name, x + 82, y + 20);
+  ctx.fillStyle = '#bbb';
+  ctx.font = '13px monospace';
+  wrapText(ctx, entrada.text, x + 82, y + 40, boxW - 104, 17);
+  ctx.fillStyle = PALETTE.textOff;
+  ctx.font = '11px monospace';
+  ctx.textAlign = 'right';
+  ctx.globalAlpha = 0.5 + Math.sin(Date.now() / 400) * 0.3;
+  ctx.fillText('ENTER', x + boxW - 10, y + boxH - 8);
+  ctx.globalAlpha = 1;
+  ctx.textAlign = 'left';
 }
 
 /**
@@ -665,13 +706,13 @@ export function drawCredits(): void {
     { texto: 'MÚSICA', cor: PALETTE.mustard, tamanho: '13px', peso: 'bold ' },
     { texto: 'Juhani Junkala / SubspaceAudio (CC0) — Post Apocalyptic Wastelands (menu)', cor: PALETTE.text, tamanho: '12px', peso: '' },
     { texto: 'Eric Matyas (soundimage.org) — Automation, Darkness Below, Puzzle Dreams, Autumn Changes', cor: PALETTE.text, tamanho: '12px', peso: '' },
-    { texto: 'Uso gratuito com atribuição desta tela e do CREDITS.md', cor: PALETTE.textDim, tamanho: '11px', peso: '' },
+    { texto: 'Uso gratuito com atribuição — agradecimento a todos os autores', cor: PALETTE.textDim, tamanho: '11px', peso: '' },
     { texto: '', cor: PALETTE.textDim, tamanho: '11px', peso: '' },
     { texto: 'SFX', cor: PALETTE.mustard, tamanho: '13px', peso: 'bold ' },
-    { texto: 'Kenney.nl + OpenGameArt — CC0 e CC-BY (29 efeitos)', cor: PALETTE.text, tamanho: '12px', peso: '' },
+    { texto: 'Kenney.nl + OpenGameArt — CC0 e CC-BY (32 efeitos)', cor: PALETTE.text, tamanho: '12px', peso: '' },
     { texto: 'Tiros: Vincent Sevedge (opengameart.org) — CC-BY 3.0', cor: PALETTE.text, tamanho: '12px', peso: '' },
-    { texto: '29 efeitos reais em assets/sfx/ (fallback procedural em audio.ts)', cor: PALETTE.textDim, tamanho: '11px', peso: '' },
-    { texto: 'Autores por arquivo: assets/CREDITS.md', cor: PALETTE.textDim, tamanho: '11px', peso: '' },
+    { texto: 'Sons gratuitos com crédito; o detalhe completo está no menu de créditos', cor: PALETTE.textDim, tamanho: '11px', peso: '' },
+    { texto: 'Recursos e sons narrativos: OpenGameArt (risada, chave de roda, foguete)', cor: PALETTE.textDim, tamanho: '11px', peso: '' },
     { texto: '', cor: PALETTE.textDim, tamanho: '11px', peso: '' },
     { texto: 'SPRITES', cor: PALETTE.mustard, tamanho: '13px', peso: 'bold ' },
     { texto: 'Kenney — Top-down Shooter · kenney.nl · CC0', cor: PALETTE.text, tamanho: '12px', peso: '' },

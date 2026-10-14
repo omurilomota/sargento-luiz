@@ -27,6 +27,11 @@ interface SaveData {
   talentos: string[];
   /** XP total da partida (o nível é recalculado dele no load) */
   xp?: number;
+  /**
+   * A FÚRIA desbloqueada (H2): o gate de história da Fábrica viaja no save.
+   * Ausente = travado (saves antigos começam travados — decisão do dono).
+   */
+  furia?: boolean;
   /** Nome da fase para exibição */
   phaseName: string;
   /** Timestamp do save */
@@ -41,11 +46,12 @@ const SAVE_KEY = 'rios.save';
 export function saveGame(
   phase: number, wave: number, weaponIndex: number,
   coins: number, score: number, upgrades: string[], weapons: { index: number; quality: string }[], phaseName: string,
-  pieces: string[] = [], equippedPieces: Record<string, string[]> = {}, talentos: string[] = [], xp = 0
+  pieces: string[] = [], equippedPieces: Record<string, string[]> = {}, talentos: string[] = [], xp = 0,
+  furia = false
 ): void {
   const data: SaveData = {
     phase, wave, weaponIndex, coins, score, upgrades, weapons, phaseName,
-    pieces, equippedPieces, talentos, xp,
+    pieces, equippedPieces, talentos, xp, furia,
     timestamp: Date.now(),
   };
   try {

@@ -173,6 +173,9 @@ entre −0.7 e −7.9 dB, no mesmo degrau do banco (tiro a 0 dB, UI em −8).
 | mina | `assets/sfx/mina.ogg` | Kenney Vleugels | kenney.nl/assets/rpg-audio | CC0 |
 | enemyShoot | `assets/sfx/enemyShoot.ogg` | Vincent Sevedge | opengameart.org/content/gunshot-sounds | CC-BY 3.0 |
 | explosion | `assets/sfx/explosion.ogg` | rubberduck (Thomas Deisz) | opengameart.org/content/25-cc0-bang-firework-sfx | CC0 |
+| risada | `assets/sfx/risada.ogg` | Supergeek ("Do you remember laughter?", 1ª variação "hahaha, huh?" fatiada por silêncio) | opengameart.org/content/do-you-remember-laughter | CC0 |
+| ferramenta | `assets/sfx/ferramenta.ogg` | BMacZero (`rattle1`, Brian MacIntosh) | opengameart.org/content/mechanical-sounds | CC0 |
+| foguete_lancamento | `assets/sfx/foguete_lancamento.ogg` | dklon (rocket_launch, 8-bit) | opengameart.org/content/rocket-launch-0 | CC-BY 3.0 |
 | bossDeath | `assets/sfx/bossDeath.ogg` | Kenney Vleugels | kenney.nl/assets/sci-fi-sounds | CC0 |
 | playerHit | `assets/sfx/playerHit.ogg` | Kenney Vleugels | kenney.nl/assets/impact-sounds | CC0 |
 | coin | `assets/sfx/coin.ogg` | Kenney Vleugels | kenney.nl/assets/rpg-audio | CC0 |

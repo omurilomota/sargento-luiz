@@ -33,29 +33,33 @@ export const PHASES: Phase[] = [
   {
     name: 'Fábrica', bg: '#2e1a1a', bgColor2: '#1a0d0d', gridColor: 'rgba(150,100,100,0.1)',
     enemyTypes: ['grunt', 'runner', 'tank', 'robot', 'drone'], waves: 5, map: 'fabrica', hazard: 'electric',
-    difficulty: 0.93, objective: 'survive', objectiveTarget: 45, boss: 'sentinel',
+    // H2 (relato do Murilo): a fase da coleta — mais drops e moedas aqui, e
+    // a dificuldade das fases seguintes paga a diferença (+0.05 de Pântano
+    // até o NÚCLEO, abaixo).
+    difficulty: 0.93, objective: 'survive', objectiveTarget: 45, boss: 'sentinel', coleta: true,
   },
   {
     name: 'Pântano', bg: '#1a2e2e', bgColor2: '#0d1a1a', gridColor: 'rgba(34,150,150,0.1)',
     enemyTypes: ['grunt', 'slime', 'mosquito', 'frog'], waves: 6, map: 'pantano', hazard: 'mud',
-    difficulty: 1.1, objective: 'clear', objectiveTarget: 0, boss: 'leviathan',
+    // +0.05: a coleta da Fábrica paga em drops, o Pântano cobra de volta
+    difficulty: 1.15, objective: 'clear', objectiveTarget: 0, boss: 'leviathan',
   },
   {
     name: 'Castelo', bg: '#2e2e1a', bgColor2: '#1a1a0d', gridColor: 'rgba(150,150,100,0.1)',
     enemyTypes: ['knight', 'archer', 'mage'], waves: 6, map: 'castelo', hazard: 'spikes',
-    difficulty: 0.9, objective: 'protect', objectiveTarget: 0, boss: 'reiMutante',
+    difficulty: 0.95, objective: 'protect', objectiveTarget: 0, boss: 'reiMutante', // +0.05: a coleta da Fábrica cobra aqui
   },
   {
     name: 'Vulcão', bg: '#2e0d0d', bgColor2: '#1a0505', gridColor: 'rgba(200,50,50,0.1)',
     enemyTypes: ['fireElemental', 'lavaSlime', 'magmaGolem', 'inferno'], waves: 7, map: 'vulcao', hazard: 'lava',
-    difficulty: 0.74, objective: 'reach', objectiveTarget: 0, boss: 'infernoPrime',
+    difficulty: 0.74, objective: 'reach', objectiveTarget: 0, boss: 'infernoPrime', // a coleta cobra nas outras, MENOS aqui: o 0,79 mediu 3 mortes em 5 amostras (32s, dano de inferno 108-126) — o Vulcão já era a fase calibrada no limite, e o +0,05 cruzou a margem do dodge do bot. Voltou ao 0,74 medido.
   },
   {
     name: 'Espaço', bg: '#05050d', bgColor2: '#020208', gridColor: 'rgba(100,100,200,0.05)',
     enemyTypes: ['ufo', 'asteroid', 'alien', 'drone'], waves: 7, map: 'espaco', hazard: 'lowGravity',
     // 0.88 não é estético: abaixo disto o custo da fase (HP × dificuldade)
     // cai sob o do Vulcão e o balance.test reprova a rampa da campanha.
-    difficulty: 0.88, objective: 'clear', objectiveTarget: 0, boss: 'mothership',
+    difficulty: 0.93, objective: 'clear', objectiveTarget: 0, boss: 'mothership', // +0.05: a coleta da Fábrica cobra aqui
   },
   {
     // O nome é o da história (PREMISSA-V2): era "Bunker Central" no config
@@ -63,7 +67,7 @@ export const PHASES: Phase[] = [
     // e o jogador relendo a fase final sem saber se era a mesma.
     name: 'NÚCLEO-CENTRAL', bg: '#15161a', bgColor2: '#0a0b0d', gridColor: 'rgba(160,128,80,0.05)',
     enemyTypes: ['grunt', 'runner', 'tank', 'robot'], waves: 8, map: 'bunker', hazard: 'none',
-    difficulty: 0.88, objective: 'clear', objectiveTarget: 0, boss: 'nucleo',
+    difficulty: 0.93, objective: 'clear', objectiveTarget: 0, boss: 'nucleo', // +0.05: a coleta da Fábrica cobra aqui
   },
 ];
 
@@ -86,6 +90,14 @@ export const NUCLEO_RUSH: string[] = ['infernoPrime', 'reiMutante', 'mothership'
  * que é o contrário do que a decisão do jogador pediu.
  */
 export const SPAWN_PROPRIO: string[] = ['biomaquina'];
+/**
+ * Tipos que nascem de SCRIPT de fase, não do spawner (H2): o Fernando
+ * infectado é a virada da Fábrica — ele não entra em `enemyTypes` de fase
+ * nenhuma (o spawner o jogaria na onda) nem é o `boss` (o sentinel abre o
+ * respiro; o Fernando é o que vem DEPOIS). O `assets.test` usa esta lista
+ * como o quinto caminho do cheque de órfão.
+ */
+export const SCRIPTED_TYPES: string[] = ['fernandoInf'];
 
 /** Mapa de todos os tipos de inimigos disponíveis no jogo */
 export const ENEMY_TYPES: Record<string, EnemyType> = {
@@ -194,6 +206,24 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
       { atHp: 1.0, action: 'ring', telegraph: 'GOLPE REAL' },
       { atHp: 0.6, action: 'summon', telegraph: 'GUARDA' },
       { atHp: 0.25, action: 'charge', telegraph: 'INVESTIDA' },
+    ],
+  },
+  /**
+   * O FERNANDO INFECTADO (H2): o chefe menor que o amigo vira depois do
+   * sentinel da Fábrica — "a batalha mais foda e emocionante entre amigo e
+   * protagonista" (relato do Murilo). Chefe MENOR com barra (decisão dele):
+   * 520 HP fica entre o sentinel (360) e o rei de verdade (630), e o padrão
+   * usa os três ataques do vocabulário de chefe. Não entra em enemyTypes de
+   * fase nenhuma: ele nasce do script da Fábrica, não do spawner.
+   */
+  fernandoInf: {
+    radius: 30, speed: 72, health: 520, damage: 22, color: '#8a6a4a', scoreValue: 500, coinDrop: 60,
+    canShoot: true, shootRate: 1.6, bulletSpeed: 320, isBoss: true, bossName: 'FERNANDO INFECTADO', telegraph: 0.8,
+    projectileColor: '#8a6a4a',
+    pattern: [
+      { atHp: 1.0, action: 'ring', telegraph: 'CUSPE DE RADIAÇÃO' },
+      { atHp: 0.6, action: 'charge', telegraph: 'CORRIDA DO AMIGO' },
+      { atHp: 0.25, action: 'summon', telegraph: 'ELES VÊM TUDO' },
     ],
   },
   infernoPrime: {

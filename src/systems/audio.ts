@@ -241,6 +241,12 @@ export const SFX_FILES: Record<string, SfxDef> = {
   // Estado da arma (qualidade) e peça equipável
   ferrugem:            { file: 'assets/sfx/ferrugem.ogg',            vary: 0.12 },
   piece:               { file: 'assets/sfx/piece.ogg' },
+  // Os sons narrativos do H5 (2026-10-14): a risada do Rios no fim da
+  // campanha, a chave de roda do conserto do motor e o lançamento do foguete
+  // — o pós-missão do Castelo.
+  risada:              { file: 'assets/sfx/risada.ogg' },
+  ferramenta:          { file: 'assets/sfx/ferramenta.ogg' },
+  foguete_lancamento:  { file: 'assets/sfx/foguete_lancamento.ogg' },
 };
 
 const sfxBuffers = new Map<string, AudioBuffer>();
@@ -593,6 +599,26 @@ export function sfxPiece(): void {
   if (playSfxFile('piece')) return;
   playBurst(0.04, 0.2, 'highpass', 3000, 1.4);
   setTimeout(() => playTone(1180, 0.09, 'triangle', 0.12), 40);
+}
+
+// ─── Sons narrativos do H5 (arquivos; a síntese é fallback que não roda) ──
+
+/** A risada do Rios no fim da campanha — "acabei com você, maldição". */
+export function sfxRisada(): void {
+  if (playSfxFile('risada')) return;
+  playTone(220, 0.15, 'square', 0.1);
+}
+
+/** A chave de roda no motor do foguete (pós-missão do Castelo). */
+export function sfxFerramenta(): void {
+  if (playSfxFile('ferramenta')) return;
+  playBurst(0.05, 0.2, 'highpass', 2500, 1.2);
+}
+
+/** O lançamento do foguete do Castelo — "Lá vou eu!". */
+export function sfxFogueteLancamento(): void {
+  if (playSfxFile('foguete_lancamento')) return;
+  playBurst(0.5, 1.2, 'lowpass', 400, 0.8);
 }
 
 // ─── Música de fundo (arquivos reais, crossfade) ────────────────

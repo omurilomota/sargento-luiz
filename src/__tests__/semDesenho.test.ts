@@ -46,6 +46,7 @@ const PERMITIDAS: Record<string, string> = {
   drawEnemies: 'sombra em elipse, anel de chefe, flash de dano e barras de vida',
   drawNPCs: 'sombra, fallback de sprite, barra de vida e balão de fala',
   drawCutscene: 'letterbox, painel de escolha e fallback de retrato (comentado no código)',
+  drawDialogo: 'chrome da caixa pequena de diálogo da Fábrica (H2): a faixa na base da tela — UI de diálogo, a mesma categoria dos painéis da cutscene; o retrato é o mesmo sprite',
   drawMenu: 'chrome do menu (painéis, foco, botões)',
   drawMenuBackground: 'fundo do menu — chapado + um gradiente, decisão de UI',
   drawSettings: 'chrome do painel de configurações',
@@ -88,8 +89,12 @@ const DEBITO: Record<string, { teto: number; motivo: string }> = {
  * 3× a vida da onda é invisível: o jogador não entende por que o corpo grande
  * não cai. Está dentro de `drawEnemies`, cuja permissão já cobre "anel de
  * chefe e barras de vida" — o titã estende o vocabulário, não inventa um.
+ *
+ * 70 → 72 pela CAIXA DE DIÁLOGO PEQUENA (H2, a Fábrica do Fernando): a
+ * faixa na base da tela (fundo + moldura) — UI de diálogo, a mesma
+ * categoria dos painéis da cutscene. O retrato é o mesmo sprite das cenas.
  */
-const TOTAL_ATUAL = 70;
+const TOTAL_ATUAL = 72;
 
 const METODOS = 'arc|ellipse|fillRect|strokeRect|roundRect|createRadialGradient|createLinearGradient';
 const CHAMADA = new RegExp(`\\.(?:${METODOS})\\(`);

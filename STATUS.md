@@ -1,14 +1,14 @@
 # SARGENTO RIOS — Status Geral do Projeto
 
-> Atualizado: 2026-10-13 · branch `develop` (v2 mesclada) ·
-> 961 testes em 55 arquivos · `tsc` limpo · build ok.
+> Atualizado: 2026-10-14 · branch `develop` (v2 mesclada) ·
+> 969 testes em 56 arquivos · `tsc` limpo · build ok.
 > Este arquivo estava parado na v1.3 (420 testes, nome ASHFALL) e foi
 > reconciliado com o código.
 
 ## Verificação atual
 
 ```
-npm test           # 961 passando em 55 arquivos
+npm test           # 969 passando em 56 arquivos
 npx tsc --noEmit   # 0 erros
 npm run build      # ok
 npm run visual     # 8 screenshots, sem 404/pageerror
@@ -469,6 +469,45 @@ o pedido do dono ("mais vida/dano/raio que o tipo comum, visual maior"):
 - Registrado/adiado (instrução do Murilo): modo 2P (setas movem os dois,
   P2 atravessa paredes — sessão dedicada), modo competitivo (bots como
   personagens jogáveis), linguagem dev na tela, limpeza dos arquivos.
+
+## Entrega: o carinho nos detalhes — textos, sons H5 e a raiz limpa — 2026-10-14 01:08
+
+A maior crítica do Murilo ("a falta de carinho nos detalhes") recebeu a
+resposta — cada cena realinhada ao texto dele, verbatim, na caixa que ele
+pediu:
+
+- **O Castelo reescrito** (decisão dele: o Fernandes morre em jogo): a
+  cutscene encolheu para as 6 linhas verbatim; o CABO FERNANDES é NPC
+  real — chega na onda 2 (a caixa pequena conta quem ele é e anuncia o
+  foguete), o sacrifício acontece quando o REI MUTANTE levanta (o
+  fechamento da caixa tira o NPC e registra o diário "Seis Segundos" —
+  o gatilho migrou da cutscene), e o pós-missão conta o conserto + o voo
+  com os sons.
+- **Floresta/Caverna verbatim completos**: "Saudades daqui, gostava de
+  brincar no balanço…", "Vou destruir todos!", "Finalmente saí da
+  floresta… Pelo menos aqui na caverna não deve ter nenhum!", "O que é
+  isso? Ah não…"
+- **Bunker**: "Ei, você! Pegue isto!" + o "O universo está a meu favo-"
+  cortado pela explosão.
+- **Epílogo**: a risada corrigida — é do RIOS ("HAHAHAHA! Acabei com
+  você, maldição!"), não do painel da máquina. O fecho narrador ganha as
+  perguntas dele ("Será que ele vai conseguir? Como ele vai fazer isso?").
+- **H5 — sons narrativos caçados e ligados**: risada.ogg (Supergeek,
+  CC0), ferramenta.ogg (BMacZero, CC0), foguete_lancamento.ogg (dklon,
+  CC-BY 3.0). A explosão da cápsula usa o explosion.ogg existente.
+- **Linguagem amigável ao jogador**: os créditos citavam caminhos de
+  arquivo ("assets/CREDITS.md", "29 efeitos em assets/sfx/") — quem joga
+  não é dev. Reescrito.
+- **A raiz limpa** (lista aprovada): session-*.md, RELATORIO*.md,
+  freebuff-chat-*.md, NEGOCIADO.md, bugs.md, plano*.md, ashfall.zip —
+  descartados. Restam AGENTS.md, PUBLISHING.md, README.md, ROADMAP.md,
+  STATUS.md, TODO.md.
+- **Vulcão 0,79 → 0,74**: o +0,05 da compensação da coleta não coube nele
+  (3 mortes em 5 amostras a 32s, dano de inferno 108-126, contra 45s+
+  consistentes a 0,74) — DECISIONS #194.
+- Gates: 969 testes, story-proof 19/19 (a Fábrica pela caixa + o Castelo
+  curto), campanha 9/9 (o Castelo atravessa as 3 sequências em jogo),
+  bunker OK, fases re-medido, visual sem 404.
 
 ---
 

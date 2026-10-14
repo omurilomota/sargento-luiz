@@ -69,9 +69,16 @@ describe('o nome da fase final bate com a cutscene que a abre', () => {
       .toBe(base(cenaFinal.title).replace(/[^a-z]/g, ''));
   });
 
-  it('nenhuma das 9 fases abre uma cena de título diferente', () => {
+  it('nenhuma fase abre uma cena de título diferente — MENOS a Fábrica (caixa pequena, H2)', () => {
     for (let f = 0; f < PHASES.length; f++) {
-      const c = CUTSCENES[cutsceneForPhase(f)];
+      const idx = cutsceneForPhase(f);
+      // H2: a Fábrica abre em caixa pequena de diálogo (dialogo.ts), não
+      // em cutscene — pedido do Murilo. -1 é o contrato dela.
+      if (idx === -1) {
+        expect(PHASES[f].name, 'só a Fábrica pode não ter cena grande').toBe('Fábrica');
+        continue;
+      }
+      const c = CUTSCENES[idx];
       expect(c, `fase ${f} (${PHASES[f].name}) sem cena`).toBeDefined();
       expect(c.title, `fase ${f}: config diz "${PHASES[f].name}", a cena diz "${c.title}"`).toBeTruthy();
     }

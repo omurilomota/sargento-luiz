@@ -81,6 +81,23 @@ let indice = 0;
 for (const nome of fases) {
   await page.evaluate(() => window.__ashfall.pularParaProximaFase());
   await page.waitForTimeout(600);
+  // H2: a Fábrica abre em CAIXA PEQUENA de diálogo (o pedido do Murilo:
+  // "não gigante igual aos outros níveis") — não em cutscene.
+  if (nome === 'Fábrica') {
+    const dlg = await page.evaluate(() => window.__ashfall.dialogo?.() ?? false);
+    checar('a Fábrica abre a caixa pequena de diálogo', dlg === true, `dialogo=${dlg}`);
+    await page.screenshot({ path: join(SHOTS, `historia-${indice}-caixa-pequena.png`) });
+    indice++;
+    for (let i = 0; i < 30; i++) {
+      const aberta = await page.evaluate(() => window.__ashfall.dialogo?.() ?? false);
+      if (!aberta) break;
+      await page.keyboard.press('Enter');
+      await page.waitForTimeout(250);
+    }
+    const fechou = await page.evaluate(() => window.__ashfall.dialogo?.() ?? false);
+    checar('a caixa pequena atravessa com ENTER', fechou === false, `dialogo=${fechou}`);
+    continue;
+  }
   st = await cena();
   checar(`fase abre cutscene (${nome})`, st?.ativa === true, `título="${st?.titulo}" linha=${st?.linha}`);
   if (st?.ativa) {

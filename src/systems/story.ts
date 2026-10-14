@@ -6,7 +6,7 @@
 import { PALETTE } from '../core/palette';
 
 /** Personagens da história */
-export type Character = 'narrador' | 'rios' | 'comandante' | 'cientista' | 'mensagem' | 'medico' | 'bot' | 'viajante';
+export type Character = 'narrador' | 'rios' | 'comandante' | 'cientista' | 'mensagem' | 'medico' | 'bot' | 'viajante' | 'fernando';
 
 /** Uma fala na cutscene */
 export interface DialogueLine {
@@ -39,6 +39,7 @@ const PORTRAITS: Record<Character, { name: string; color: string; sprite: string
   medico: { name: 'CABO FERNANDES', color: PALETTE.stone, sprite: 'manBlue_hold' },
   bot: { name: 'BOT #89', color: PALETTE.stone, sprite: 'robot_hold' },
   viajante: { name: 'VIAJANTE #23', color: '#a08050', sprite: 'manOld_hold' },
+  fernando: { name: 'FERNANDO', color: '#8a6a4a', sprite: 'manBrown_hold' },
 };
 
 /**
@@ -79,10 +80,10 @@ export const CUTSCENES: Cutscene[] = [
       { speaker: 'rios', text: 'Joe. Seu velho teimoso. Você plantou essas árvores e agora elas te enterraram.' },
       { speaker: 'narrador', text: 'Duas xícaras na mesa da cozinha. Uma virada, a bebida secou faz tempo.' },
       { speaker: 'rios', text: 'Duas xícaras. Você tava esperando alguém, Joe.' },
-      { speaker: 'narrador', text: 'Mais pro fundo tem uma cabana que ninguém visitava. Os meninos falavam que era de bruxa.' },
-      { speaker: 'rios', text: 'O Joe jurava que era mentira. Certeza que era mentira. Ele é que não deixava ninguém chegar perto.' },
-      { speaker: 'rios', text: 'As trilhas daqui não levavam a nada. A gente seguia do mesmo jeito, atrás do riacho.' },
-      { speaker: 'rios', text: 'O balanço dele ainda tá pendurado na árvore. Criança criava mundo do nada aqui. Agora só tem zumbis.' },
+      { speaker: 'rios', text: 'Saudades daqui. Gostava de brincar no balanço, e tinha aquela casa da cabana sombria que meus amigos falavam que tinha uma bruxa.' },
+      { speaker: 'rios', text: 'Certeza que era mentira.' },
+      { speaker: 'rios', text: 'As trilhas que nunca levavam a lugar nenhum… O que importava era a brincadeira.' },
+      { speaker: 'rios', text: 'Agora só tem zumbis. Vou destruir todos!' },
       { speaker: 'narrador', text: 'Movimento entre os troncos. Sempre a uns quarenta metros, sempre parando quando ele para.' },
       { speaker: 'rios', text: 'Eles ainda usam roupa. Eram gente. Gente como o Joe.' },
       { speaker: 'narrador', text: 'Ele senta na varanda e bebe da xícara virada. Não tem nada dentro. Fica assim um tempo.' },
@@ -92,29 +93,18 @@ export const CUTSCENES: Cutscene[] = [
     title: 'CAVERNA',
     color: '#608090',
     lines: [
-      { speaker: 'rios', text: 'Arthur escavava cristal aqui. Fazia lente pra BioGen, antes de tudo.' },
+      { speaker: 'rios', text: 'Finalmente saí da floresta. Os zumbis estão evoluindo rapidamente.' },
+      { speaker: 'rios', text: 'Pelo menos aqui na caverna não deve ter nenhum!' },
       { speaker: 'narrador', text: 'A lanterna dele está no chão, virada pra parede. A luz morreu faz tempo.' },
-      { speaker: 'narrador', text: 'Ele está sentado de costas pra saída, como quem esperava alguém descer pelo túnel.' },
+      { speaker: 'narrador', text: 'Arthur está sentado de costas pra saída, como quem esperava alguém descer pelo túnel.' },
       { speaker: 'rios', text: '...Arthur.' },
       { speaker: 'narrador', text: 'A mochila do lado está cheia. Ele tava enchendo pra levar embora. Não deu tempo.' },
       { speaker: 'rios', text: 'Treze anos. Você me trouxe aqui e falou que aqui embaixo ninguém mandava na gente.' },
       { speaker: 'narrador', text: 'Três pontos de luz pulsam no fundo, no mesmo ritmo. Não é mineral. Tá se reproduzindo.' },
-      { speaker: 'rios', text: 'Os zumbis estão evoluindo rapidamente. O Arthur tava aqui embaixo quando isso começou.' },
       { speaker: 'narrador', text: 'Grr… vem do túnel de baixo. Perto.' },
+      { speaker: 'rios', text: 'O que é isso? Ah não…' },
       { speaker: 'rios', text: 'Você ficou com o lugar. Eu levo o crachá.' },
       { speaker: 'narrador', text: 'Guarda no bolso da farda, do lado de dentro. Do lado do peito.' },
-    ],
-  },
-  {
-    title: 'FÁBRICA',
-    color: '#999',
-    lines: [
-      { speaker: 'rios', text: 'BioGen Corp. A placa ainda está na entrada. Alguém cuspiu no nome.' },
-      { speaker: 'narrador', text: 'Linha de montagem parada. O braço da máquina segura uma peça pela metade.' },
-      { speaker: 'rios', text: 'Pararam no meio do turno. Ninguém sai no meio do turno por bem.' },
-      { speaker: 'narrador', text: 'No fim do corredor, uma escada desce. O ar que sobe é quente, com cheiro de remédio.' },
-      { speaker: 'narrador', text: 'Tem alguma coisa no subsolo. Não é motor. Motor não bate assim.' },
-      { speaker: 'rios', text: 'Ouvi. Já vou descer.' },
     ],
   },
   {
@@ -141,25 +131,9 @@ export const CUTSCENES: Cutscene[] = [
     lines: [
       { speaker: 'narrador', text: 'Muros de pedra, portões de ferro, torres com luz em cima. Alguém ainda acende as torres.' },
       { speaker: 'rios', text: 'Eles ergueram isso. Não é bando. É governo.' },
-      { speaker: 'narrador', text: 'Os cavaleiros dos portões são montados com osso.' },
-      { speaker: 'rios', text: 'Osso de gente. Dos seus. Transformaram o povo em muro.' },
-      { speaker: 'narrador', text: 'Na ameia, um vivo. Farda de batalhão. A arqueira no alto não tira o olho dele.' },
-      { speaker: 'medico', text: 'Sargento! Cabo Fernandes, esquadrão Beta. Sobrevivi ao ataque e me tranquei aqui dentro.' },
-      { speaker: 'rios', text: 'Fernandes? O comandante enterrou o Beta inteiro no relatório.' },
-      { speaker: 'medico', text: 'Quase, senhor. Conheço as galerias. Posso te levar ao topo.' },
-      { speaker: 'medico', text: 'De acordo com a coordenada daquela cápsula, o antigo abrigo deles era aqui.' },
-      { speaker: 'medico', text: 'E tem mais: no pátio interno tem um foguete de pé. O rei guarda ele como troféu. É a saída daqui.' },
-      { speaker: 'rios', text: 'Então o foguete fica inteiro. Quem encostar nele encontra comigo.' },
-      { speaker: 'rios', text: 'Fica atrás de mim, cabo. É ordem.' },
-      { speaker: 'medico', text: 'Sim, senhor. ...Obrigado por vir. Pensei que ninguém vinha.' },
-      { speaker: 'narrador', text: 'O portão do pátio range sozinho. Um cavaleiro de quatro metros desce da ameia, espada de osso em riste.' },
-      { speaker: 'medico', text: 'Vai, senhor! Eu seguro ele! VAI!' },
-      { speaker: 'narrador', text: 'Fernandes avança. Metal contra osso. Quando Rios olha de volta, o cabo está junto ao portão, de olhos abertos.' },
-      { speaker: 'rios', text: '...Cabo. Cabo, não. Não era obrigado.' },
-      { speaker: 'narrador', text: 'Rios fica olhando o portão. Ele ainda treme nas dobradiças.' },
-      { speaker: 'narrador', text: '---' },
-      { speaker: 'rios', text: 'Fernandes.' },
-      { speaker: 'narrador', text: 'Nada. Hoje ninguém reacende as torres.' },
+      { speaker: 'rios', text: 'Bom, de acordo com a coordenada daquela cápsula, o antigo abrigo deles era aqui.' },
+      { speaker: 'rios', text: 'Vamos ver o que temos aqui!' },
+      { speaker: 'narrador', text: 'Os cavaleiros dos portões são montados com osso de gente. O povo virou muro.' },
       { speaker: 'narrador', text: 'No muro principal, algo grande se levanta. O REI MUTANTE tava esperando.' },
     ],
   },
@@ -212,10 +186,10 @@ export const CUTSCENES: Cutscene[] = [
       { speaker: 'mensagem', text: 'Você vai ver só seus trilionários. Vocês estão fudidos.' },
       { speaker: 'rios', text: 'Eles pilharam o país e fugiram. A máquina ficou ligada.' },
       { speaker: 'narrador', text: 'Um homem sai do galpão pela porta dos fundos. Mochila de viajante, crachá número vinte e três.' },
-      { speaker: 'viajante', text: 'Calma, sargento. Eu entrei pela porta dos fundos, como todo mundo que ainda vive por aqui.' },
-      { speaker: 'viajante', text: 'Tem um traje de contenção aí e um martelo. O martelo é AI-ON. Os dois foram deixados de propósito.' },
-      { speaker: 'rios', text: 'E você? Quem te mandou?' },
-      { speaker: 'viajante', text: 'Ninguém me manda desde 2087. Vai primeiro, sargento. Eu fecho a porta.' },
+      { speaker: 'viajante', text: 'Ei, você! Pegue isto!' },
+      { speaker: 'narrador', text: 'O martelo é AI-ON, o mais potente do universo. O traje de contenção vem junto, os dois deixados de propósito.' },
+      { speaker: 'viajante', text: 'O universo está a meu favo-' },
+      { speaker: 'narrador', text: 'A explosão do pátio engole o resto da frase. Quando o clarão baixa, o viajante não está mais ali.' },
       { speaker: 'mensagem', text: '[ NÚCLEO — INTRUSO AVISTADO! MODO NEUTRALIZADOR ATIVO ]' },
       { speaker: 'rios', text: 'Então é aqui. É tudo que sobrou.' },
     ],
@@ -226,8 +200,8 @@ export const CUTSCENES: Cutscene[] = [
     lines: [
       { speaker: 'narrador', text: 'O NÚCLEO para de pulsar. O metal esfria de fora pra dentro e leva quatro minutos.' },
       { speaker: 'mensagem', text: '[ INSTABILIDADE REGISTRADA… MODO CRÍ-CRÍ-CRÍ-TICOOOOO ]' },
-      { speaker: 'narrador', text: 'A risada sai do painel antes do silêncio. Metálica, curta, sem dono nenhum.' },
-      { speaker: 'mensagem', text: '[ OS RESPONSÁVEIS AINDA PRECISAM TER UMA CONVERSA COMIGO ]' },
+      { speaker: 'rios', text: 'HAHAHAHA! Acabei com você, maldição! Mas ainda não acabou!' },
+      { speaker: 'rios', text: 'Os responsáveis ainda precisam ter uma conversa comigo.' },
       { speaker: 'narrador', text: 'O MOTHERSHIP cai a três quilômetros dali. A luz do rompimento desce por quarenta minutos e depois some.' },
       { speaker: 'narrador', text: 'O céu fica quieto. É a primeira noite limpa desde que o quartel caiu.' },
       { speaker: 'narrador', text: 'Rios abre o painel de manutenção. O registro continua na tela.' },
@@ -252,6 +226,8 @@ export const CUTSCENES: Cutscene[] = [
       { speaker: 'narrador', text: 'Na tela do painel, antes de sair, o destino piscava devagar.' },
       { speaker: 'mensagem', text: '[ DESTINO DA DIRETORIA — PLANETA AHB-45 — VERIFICAÇÃO PENDENTE ]' },
       { speaker: 'rios', text: 'AHB-45. Anota aí, Vale. Um dia a gente vai até eles.' },
+      { speaker: 'narrador', text: 'A vida na terra está voltando ao normal aos poucos. Rios não tem paz ainda — ele quer a vingança inteira.' },
+      { speaker: 'narrador', text: 'Será que ele vai conseguir? AHB-45 fica muito distante… Como ele vai fazer isso?' },
       { speaker: 'narrador', text: 'FIM DA PARTE I.' },
       { speaker: 'mensagem', text: '[ PART II EM BREVE — AHB-45 ]' },
     ],
@@ -336,20 +312,25 @@ export function showCutscene(): void {
  * O epílogo não tem mais escolhas: a reescrita de 2026-10-13 (DECISIONS
  * #174) trocou os 3 finais por NARRADOR + créditos da jornada + teaser
  * AHB-45, e a maquinaria de escolhas saiu junto (semOrfao limpo).
+ *
+ * A FÁBRICA não abre cutscene grande (H2, 2026-10-13): a chegada, o amigo
+ * e a cápsula correm na CAIXA PEQUENA de diálogo (`systems/dialogo.ts`),
+ * a pedido do Murilo — "caixa de diálogo pequena, não gigante igual aos
+ * outros níveis". Por isso a tabela pula o índice 3 e a lista tem 9 cenas.
  */
 const FASE_PARA_CUTSCENE: Record<number, number> = {
   0: 0,   // Cidade -> PRÓLOGO
   1: 1,   // Floresta
   2: 2,   // Caverna
-  3: 3,   // Fábrica
-  4: 4,   // Pântano
-  5: 5,   // Castelo
-  6: 6,   // Vulcão
-  7: 7,   // Espaço
-  8: 8,   // Bunker -> NÚCLEO-CENTRAL (o EPÍLOGO fecha depois do chefe final)
+  // 3 (Fábrica): caixa pequena, ver dialogo.ts e o script da fase no main
+  4: 3,   // Pântano
+  5: 4,   // Castelo
+  6: 5,   // Vulcão
+  7: 6,   // Espaço
+  8: 7,   // Bunker -> NÚCLEO-CENTRAL (o EPÍLOGO fecha depois do chefe final)
 };
 
-export const EPILOGUE_CUTSCENE = 9;
+export const EPILOGUE_CUTSCENE = 8;
 
 /** Índice da cutscene que abre a fase, ou -1 se essa fase não abre uma. */
 export function cutsceneForPhase(phaseIndex: number): number {

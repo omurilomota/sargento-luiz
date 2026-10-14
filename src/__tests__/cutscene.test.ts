@@ -198,9 +198,17 @@ describe('a fase final não abre o epílogo', () => {
     expect(isEpilogueScene()).toBe(true);
   });
 
-  it('cada uma das 9 fases abre uma cena, e nenhuma é o epílogo', () => {
+  it('cada fase abre uma cena, e nenhuma é o epílogo — MENOS a Fábrica, que é caixa pequena', () => {
     for (let f = 0; f < PHASES.length; f++) {
       const idx = cutsceneForPhase(f);
+      if (PHASES[f].name === 'Fábrica') {
+        // H2 (2026-10-13, pedido do Murilo): "esse diálogo e o anterior
+        // gostaria que fosse em uma caixa de diálogo pequena, não gigante
+        // igual aos outros níveis". A chegada, o amigo e a virada correm
+        // no `systems/dialogo.ts` — a Fábrica não tem cena grande.
+        expect(idx, 'a Fábrica não abre cutscene grande (H2)').toBe(-1);
+        continue;
+      }
       expect(idx, `fase ${f} (${PHASES[f].name}) sem cena de abertura`).toBeGreaterThanOrEqual(0);
       expect(idx, `fase ${f} (${PHASES[f].name}) abre o epílogo`).not.toBe(EPILOGUE_CUTSCENE);
     }

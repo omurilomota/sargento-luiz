@@ -163,6 +163,15 @@ export function criarBot(page, { largura = 1280, altura = 720, atirar = true } =
       let n = 0;
 
       while (Date.now() - t0 < segundos * 1000) {
+        // H2: a caixa pequena de diálogo da Fábrica congela o mundo — o bot
+        // atravessa com ENTER (o auto-avanço de 10s resolveria, mas 10s por
+        // linha destruiria a janela da medição).
+        const dialogo = await page.evaluate(() => window.__ashfall.dialogo?.() ?? false);
+        if (dialogo) {
+          await page.keyboard.press('Enter');
+          await page.waitForTimeout(200);
+          continue;
+        }
         const ameaca = await vetorDaAmeaca();
         if (ameaca) {
           await andarPara(direcaoDodge(ameaca.dx, ameaca.dy).teclas);

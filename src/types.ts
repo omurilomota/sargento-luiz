@@ -281,6 +281,13 @@ export interface Phase {
   objectiveTarget: number;
   /** Chave do tipo de inimigo boss desta fase, se houver */
   boss?: string;
+  /**
+   * Fase de COLETA (H2, a Fábrica do Fernando — "essa fase será destinada a
+   * coleta de recursos. Os zumbis droparão mais coisas e com mais
+   * facilidade"): os drops e moedas pagam mais, e a dificuldade das fases
+   * SEGUINTES compensa (o texto do dono pede os dois lados).
+   */
+  coleta?: boolean;
 }
 
 /** Define as estatísticas e comportamento de um tipo de inimigo */

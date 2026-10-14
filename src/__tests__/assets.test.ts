@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { existsSync, readFileSync } from 'fs';
 import { inflateSync } from 'zlib';
 import { join } from 'path';
-import { ENEMY_TYPES, PHASES, WEAPONS, SPAWN_PROPRIO } from '../config';
+import { ENEMY_TYPES, PHASES, WEAPONS, SPAWN_PROPRIO, SCRIPTED_TYPES } from '../config';
 import {
   characterFileExists, weaponFileExists, TILE_NUMBERS, tileFileName,
   POSES, WEAPON_CLASSES, ENEMY_CHARACTER,
@@ -265,9 +265,13 @@ describe('conteúdo: nenhum tipo de inimigo fica órfão', () => {
     // biomaquina em `enemyTypes` — e o spawner a jogaria na onda, que é
     // justamente o que a decisão do jogador proíbe (ela nasce do NÚCLEO,
     // enquanto ele estiver vivo, e não no ritmo da onda).
+    //
+    // `SCRIPTED_TYPES` é o quinto: o Fernando infectado (H2) nasce do script
+    // da Fábrica — ele é a virada pós-sentinel, não onda e não boss da fase.
     const usados = new Set([
       ...PHASES.flatMap(f => [...f.enemyTypes, ...(f.boss ? [f.boss] : [])]),
       ...SPAWN_PROPRIO,
+      ...SCRIPTED_TYPES,
     ]);
     const orfaos = Object.keys(ENEMY_TYPES).filter(t => !usados.has(t));
     expect(orfaos, `tipo definido e nunca usado: ${orfaos.join(', ')}`).toEqual([]);

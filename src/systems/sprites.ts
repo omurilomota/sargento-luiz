@@ -281,6 +281,10 @@ export const ENEMY_CHARACTER: Record<string, string> = {
   // sem sprite ela cai no fallback `zombie`, que é o zumbi que ela deveria
   // parecer ter costurado.
   biomaquina: 'robot',
+  // O FERNANDO INFECTADO (H2): o corpo é o DELE — manBrown, o mesmo que
+  // nas ondas vira `runner` — porque a batalha é contra o amigo, e o jogador
+  // precisa reconhecer quem está matando.
+  fernandoInf: 'manBrown',
 };
 
 /** Os 9 biomas, na ordem das fases. */

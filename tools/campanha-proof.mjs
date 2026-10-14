@@ -144,6 +144,14 @@ async function jogarFase({ curarJogador, forcarApos = 12000, limite = 40000 }) {
     s = await f();
     if (s.estado === 'gameover') { registro.morreu = true; break; }
     if (s.estado === 'shop') { registro.fechouNaLoja = true; break; }
+    // H2: a caixa pequena de diálogo da Fábrica congela o mundo — a prova
+    // atravessa com ENTER (o mesmo que o bot faz). Sem isto, a fase nunca
+    // avança de onda e o diagnóstico leria "não fechou" sem ser culpa dela.
+    if (await page.evaluate(() => window.__ashfall.dialogo?.() ?? false)) {
+      await page.keyboard.press('Enter');
+      await page.waitForTimeout(300);
+      continue;
+    }
 
     registro.ondasVistas.add(s.onda);
     for (const t of s.tipos) registro.tiposVistos.add(t);

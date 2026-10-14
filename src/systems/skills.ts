@@ -65,12 +65,30 @@ export function setMoveDirection(dx: number, dy: number): void {
 }
 
 /**
+ * A FÚRIA só existe depois da Fábrica do Fernando (H2 — gate de história,
+ * decisão do Murilo 2026-10-13: "a fúria só vai ser descoberta aqui, pois
+ * após ter raiva dos trilionários o player libera a fúria"). Sem isto ela
+ * existia desde o início da campanha e o beat não custava nada. Travada
+ * para saves antigos também — o gate é a história, não a data do save.
+ */
+let furiaLiberada = false;
+
+export function furiaDesbloqueada(): boolean { return furiaLiberada; }
+export function desbloquearFuria(): void { furiaLiberada = true; }
+/** Continue do save: o flag viaja com a partida. */
+export function restoreFuria(v: boolean): void { furiaLiberada = v; }
+/** Partida nova começa travada — a Fábrica abre a porta de novo. */
+export function resetFuria(): void { furiaLiberada = false; }
+
+/**
  * Tenta ativar uma habilidade.
  * @returns true se a habilidade foi ativada
  */
 export function useSkill(type: SkillType): boolean {
   const skill = skills[type];
   if (skill.cooldown > 0 || skill.active) return false;
+  // o gate de história: sem a Fábrica, não há raiva o bastante
+  if (type === 'fury' && !furiaLiberada) return false;
 
   skill.active = true;
   skill.duration = skill.maxDuration;

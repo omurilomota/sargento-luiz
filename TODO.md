@@ -1591,18 +1591,77 @@
 //     ashfall.zip — a história fica no git.
 
 // ─── FILA DESTA SESSÃO (ordem aprovada: bugs → H2 → textos) ───
-// [ ] H2 — a Fábrica do Fernando: caixa de diálogo PEQUENA, fase de
-//     coleta (drops melhores, dificuldade seguinte compensa), cápsula +
-//     radiação (todos infectados, player imune sem saber), mid-boss
-//     "Quer–o–o-o o seu cerébrO!!!", pós-morte, volta direto pra loja,
-//     FÚRIA desbloqueia só aqui. Diálogo verbatim completo na sessão.
-// [ ] TEXTOS — o carinho nos detalhes: Castelo reescrito pro texto novo
-//     (Fernandes morre EM JOGO, não em cutscene — decisão do Murilo),
-//     verbatim completos (Floresta/Caverna/Bunker/epílogo), a risada é
-//     do RIOS, o "universo está a meu favo- (EXPLOSÃO)", pós-missão do
-//     Castelo (consertar + voar com os sons H5), linguagem amigável ao
-//     jogador, limpeza dos arquivos.
+// [x] H2 — a Fábrica do Fernando (2026-10-14, 00:20): ENTREGUE.
+//     - CAIXA PEQUENA (`systems/dialogo.ts`): a faixa na base da tela com
+//       o mundo CONGELADO atrás (decisão do Murilo: pausado por linha), o
+//       ENTER avança e o auto-avanço de 10s prende ninguém. A Fábrica
+//       deixou de ter cutscene grande (o pedido: "não gigante igual aos
+//       outros níveis") — as três sequências + o luto correm na caixa.
+//       dialogo.test.ts (6); story-proof atravessa a Fábrica pela caixa.
+//     - AS SEQUÊNCIAS (verbatim do relato): a chegada ("era exatamente
+//       aqui onde eles escravizavam o povo…"), o amigo na onda 2 (o NPC
+//       Fernando nasce do lado do jogador; a cápsula EXPLODE no meio do
+//       diálogo — o efeito dispara com a linha, sem dano: é a radiação da
+//       história, todos infectados, o player imune sem saber), a virada
+//       pós-sentinel ("Quer–o–o-o o seu cerébrO!!!") e o luto ("Eu não
+//       queria te matar amigo…", "Brains…").
+//     - O FERNANDO INFECTADO (`fernandoInf` no config): chefe MENOR com
+//       barra (decisão do Murilo) — 520 HP entre o sentinel (360) e o rei
+//       (630), os três ataques do vocabulário de chefe (ring, charge,
+//       summon), corpo manBrown (o MESMO do amigo — o jogador reconhece
+//       quem está matando). Nasce do FECHAMENTO da caixa da virada, no
+//       lugar do NPC. SCRIPTED_TYPES no config: o quinto caminho do
+//       cheque de órfão do assets.test.
+//     - A COLETA: `coleta: true` na Fábrica — moedas ×1,5 e loot ×2, e a
+//       dificuldade das fases seguintes compensa (+0,05 de Pântano até o
+//       NÚCLEO), como o relato pede os dois lados.
+//     - O GATE DA FÚRIA: travada para TODOS (decisão do Murilo, inclusive
+//       saves antigos — o gate é a história), desbloqueia na morte do
+//       Fernando, viaja no save (`furia`), e apertar E antes diz porquê
+//       ("FÚRIA TRAVADA — ELA ABRE NA HISTÓRIA").
+//     Provas: 969 testes (dialogo 6 + ajustes), story-proof 19/19 (a
+//     Fábrica pela caixa), campanha 9/9 (o fluxo completo: sentinel →
+//     virada → Fernando → luto → fúria → loja).
+// [ ] TEXTOS — o carinho nos detalhes: ENTREGUE em 2026-10-14 (00:52).
+//     - CASTELO REESCRITO pro texto novo (decisão do Murilo: o Fernandes
+//       morre EM JOGO, não em cutscene): a cena grande encolheu para 6
+//       linhas (a coordenada da cápsula + "vamos ver o que temos aqui!"),
+//       e o CABO FERNANDES virou NPC real: chega na onda 2 (caixa pequena
+//       conta quem ele é e anuncia o foguete), o sacrifício acontece
+//       quando o REI MUTANTE levanta (a caixa congela a luta, o fechamento
+//       tira o NPC e registra o diário "Seis Segundos" — o gatilho migrou
+//       da cutscene), e o pós-missão conta o conserto + o voo ("Lá vou eu!
+//       Vocês pagam!") com os sons H5.
+//     - FLORESTA/CIVERNA verbatim completos: "Saudades daqui, gostava de
+//       brincar no balanço…", "Vou destruir todos!", "Finalmente saí da
+//       floresta… Pelo menos aqui na caverna não deve ter nenhum!",
+//       "O que é isso? Ah não…"
+//     - BUNKER: "Ei, você! Pegue isto!" + "O universo está a meu favo-"
+//       cortado pela explosão (o narrador conta o que a explosão engoliu).
+//     - EPÍLOGO: a risada é do RIOS (correção do Murilo: "HAHAHAHA!
+//       Acabei com você, maldição!"), e o fecho narrador ganha as
+//       perguntas dele ("Será que ele vai conseguir? Como ele vai fazer
+//       isso?").
+//     - Sons H5 caçados e ligados: risada (Supergeek, CC0), ferramenta
+//       (BMacZero, CC0), foguete (dklon, CC-BY 3.0) — CREDITS.md
+//       atualizado.
+//     - LINGUAGEM AMIGÁVEL: os créditos do jogo citavam caminhos de
+//       arquivo ("assets/CREDITS.md", "29 efeitos em assets/sfx/")
+//       — quem joga não é dev. Reescrito em linguagem de gente.
+//     - LIMPEZA DOS ARQUIVOS DA RAIZ (lista aprovada): session-*.md,
+//       freebuff-chat-*.md, NEGOCIADO.md, RELATORIO*.md, bugs.md, plano*.md,
+//       ashfall.zip — descartados. A raiz agora: AGENTS.md, PUBLISHING.md,
+//       README.md, ROADMAP.md, STATUS.md, TODO.md + o zip da entrega.
+//     - VULCÃO 0,79 → 0,74: o +0,05 da compensação da coleta não coube
+//       nele — 3 mortes em 5 amostras (32s, dano de inferno 108-126).
+//       A fase já era a calibrada no limite (medida na era §1.9).
 // [ ] H5 — sons narrativos (ferramenta, foguete, risada, explosão de
-//     cápsula): caçar CC0/CC-BY + CREDITS.
+//     cápsula): ENTREGUE junto com a unidade de textos (2026-10-14):
+//     ferramenta.ogg (BMacZero, CC0 — Mechanical Sounds, "rattle1"),
+//     foguete_lancamento.ogg (dklon, CC-BY 3.0 — 8-bit rocket),
+//     risada.ogg (Supergeek, CC0 — "Do you remember laughter?", 1ª
+//     variação fatiada por silêncio). A explosão da cápsula usa o
+//     explosion.ogg existente. Todos atrás de playSfxFile com fallback
+//     sintético (o semProcedural segue verde — som novo vem de arquivo).
 // [ ] AS 7 FASES NOVAS (aprovadas: Rodovia/Pedágio, Hospital, Pátio de
 //     trens, Ponte, Refinaria, Subestação, Porto) — a economia arbitra.

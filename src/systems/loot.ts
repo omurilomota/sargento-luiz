@@ -79,12 +79,12 @@ export const ELITE_TYPES = new Set(['tank', 'magmaGolem', 'crystal', 'knight', '
  * — quem paga a taxa elite de 15% (e as peças de tiers altos) é o corpo
  * grande, não o nome dele.
  */
-export function rollLootDrop(x: number, y: number, type?: string, isElite = false): void {
+export function rollLootDrop(x: number, y: number, type?: string, isElite = false, boostDeFase = 1): void {
   const elite = isElite || (type !== undefined && ELITE_TYPES.has(type));
   const r = Math.random();
   let tier: LootTier | null = null;
-  const eliteRate = 0.15;
-  const commonRate = 0.05;
+  const eliteRate = 0.15 * boostDeFase;
+  const commonRate = 0.05 * boostDeFase;
   if (elite) {
     if (r < eliteRate * 0.12) tier = 'prototipo';
     else if (r < eliteRate * 0.4) tier = 'militar';
