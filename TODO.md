@@ -1747,3 +1747,57 @@
 //     saía de graça. Corrigido: price: 30 (a mais barata da loja, mas
 //     não grátis).
 //     Rebuild: npm run package com o HEAD de 872422a.
+
+// ─── VERCEL + 5 MISSÕES (plano aprovado 2026-10-14) ───
+// [x] FASE 0: jogo público no Vercel — projeto sargento-luiz, 2 deployments
+//     Ready em produção; o login do Vercel Authentication foi desligado
+//     (PATCH /v9/projects com ssoProtection: null — o campo writable; o
+//     `protection` do GET não existe na escrita). Prova: HTTP 200 com
+//     <title>SARGENTO LUIZ</title> e o bundle JS servindo.
+//     URL estável: https://sargento-luiz-murilohenriquemota935-1958s-projects.vercel.app
+// [ ] M1 — ASSETS: [x] piso sem costura 2026-10-14 20:23 (re-extração do
+//     miolo = tile 47 do wangset, o único fill puro; prova: folha-contato
+//     dos 16 biomas lida, grade de 64px sumiu) + parede com altura
+//     duplicada (tirar cumeeira/claraboia/beiral somados ao bloco 3D).
+//     Repertório por bioma (CC0/CC-BY + CREDITS.md): Porto (gaivota,
+//     água no cais, navio distante), tempestade/trovão/terremoto,
+//     TORNADO novo (visual + som + empurrão em jogador e zumbi),
+//     Caverna (gotejamento, eco), Fábrica/Trens (maquinário, apito),
+//     Espaço (drone de vácuo, alarme da estação).
+// [ ] M2 — BUGS DE FLUXO: resetSpawner no load de fase (a "onda 2 na
+//     entrada", varrida nas 16), anúncio de onda cala sob a caixa de
+//     diálogo (Hospital), input morto no blur da aba (repro no harness
+//     antes do fix), tela de vitória "Muito bem, soldado!" no lugar do
+//     game over final, martelo forçado no NÚCLEO (única arma da fase),
+//     gate da fúria no spawn do powerup.
+// [ ] M3 — DINHEIRO E DESAFIO: economia medida contra o modelo do
+//     árbitro (achar a torneira), resistência a explosão nos chefes,
+//     rework da Pistola Incandescente (o efeito vale em qualquer arma),
+//     archers do Castelo alternam alvo (encostou, vira alvo), Ponte com
+//     multi-spawn + timer de quebra, loja nova: cachorro, sobrevivente
+//     contratado, torreta e consumíveis (os 4 aprovados).
+// [ ] M4 — A ORDEM E O VOO: Pântano 8 → Refinaria 9 → Subestação 10 →
+//     Vulcão 11 → Porto 12 → Castelo 13 → Espaço 14 → NÚCLEO 15 (o
+//     foguete enche tanque antes de ser consertado); sequência de voo
+//     no lugar do countdown de 5s (céu azul, vista de baixo, azul e
+//     preto, chegada na estação); falas: clima na Cidade (setup do
+//     tornado) + Caverna nova (hospital + o Grr).
+// [ ] M5 — EMOÇÃO E CONQUISTAS: "YOU SHALL NOT PASS!" do MAQUINISTA na
+//     entrada, abates de chefe com slow-mo + fala de morte, conquistas
+//     (10/50 com arma, fase sem dano, graze, barril, o traje).
+// [ ] M6 — CENOGRAFIA POR BIOMA (aprovado 2026-10-14 ~20:00): o mapa não
+//     parece o lugar que diz ser. Vocabulário hoje = parede/chão/decor/
+//     hazard/caixote/barril/ninho, zero cenografia estática. Frentes:
+//     (a) custo-zero do pack vendido — árvores/arbustos, rochas, tambores,
+//         engrenagens, grades/corrimãos, tábuas, óleo, pneus, cone,
+//         asfalto com faixas p/ a Rodovia (hoje piso_pedra2 genérico);
+//     (b) Kenney Racing Kit (CC0) — carcaças de carro p/ Cidade+Rodovia;
+//     (c) Tiny Dungeon — estandartes/tochas/baús p/ Castelo, cristais p/
+//         Caverna (o inimigo crystal existe e o mapa não tem um);
+//     (d) verificar pack sci-fi p/ Espaço+NÚCLEO.
+//     Achado: o pack TEM tambor (~tile 505-511) e o barril seguia
+//     procedural — dívida da regra 15. Sistema: cenografia nasce no
+//     genmaps.py (ele REGERA o maps.ts — edição manual é apagada); a
+//     Rodovia pede piso por char (asfalto na pista, acostamento fora).
+// [ ] FINAL: redeploy no Vercel com o build de tudo (npm run build &&
+//     vercel deploy dist --prod --yes --name sargento-luiz).

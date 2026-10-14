@@ -343,9 +343,9 @@ describe('assets: pack Top Down Dungeon (chão e parede com textura)', () => {
   const RAIZ = join(__dirname, '..', '..');
   const DIR = join(RAIZ, 'public', 'assets', 'sprites', 'dungeon');
 
-  it('todo material de chão tem os 8 tiles que o jogo pede', () => {
+  it('todo material de chão tem os tiles de miolo que o jogo pede', () => {
     for (const grupo of DUNGEON_FLOORS) {
-      for (let i = 0; i < DUNGEON_COUNT.piso; i++) {
+      for (let i = 0; i < DUNGEON_COUNT.piso[grupo]; i++) {
         const arq = join(DIR, `${grupo}_${String(i).padStart(2, '0')}.png`);
         expect(existsSync(arq), `piso faltando: ${grupo}_${i}`).toBe(true);
       }

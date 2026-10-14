@@ -77,7 +77,7 @@ const BASE = 'assets/sprites/topdown-shooter/PNG';
  */
 export const DUNGEON_BASE = 'assets/sprites/dungeon';
 
-/** Materiais de piso disponíveis, 8 tiles cada. */
+/** Materiais de piso disponíveis; a quantidade de tiles vem de DUNGEON_COUNT. */
 export const DUNGEON_FLOORS = [
   'piso_pedra', 'piso_pedra2', 'piso_terra', 'piso_terra2', 'piso_areia',
   'piso_grama', 'piso_metal', 'piso_madeira',
@@ -89,8 +89,26 @@ export const DUNGEON_WALLS = [
   'parede_metal', 'parede_terra', 'parede_areia',
 ] as const;
 
-/** Quantos tiles cada material tem no disco. */
-export const DUNGEON_COUNT = { piso: 8, parede: 16 } as const;
+/**
+ * Quantos tiles de cada material existem no disco.
+ *
+ * O autotile do pack tem exatamente UM fill puro por sheet (o tile 47 do
+ * wangset: as 4 arestas e os 4 cantos no mesmo terreno — medido pela costura,
+ * delta -1 da borda pro miolo, contra -38 das peças de borda que a extração
+ * velha pegava). A variedade honesta vem dos sheets da família; a curadoria
+ * visual derrubou o Stone_04 (junta preta pesada) e o Sand_02 (cinza-azulado
+ * longe de praia). Parede fica no mesmo lugar de sempre: linhas 0+1 do sheet.
+ */
+export const DUNGEON_COUNT: {
+  piso: Record<string, number>;
+  parede: number;
+} = {
+  piso: {
+    piso_pedra: 2, piso_pedra2: 1, piso_terra: 2, piso_terra2: 2,
+    piso_areia: 3, piso_grama: 2, piso_metal: 2, piso_madeira: 2,
+  },
+  parede: 16,
+};
 
 /**
  * Partículas (Kenney Particle Pack, CC0) para tiro, muzzle flash, fumaça e
@@ -472,7 +490,7 @@ function buildSpriteList(): [string, string][] {
     out.push([`tile_${n}`, `${BASE}/Tiles/${tileFileName(n)}`]);
   }
   for (const grupo of DUNGEON_FLOORS) {
-    for (let i = 0; i < DUNGEON_COUNT.piso; i++) {
+    for (let i = 0; i < DUNGEON_COUNT.piso[grupo]; i++) {
       out.push([`dngeon_${grupo}_${i}`, `${DUNGEON_BASE}/${grupo}_${String(i).padStart(2, '0')}.png`]);
     }
   }

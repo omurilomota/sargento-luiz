@@ -107,7 +107,9 @@ function drawFloor(c: CanvasRenderingContext2D, px: number, py: number, biome: B
  * `col*row` embaralha a sequência sem período curto perceptível.
  */
 function varianteDeChao(col: number, row: number): number {
-  return Math.abs(col * 7 + row * 13 + ((col * row * 3) % 11)) % DUNGEON_COUNT.piso;
+  // hash cru; o módulo por material entra em getDungeonTile (a contagem por
+  // material vem do número de fills sem costura que o pack oferece)
+  return Math.abs(col * 7 + row * 13 + ((col * row * 3) % 11));
 }
 
 /**
@@ -366,7 +368,7 @@ function drawWall(
   const dngeonWall = tintTile(`dngeon_${biome.dungeonWall}_${variante}`, biome.wall);
   if (dngeonWall) {
     c.drawImage(dngeonWall, px, py, CELL_SIZE, CELL_SIZE);
-    drawWallEdges(c, px, py, biome, cells, col, row, isWall);
+    drawWallOutline(c, px, py, col, row, isWall);
     return;
   }
   const wallTiles = WALL_TILES[biome.key];
@@ -487,6 +489,29 @@ function drawWall(
 }
 
 /**
+ * Silhueta fechada nos contatos com o chão para o bloco 3D do pack Top Down
+ * Dungeon. O bloco já nasce com topo claro, face frontal e junta sombreados;
+ * somar cumeeira/claraboia/faixa de topo (o `drawWallEdges` cheio) empilhava
+ * uma SEGUNDA altura por cima da assada — o "parede duplicada" da auditoria.
+ * Fica só o que a parede ainda pede: o contorno que diz "isto bloqueia".
+ */
+function drawWallOutline(
+  c: CanvasRenderingContext2D,
+  px: number, py: number,
+  col: number, row: number,
+  isWall: (cc: number, rr: number) => boolean
+): void {
+  c.strokeStyle = 'rgba(0,0,0,0.75)';
+  c.lineWidth = 3;
+  c.beginPath();
+  if (!isWall(col, row - 1)) { c.moveTo(px - 1.5, py - 1.5); c.lineTo(px + CELL_SIZE + 1.5, py - 1.5); }
+  if (!isWall(col, row + 1)) { c.moveTo(px - 1.5, py + CELL_SIZE + 1.5); c.lineTo(px + CELL_SIZE + 1.5, py + CELL_SIZE + 1.5); }
+  if (!isWall(col - 1, row)) { c.moveTo(px - 1.5, py - 1.5); c.lineTo(px - 1.5, py + CELL_SIZE + 1.5); }
+  if (!isWall(col + 1, row)) { c.moveTo(px + CELL_SIZE + 1.5, py - 1.5); c.lineTo(px + CELL_SIZE + 1.5, py + CELL_SIZE + 1.5); }
+  c.stroke();
+}
+
+/**
  * Borda da parede: cumeeira, claraboia, beiral, face superior e contorno.
  *
  * Saiu de `drawWall` porque agora há dois caminhos de preenchimento (tile do
@@ -588,7 +613,7 @@ function getFloorTile(n: number, biomeColor: string): HTMLCanvasElement | null {
  * verdade sem virar o "pack saturated e claro brigando com a paleta sóbria".
  */
 function getDungeonTile(material: string, variant: number, biomeColor: string): HTMLCanvasElement | null {
-  const key = `dngeon_${material}_${variant % DUNGEON_COUNT.piso}`;
+  const key = `dngeon_${material}_${variant % (DUNGEON_COUNT.piso[material] ?? 1)}`;
   return tintTile(key, biomeColor);
 }
 
