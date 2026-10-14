@@ -82,8 +82,14 @@ const DEBITO: Record<string, { teto: number; motivo: string }> = {
  * 65 → 67 pelo P2 do versus (FUTURO §1.10): sombra em elipse e o círculo de
  * fallback, os mesmos dois que `drawPlayer` já tem. O corpo continua vindo do
  * pack — o que muda é que agora existe.
+ *
+ * 67 → 70 pelo TITÃ (T1): anel mostarda no chão (o mesmo vocabulário do anel
+ * de chefe, uma escala abaixo) + a barra de vida de 2 fillRect. Sem a barra,
+ * 3× a vida da onda é invisível: o jogador não entende por que o corpo grande
+ * não cai. Está dentro de `drawEnemies`, cuja permissão já cobre "anel de
+ * chefe e barras de vida" — o titã estende o vocabulário, não inventa um.
  */
-const TOTAL_ATUAL = 67;
+const TOTAL_ATUAL = 70;
 
 const METODOS = 'arc|ellipse|fillRect|strokeRect|roundRect|createRadialGradient|createLinearGradient';
 const CHAMADA = new RegExp(`\\.(?:${METODOS})\\(`);

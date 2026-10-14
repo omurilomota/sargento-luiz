@@ -71,9 +71,16 @@ function rollLoot(tier: LootTier): LootReward {
 
 export const ELITE_TYPES = new Set(['tank', 'magmaGolem', 'crystal', 'knight', 'drone']);
 
-/** Tenta dropar loot de um inimigo comum morto. */
-export function rollLootDrop(x: number, y: number, type?: string): void {
-  const elite = type !== undefined && ELITE_TYPES.has(type);
+/**
+ * Tenta dropar loot de um inimigo comum morto.
+ *
+ * `isElite` estende o tratamento de `ELITE_TYPES` para o TITÃ da onda (T1):
+ * o titã é uma VARIANTE de um tipo comum, então o nome do tipo não diz nada
+ * — quem paga a taxa elite de 15% (e as peças de tiers altos) é o corpo
+ * grande, não o nome dele.
+ */
+export function rollLootDrop(x: number, y: number, type?: string, isElite = false): void {
+  const elite = isElite || (type !== undefined && ELITE_TYPES.has(type));
   const r = Math.random();
   let tier: LootTier | null = null;
   const eliteRate = 0.15;

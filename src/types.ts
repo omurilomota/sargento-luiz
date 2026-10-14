@@ -68,6 +68,13 @@ export interface Enemy {
   y: number;
   /** Raio de colisão */
   radius: number;
+  /**
+   * O TITÃ da onda (T1): um inimigo comum que nasce grande — 3× vida, 1,5×
+   * dano, 1,35× raio, 3× moedas, anel mostarda e barra de vida. Abre as
+   * ondas a partir da segunda, para o chefão não ser o único corpo
+   * grande da fase.
+   */
+  isElite?: boolean;
   /** Velocidade de movimento em pixels/segundo */
   speed: number;
   /** Pontos de vida atuais */

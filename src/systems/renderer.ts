@@ -841,6 +841,32 @@ export function drawParticles(particles: Particle[]): void {
   ctx.globalAlpha = 1;
 }
 
+/**
+ * Poças de fogo no chão (B7, fase do NÚCLEO): a marca de queimado é o
+ * asset `scorch_01` (o pack tem exatamente isso — chão marcado por fogo) e
+ * a brasa é o `flare_01` pulsando devagar por cima, encolhendo com a vida
+ * restante. Dois assets do pack de partículas, nenhum desenho de código.
+ */
+export function drawFires(fires: { x: number; y: number; radius: number; life: number; maxLife: number }[]): void {
+  const marca = getSprite('fx_scorch_01');
+  const brasa = getSprite('fx_flare_01');
+  if ((!marca || !marca.complete || marca.naturalWidth === 0) && (!brasa || !brasa.complete || brasa.naturalWidth === 0)) return;
+  for (const f of fires) {
+    const faseVida = f.life / f.maxLife;
+    const pulso = 0.72 + 0.28 * Math.sin(Date.now() / 130 + f.x);
+    if (marca && marca.complete && marca.naturalWidth > 0) {
+      ctx.globalAlpha = 0.55;
+      ctx.drawImage(marca, f.x - f.radius, f.y - f.radius, f.radius * 2, f.radius * 2);
+    }
+    if (brasa && brasa.complete && brasa.naturalWidth > 0) {
+      const lado = f.radius * 1.7 * (0.6 + faseVida * 0.4);
+      ctx.globalAlpha = (0.35 + 0.45 * faseVida) * pulso;
+      ctx.drawImage(brasa, f.x - lado / 2, f.y - lado / 2, lado, lado);
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
 export function drawBullets(bullets: Bullet[]): void {
   for (const b of bullets) {
     const speed = Math.hypot(b.vx, b.vy) || 1;
@@ -962,6 +988,28 @@ export function drawEnemies(
       ctx.ellipse(e.x, e.y + e.radius * 0.6, e.radius * 1.1, e.radius * 0.42, 0, 0, Math.PI * 2);
       ctx.stroke();
       ctx.globalAlpha = 1;
+    }
+
+    // O TITÃ da onda (T1): anel mostarda — o mesmo vocabulário do anel de
+    // chefe, uma escala abaixo (o chefe é terracota, o titã é mostarda).
+    // E a barra de vida: 3× a vida da onda não pode ser invisível, senão o
+    // jogador não entende por que o corpo grande não cai. Sites contados no
+    // semDesenho (TOTAL_ATUAL 67 → 70, decisão no diff do teste).
+    if (e.isElite) {
+      const pulso = 0.5 + Math.sin(Date.now() / 650 + e.y * 0.01) * 0.16;
+      ctx.strokeStyle = PALETTE.mustard;
+      ctx.globalAlpha = pulso;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.ellipse(e.x, e.y + e.radius * 0.6, e.radius * 1.05, e.radius * 0.4, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      const barW = Math.min(64, e.radius * 2);
+      const barY = e.y - e.radius * 1.4 - 8;
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.fillRect(e.x - barW / 2, barY, barW, 4);
+      ctx.fillStyle = PALETTE.mustard;
+      ctx.fillRect(e.x - barW / 2, barY, barW * Math.max(0, e.health / e.maxHealth), 4);
     }
 
     // o personagem depende da FASE: o mesmo tipo de inimigo sai com um corpo

@@ -11,7 +11,7 @@
  * Fluxo: menu → cutscene → playing → (waves → shop) → ... → gameover
  */
 
-import { normalize } from './utils';
+import { normalize, rand } from './utils';
 import { PHASES, ENEMY_TYPES, POWERUP_TYPES, WEAPONS, QUALITIES, PIECE_TYPES, NUCLEO_RUSH, SPAWN_PROPRIO, conditionLabel } from './config';
 import { PALETTE } from './core/palette';
 
@@ -37,10 +37,10 @@ let wasJammed = false;
 //Timestamp dos últimos kills, para detectar a chacina que gatilha slow-mo
 const killTimes: number[] = [];
 import { checkBulletEnemyCollisions, checkEnemyPlayerCollision, checkEnemyBulletPlayerCollision, bulletHitsCircle } from './systems/collision';
-import { createExplosion, updateExplosions, clearExplosions } from './systems/explosions';
+import { createExplosion, updateExplosions, clearExplosions, spawnFire, updateFires, clearFires, pisaEmFogo, getFires, FOGO_DPS, FOGO_RAIO } from './systems/explosions';
 import { loadMap, colAt, rowAt, charAt, isWall, hasPath, moveCircleBy, rebuildFlowField, rebuildFlowFieldAlvo, sampleFlowDir, sampleFlowDirAlvo, pushOutOfWalls, findAll, segmentHitsWall, findFreeSpotNear } from './systems/tilemap';
 import { initCamera, setViewportSize, setWorldSize, updateCamera, snapCamera, getCamX, getCamY, screenToWorld, drawVoid, isVisible, setShake } from './systems/camera';
-import { initProps, getProps, updateProps, damageProp, detonateProp, getBlast, drawProps, clearProps, collapsesOnHit, getRocket, getAnyRocket, ROCKET_CONTACT_DPS, Prop } from './systems/props';
+import { initProps, getProps, updateProps, damageProp, detonateProp, getBlast, drawProps, clearProps, collapsesOnHit, getRocket, getAnyRocket, igniteBarrel, ROCKET_CONTACT_DPS, Prop } from './systems/props';
 import { buildTerrain, drawTerrain, clearTerrain } from './systems/terrain';
 import { initObjective, updateObjective, peekObjective, vipDown, markVipDown, registerObjectiveDestroyed, cellCenter, ReachZone, forceObjectiveDone } from './systems/objectives';
 import { updateBoss, isBossTelegraphing, getBossTelegraphLabel, clearBossState } from './systems/boss';
@@ -48,7 +48,7 @@ import { updateBoss, isBossTelegraphing, getBossTelegraphLabel, clearBossState }
 import {
   initRenderer, drawMenu, drawCutscene, drawGameOver, drawVictory, drawFimLocal, drawCredits, drawCoins as renderCoins,
   drawPlayer2 as renderPlayer2,
-  drawPowerUps as renderPowerUps, drawParticles as renderParticles, drawBullets as renderBullets,
+  drawPowerUps as renderPowerUps, drawParticles as renderParticles, drawBullets as renderBullets, drawFires as drawFiresWorld,
   drawEnemies as renderEnemies, drawPlayer as renderPlayer, drawDamageNumbers, drawPhaseTransition,
   restoreCanvas, drawNPCs, drawBots, drawPause, menuIndexAt, getPauseIndex, movePause, PAUSE_OPTIONS, setPauseIndex, pauseOptionAt, setUiMouse,
   drawSettings, settingsRowAt, settingsButtonAt, isSettingsOpen, openSettings, closeSettings,
@@ -547,6 +547,17 @@ let phaseEnding = false;
  * vermelha pulsando dos primeiros instantes, que dá peso à fala do Bot #89.
  */
 let perigoNave = 0;
+/**
+ * Tick do dano de fogo no chão (B7): o fogo cobra a cada 0,5s, não a cada
+ * frame — 8/s direto no HP seria invisível no HUD e frustraria sem aviso.
+ */
+let fireTick = 0;
+/**
+ * Contagem para a próxima ignição ambiente de barril na fase do NÚCLEO (B7:
+ * "barril estourando sozinho"). A máquina é instável e o cenário concorda.
+ */
+let instabilidadeTimer = 0;
+const INSTABILIDADE_A_CADA = 11;
 /** Objetivos já contabilizados na partida, para o toast de conquista sair uma vez só. */
 const objectiveCounted = new Set<string>();
 let worldW = 1280;
@@ -632,7 +643,9 @@ function loadPhaseEnvironment(): void {
   bossKilled = false;
   bossRushIndex = 0;
   biomaquinaTimer = 0;
+  instabilidadeTimer = 0;
   perigoNave = phase.name === 'Espaço' ? PERIGO_NAVE_SEGUNDOS : 0;
+  clearFires();
 }
 
 function resetGame() {
@@ -683,6 +696,7 @@ function resetGame() {
   clearCoins();
   clearParticles();
   clearExplosions();
+  clearFires();
   clearLoot();
   resetInput();
 }
@@ -938,6 +952,23 @@ function update(dt: number) {
 
   // ── hazard do bioma ──
   updateBiomeHazard(dt, p);
+
+  // B7: o fogo no chão da fase final fere quem fica em cima — 4 a cada
+  // 0,5s, na fonte 'bioma' (hazard do mundo, como espinho e lava). O
+  // `invincible` do jogador é respeitado: o escudo/cura tem valor contra
+  // o incêndio também.
+  fireTick -= dt;
+  if (fireTick <= 0) {
+    fireTick = 0.5;
+    if (pisaEmFogo(p.x, p.y, p.radius) && p.invincible <= 0) {
+      const total = damageTaken(4);
+      if (total > 0) {
+        player.enemyCollisionDamage(total, { fonte: 'bioma' });
+        sfxPlayerHit();
+        triggerDamageFlash();
+      }
+    }
+  }
 
   // ── disparo ──
   p.shootCooldown -= dt;
@@ -1248,9 +1279,29 @@ function update(dt: number) {
           const ponto = findFreeSpotNear(nucleo.x, nucleo.y, 19);
           if (Math.hypot(ponto.x - p.x, ponto.y - p.y) >= 260) {
             const b = spawnEnemy(tipo, worldW, worldH, 0, ponto.x, ponto.y);
-            if (b) enemies.push(b);
+            if (b) {
+              enemies.push(b);
+              // A máquina costura com metal quente: o berço da biomaquina
+              // nasce queimando (B7) — a fase esquenta conforme ela pulsa.
+              acenderFogoDaFase(ponto.x, ponto.y, 34);
+            }
           }
         }
+      }
+    }
+  }
+
+  // B7: "barril estourando sozinho" — a máquina instável acende um barril
+  // vivo ao acaso de tempos em tempos, a fase inteira. O pavio de 0,9s é o
+  // aviso que já existe, a cadeia faz o resto, e o chão queima onde caiu.
+  if (ehRushDoNucleo) {
+    instabilidadeTimer += dt;
+    if (instabilidadeTimer >= INSTABILIDADE_A_CADA) {
+      instabilidadeTimer = 0;
+      const barrisVivos = getProps().filter(pr => pr.kind === 'barrel' && pr.health > 0);
+      if (barrisVivos.length > 0) {
+        igniteBarrel(barrisVivos[Math.floor(rand(0, barrisVivos.length))]);
+        triggerScreenShake(3, 0.2);
       }
     }
   }
@@ -1347,10 +1398,24 @@ function updateBarrels(dt: number): void {
   for (const prop of updateProps(dt)) explodeProp(prop);
 }
 
+/**
+ * B7 (o cenário destrutivo da fase final): na fase do NÚCLEO, o que explode
+ * deixa o chão queimando — barril, tiro explosivo, chefe que cai e a
+ * biomaquina recém-costurada. Nas outras fases o mundo é o de sempre: o
+ * pedido é da fase final, não de uma mecânica global de incêndio.
+ */
+function acenderFogoDaFase(x: number, y: number, raio: number = FOGO_RAIO): void {
+  if (getCurrentPhase().boss === 'nucleo' && getCurrentMode() === 'campaign') {
+    spawnFire(x, y, raio);
+    spawnParticles(x, y, PALETTE.terracotta, 6, 120, 'smoke');
+  }
+}
+
 function explodeProp(prop: Prop): void {
   const { radius, damage } = getBlast(prop);
   if (radius > 0) {
     createExplosion(prop.x, prop.y, radius, damage, enemies, PALETTE.terracotta);
+    acenderFogoDaFase(prop.x, prop.y);
     spawnParticles(prop.x, prop.y, PALETTE.terracotta, 14, 220);
     sfxExplosion();
     triggerScreenShake(6, 0.25);
@@ -1393,6 +1458,7 @@ function detonateBullet(b: Bullet): void {
   // dano de explosão de arma própria. Barril é exceção proposital em
   // `explodeProp`: é perigo do mundo, não do seu próprio tiro.
   createExplosion(b.x, b.y, b.explosionRadius ?? 0, b.damage, enemies, b.color);
+  acenderFogoDaFase(b.x, b.y);
   sfxExplosion();
   triggerScreenShake(5, 0.15);
   spawnParticles(b.x, b.y, b.color, 8, 180, 'smoke');
@@ -1532,7 +1598,12 @@ function killEnemy(e: Enemy, award: boolean): void {
     // galhos na loja). O toast só aparece quando o nível sobe, não a cada kill.
     // MENTE T1/T4 levantam o ganho via xpMult (stats.ts).
     ganhaXp(Math.round(e.scoreValue * getStat('xpMult')));
-    if (def?.coinDrop) spawnCoins(e.x, e.y, Math.max(1, Math.floor(def.coinDrop * 0.6)));
+    // O titã (T1) paga 3× moedas e cobra a taxa elite no loot: o corpo
+    // grande da onda tem que valer o risco.
+    if (def?.coinDrop) {
+      const multMoedas = e.isElite ? 3 : 1;
+      spawnCoins(e.x, e.y, Math.max(1, Math.floor(def.coinDrop * multMoedas * 0.6)));
+    }
     spawnParticles(e.x, e.y, e.color, 20, 300);
     sfxExplosion();
     const killAch = checkAchievements('kill');
@@ -1544,6 +1615,9 @@ function killEnemy(e: Enemy, award: boolean): void {
   if (def?.isBoss) {
     clearBossState(e);
     bossKilled = true;
+    // B7: o chefe cai e o chão onde ele caiu queima — na fase do NÚCLEO o
+    // próprio campo é o cenário destrutivo que o dono pediu.
+    acenderFogoDaFase(e.x, e.y, 64);
     const bossAch = checkAchievements('boss_kill');
     if (bossAch) pushToast(bossAch.name, 3);
     // A cutscene do Castelo mata o Fernandes em cena ("é lá onde ele está",
@@ -1601,9 +1675,11 @@ function killEnemy(e: Enemy, award: boolean): void {
       void playMusic('combat');
     }
   } else if (award) {
-    rollLootDrop(e.x, e.y, e.type);
-    // elites têm 25% de chance de dropar peça/acessório direto no inventário
-    if (ELITE_TYPES.has(e.type) && Math.random() < 0.25) {
+    rollLootDrop(e.x, e.y, e.type, e.isElite === true);
+    // elites têm 25% de chance de dropar peça/acessório direto no inventário.
+    // O TITÃ (T1) entra na mesma conta: ele é o corpo grande da onda, a
+    // chance é do tamanho — não do nome do tipo dele.
+    if ((ELITE_TYPES.has(e.type) || e.isElite === true) && Math.random() < 0.25) {
       const dropPool = PIECE_TYPES.map(t => t.id);
       const pieceType = dropPool[Math.floor(Math.random() * dropPool.length)];
       const def = getPieceType(pieceType);
@@ -2042,6 +2118,7 @@ function drawWorld(): void {
 
   drawVoid(ctx);
   drawTerrain(ctx);
+  drawFiresWorld(getFires());
   drawProps(
     ctx,
     (x, y, r) => isVisible(x, y, r, r),
@@ -2512,6 +2589,13 @@ for (const b of getBullets()) {
 }
 updateParticles(dt);
 updateExplosions(dt);
+updateFires(dt);
+// B7: o fogo é do mundo — fere os dois lados. O inimigo que fica em cima
+// da poça paga 8/s; a coleta do health <= 0 é a do loop de mortes.
+for (const e of enemies) {
+  if (e.spawnDelay > 0) continue;
+  if (pisaEmFogo(e.x, e.y, e.radius)) e.health -= FOGO_DPS * dt;
+}
 updateBarrels(dt);
 updateDamageNumbers(dt);
 

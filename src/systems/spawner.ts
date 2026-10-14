@@ -31,6 +31,26 @@ let phaseTime = 0;
 let enemiesSpawnedThisWave = 0;
 /** Quantos dos inimigos já criados na onda atual eram mutantes */
 let mutantsSpawnedThisWave = 0;
+/** O titã desta onda já nasceu? (T1: 1 por onda, a partir da segunda) */
+let eliteSaiuNestaOnda = false;
+
+/**
+ * Converte um inimigo comum no TITÃ da onda (T1 — pedido do dono: "mais
+ * vida/dano/raio que o tipo comum, visual maior"). O sprite desenha pelo
+ * raio, então o corpo cresce de verdade — o que muda aqui é o que ele é:
+ * 3× a vida da onda (o valor já vem escalado por onda/dificuldade, o titã
+ * multiplica EM CIMA), 1,5× dano, mais lento, e não é chefe: o padrão de
+ * ataque segue o do tipo dele.
+ */
+function comoTita(enemy: Enemy): Enemy {
+  enemy.isElite = true;
+  enemy.radius = Math.round(enemy.radius * 1.35);
+  enemy.health *= 3;
+  enemy.maxHealth *= 3;
+  enemy.damage = Math.round(enemy.damage * 1.5);
+  enemy.speed = Math.max(30, Math.round(enemy.speed * 0.85));
+  return enemy;
+}
 
 export function setPhaseTime(t: number): void { phaseTime = t; }
 
@@ -46,6 +66,7 @@ export function resetSpawner(): void {
   waveTimer = 0;
   enemiesSpawnedThisWave = 0;
   mutantsSpawnedThisWave = 0;
+  eliteSaiuNestaOnda = false;
   difficulty = 1;
   phaseTime = 0;
 }
@@ -179,8 +200,15 @@ export function spawnWaveEnemies(
     // senão a onda nunca chega em `totalDaOnda` e a fase trava.
     if (pool.length === 0) return false;
     const type = pool[Math.floor(rand(0, pool.length))];
-    const enemy = spawnEnemy(type, worldWidth, worldHeight, currentWave, undefined, undefined, rect);
+    let enemy = spawnEnemy(type, worldWidth, worldHeight, currentWave, undefined, undefined, rect);
     if (enemy) {
+      // T1: o titã ABRE a onda a partir da segunda (currentWave >= 1, que é
+      // 0-indexado) — primeiro corpo grande a entrar, pressão visível de
+      // longe, exatamente um por onda.
+      if (currentWave >= 1 && !eliteSaiuNestaOnda) {
+        enemy = comoTita(enemy);
+        eliteSaiuNestaOnda = true;
+      }
       enemies.push(enemy);
       enemiesSpawnedThisWave++;
       if (ENEMY_TYPES[type]?.isMutant) mutantsSpawnedThisWave++;
@@ -190,6 +218,7 @@ export function spawnWaveEnemies(
   if (enemiesSpawnedThisWave >= totalDaOnda && enemies.length === 0) {
     enemiesSpawnedThisWave = 0;
     mutantsSpawnedThisWave = 0;
+    eliteSaiuNestaOnda = false;
     waveTimer = 0;
     return true;
   }

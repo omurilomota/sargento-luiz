@@ -11,6 +11,66 @@ import { PALETTE } from '../core/palette';
 /** Lista de explosões ativas (para renderização) */
 const explosions: { x: number; y: number; radius: number; maxRadius: number; life: number }[] = [];
 
+// ── Fogo no chão (B7: o cenário destrutivo da fase final) ──────────
+// A fase do NÚCLEO pediu "explosão por todo lado" — o barril que explode,
+// o chefe que cai e a biomaquina que a máquina costura deixam o chão
+// QUEIMANDO. É hazard do mundo: fere quem estiver em cima, dos dois lados,
+// como o barral (o `explosivos.test` já firma o contrato: arma não fere o
+// dono, mundo fere).
+
+export interface FirePatch {
+  x: number;
+  y: number;
+  radius: number;
+  /** Segundos de queima restantes. */
+  life: number;
+  maxLife: number;
+}
+
+const fires: FirePatch[] = [];
+
+/** Quanto tempo o chão queima. */
+export const FOGO_VIDA = 6;
+/** Raio da poça de fogo. */
+export const FOGO_RAIO = 44;
+/** Dano por segundo de quem está com o pé no fogo. */
+export const FOGO_DPS = 8;
+/**
+ * Teto de poças simultâneas: a fase tem que FICAR quente conforme a luta
+ * anda, não virar uma tela inteira de fogo que esconde o chefe.
+ */
+export const FOGO_MAX = 12;
+
+/** Acende uma poça no chão. A mais antiga sai quando o teto bate. */
+export function spawnFire(x: number, y: number, radius: number = FOGO_RAIO): void {
+  if (fires.length >= FOGO_MAX) fires.shift();
+  fires.push({ x, y, radius, life: FOGO_VIDA, maxLife: FOGO_VIDA });
+}
+
+export function getFires(): FirePatch[] {
+  return fires;
+}
+
+/** A poça em que o círculo pisa, ou null. O toque é meio raio: fogo na borda
+ * não é fogo debaixo do pé. */
+export function pisaEmFogo(x: number, y: number, raio: number): FirePatch | null {
+  for (const f of fires) {
+    if (Math.hypot(x - f.x, y - f.y) < f.radius + raio * 0.5) return f;
+  }
+  return null;
+}
+
+export function updateFires(dt: number): void {
+  for (let i = fires.length - 1; i >= 0; i--) {
+    fires[i].life -= dt;
+    if (fires[i].life <= 0) fires.splice(i, 1);
+  }
+}
+
+export function clearFires(): void {
+  fires.length = 0;
+}
+
 /**
  * Retorna a lista de explosões ativas para renderização.
 
