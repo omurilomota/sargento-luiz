@@ -415,35 +415,46 @@ class StorageMigracao {
   clear() { this.map.clear(); }
 }
 
-describe('migração de save: ashfall.* -> rios.*', () => {
+describe('migração de save: ashfall.* e rios.* -> luiz.*', () => {
   let storage: StorageMigracao;
   beforeEach(() => {
     storage = new StorageMigracao();
     (globalThis as unknown as { localStorage: StorageMigracao }).localStorage = storage;
   });
 
-  it('copia as 12 chaves do prefixo antigo para o novo', () => {
-    for (const c of CHAVES_MIGRADAS) storage.setItem(`ashfall.${c}`, `valor-${c}`);
-    expect(migrarChavesDeSave()).toBe(CHAVES_MIGRADAS.length);
+  it('copia as 12 chaves dos dois prefixos antigos para o novo', () => {
+    for (const c of CHAVES_MIGRADAS) storage.setItem(`ashfall.${c}`, `velho-${c}`);
+    // a geração do "Sargento Rios": quem jogou ontem está aqui
+    for (const c of CHAVES_MIGRADAS) storage.setItem(`rios.${c}`, `valor-${c}`);
+    expect(migrarChavesDeSave()).toBe(CHAVES_MIGRADAS.length * 2);
     for (const c of CHAVES_MIGRADAS) {
-      expect(storage.getItem(`rios.${c}`), `não migrou ${c}`).toBe(`valor-${c}`);
+      // a chave mais recente (rios.*) vence a mais antiga (ashfall.*)
+      expect(storage.getItem(`luiz.${c}`), `não migrou ${c}`).toBe(`valor-${c}`);
+      expect(storage.getItem(`rios.${c}`), `não apagou ${c}`).toBe(null);
       expect(storage.getItem(`ashfall.${c}`), `não apagou ${c}`).toBe(null);
     }
   });
 
+  it('migra também quem só tem o save da geração rios.*', () => {
+    storage.setItem('rios.save', 'da-geracao-anterior');
+    expect(migrarChavesDeSave()).toBe(1);
+    expect(storage.getItem('luiz.save')).toBe('da-geracao-anterior');
+    expect(storage.getItem('rios.save')).toBe(null);
+  });
+
   it('não sobrescreve um save novo que já existe', () => {
-    storage.setItem('ashfall.save', 'antigo');
-    storage.setItem('rios.save', 'novo');
+    storage.setItem('rios.save', 'antigo');
+    storage.setItem('luiz.save', 'novo');
     migrarChavesDeSave();
-    expect(storage.getItem('rios.save')).toBe('novo');
-    expect(storage.getItem('ashfall.save')).toBe(null);
+    expect(storage.getItem('luiz.save')).toBe('novo');
+    expect(storage.getItem('rios.save')).toBe(null);
   });
 
   it('é idempotente: rodar duas vezes não faz mal', () => {
-    storage.setItem('ashfall.save', 'x');
+    storage.setItem('rios.save', 'x');
     expect(migrarChavesDeSave()).toBe(1);
     expect(migrarChavesDeSave()).toBe(0);
-    expect(storage.getItem('rios.save')).toBe('x');
+    expect(storage.getItem('luiz.save')).toBe('x');
   });
 
   it('não quebra quando não há nada antigo', () => {

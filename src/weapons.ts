@@ -423,7 +423,7 @@ export function setWeapon(index: number, quality?: string) {
  * @param multiShot - se true, duplica a quantidade de projéteis
  * @returns array de objetos de projétil a serem adicionados ao sistema
  */
-export function shoot(x: number, y: number, angle: number, multiShot: boolean, skillDamageMult = 1): { x: number; y: number; vx: number; vy: number; damage: number; color: string; isCrit: boolean; pierce: boolean; explosive: boolean; explosionRadius: number; bulletSprite: string }[] {
+export function shoot(x: number, y: number, angle: number, multiShot: boolean, skillDamageMult = 1, velocidadeDoAtirador = 0): { x: number; y: number; vx: number; vy: number; damage: number; color: string; isCrit: boolean; pierce: boolean; explosive: boolean; explosionRadius: number; bulletSprite: string }[] {
   const weapon = WEAPONS[currentWeaponIndex];
   const qualityKey = currentQuality;
   const q = QUALITIES[qualityKey] ?? QUALITIES.normal;
@@ -446,10 +446,17 @@ export function shoot(x: number, y: number, angle: number, multiShot: boolean, s
     // pierce sempre custa dano: -25% no tiro perfurante
     const piercing = weapon.pierce || getStat('pierce') > 0 || q.pierce;
     const effDmg = piercing ? dmg * 0.75 : dmg;
+    // A bala nunca sai mais lenta que quem atira (relato do Murilo: "eu
+    // ando mais rápido que as balas"). O teto de corrida empilha perks
+    // (+24%), power-up (×1.5) e a gravidade baixa da Ponte (×1.25): 320
+    // base chega a 744 px/s — mais rápido que 4 armas. O piso é a
+    // velocidade ATUAL do atirador + 160 de margem, então a bala SEMPRE
+    // abre distância de quem corre atrás dela.
+    const velocidadeDaBala = Math.max(weapon.bulletSpeed, velocidadeDoAtirador + 160);
     newBullets.push({
       x, y,
-      vx: Math.cos(a) * weapon.bulletSpeed,
-      vy: Math.sin(a) * weapon.bulletSpeed,
+      vx: Math.cos(a) * velocidadeDaBala,
+      vy: Math.sin(a) * velocidadeDaBala,
       damage: effDmg,
       color: isCrit ? PALETTE.crit : weapon.color,
       isCrit,

@@ -90,7 +90,7 @@ const DEBITO: Record<string, { teto: number; motivo: string }> = {
  * não cai. Está dentro de `drawEnemies`, cuja permissão já cobre "anel de
  * chefe e barras de vida" — o titã estende o vocabulário, não inventa um.
  *
- * 70 → 72 pela CAIXA DE DIÁLOGO PEQUENA (H2, a Fábrica do Fernando): a
+ * 70 → 72 pela CAIXA DE DIÁLOGO PEQUENA (H2, a Fábrica do Rogério): a
  * faixa na base da tela (fundo + moldura) — UI de diálogo, a mesma
  * categoria dos painéis da cutscene. O retrato é o mesmo sprite das cenas.
  */

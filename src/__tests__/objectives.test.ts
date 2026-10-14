@@ -246,9 +246,18 @@ describe('objectives: o objetivo não encerra mais a fase, ele libera o chefe', 
     }
   });
 
-  it('as fases com objetivo de segurar a fase são as 3 que não chegam na zona', () => {
-    const seguram = PHASES.filter(f => f.objective !== 'clear' && f.objective !== 'reach')
-      .map(f => f.objective).sort();
-    expect(seguram).toEqual(['destroy', 'protect', 'survive']);
+  it('as fases que seguram o campo usam só os 3 tipos que não chegam na zona', () => {
+    // Com a campanha de 16 fases oito fases seguram (destroy/survive/protect
+    // — Rodovia, Caverna, Fábrica, Trens, Pântano?, Castelo, Subestação,
+    // Porto). O contrato é sobre os TIPOS usados, não a contagem: quem não
+    // vai a uma zona só segura o campo de três jeitos.
+    const tiposUsados = [...new Set(
+      PHASES.filter(f => f.objective !== 'clear' && f.objective !== 'reach')
+        .map(f => f.objective),
+    )].sort();
+    expect(tiposUsados).toEqual(['destroy', 'protect', 'survive']);
+    // e nenhum outro tipo inventado existe no jogo
+    const tiposValidos = new Set(['clear', 'reach', 'destroy', 'protect', 'survive']);
+    for (const f of PHASES) expect(tiposValidos.has(f.objective)).toBe(true);
   });
 });

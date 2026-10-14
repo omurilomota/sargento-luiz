@@ -18,7 +18,7 @@ import { chromium } from 'playwright';
 import { abrirJogo, irParaFase } from './bot.mjs';
 
 const { page, erros, fechar } = await abrirJogo({ chromium });
-await irParaFase(page, 7); // Espaço: a fase cuja loja abre a final
+await irParaFase(page, 14); // Espaço: a fase cuja loja abre a final
 
 // fecha a fase 8 pelo caminho curto: objetivo + chefe + campo limpo
 await page.evaluate(() => {

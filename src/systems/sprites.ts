@@ -281,16 +281,25 @@ export const ENEMY_CHARACTER: Record<string, string> = {
   // sem sprite ela cai no fallback `zombie`, que é o zumbi que ela deveria
   // parecer ter costurado.
   biomaquina: 'robot',
-  // O FERNANDO INFECTADO (H2): o corpo é o DELE — manBrown, o mesmo que
+  // O ROGÉRIO INFECTADO (H2): o corpo é o DELE — manBrown, o mesmo que
   // nas ondas vira `runner` — porque a batalha é contra o amigo, e o jogador
   // precisa reconhecer quem está matando.
-  fernandoInf: 'manBrown',
+  rogerioInf: 'manBrown',
+  // Os 7 chefes das fases novas (2026-10-14): cada um com silhueta própria
+  pedagiario: 'hitman',
+  cirurgiao: 'manOld',
+  maquinista: 'zombie',
+  gargula: 'robot',
+  torre: 'zombie',
+  transformador: 'robot',
+  capitao: 'soldier',
 };
 
 /** Os 9 biomas, na ordem das fases. */
 export const BIOMAS = [
-  'cidade', 'floresta', 'caverna', 'fabrica', 'pantano',
-  'castelo', 'vulcao', 'espaco', 'bunker',
+  'cidade', 'rodovia', 'floresta', 'hospital', 'caverna', 'fabrica',
+  'trens', 'ponte', 'pantano', 'refinaria', 'castelo', 'subestacao',
+  'vulcao', 'porto', 'espaco', 'bunker',
 ] as const;
 export type Bioma = typeof BIOMAS[number];
 
@@ -321,13 +330,23 @@ export const VARIACAO_POR_BIOMA: Record<Bioma, Record<string, string>> = {
     mutante: 'manBlue', tank: 'manOld', alien: 'zombie', crystal: 'woman',
     frog: 'manBrown',
   },
-  // 2 FLORESTA — madeira e o corpo de quem trabalhava na roça: `manBrown` domina
+  // 2 RODOVIA — quem ficou preso no trânsito
+  rodovia: {
+    grunt: 'manOld', runner: 'hitman', bat: 'woman',
+    tank: 'soldier', spitter: 'manBrown', mutante: 'manBlue',
+  },
+  // 3 FLORESTA — madeira e o corpo de quem trabalhava na roça: `manBrown` domina
   floresta: {
     grunt: 'manBrown', runner: 'soldier', bat: 'manBrown', slime: 'zombie',
     mosquito: 'woman', alien: 'manBrown', tank: 'manOld', spitter: 'woman',
     mutante: 'manOld', crystal: 'manBrown', lavaSlime: 'manBrown', drone: 'robot',
   },
-  // 3 CAVERNA — pedra e escuro: `manOld` e o que desceu da superfície
+  // 4 HOSPITAL — o que a medicina não curou: `woman` (enfermeira) e `manOld` (paciente)
+  hospital: {
+    grunt: 'woman', spitter: 'manOld', tank: 'hitman', slime: 'zombie',
+    bat: 'woman', mutante: 'manBlue',
+  },
+  // 5 CAVERNA — pedra e escuro: `manOld` e o que desceu da superfície
   caverna: {
     grunt: 'manOld', runner: 'zombie', bat: 'zombie', slime: 'woman',
     crystal: 'woman', mosquito: 'manOld', drone: 'soldier', robot: 'robot',
@@ -339,20 +358,41 @@ export const VARIACAO_POR_BIOMA: Record<Bioma, Record<string, string>> = {
     spitter: 'manBlue', bat: 'robot', runner: 'robot', slime: 'soldier',
     mutante: 'manBlue', alien: 'robot', mosquito: 'robot', crystal: 'woman',
   },
-  // 5 PÂNTANO — o que afunda e o que não afunda
+  // 7 PÁTIO DE TRENS — ferrugem e ferro-velho
+  trens: {
+    grunt: 'hitman', robot: 'zombie', drone: 'manBlue', mutante: 'soldier',
+    bat: 'robot', tank: 'manOld',
+  },
+  // 8 PONTE — o que anda no cabo de aço
+  ponte: {
+    bat: 'hitman', spitter: 'soldier', crystal: 'robot',
+    grunt: 'woman', mutante: 'zombie',
+  },
+  // 9 PÂNTANO — o que afunde e o que não afunde
   pantano: {
     grunt: 'zombie', slime: 'zombie', frog: 'manBrown', bat: 'woman',
     mosquito: 'manOld', tank: 'manBrown', alien: 'manOld', spitter: 'manBrown',
     mutante: 'manBrown', drone: 'soldier', robot: 'manBlue', crystal: 'manOld',
   },
-  // 6 CASTELO — guarda de muro: `soldier` e `hitman`
+  // 10 REFINARIA — fogo industrial
+  refinaria: {
+    grunt: 'manOld', fireElemental: 'hitman', magmaGolem: 'soldier',
+    runner: 'zombie', tank: 'woman', bat: 'manBrown',
+    lavaSlime: 'manBrown', inferno: 'zombie',
+  },
+  // 11 CASTELO — guarda de muro: `soldier` e `hitman`
   castelo: {
     grunt: 'soldier', runner: 'hitman', knight: 'soldier', tank: 'manOld',
     archer: 'hitman', bat: 'manBrown', spitter: 'hitman', mosquito: 'zombie',
     mutante: 'manBlue', slime: 'soldier', alien: 'zombie', drone: 'soldier',
     robot: 'hitman',
   },
-  // 7 VULCÃO — queimado: o pack não tem vermelho, então quem desceu é
+  // 12 SUBESTAÇÃO — faísca e metal: `robot` domina
+  subestacao: {
+    drone: 'manBlue', crystal: 'hitman', ufo: 'zombie',
+    grunt: 'robot', tank: 'soldier', mutante: 'woman',
+  },
+  // 13 VULCÃO — queimado: o pack não tem vermelho, então quem desceu é
   // `manBrown` (lama) e `manOld` (ressecado)
   vulcao: {
     grunt: 'manBrown', tank: 'manOld', magmaGolem: 'manOld', alien: 'woman',
@@ -360,14 +400,19 @@ export const VARIACAO_POR_BIOMA: Record<Bioma, Record<string, string>> = {
     mutante: 'manOld', fireElemental: 'manBrown', inferno: 'soldier',
     mosquito: 'zombie', drone: 'robot', robot: 'soldier',
   },
-  // 8 ESPAÇO — nada orgânico: `robot`/`manBlue` (aço frio do vácuo)
+  // 14 PORTO — o que desembarcou: `manBlue` (marinheiro) e `soldier` (porto)
+  porto: {
+    slime: 'manBlue', ufo: 'hitman', fireElemental: 'soldier',
+    grunt: 'zombie', bat: 'manOld', mutante: 'manBrown', tank: 'soldier',
+  },
+  // 15 ESPAÇO — nada orgânico: `robot`/`manBlue` (aço frio do vácuo)
   espaco: {
     grunt: 'manBlue', ufo: 'robot', drone: 'robot', alien: 'soldier',
     runner: 'robot', tank: 'manBlue', asteroid: 'soldier', spitter: 'robot',
     mutante: 'manBlue', bat: 'manBrown', mosquito: 'robot', crystal: 'manBlue',
     robot: 'soldier',
   },
-  // 9 BUNKER — comando militar cercado
+  // 16 BUNKER — comando militar cercado
   bunker: {
     grunt: 'soldier', robot: 'robot', drone: 'hitman', tank: 'manOld',
     runner: 'zombie', bat: 'soldier', spitter: 'soldier', alien: 'woman',

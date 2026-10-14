@@ -1,7 +1,7 @@
 /**
- * Diário de bordo do Sargento Rios — uma entrada por fase completada.
+ * Diário de bordo do Sargento Luiz — uma entrada por fase completada.
  *
- * O diário é o registro dePOIS: conta o que o Rios aprendeu com a parada, e
+ * O diário é o registro dePOIS: conta o que o Luiz aprendeu com a parada, e
  * não repete a cena que a cutscene acabou de mostrar. Cutscene é o momento,
  * diário é a contagem.
  */
@@ -109,13 +109,13 @@ const DIARY_ENTRIES: DiaryEntry[] = [
   },
   {
     phase: -1,
-    event: 'fernandes',
-    title: 'Seis segundos',
-    // Esta entrada existe porque a morte do Fernandes era o beat mais forte do
-    // roteiro e não custava nada ao jogador: ele morre em cena, nunca mais é
-    // citado, e não deixava registro. A cutscene do epílogo agora o menciona,
-    // mas a cutscene é o momento — o diário é a contagem.
-    text: 'O cabo disse que pensei que ninguém vinha. Eu mandei ele ficar atrás de mim. Era ordem. Seis segundos de porta segurada e eu estava do outro lado. Seis segundos. Ele sabia o que tava comprando e comprou assim mesmo.',
+    event: 'julio',
+    title: 'Quarto 4B',
+    // Esta entrada existe porque o nome do sobrevivente do Castelo é a
+    // recompensa de mantê-lo vivo: o Júlio só se apresenta se chegar ao fim
+    // da fase. A sala secreta no segundo andar (e a chave do quarto 4B) é o
+    // prêmio que ele promete no encontro.
+    text: 'O sobrevivente do castelo tinha nome: Júlio. Veio do interior e fala rápido. Me deu a chave do quarto 4B, segundo andar, sala secreta com uma arma que eu não vi igual e ouro que pesou no bolso. Ele contou que o rei ficava mais forte a cada ano. O rei parou.',
     unlocked: false,
   },
   // ── eventos aleatórios por fase (salvar pessoa / explorar casa / sorte-azar) ──
@@ -152,7 +152,7 @@ const DIARY_ENTRIES: DiaryEntry[] = [
   },
 ];
 
-const STORAGE_KEY = 'rios.diary';
+const STORAGE_KEY = 'luiz.diary';
 
 /**
  * Carrega entradas desbloqueadas do diário.

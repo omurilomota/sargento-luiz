@@ -41,22 +41,22 @@ const armaMaisCara = Math.max(...WEAPONS.map(w => w.price));
 const resgatePorFase = 2 * getNextAdReward();
 
 describe('economia: o árbitro da loja × progressão', () => {
-  it('o modelo conhece as 8 fases com loja e a fila do rush', () => {
-    expect(FASES_COM_LOJA).toHaveLength(8);
+  it('o modelo conhece as 15 fases com loja e a fila do rush', () => {
+    // A campanha de 16 fases (2026-10-14): a loja abre após TODA fase menos
+    // a última — 15 lojas por campanha, e a fila do rush segue sendo 4.
+    expect(FASES_COM_LOJA).toHaveLength(15);
     expect(NUCLEO_RUSH).toHaveLength(4);
   });
 
   it('a escada de perks é alvo de VÁRIAS campanhas: custa 2,5× a 4,5× a renda de abate', () => {
-    console.log(`renda de abate (fases 0..7): ${rendaTotal}`);
-    console.log(`escada de perks completa: ${custoEscada}`);
-    console.log(`arma mais cara: ${armaMaisCara}`);
-    const razao = custoEscada / rendaTotal;
-    console.log(`escada / renda = ${(razao * 100).toFixed(0)}%`);
     // Roguelite por projeto: o save CONTINUA os degraus entre partidas
     // (restoreUpgrades), então a escada é o alvo de várias runs — a run
     // nova compra ~1/3 dela. Abaixo de 2,5× a loja deixa de ser decisão
     // (era a queixa antiga: "a renda da fase 4 já comprava tudo"); acima
-    // de 4,5× os 4 especiais nunca parecem alcançáveis.
+    // de 4,5× os 4 especiais nunca parecem alcançáveis. A campanha de 16
+    // fases dobrava a renda — os degraus altos subiram para a escada
+    // continuar custando várias campanhas (2026-10-14).
+    const razao = custoEscada / rendaTotal;
     expect(razao).toBeGreaterThan(2.5);
     expect(razao).toBeLessThan(4.5);
   });

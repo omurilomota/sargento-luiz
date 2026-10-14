@@ -696,6 +696,18 @@ const CENAS_CUTSCENE: Record<string, CenaCutscene> = {
   // mesmo bioma, mesma engradagem, mais longe — é o mesmo lugar, outra vez.
   // Sem esta entrada `buildCutsceneBackdrop` devolve `null` e a cena abre preta.
   'NÚCLEO-CENTRAL': { bioma: 'bunker', objetos: [129, 156, 130, 158, 129], escala: 1.5, longe: [130, 129, 156] },
+  // ─── As 7 fases novas (2026-10-14) ────────────────────────────────
+  // Cada cena pisa no CHÃO do próprio bioma (o material é o que diferencia:
+  // asfalto, madeira de hospital, metal de pátio) e levanta os objetos das
+  // cenas vizinhas já vistas. Os índices precisam passar pelo olho da revisão
+  // de imagem — são âncoras semânticas, não curadoria final.
+  'RODOVIA': { bioma: 'rodovia', objetos: [260, 292, 265, 260], escala: 1.2, longe: [265, 260, 292] },
+  'HOSPITAL': { bioma: 'hospital', objetos: [129, 156, 130, 158], escala: 1.2, longe: [130, 129, 156] },
+  'PÁTIO DE TRENS': { bioma: 'trens', objetos: [180, 129, 180, 264], escala: 1.3, longe: [129, 180, 129] },
+  'PONTE': { bioma: 'ponte', objetos: [238, 264, 239, 238], escala: 1.2, longe: [264, 238, 264], veu: 0.3 },
+  'REFINARIA': { bioma: 'refinaria', objetos: [319, 316, 319, 320], escala: 1.4, brasa: '#c46a3a' },
+  'SUBESTAÇÃO': { bioma: 'subestacao', objetos: [180, 333, 264, 180], escala: 1.2, longe: [333, 180, 333] },
+  'PORTO': { bioma: 'porto', objetos: [260, 134, 292, 134], escala: 1.2, longe: [134, 292, 260] },
 };
 
 /** Alpha com que o renderer desenha a cena (o véu é parte do fundo). */

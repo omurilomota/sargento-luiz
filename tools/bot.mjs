@@ -1,6 +1,6 @@
 /**
  * O bot de `npm run sessao`, extraído para módulo porque passou a ter dois
- * consumidores: a sessão longa (`session.mjs`) e a varredura das 9 fases
+ * consumidores: a sessão longa (`session.mjs`) e a varredura das 16 fases
  * (`fases-todas.mjs`). Duplicar o laço de desvio em dois arquivos faria o mesmo
  * defeito aparecer duas vezes: corrigido num harness e esquecido no outro.
 

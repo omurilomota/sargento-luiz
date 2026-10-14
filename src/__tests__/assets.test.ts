@@ -266,7 +266,7 @@ describe('conteúdo: nenhum tipo de inimigo fica órfão', () => {
     // justamente o que a decisão do jogador proíbe (ela nasce do NÚCLEO,
     // enquanto ele estiver vivo, e não no ritmo da onda).
     //
-    // `SCRIPTED_TYPES` é o quinto: o Fernando infectado (H2) nasce do script
+    // `SCRIPTED_TYPES` é o quinto: o Rogério infectado (H2) nasce do script
     // da Fábrica — ele é a virada pós-sentinel, não onda e não boss da fase.
     const usados = new Set([
       ...PHASES.flatMap(f => [...f.enemyTypes, ...(f.boss ? [f.boss] : [])]),

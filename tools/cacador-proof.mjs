@@ -27,7 +27,7 @@ const ok = (cond, msg) => {
 
 for (let a = 1; a <= AMOSTRAS; a++) {
   const { page, erros, fechar } = await abrirJogo({ chromium });
-  await irParaFase(page, 5);
+  await irParaFase(page, 10);
   // afasta o jogador do funil da porta: 1,2s de D ≈ 6 células a leste
   await page.keyboard.down('KeyD');
   await page.waitForTimeout(1200);
@@ -37,6 +37,17 @@ for (let a = 1; a <= AMOSTRAS; a++) {
   let t = 0;
   for (t = 0; t < SEG; t += 2) {
     await page.waitForTimeout(2000);
+    // O encontro do Júlio abre na onda 1 e congela o campo: sem atravessar,
+    // o caçador não anda e o foguete chega aos 35s sem um arranhão.
+    const caixaAberta = await page.evaluate(() => window.__ashfall.dialogo?.() ?? false);
+    if (caixaAberta) {
+      for (let k = 0; k < 12; k++) {
+        const aberta = await page.evaluate(() => window.__ashfall.dialogo?.() ?? false);
+        if (!aberta) break;
+        await page.keyboard.press('Enter');
+        await page.waitForTimeout(250);
+      }
+    }
     const s = await page.evaluate(() => window.__ashfall.fase());
     if (s.estado !== 'playing') break;
     hp = Number(s.objetivoAtual.detail.split('/')[0]);

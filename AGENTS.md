@@ -2,7 +2,8 @@
 
 ## Contexto do Projeto
 
-**ASHFALL** — Jogo top-down survival shooter com progressão roguelite.
+**SARGENTO LUIZ** (antes ASHFALL, depois SARGENTO RIOS) — Jogo top-down
+survival shooter com progressão roguelite, campanha de 16 fases.
 
 - **Stack**: TypeScript + Vite + Canvas 2D
 - **Entry point**: `src/main.ts` (orquestrador central)
@@ -24,7 +25,7 @@
 src/
 ├── main.ts              # Orquestrador, game loop, input, update/draw
 ├── config.ts            # Dados estáticos: fases, inimigos, armas, upgrades
-├── maps.ts              # Dados dos 9 mapas (30×20 chars) + paletas de bioma
+├── maps.ts              # Dados dos 16 mapas (30×20 chars) + paletas de bioma
 ├── types.ts             # Interfaces TypeScript (Enemy, Bullet, Weapon, Phase...)
 ├── weapons.ts           # Sistema de armas, munição, recarga
 ├── powerups.ts          # Power-ups coletáveis
@@ -78,7 +79,7 @@ src/
 └── __tests__/           # Vitest: colisão swept, layout de loja/menu, mapas
 
 tools/
-├── genmaps.py           # Gera e valida os 9 mapas (largura, borda, BFS)
+├── genmaps.py           # Gera e valida os 16 mapas (largura, borda, BFS)
 ├── genmusic.py          # Sintetiza as 4 faixas OGG (precisa de ffmpeg)
 ├── visual.mjs           # Harness Playwright: screenshots + 404/pageerror
 ├── session.mjs          # Sessão longa com telemetria (HP/onda/inimigos)

@@ -55,7 +55,7 @@ const EMBED = `<!DOCTYPE html>
   iframe { width:100%; height:calc(100vh - 36px); border:0; display:block; }
 </style></head><body>
   <div id="barra">
-    <span>SARGENTO RIOS</span>
+    <span>SARGENTO LUIZ</span>
     <button id="fs">FULLSCREEN</button>
     <span id="estado">-</span>
   </div>

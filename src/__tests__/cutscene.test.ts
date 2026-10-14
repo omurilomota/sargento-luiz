@@ -227,7 +227,9 @@ describe('a fase final não abre o epílogo', () => {
     // rádio — é o conteúdo do pedido do dono, travado aqui para um texto
     // futuro não apagar a homenagem sem notar.
     const texto = CUTSCENES[EPILOGUE_CUTSCENE].lines.map(l => l.text).join(' ');
-    for (const nome of ['Joe', 'Arthur', 'Fernandes', 'Ferreira', 'Vale']) {
+    // Rogério (não mais Fernandes): o amigo da Fábrica é o nome que a
+    // jornada sempre perde. O Júlio não entra na lista — ele pode sobreviver.
+    for (const nome of ['Joe', 'Arthur', 'Rogério', 'Ferreira', 'Vale']) {
       expect(texto, `o roll da jornada não cita ${nome}`).toContain(nome);
     }
     expect(texto).toContain('FIM DA PARTE I');

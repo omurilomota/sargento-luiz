@@ -1,13 +1,13 @@
 {
-  "name": "sargento-rios",
+  "name": "sargento-luiz",
   "version": "1.3.0",
-  "description": "SARGENTO RIOS — top-down shooter pos-apocaliptico com progressao roguelite",
+  "description": "SARGENTO LUIZ — top-down shooter pos-apocaliptico com progressao roguelite",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "package": "npm run build && cd dist && zip -qr ../sargento-rios.zip . -x '*.DS_Store' && cd .. && echo 'pronto: sargento-rios.zip'",
+    "package": "npm run build && cd dist && zip -qr ../sargento-luiz.zip . -x '*.DS_Store' && cd .. && echo 'pronto: sargento-luiz.zip'",
     "test": "vitest run",
     "test:watch": "vitest",
     "visual": "npm run build && node tools/visual.mjs",

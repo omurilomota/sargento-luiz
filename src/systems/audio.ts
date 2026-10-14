@@ -241,7 +241,7 @@ export const SFX_FILES: Record<string, SfxDef> = {
   // Estado da arma (qualidade) e peça equipável
   ferrugem:            { file: 'assets/sfx/ferrugem.ogg',            vary: 0.12 },
   piece:               { file: 'assets/sfx/piece.ogg' },
-  // Os sons narrativos do H5 (2026-10-14): a risada do Rios no fim da
+  // Os sons narrativos do H5 (2026-10-14): a risada do Luiz no fim da
   // campanha, a chave de roda do conserto do motor e o lançamento do foguete
   // — o pós-missão do Castelo.
   risada:              { file: 'assets/sfx/risada.ogg' },
@@ -603,7 +603,7 @@ export function sfxPiece(): void {
 
 // ─── Sons narrativos do H5 (arquivos; a síntese é fallback que não roda) ──
 
-/** A risada do Rios no fim da campanha — "acabei com você, maldição". */
+/** A risada do Luiz no fim da campanha — "acabei com você, maldição". */
 export function sfxRisada(): void {
   if (playSfxFile('risada')) return;
   playTone(220, 0.15, 'square', 0.1);
@@ -630,11 +630,11 @@ const buffers = new Map<MusicTrack, AudioBuffer>();
 const loading = new Set<MusicTrack>();
 
 /** Chave de persistência das preferências de áudio */
-const MUSIC_KEY = 'rios.musicOn';
-const SFX_KEY = 'rios.sfxOn';
-const VOL_MASTER_KEY = 'rios.volMaster';
-const VOL_MUSIC_KEY = 'rios.volMusic';
-const VOL_SFX_KEY = 'rios.volSfx';
+const MUSIC_KEY = 'luiz.musicOn';
+const SFX_KEY = 'luiz.sfxOn';
+const VOL_MASTER_KEY = 'luiz.volMaster';
+const VOL_MUSIC_KEY = 'luiz.volMusic';
+const VOL_SFX_KEY = 'luiz.volSfx';
 
 let musicEnabled = readPref(MUSIC_KEY, true);
 let sfxEnabled = readPref(SFX_KEY, true);

@@ -1,11 +1,11 @@
-# PREMISSA-V2 — a história do Sargento Rios (Parte I)
+# PREMISSA-V2 — a história do Sargento Luiz (Parte I)
 
 *Escrito em 2026-10-10 a partir da conversa com o dono do projeto. Substitui a
 premissa antiga (pandemia + cura da Genese). Esta é a direção aprovada.*
 
 ## A frase
 
-O Sargento Rios recebe ordem de reagrupar no **outro batalhão**, atravessa um
+O Sargento Luiz recebe ordem de reagrupar no **outro batalhão**, atravessa um
 país morto em provações, e descobre que o apocalipse não foi acidente — foi uma
 **máquina, o Núcleo**, que gera os zumbis até hoje. Matar tudo no caminho é o
 preço para chegar nela.

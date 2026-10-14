@@ -263,7 +263,7 @@ export function drawMenu(selectedMode: string = 'campaign', selectedClass: Class
   ctx.font = 'bold 48px monospace';
   ctx.shadowColor = 'rgba(0,0,0,0.6)';
   ctx.shadowBlur = 8;
-  ctx.fillText('SARGENTO RIOS', W / 2, L.titleY);
+  ctx.fillText('SARGENTO LUIZ', W / 2, L.titleY);
   ctx.shadowBlur = 0;
 
   ctx.fillStyle = PALETTE.textOff;
@@ -483,7 +483,7 @@ export function drawCutscene(): void {
 }
 
 /**
- * A caixa de diálogo PEQUENA da fase (H2 — a Fábrica do Fernando): faixa na
+ * A caixa de diálogo PEQUENA da fase (H2 — a Fábrica do Rogério): faixa na
  * base da tela, o mundo congelado atrás (decisão do Murilo: pausado por
  * linha). O retrato é o MESMO das cutscenes — um vocabulário só de rosto.
  * Os 2 sítios de chrome (caixa + moldura) estão no PERMITIDAS do semDesenho:
@@ -722,7 +722,7 @@ export function drawCredits(): void {
     { texto: 'Saturn V Rocket — Michael J Pierce @ IsometricRobot.com · CC-BY 3.0', cor: PALETTE.text, tamanho: '11px', peso: '' },
     { texto: '', cor: PALETTE.textDim, tamanho: '11px', peso: '' },
     { texto: 'CÓDIGO E DESIGN', cor: PALETTE.mustard, tamanho: '13px', peso: 'bold ' },
-    { texto: 'SARGENTO RIOS — projeto original', cor: PALETTE.text, tamanho: '12px', peso: '' },
+    { texto: 'SARGENTO LUIZ — projeto original', cor: PALETTE.text, tamanho: '12px', peso: '' },
   ];
 
   let y = H * 0.2;
@@ -1765,6 +1765,7 @@ interface NPCData {
   x: number; y: number; name: string; color: string;
   health: number; maxHealth: number; radius: number;
   alive: boolean; message: string; messageTimer: number;
+  character: string;
 }
 
 export function drawNPCs(npcs: NPCData[]): void {
@@ -1777,7 +1778,10 @@ export function drawNPCs(npcs: NPCData[]): void {
     ctx.ellipse(npc.x, npc.y + npc.radius * 0.6, npc.radius * 0.7, npc.radius * 0.25, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    const img = isSpritesEnabled() ? getSprite(poseKey('survivor', 'hold')) : null;
+    // O personagem é do NPC, não do jogador — antes TODOS vestiam 'survivor'
+    // e os três amigos da campanha eram a mesma pessoa na tela (relato do
+    // Murilo: "os dois outros personagens amigos com a mesma skin").
+    const img = isSpritesEnabled() ? getSprite(poseKey(npc.character || 'manOld', 'hold')) : null;
     if (img) {
       drawSpriteFit(ctx, img, npc.x, npc.y, npc.radius * 2.4, 0);
     } else {

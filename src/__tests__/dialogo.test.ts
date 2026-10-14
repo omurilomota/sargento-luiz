@@ -1,5 +1,5 @@
 /**
- * Porta: a caixa pequena de diálogo da Fábrica do Fernando (H2 — pedido do
+ * Porta: a caixa pequena de diálogo da Fábrica do Rogério (H2 — pedido do
  * Murilo: "caixa de diálogo pequena, não gigante igual aos outros níveis").
  *
  * O contrato: a fila conta as linhas em ordem; o ENTER avança e a caixa só

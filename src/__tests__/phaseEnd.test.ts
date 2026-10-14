@@ -286,7 +286,7 @@ describe('B4: a fase final não abre com o estado da anterior', () => {
     // SECRETO "PERFEIÇÃO" disparava sozinho (o main lê `wasGameCompleted() &&
     // !playerDied`). O reset é o mesmo que `startRun` usa.
     resetPhases();
-    for (let i = 0; i < 9; i++) nextPhase();
+    for (let i = 0; i < 16; i++) nextPhase();
     expect(wasGameCompleted()).toBe(true);
     resetPhases();
     expect(wasGameCompleted()).toBe(false);

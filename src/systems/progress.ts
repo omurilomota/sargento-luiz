@@ -1,5 +1,5 @@
 /**
- * Progressão de XP e nível do Sargento Rios.
+ * Progressão de XP e nível do Sargento Luiz.
  *
  * O spawner já calculava um `threat` por inimigo e jogava fora, e o score
  * existia mas não virava nada. Aqui o XP é o score acumulado: cada nível custa

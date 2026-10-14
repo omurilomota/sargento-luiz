@@ -30,8 +30,20 @@ const ok = (cond, msg) => {
   if (!cond) falhas.push(msg);
 };
 
+// O encontro do Júlio (2026-10-14) abre na transição da onda 1 — e o
+// `matarTodos` do setup completa a onda 0, então a CAIXA abre no meio da
+// prova e congela o update (vipDown nunca rodaria). Atravessa antes.
+const atravessarCaixaSeAberta = async () => {
+  for (let i = 0; i < 40; i++) {
+    const aberta = await page.evaluate(() => window.__ashfall.dialogo?.() ?? false);
+    if (!aberta) return;
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(220);
+  }
+};
+
 // ─── Cenário A ───────────────────────────────────────────────
-const cfg = await irParaFase(page, 5);
+const cfg = await irParaFase(page, 10);
 console.log(`\n── Cenário A: chefe morto, sobrevivente cai no respiro (${cfg.fase}) ──`);
 await page.evaluate(() => {
   window.__ashfall.cumprirObjetivo();
@@ -40,10 +52,15 @@ await page.evaluate(() => {
   window.__ashfall.invocarChefe();
 });
 await page.waitForTimeout(300);
+await atravessarCaixaSeAberta();
 const antes = await f();
 ok(antes.chefeVivo, 'chefe em campo antes da prova');
 await page.evaluate(() => window.__ashfall.matarChefe());
+// A morte do rei abre a RECOMPENSA do Júlio (vive) e ela encadeia o
+// pós-missão do foguete — duas caixas que o respiro espera atravessar.
 await page.waitForTimeout(250);
+await atravessarCaixaSeAberta();
+await atravessarCaixaSeAberta();
 await page.evaluate(() => window.__ashfall.matarVip());
 
 let ondaPosBoss = false;
@@ -63,7 +80,7 @@ ok(!ondaPosBoss, 'nenhuma onda renasceu depois do chefe morto');
 
 // ─── Cenário B ───────────────────────────────────────────────
 console.log('\n── Cenário B: chefe vivo, sobrevivente cai na luta ──');
-await irParaFase(page, 5);
+await irParaFase(page, 10);
 await page.evaluate(() => {
   window.__ashfall.cumprirObjetivo();
   window.__ashfall.matarTodos();
@@ -71,6 +88,7 @@ await page.evaluate(() => {
   window.__ashfall.invocarChefe();
 });
 await page.waitForTimeout(300);
+await atravessarCaixaSeAberta();
 const comChefe = await f();
 ok(comChefe.chefeVivo, 'chefe em campo antes do reinício');
 
@@ -89,6 +107,9 @@ let reinicios = 0;
 let ondaAnterior = renasceu.onda;
 const fimB = Date.now() + 90000;
 while (Date.now() < fimB) {
+  // O reinício devolve o encontro do Júlio (loadPhaseEnvironment zera o
+  // flag) e a caixa dele congela as ondas — atravessa antes de matar.
+  await atravessarCaixaSeAberta();
   const s = await f();
   if (s.chefeVivo) { chefeVoltou = true; break; }
   if (s.estado !== 'playing') break;

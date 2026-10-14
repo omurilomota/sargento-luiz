@@ -277,7 +277,7 @@ coisa mais forte da tela.
     { speaker: 'rios', text: 'Morto não obedece horário.' },
     { speaker: 'mensagem', text: '[ ALMOXARIFADO CENTRAL — TURNO 04 — SILÊNCIO OBRIGATÓRIO ]' },
     { speaker: 'narrador', text: 'Um homem de camisa abriu o portão e pediu identificação.' },
-    { speaker: 'rios', text: 'Sargento Rios. Eu vim ver os donos.' },
+    { speaker: 'rios', text: 'Sargento Luiz. Eu vim ver os donos.' },
     { speaker: 'narrador', text: 'O homem olhou o martelo nas costas de Rios e ficou pálido.' },
     { speaker: 'rios', text: 'Eles sabem o que é isso. Bom.' },
   ],

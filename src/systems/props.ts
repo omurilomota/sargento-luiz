@@ -49,8 +49,11 @@ export interface Prop {
   y: number;
   radius: number;
   /** `nest` é o objetivo destrutível do `destroy`; `rocket` é o alvo vivo do
-   * `protect` do Castelo (as ondas atacam ELE, não um NPC que foge) */
-  kind: 'crate' | 'barrel' | 'nest' | 'rocket';
+   * `protect` do Castelo (as ondas atacam ELE, não um NPC que foge);
+   * `capsula` é a cápsula BioGen caída na Fábrica: cenário da história,
+   * cobre tiro mas não queima — ela só abre no roteiro (relato do Murilo:
+   * "poderia ter a cápsula desde o início da fase"). */
+  kind: 'crate' | 'barrel' | 'nest' | 'rocket' | 'capsula';
   health: number;
   maxHealth: number;
   hitFlash: number;
@@ -86,6 +89,8 @@ const BARREL_BLAST_DAMAGE = 45;
  * ao contrário do VIP de 50 HP que dois toques já derrubavam.
  */
 const ROCKET_HEALTH = 300;
+/** A cápsula não quebra com tiro: o número só precisa existir para o HUD. */
+const CAPSULA_HEALTH = 9999;
 const ROCKET_RADIUS = 30;
 /** Dano por segundo de CADA inimigo encostado no foguete. */
 export const ROCKET_CONTACT_DPS = 12;
@@ -121,9 +126,33 @@ export function initProps(cells: string[][]): void {
   }
 }
 
+/**
+ * A cápsula BioGen caída no pátio da Fábrica — existe DESDE O INÍCIO da fase
+ * (relato do Murilo: "poderia ter a cápsula desde o início"). Cobre tiro
+ * como cobertura, não toma dano: ela abre no roteiro, na hora da virada.
+ */
+export function spawnCapsula(x: number, y: number): void {
+  props.push({
+    col: Math.floor(x / CELL_SIZE), row: Math.floor(y / CELL_SIZE),
+    x, y,
+    radius: CELL_SIZE * 0.55,
+    kind: 'capsula',
+    health: CAPSULA_HEALTH,
+    maxHealth: CAPSULA_HEALTH,
+    hitFlash: 0,
+    fuse: 0,
+  });
+}
+
+/** Remove a cápsula (o roteiro abriu ela — o que sobrou voou na explosão). */
+export function consumirCapsula(): Prop | undefined {
+  const idx = props.findIndex(p => p.kind === 'capsula');
+  if (idx < 0) return undefined;
+  return props.splice(idx, 1)[0];
+}
+
 /** Lista os ninhos (objetivos destrutíveis) ainda de pé. */
-export function getNests(): Prop[] {
-  return props.filter(p => p.kind === 'nest' && p.health > 0);
+export function getNests(): Prop[] {  return props.filter(p => p.kind === 'nest' && p.health > 0);
 }
 
 /** O foguete do Castelo ainda de pé, se o mapa trouxe um (char `F`). */
@@ -299,19 +328,41 @@ export function drawProps(
     } else if (p.kind === 'rocket') {
       // O alvo do protect do Castelo: sprite Saturn V (Michael J Pierce,
       // CC-BY 3.0) em pé sobre a base. Sem tint — o foguete é o ÚNICO objeto
-      // da fase que não pode mudar de cara com o bioma.
+      // da fase que não pode mudar de cara com o bioma. O dano ACUMULA na
+      // carcaça (relato do Murilo: "o foguete poderia ir se estragando à
+      // medida que tomasse dano"): abaixo de 2/3 ele solta fumaça, abaixo
+      // de 1/3 a fumaça engrossa e o corpo entorta até 7° na base.
       const img = getSprite('prop_foguete');
       const altura = p.radius * 5.2;
       const baseY = p.y + p.radius * 0.35;
+      const integridade = Math.max(0, p.health / p.maxHealth);
+      const entorta = (1 - integridade) * 0.12;
       if (img) {
         const largura = altura * (img.width / img.height);
-        ctx.drawImage(img, p.x - largura / 2, baseY - altura, largura, altura);
+        ctx.save();
+        ctx.translate(p.x, baseY);
+        ctx.rotate(entorta);
+        ctx.drawImage(img, -largura / 2, -altura, largura, altura);
         if (p.hitFlash > 0) {
-          ctx.save();
           ctx.globalAlpha = 0.65;
           ctx.filter = 'brightness(2.4) saturate(0.5)';
-          ctx.drawImage(img, p.x - largura / 2, baseY - altura, largura, altura);
-          ctx.restore();
+          ctx.drawImage(img, -largura / 2, -altura, largura, altura);
+        }
+        ctx.restore();
+        if (integridade < 0.66) {
+          // fumaça do pack: dois bicos abaixo de 2/3, três abaixo de 1/3
+          const bicos = integridade < 0.33 ? 3 : 2;
+          const agora = Date.now() / 1000;
+          for (let i = 0; i < bicos; i++) {
+            const fum = getSprite(`smoke_0${(i % 2) + 1}`);
+            if (!fum) break;
+            const sobe = (agora * 26 + i * 40) % 90;
+            const lado = Math.sin(agora * 1.4 + i * 2.1) * largura * 0.22;
+            const tamanho = 26 + (i % 2) * 8;
+            ctx.globalAlpha = 0.42 - (sobe / 90) * 0.34;
+            ctx.drawImage(fum, p.x + lado - tamanho / 2, baseY - altura * 0.66 - sobe, tamanho, tamanho);
+          }
+          ctx.globalAlpha = 1;
         }
       } else {
         // fallback só se o asset não carregar (regra 15): silhueta de torre
@@ -324,6 +375,38 @@ export function drawProps(
         ctx.lineTo(p.x, baseY - altura - p.radius * 0.9);
         ctx.lineTo(p.x + p.radius * 0.42, baseY - altura);
         ctx.fill();
+      }
+    } else if (p.kind === 'capsula') {
+      // A cápsula BioGen caída: tile de tecnologia do pack DEITADO (ela
+      // caiu do céu, não pousou), com o vazamento verde atrás — o flare do
+      // pack, não um brilho desenhado. O tile é o mesmo da cena do Espaço
+      // (333): a cápsula é a MESMA tecnologia, caída em terra errada.
+      // Passar pelo olho da revisão de imagem.
+      const vazamento = getSprite('flare_01');
+      if (vazamento) {
+        const pulso = 0.5 + Math.sin(Date.now() / 600) * 0.12;
+        ctx.globalAlpha = 0.35 * pulso;
+        const s = p.radius * 2.6;
+        ctx.drawImage(vazamento, p.x - s / 2, p.y - s / 2, s, s);
+        ctx.globalAlpha = 1;
+      }
+      const capsulaImg = getSprite('tile_333');
+      if (capsulaImg) {
+        const s = p.radius * 2.1;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(1.05);
+        ctx.drawImage(capsulaImg, -s / 2, -s / 2, s, s);
+        ctx.restore();
+      } else {
+        // fallback se o asset não carregar (regra 15)
+        ctx.fillStyle = '#5a6a5a';
+        ctx.beginPath();
+        ctx.ellipse(p.x, p.y, p.radius * 0.5, p.radius, 0.9, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#7a9a6a';
+        ctx.lineWidth = 2;
+        ctx.stroke();
       }
     } else if (p.kind === 'barrel') {
       ctx.fillStyle = p.hitFlash > 0 ? PALETTE.crit : paleta.barrel;

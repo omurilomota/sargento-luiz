@@ -73,7 +73,7 @@ const SO_DE_TESTE: Record<string, string> = {
   getNests: 'consulta dos ninhos; superfície de teste',
   isReachable: 'checagem de alcançabilidade do grid; superfície de teste',
   // H2: o quinto caminho do cheque de órfão do assets.test — a lista dos
-  // tipos que nascem de script de fase (hoje só o Fernando infectado).
+  // tipos que nascem de script de fase (hoje só o Rogério infectado).
   SCRIPTED_TYPES: 'lista consumida pelo assets.test como caminho de uso dos tipos de script; o main cita os tipos inline',
   CONTAGOS_POR_ESTILO: 'contrato de tamanho de sprite por família; assets.test',
   COMBO_LIMITE_DANO: 'teto de dano exportado SÓ para o teste travar o limite',

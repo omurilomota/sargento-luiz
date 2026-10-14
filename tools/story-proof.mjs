@@ -70,32 +70,58 @@ checar('o prólogo fecha ao pular', st?.ativa === false);
 // A lista é TODAS as fases, não quatro: o harness prometia conferir "cada fase"
 // e parava na Fábrica, então Caverna adiante só era conferida por sorte — e o
 // fundo de cena novo (tiles em `buildCutsceneBackdrop`) precisa ser visto nas
-// nove. A nona pulada sai da última fase e o hook do jogo quebra (bug do
+// dezesseis. A última pulada sai da última fase e o hook do jogo quebra (bug do
 // `pularParaProximaFase` fora de faixa), por isso a lista termina no Bunker, que
 // o EPÍLOGO fechar.
 const fases = [
-  'Floresta', 'Caverna', 'Fábrica', 'Pântano',
-  'Castelo', 'Vulcão', 'Espaço', 'NÚCLEO-CENTRAL',
+  'Rodovia', 'Floresta', 'Hospital de Campanha', 'Caverna', 'Fábrica',
+  'Pátio de Trens', 'Ponte', 'Pântano', 'Refinaria', 'Castelo',
+  'Subestação', 'Vulcão', 'Porto', 'Espaço', 'NÚCLEO-CENTRAL',
 ];
 let indice = 0;
+// Espera a CAIXA abrir matando a onda como um jogador faria. O gatilho do
+// doutor/Rogério/Júlio mora na TRANSIÇÃO de onda (a segunda), e a prova não
+// pode depender do acumulador do spawner entre fases — a versão antiga
+// passava "por sorte": o contador carregado entre as puladas cruzava a cota
+// exatamente na Fábrica. Com as fases novas o cruzamento foi para o
+// Hospital e a Fábrica parava de abrir a caixa — prova verde por
+// coincidência é o erro que o AGENTS.md chama de "checagem por ausência
+// de sintoma".
+const esperarCaixa = async () => {
+  // `cumprirObjetivo` existe para o harness: o fim de onda exige o objetivo
+  // da fase (a Fábrica é `survive` 45s — sem isto a prova esperaria quase
+  // um minuto só para a onda 1 andar).
+  await page.evaluate(() => window.__ashfall.cumprirObjetivo?.());
+  for (let i = 0; i < 40; i++) {
+    const dlg = await page.evaluate(() => window.__ashfall.dialogo?.() ?? false);
+    if (dlg) return true;
+    await page.evaluate(() => window.__ashfall.matarTodos?.() ?? 0);
+    await page.waitForTimeout(250);
+  }
+  return false;
+};
+const atravessarCaixa = async () => {
+  for (let i = 0; i < 40; i++) {
+    const aberta = await page.evaluate(() => window.__ashfall.dialogo?.() ?? false);
+    if (!aberta) break;
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(250);
+  }
+  return !(await page.evaluate(() => window.__ashfall.dialogo?.() ?? false));
+};
 for (const nome of fases) {
   await page.evaluate(() => window.__ashfall.pularParaProximaFase());
   await page.waitForTimeout(600);
   // H2: a Fábrica abre em CAIXA PEQUENA de diálogo (o pedido do Murilo:
-  // "não gigante igual aos outros níveis") — não em cutscene.
+  // "não gigante igual aos outros níveis") — não em cutscene. A onda 1 é
+  // jogada de verdade: a caixa abre quando ela completa.
   if (nome === 'Fábrica') {
-    const dlg = await page.evaluate(() => window.__ashfall.dialogo?.() ?? false);
-    checar('a Fábrica abre a caixa pequena de diálogo', dlg === true, `dialogo=${dlg}`);
+    const abriu = await esperarCaixa();
+    checar('a Fábrica abre a caixa pequena de diálogo', abriu === true, `dialogo=${abriu}`);
     await page.screenshot({ path: join(SHOTS, `historia-${indice}-caixa-pequena.png`) });
     indice++;
-    for (let i = 0; i < 30; i++) {
-      const aberta = await page.evaluate(() => window.__ashfall.dialogo?.() ?? false);
-      if (!aberta) break;
-      await page.keyboard.press('Enter');
-      await page.waitForTimeout(250);
-    }
-    const fechou = await page.evaluate(() => window.__ashfall.dialogo?.() ?? false);
-    checar('a caixa pequena atravessa com ENTER', fechou === false, `dialogo=${fechou}`);
+    const fechou = await atravessarCaixa();
+    checar('a caixa pequena atravessa com ENTER', fechou === true, `dialogo=${!fechou}`);
     continue;
   }
   st = await cena();
@@ -119,14 +145,29 @@ for (const nome of fases) {
     await page.keyboard.press('Backspace');
     await page.waitForTimeout(700);
   }
+  // Hospital e Castelo (2026-10-14): os encontros EM JOGO — o doutor
+  // Fernando e o Júlio chegam na primeira onda, cada um na sua caixa.
+  // A prova joga a onda e trava que o encontro abre E atravessa.
+  if (nome === 'Hospital de Campanha' || nome === 'Castelo') {
+    const quem = nome === 'Castelo' ? 'o Júlio chega em jogo (Castelo)' : 'o doutor chega em jogo (Hospital)';
+    const abriu = await esperarCaixa();
+    checar(quem, abriu === true, `dialogo=${abriu}`);
+    if (abriu) {
+      await page.screenshot({ path: join(SHOTS, `historia-${indice}-encontro-${nome === 'Castelo' ? 'julio' : 'doutor'}.png`) });
+      indice++;
+      const fechou = await atravessarCaixa();
+      checar(`o encontro atravessa com ENTER (${nome})`, fechou === true, `dialogo=${!fechou}`);
+    }
+  }
 }
 
-// O diário precisa DEFINIR a entrada do Fernandes. Não basta existir no main:
-// se `unlockDiaryEvent('fernandes')` não achar um evento com esse nome, o beat
-// mais forte da história não deixa registro nenhum.
+// O diário precisa DEFINIR a entrada do Júlio (era a do Fernandes, antes do
+// rename de 2026-10-14). Não basta existir no main: se `unlockDiaryEvent('julio')`
+// não achar um evento com esse nome, o sobrevivente do Castelo não deixa
+// registro nenhum.
 const diario = await page.evaluate(() => window.__ashfall.diarioDefinido?.() ?? null);
-checar('o diário define a entrada do Fernandes',
-  diario?.eventos?.includes('fernandes') === true,
+checar('o diário define a entrada do Júlio',
+  diario?.eventos?.includes('julio') === true,
   diario ? `eventos: ${diario.eventos.join(', ')}` : 'sem hook');
 
 await browser.close();

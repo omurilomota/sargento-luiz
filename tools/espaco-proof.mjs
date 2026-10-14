@@ -6,7 +6,7 @@
  * `fase-proof` usava atalho e parava de cobrir o jogo.
  *
  * O roteiro é o de um jogador comum: começa a partida, salta para o Espaço
- * (índice 7) pela rota de環境 real (`irParaFase` reaproveita a sequência do
+ * (índice 14 na campanha de 16 fases) pela rota de環境 real (`irParaFase` reaproveita a sequência do
  * `startFromSave`), e joga a fase. O `lowGravity` do Espaço é o suspeito
  * declarado: com o jogador flutuando, o `hazard` pode matar sem que o bot
  * perceba.
@@ -61,8 +61,8 @@ await page.waitForTimeout(900);
 const c = await page.evaluate(() => window.__ashfall.cena());
 if (c.ativa) { await page.keyboard.press('Backspace'); await page.waitForTimeout(600); }
 
-console.log('── rota do jogador até o Espaço (índice 7) ──');
-await page.evaluate(() => window.__ashfall.irParaFase(7));
+console.log('── rota do jogador até o Espaço (índice 14) ──');
+await page.evaluate(() => window.__ashfall.irParaFase(14));
 await page.waitForTimeout(1000);
 
 const entrada = await f();

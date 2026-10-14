@@ -10,12 +10,39 @@ export interface NPC {
   alive: boolean;
   message: string;
   messageTimer: number;
+  /** Personagem do pack (sprite) — sem isto TODO NPC vestia a roupa do jogador. */
+  character: string;
 }
 
 import { markVipDown } from './objectives';
+import { getAnyRocket } from './props';
 import { moveCircleBy } from './tilemap';
 import { bulletHitsCircle } from './collision';
 import { Bullet } from '../types';
+
+let npcMorreuNoFrame = false;
+
+/** O NPC que caiu é o ALVO da fase, ou só um acompanhante (Castelo: Júlio)? */
+function morteDeAlvo(): void {
+  // Com foguete em campo o alvo do `protect` é ele (decisão 2026-10-12); o
+  // NPC é bônus — a morte dele custa a recompensa (sala 4B, diário), não a
+  // fase. Sem isto, o Júlio morto por zumbi reiniciava a fase pra onda 1,
+  // o glitch que o Murilo reportou no Castelo.
+  npcMorreuNoFrame = true;
+  if (getAnyRocket()) return;
+  markVipDown();
+}
+
+/**
+ * Consome a morte de NPC deste frame. O script do Castelo usa para abrir a
+ * fala da perda do Júlio sem depender do array (o corpo sai da lista 3s
+ * depois da mensagem de morte).
+ */
+export function consumeNpcDeath(): boolean {
+  const morreu = npcMorreuNoFrame;
+  npcMorreuNoFrame = false;
+  return morreu;
+}
 
 let npcFollow = true;
 
@@ -33,9 +60,9 @@ const NPC_CONTACT_DPS = 30;
 let npcs: NPC[] = [];
 
 const NPC_DEFS = [
-  { name: 'Cientista', color: '#608090', health: 30, radius: 14, speed: 60, message: 'Encontrei uma cura...' },
-  { name: 'Soldado', color: '#7a9a6a', health: 50, radius: 16, speed: 70, message: 'Vou te cobrir!' },
-  { name: 'Civil', color: '#a08050', health: 15, radius: 12, speed: 50, message: 'Me ajuda!' },
+  { name: 'Cientista', color: '#608090', health: 30, radius: 14, speed: 60, message: 'Encontrei uma cura...', character: 'woman' },
+  { name: 'Soldado', color: '#7a9a6a', health: 50, radius: 16, speed: 70, message: 'Vou te cobrir!', character: 'soldier' },
+  { name: 'Civil', color: '#a08050', health: 15, radius: 12, speed: 50, message: 'Me ajuda!', character: 'manOld' },
 ];
 
 /**
@@ -75,7 +102,7 @@ export function npcBark(): void {
   npc.messageTimer = 3;
 }
 
-export function spawnNPC(x: number, y: number, defIndex: number): void {
+export function spawnNPC(x: number, y: number, defIndex: number, character?: string): void {
   const def = NPC_DEFS[defIndex % NPC_DEFS.length];
   npcs.push({
     x, y,
@@ -88,6 +115,9 @@ export function spawnNPC(x: number, y: number, defIndex: number): void {
     alive: true,
     message: def.message,
     messageTimer: 3,
+    // O script de fase decide o rosto: Rogério (manBrown), Júlio (manBlue),
+    // o doutor Fernando (hitman). Sem override, o def escolhe.
+    character: character ?? def.character,
   });
 }
 
@@ -115,7 +145,7 @@ export function updateNPCs(
       if (npc.health <= 0) {
         npc.health = 0;
         npc.alive = false;
-        markVipDown();
+        morteDeAlvo();
       }
       break;
     }
@@ -183,7 +213,7 @@ export function updateNPCs(
           // avisa o objetivo: sem isso `deadNpc` ficava false para sempre e o
           // objetivo protect dependia só de vip.alive, que deixa de funcionar
           // quando o NPC sai da lista depois do messageTimer
-          markVipDown();
+          morteDeAlvo();
         }
         break;
       }

@@ -1,4 +1,4 @@
-# FUTURO — ideias, dívidas e apostas para o SARGENTO RIOS
+# FUTURO — ideias, dívidas e apostas para o SARGENTO LUIZ
 
 > Documento de discussão, não de compromisso. `TODO.md` é o que está em obra;
 > `docs/DESIGN.md` é a direção; **este arquivo é o que ainda não foi decidido** —

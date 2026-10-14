@@ -1,5 +1,5 @@
 /**
- * Prova de campanha: joga as 9 fases em sequência e grava o que aconteceu.
+ * Prova de campanha: joga as 16 fases em sequência e grava o que aconteceu.
  *
  * Por que esta prova existe
  * -------------------------
@@ -17,7 +17,7 @@
  *      voltar disso pelo teclado é frágil (BACKSPACE na cena de fim chama
  *      `startRun()` e reinicia no meio).
  *
- *   B) ESTRUTURA (mesma partida, com cura) — ordem das 9 fases, chefe em cada
+ *   B) ESTRUTURA (mesma partida, com cura) — ordem das 16 fases, chefe em cada
  *      uma, e se alguma fecha sem chefe.
  *
  * A passagem de dano não é um jogador: é um termômetro. Serve para comparar
@@ -70,8 +70,9 @@ const cena = () => page.evaluate(() => window.__ashfall.cena());
 
 
 const ORDEM_ESPERADA = [
-  'Cidade em Ruínas', 'Floresta', 'Caverna', 'Fábrica', 'Pântano',
-  'Castelo', 'Vulcão', 'Espaço', 'NÚCLEO-CENTRAL',
+  'Cidade em Ruínas', 'Rodovia', 'Floresta', 'Hospital de Campanha', 'Caverna',
+  'Fábrica', 'Pátio de Trens', 'Ponte', 'Pântano', 'Refinaria', 'Castelo',
+  'Subestação', 'Vulcão', 'Porto', 'Espaço', 'NÚCLEO-CENTRAL',
 ];
 
 const relatorio = [];
@@ -196,14 +197,14 @@ async function jogarFase({ curarJogador, forcarApos = 12000, limite = 40000 }) {
 // ─── PASSAGEM A: dano na entrada de cada fase ───
 //
 // A simulação no navegador NÃO serve para isto. `matarTodos()` mata o inimigo
-// antes do contato, e em 8 das 9 fases a vida mínima medida foi 100% — o número
+// antes do contato, e em 15 das 16 fases a vida mínima medida foi 100% — o número
 // não dizia nada. Medir pelo gameplay exige um agente que não atira e não se
 // mexe, que este harness não é.
 //
 // Então a passagem A é DETERMINÍSTICA: aplica a fórmula real do `spawner.ts` e a
 // do `damageTaken()` de `main.ts`, lendo a config DELE MESMO pelo hook
 // `__ashfall.config()` (uma versão anterior lia `config.ts` por regex e pegou
-// 7 das 9 fases sem avisar).
+// 14 das 16 fases sem avisar).
 //
 //   danoEscalado  = floor(def.damage × waveScale × timeScale)
 //   waveScale     = (1 + onda × 0.15) × difficulty      <- onda 0 = entrada da fase

@@ -20,10 +20,26 @@ export const PHASES: Phase[] = [
     difficulty: 0.7, objective: 'clear', objectiveTarget: 0, boss: 'vigia',
   },
   {
+    // A estrada norte — primeira parada da viagem. O pedágio ainda tem a
+    // cancela baixa, e alguém cobrando pedágio em carne.
+    name: 'Rodovia', bg: '#2a2824', bgColor2: '#15140f', gridColor: 'rgba(120,110,90,0.06)',
+    enemyTypes: ['grunt', 'runner', 'bat', 'spitter'], waves: 4, map: 'rodovia', hazard: 'none',
+    difficulty: 0.82, objective: 'survive', objectiveTarget: 30, boss: 'pedagiario',
+  },
+  {
     name: 'Floresta', bg: '#1a2e1a', bgColor2: '#0d1a0d', gridColor: 'rgba(34,139,34,0.1)',
     enemyTypes: ['grunt', 'runner', 'spitter', 'mutante'], waves: 4, map: 'floresta',
     hazard: 'fog', mutantsPerWave: 1,
     difficulty: 0.75, objective: 'clear', objectiveTarget: 0, boss: 'alphaWolf',
+  },
+  {
+    // O hospital de campanha que o Ferreira mencionou no rádio — o doutor
+    // Fernando ainda guarda as pesquisas da cura. O remédio dele é a cura
+    // da qual ele não escapou: o Zombonic-24 potencializa o vírus, e o
+    // Nando-01 que ele toma "para provar seu ponto" o vira o chefe.
+    name: 'Hospital de Campanha', bg: '#1e2a2a', bgColor2: '#0f1515', gridColor: 'rgba(120,160,160,0.08)',
+    enemyTypes: ['spitter', 'tank', 'slime'], waves: 5, map: 'hospital', hazard: 'fog',
+    difficulty: 0.76, objective: 'clear', objectiveTarget: 0, boss: 'cirurgiao',
   },
   {
     name: 'Caverna', bg: '#1a1a2e', bgColor2: '#0d0d1a', gridColor: 'rgba(100,100,150,0.1)',
@@ -39,10 +55,35 @@ export const PHASES: Phase[] = [
     difficulty: 0.93, objective: 'survive', objectiveTarget: 45, boss: 'sentinel', coleta: true,
   },
   {
+    // A rota de suprimentos do NÚCLEO. O manifesto do vagão 7:
+    // "BioGen — urgente — não abrir". Luiz abre.
+    name: 'Pátio de Trens', bg: '#2a2018', bgColor2: '#15100a', gridColor: 'rgba(120,90,60,0.08)',
+    enemyTypes: ['robot', 'drone', 'mutante'], waves: 5, map: 'trens', hazard: 'electric',
+    difficulty: 0.93, objective: 'destroy', objectiveTarget: 3, boss: 'maquinista',
+  },
+  {
+    // A única travessia por quilômetros — metade caiu, a outra metade
+    // é território. O vento é tão forte que quase não se anda reto.
+    name: 'Ponte', bg: '#2e2e2e', bgColor2: '#161616', gridColor: 'rgba(120,120,120,0.06)',
+    enemyTypes: ['bat', 'spitter', 'crystal'], waves: 5, map: 'ponte', hazard: 'lowGravity',
+    difficulty: 0.94, objective: 'reach', objectiveTarget: 0, boss: 'gargula',
+  },
+  {
     name: 'Pântano', bg: '#1a2e2e', bgColor2: '#0d1a1a', gridColor: 'rgba(34,150,150,0.1)',
     enemyTypes: ['grunt', 'slime', 'mosquito', 'frog'], waves: 6, map: 'pantano', hazard: 'mud',
     // +0.05: a coleta da Fábrica paga em drops, o Pântano cobra de volta
     difficulty: 1.15, objective: 'clear', objectiveTarget: 0, boss: 'leviathan',
+  },
+  {
+    // O foguete do Castelo precisa de combustível. Esta refinaria tem.
+    // O fogo aqui é de trabalho: elementais, infernos e a lama que queima.
+    name: 'Refinaria', bg: '#2a1e14', bgColor2: '#150f08', gridColor: 'rgba(180,100,60,0.08)',
+    enemyTypes: ['fireElemental', 'inferno', 'lavaSlime'], waves: 6, map: 'refinaria', hazard: 'lava',
+    // 0.80 (não 0.90): medido — o inferno (tiro a cada 0,6s + spread) matava
+    // o bot às 32s em 2 de 2 amostras a 0.90; a Refinaria é fogo de cenário,
+    // não a caldeira do Vulcão. O custo segue na janela do balance (Pântano
+    // 2197 < 2484 < Castelo 2864).
+    difficulty: 0.80, objective: 'clear', objectiveTarget: 0, boss: 'torre',
   },
   {
     name: 'Castelo', bg: '#2e2e1a', bgColor2: '#1a1a0d', gridColor: 'rgba(150,150,100,0.1)',
@@ -50,9 +91,23 @@ export const PHASES: Phase[] = [
     difficulty: 0.95, objective: 'protect', objectiveTarget: 0, boss: 'reiMutante', // +0.05: a coleta da Fábrica cobra aqui
   },
   {
+    // A rede que alimenta o NÚCLEO. Cortar aqui enfraquece o coração
+    // da máquina — e desperta tudo que se alimenta da corrente.
+    name: 'Subestação', bg: '#1a1e2e', bgColor2: '#0d0f15', gridColor: 'rgba(100,120,180,0.08)',
+    enemyTypes: ['drone', 'crystal', 'ufo'], waves: 6, map: 'subestacao', hazard: 'electric',
+    difficulty: 0.96, objective: 'survive', objectiveTarget: 35, boss: 'transformador',
+  },
+  {
     name: 'Vulcão', bg: '#2e0d0d', bgColor2: '#1a0505', gridColor: 'rgba(200,50,50,0.1)',
     enemyTypes: ['fireElemental', 'lavaSlime', 'magmaGolem', 'inferno'], waves: 7, map: 'vulcao', hazard: 'lava',
     difficulty: 0.74, objective: 'reach', objectiveTarget: 0, boss: 'infernoPrime', // a coleta cobra nas outras, MENOS aqui: o 0,79 mediu 3 mortes em 5 amostras (32s, dano de inferno 108-126) — o Vulcão já era a fase calibrada no limite, e o +0,05 cruzou a margem do dodge do bot. Voltou ao 0,74 medido.
+  },
+  {
+    // A linha de suprimentos do NÚCLEO termina aqui. Cortar a linha
+    // isola a máquina. Depois disto, só sobe.
+    name: 'Porto', bg: '#1a1e22', bgColor2: '#0d0f11', gridColor: 'rgba(100,130,150,0.07)',
+    enemyTypes: ['slime', 'ufo', 'fireElemental', 'tank'], waves: 7, map: 'porto', hazard: 'fog',
+    difficulty: 0.92, objective: 'destroy', objectiveTarget: 3, boss: 'capitao',
   },
   {
     name: 'Espaço', bg: '#05050d', bgColor2: '#020208', gridColor: 'rgba(100,100,200,0.05)',
@@ -91,13 +146,13 @@ export const NUCLEO_RUSH: string[] = ['infernoPrime', 'reiMutante', 'mothership'
  */
 export const SPAWN_PROPRIO: string[] = ['biomaquina'];
 /**
- * Tipos que nascem de SCRIPT de fase, não do spawner (H2): o Fernando
+ * Tipos que nascem de SCRIPT de fase, não do spawner (H2): o Rogério
  * infectado é a virada da Fábrica — ele não entra em `enemyTypes` de fase
  * nenhuma (o spawner o jogaria na onda) nem é o `boss` (o sentinel abre o
- * respiro; o Fernando é o que vem DEPOIS). O `assets.test` usa esta lista
+ * respiro; o Rogério é o que vem DEPOIS). O `assets.test` usa esta lista
  * como o quinto caminho do cheque de órfão.
  */
-export const SCRIPTED_TYPES: string[] = ['fernandoInf'];
+export const SCRIPTED_TYPES: string[] = ['rogerioInf'];
 
 /** Mapa de todos os tipos de inimigos disponíveis no jogo */
 export const ENEMY_TYPES: Record<string, EnemyType> = {
@@ -209,16 +264,16 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
     ],
   },
   /**
-   * O FERNANDO INFECTADO (H2): o chefe menor que o amigo vira depois do
+   * O ROGÉRIO INFECTADO (H2): o chefe menor que o amigo vira depois do
    * sentinel da Fábrica — "a batalha mais foda e emocionante entre amigo e
    * protagonista" (relato do Murilo). Chefe MENOR com barra (decisão dele):
    * 520 HP fica entre o sentinel (360) e o rei de verdade (630), e o padrão
    * usa os três ataques do vocabulário de chefe. Não entra em enemyTypes de
    * fase nenhuma: ele nasce do script da Fábrica, não do spawner.
    */
-  fernandoInf: {
+  rogerioInf: {
     radius: 30, speed: 72, health: 520, damage: 22, color: '#8a6a4a', scoreValue: 500, coinDrop: 60,
-    canShoot: true, shootRate: 1.6, bulletSpeed: 320, isBoss: true, bossName: 'FERNANDO INFECTADO', telegraph: 0.8,
+    canShoot: true, shootRate: 1.6, bulletSpeed: 320, isBoss: true, bossName: 'ROGÉRIO INFECTADO', telegraph: 0.8,
     projectileColor: '#8a6a4a',
     pattern: [
       { atHp: 1.0, action: 'ring', telegraph: 'CUSPE DE RADIAÇÃO' },
@@ -247,6 +302,97 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
       { atHp: 0.15, action: 'split', telegraph: 'NÚCLEO EXPOSTO' },
     ],
   },
+  // ─── OS 7 CHEFES DAS FASES NOVAS (2026-10-14, Unidade A) ──────
+  // Cada um entre os seus vizinhos narrativos na curva de HP. Os nomes
+  // e conceitos são PROPOSTA — o Murilo troca o que quiser, é config.
+
+  pedagiario: {
+    radius: 42, speed: 60, health: 320, damage: 20, color: '#6a5a50', scoreValue: 300, coinDrop: 35,
+    canShoot: false, isBoss: true, bossName: 'PEDAGIÁRIO', telegraph: 1.0,
+    projectileColor: PALETTE.stone,
+    // O cobrador que nunca foi embora — o corpo fundiu com a cancela.
+    // A investida é a cancela que desce; o ring é a "tarifa" em estilhaços.
+    pattern: [
+      { atHp: 1.0, action: 'ring', telegraph: 'TARIFA' },
+      { atHp: 0.6, action: 'charge', telegraph: 'CANCELA' },
+      { atHp: 0.25, action: 'summon', telegraph: 'FILA' },
+    ],
+  },
+  cirurgiao: {
+    radius: 36, speed: 76, health: 460, damage: 26, color: '#7a8a8a', scoreValue: 450, coinDrop: 50,
+    canShoot: true, shootRate: 1.5, bulletSpeed: 320, isBoss: true, bossName: 'FERNANDO INFECTADO', telegraph: 0.9,
+    projectileColor: '#8a9a9a',
+    // O doutor Fernando depois do Nando-01 — o remédio que ele mesmo bebeu
+    // "para provar seu ponto". O relato do Murilo: a luta era fácil demais;
+    // o buff é velocidade e cadência, porque o jaleco apertado já limita o
+    // HP (460, entre o lobo e a rainha da caverna). As "seringas" são o
+    // resto da pesquisa na mão dele.
+    pattern: [
+      { atHp: 1.0, action: 'charge', telegraph: 'BISTURI' },
+      { atHp: 0.6, action: 'ring', telegraph: 'RECEITA' },
+      { atHp: 0.25, action: 'summon', telegraph: 'PACIENTES' },
+    ],
+  },
+  maquinista: {
+    radius: 48, speed: 52, health: 560, damage: 30, color: '#5a4a3a', scoreValue: 600, coinDrop: 65,
+    canShoot: false, isBoss: true, bossName: 'MAQUINISTA', telegraph: 1.1,
+    // O condutor fundido com a locomotiva. O apito de vapor é a
+    // telegrafia; a investida é a locomotiva em marcha.
+    pattern: [
+      { atHp: 1.0, action: 'charge', telegraph: 'APITO' },
+      { atHp: 0.55, action: 'ring', telegraph: 'VAPOR' },
+      { atHp: 0.25, action: 'summon', telegraph: 'VAGÕES' },
+    ],
+  },
+  gargula: {
+    radius: 38, speed: 85, health: 580, damage: 28, color: '#4a4a5a', scoreValue: 650, coinDrop: 70,
+    canShoot: true, shootRate: 2.0, bulletSpeed: 360, isBoss: true, bossName: 'GÁRGULA', telegraph: 0.8,
+    projectileColor: '#6a6a7a',
+    // Coisa que aninha nas torres da ponte. Desce em picada (investida
+    // rápida) e cospe pedras (ring). O summon são os filhotes do ninho.
+    pattern: [
+      { atHp: 1.0, action: 'charge', telegraph: 'PICADA' },
+      { atHp: 0.55, action: 'ring', telegraph: 'PEDRADAS' },
+      { atHp: 0.25, action: 'summon', telegraph: 'NINHO' },
+    ],
+  },
+  torre: {
+    radius: 52, speed: 40, health: 640, damage: 36, color: '#7a4a30', scoreValue: 750, coinDrop: 80,
+    canShoot: true, shootRate: 1.5, bulletSpeed: 280, isBoss: true, bossName: 'TORRE', telegraph: 1.0,
+    projectileColor: '#c46a3a',
+    // A torre de destilação, viva de fogo. Lenta, quase imóvel, mas o
+    // chão ao redor dela derrete — cada passo é uma escolha.
+    pattern: [
+      { atHp: 1.0, action: 'ring', telegraph: 'DESTILAÇÃO' },
+      { atHp: 0.55, action: 'ring', telegraph: 'PRESSÃO' },
+      { atHp: 0.25, action: 'charge', telegraph: 'COLAPSO' },
+    ],
+  },
+  transformador: {
+    radius: 44, speed: 50, health: 720, damage: 40, color: '#6a7a8a', scoreValue: 850, coinDrop: 95,
+    canShoot: true, shootRate: 1.3, bulletSpeed: 400, isBoss: true, bossName: 'TRANSFORMADOR', telegraph: 0.7,
+    projectileColor: '#8a9aaa',
+    // Criatura de raio e metal — cada golpe é um trovão. A telegrafia é
+    // curta porque o raio não avisa.
+    pattern: [
+      { atHp: 1.0, action: 'ring', telegraph: 'DESCARGA' },
+      { atHp: 0.5, action: 'summon', telegraph: 'SOBRECARGA' },
+      { atHp: 0.2, action: 'charge', telegraph: 'CURTO-CIRCUITO' },
+    ],
+  },
+  capitao: {
+    radius: 40, speed: 62, health: 780, damage: 42, color: '#4a5a6a', scoreValue: 950, coinDrop: 110,
+    canShoot: true, shootRate: 1.1, bulletSpeed: 380, isBoss: true, bossName: 'CAPITÃO', telegraph: 0.8,
+    projectileColor: '#6a8a9a',
+    // O mestre do porto — a última coisa entre a terra e o espaço.
+    // Comanda os navios (summon) e a doca é o campo dele.
+    pattern: [
+      { atHp: 1.0, action: 'ring', telegraph: 'SINAL' },
+      { atHp: 0.5, action: 'summon', telegraph: 'TRIPULAÇÃO' },
+      { atHp: 0.2, action: 'charge', telegraph: 'ABALANDO' },
+    ],
+  },
+
   nucleo: {
     radius: 46, speed: 34, health: 1060, damage: 46, color: '#7a7a8a', scoreValue: 1500, coinDrop: 180,
     canShoot: true, shootRate: 1.0, bulletSpeed: 340, isBoss: true, bossName: 'NÚCLEO', telegraph: 0.7,
@@ -281,7 +427,7 @@ export const WEAPONS: Weapon[] = [
   { name: 'BFG', damage: 100, shootRate: 2.0, bulletSpeed: 500, bulletCount: 5, spread: 0.4, color: PALETTE.title, price: 999, pierce: true, explosive: true, explosionRadius: 120, magazineSize: 1, reloadTime: 3.5, secret: true },
   // índice 11 — só vem da caixa especial do boss
   { name: 'M. Quebrada', damage: 5, shootRate: 0.3, bulletSpeed: 650, bulletCount: 1, spread: 0.18, color: '#a08050', price: 0, pierce: false, magazineSize: 30, reloadTime: 1.6, broken: true },
-  // índice 12 — o martelo do Sargento Rios. Destruidor de mundos: tiro único,
+  // índice 12 — o martelo do Sargento Luiz. Destruidor de mundos: tiro único,
   // explosão enorme, cadência lenta de propósito (o peso do golpe). Não é
   // comprável: só aparece na caixa especial do boss NÚCLEO. O dano baixo por
   // tiro engana — a explosão em área de 260px é o que limpa a fase apelona.
@@ -400,7 +546,7 @@ export const POWERUP_TYPES: Record<string, { color: string; symbol: string; dura
   botas: { color: '#c8b890', symbol: 'B', duration: 8 },
   municaoInfinita: { color: '#a08050', symbol: 'M', duration: 8 },
   reflexos: { color: '#c8b890', symbol: 'R', duration: 8 },
-  // trajeNucleo: o traje de contenção que o Rios veste no Bunker. É o power-up
+  // trajeNucleo: o traje de contenção que o Luiz veste no Bunker. É o power-up
   // mais forte do jogo e só existe na fase do NÚCLEO — o jogador o encontra lá,
   // não dropeia de inimigo comum (fora do sorteio). Combina dano dobrado com
   // resistência e escudo, e dura 20s: é o kit da vingança, não um buff casual.
@@ -421,7 +567,7 @@ export const WEAPON_DESC: Record<string, string> = {
   'Mina': 'Explosão de raio 140 ao pisar em cima',
   'BFG': '5 projéteis explosivos, 1 por recarga',
   'M. Quebrada': 'Alta cadência, encasquilha após 35 tiros — Reparar conserta',
-  'Destruidor': 'O martelo do Rios: 1 golpe, explosão de raio 260, 3 por recarga',
+  'Destruidor': 'O martelo do Luiz: 1 golpe, explosão de raio 260, 3 por recarga',
 };
 
 /** Descrição curta por power-up na loja */
@@ -471,5 +617,5 @@ export const PIECE_TYPES: PieceType[] = [
  * publicar. Vazio faria o botão não abrir nada, então a loja mostra o aviso
  * de "copie a URL" — que é exatamente o fallback do popup bloqueado.
  */
-export const SUPPORT_URL = 'https://omurilomota.itch.io/sargento-rios';
+export const SUPPORT_URL = 'https://omurilomota.itch.io/sargento-luiz';
 export const SUPPORT_LABEL = 'APOIE O PROJETO';

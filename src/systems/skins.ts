@@ -83,7 +83,7 @@ export function resetSkins(): void {
   skins[0].equipped = true;
   skins.forEach((s, i) => { s.unlocked = i === 0; });
   try {
-    const raw = localStorage.getItem('ashfall.skins_unlocked');
+    const raw = localStorage.getItem('luiz.skins_unlocked');
     if (raw) {
       const ids = JSON.parse(raw) as number[];
       for (const idx of ids) if (idx in skins) skins[idx].unlocked = true;
@@ -94,6 +94,6 @@ export function resetSkins(): void {
 function persistUnlocked(): void {
   try {
     const ids = skins.map((s, i) => (s.unlocked ? i : -1)).filter(i => i >= 0);
-    localStorage.setItem('ashfall.skins_unlocked', JSON.stringify(ids));
+    localStorage.setItem('luiz.skins_unlocked', JSON.stringify(ids));
   } catch {}
 }

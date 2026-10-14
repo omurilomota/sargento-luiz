@@ -90,6 +90,32 @@ export function updateFlash(dt: number): string | null {
   return null;
 }
 
+// ─── Véu sustentado (a radiação da cápsula) ───────────────────
+let veilColor = '';
+let veilDuration = 0;
+let veilMaxDuration = 0;
+
+/**
+ * Ativa um véu de cor que TOMA a tela por um tempo — diferente do flash,
+ * que pisca e esvaece. O relato do Murilo: a cápsula estoura e "ficaria
+ * verde durante um tempo o mapa Fábrica". Entra e sai suave, firme no meio.
+ */
+export function triggerVeil(color: string, duration: number): void {
+  veilColor = color;
+  veilDuration = duration;
+  veilMaxDuration = duration;
+}
+
+/** Atualiza o véu. Chamar a cada frame. */
+export function updateVeil(dt: number): string | null {
+  if (veilDuration <= 0) return null;
+  veilDuration -= dt;
+  const restante = veilDuration / veilMaxDuration;
+  const entrada = Math.min(1, (veilMaxDuration - veilDuration) * 1.5);
+  const alpha = 0.24 * Math.min(entrada, restante * 1.5);
+  return veilColor.replace(/[\d.]+\)$/, `${alpha.toFixed(3)})`);
+}
+
 // ─── Slow Motion ─────────────────────────────────────────────
 let slowMotionScale = 1;
 let slowMotionDuration = 0;
@@ -176,6 +202,7 @@ export function resetEffects(): void {
   screenShakeDuration = 0;
   screenShakeMaxDuration = 0;
   flashDuration = 0;
+  veilDuration = 0;
   slowMotionScale = 1;
   slowMotionDuration = 0;
   hitStopDuration = 0;

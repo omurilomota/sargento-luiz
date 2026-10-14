@@ -65,7 +65,7 @@ export function setMoveDirection(dx: number, dy: number): void {
 }
 
 /**
- * A FÚRIA só existe depois da Fábrica do Fernando (H2 — gate de história,
+ * A FÚRIA só existe depois da Fábrica do Rogério (H2 — gate de história,
  * decisão do Murilo 2026-10-13: "a fúria só vai ser descoberta aqui, pois
  * após ter raiva dos trilionários o player libera a fúria"). Sem isto ela
  * existia desde o início da campanha e o beat não custava nada. Travada

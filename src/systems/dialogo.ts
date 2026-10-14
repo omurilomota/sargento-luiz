@@ -43,7 +43,7 @@ export function retratoDoDialogo(entrada: EntradaDialogo) {
 /**
  * Enfileira uma sequência. Se a caixa já está na tela, as novas falas
  * entram ATRÁS das atuais — o mundo continua congelado até esvaziar tudo.
- * `fechar` roda quando a fila acabou (a virada do Fernando fecha a caixa
+ * `fechar` roda quando a fila acabou (a virada do Rogério fecha a caixa
  * e ELE nasce: o efeito mora no chamador, o sistema só conta as linhas).
  */
 export function abrirDialogo(entradas: EntradaDialogo[], fechar?: () => void): void {

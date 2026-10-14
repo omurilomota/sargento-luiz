@@ -75,8 +75,8 @@ describe('dist: build de produção íntegro', () => {
     expect(existsSync(join(DIST, 'assets', 'music', 'CREDITS.md'))).toBe(true);
   });
 
-  it('o jogo se identifica como SARGENTO RIOS, não como nenhum dos nomes antigos', () => {
-    expect(indexHtml).toContain('SARGENTO RIOS');
+  it('o jogo se identifica como SARGENTO LUIZ, não como nenhum dos nomes antigos', () => {
+    expect(indexHtml).toContain('SARGENTO LUIZ');
     expect(bundle).not.toContain('Bubble Shooter');
     // "ASHFALL" colide com 8+ jogos no itch.io e vários são marcados como
     // "AI Assisted". Nenhum vestígio do nome antigo pode sobrar no build.
@@ -86,6 +86,6 @@ describe('dist: build de produção íntegro', () => {
 
   it('o zip do package sai com o nome novo', () => {
     const pkg = JSON.parse(readFileSync(join(DIST, '..', 'package.json'), 'utf8'));
-    expect(pkg.name).toBe('sargento-rios');
+    expect(pkg.name).toBe('sargento-luiz');
   });
 });

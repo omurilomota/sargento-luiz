@@ -30,7 +30,7 @@ const ok = (cond, msg) => {
   if (!cond) falhas.push(msg);
 };
 
-const cfg = await irParaFase(page, 6);
+const cfg = await irParaFase(page, 12);
 ok(cfg.fase === 'Vulcão', `fase certa (${cfg.fase})`);
 ok(cfg.objetivo === 'reach', `objetivo reach (${cfg.objetivo})`);
 

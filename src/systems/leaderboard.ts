@@ -15,7 +15,7 @@ interface LeaderboardEntry {
   date: string;
 }
 
-const STORAGE_KEY = 'rios.leaderboard';
+const STORAGE_KEY = 'luiz.leaderboard';
 const MAX_ENTRIES = 10;
 
 /**

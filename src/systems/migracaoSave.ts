@@ -1,26 +1,27 @@
 /**
- * Migração das chaves de save do ASHFALL para SARGENTO RIOS.
+ * Migração das chaves de save para SARGENTO LUIZ.
  *
- * O jogo foi publicado como "ASHFALL", que colide com pelo menos 8 jogos no
- * itch.io — vários marcados "AI Disclosure: AI Assisted", e um "Ashfall City"
- * que é o mesmo gênero. O prefixo das 12 chaves de localStorage mudou de
- * `ashfall.*` para `rios.*`.
+ * O prefixo das chaves de localStorage já mudou duas vezes: nasceu
+ * `ashfall.*` (nome antigo do jogo), virou `rios.*` na troca de marca e é
+ * `luiz.*` desde que o protagonista passou a se chamar Luiz (2026-10-14).
  *
  * Sem isto, quem já jogou perde save, conquistas, diário, recordes, skins,
  * classe e preferências de volume. Roda uma vez no boot e é idempotente.
  */
 
-const PREFIXO_ANTIGO = 'ashfall.';
-const PREFIXO_NOVO = 'rios.';
+const PREFIXO_NOVO = 'luiz.';
 
-/** Sufixos das chagens que o jogo usa. */
+/** As duas gerações de prefixo que ainda podem existir no storage de alguém. */
+const PREFIXOS_ANTIGOS = ['rios.', 'ashfall.'];
+
+/** Sufixos das chaves que o jogo usa. */
 export const CHAVES_MIGRADAS = [
   'save', 'completed', 'achievements', 'diary', 'leaderboard',
   'skins_unlocked', 'class', 'musicOn', 'sfxOn', 'volMaster', 'volMusic', 'volSfx',
 ];
 
 /**
- * Copia cada `ashfall.<chave>` para `rios.<chave>` e apaga a antiga.
+ * Copia cada `<antigo>.<chave>` para `luiz.<chave>` e apaga a antiga.
  *
  * @returns quantas chaves foram migradas (0 se não havia nada antigo)
  */
@@ -28,16 +29,18 @@ export function migrarChavesDeSave(): number {
   try {
     let movidas = 0;
     for (const sufixo of CHAVES_MIGRADAS) {
-      const antiga = PREFIXO_ANTIGO + sufixo;
-      const valor = localStorage.getItem(antiga);
-      if (valor === null) continue;
-      // não sobrescreve um save novo que já exista
       const nova = PREFIXO_NOVO + sufixo;
-      if (localStorage.getItem(nova) === null) {
-        localStorage.setItem(nova, valor);
+      for (const antigo of PREFIXOS_ANTIGOS) {
+        const antiga = antigo + sufixo;
+        const valor = localStorage.getItem(antiga);
+        if (valor === null) continue;
+        // não sobrescreve um save mais novo que já exista
+        if (localStorage.getItem(nova) === null) {
+          localStorage.setItem(nova, valor);
+        }
+        localStorage.removeItem(antiga);
+        movidas++;
       }
-      localStorage.removeItem(antiga);
-      movidas++;
     }
     return movidas;
   } catch {

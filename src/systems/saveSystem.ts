@@ -38,7 +38,7 @@ interface SaveData {
   timestamp: number;
 }
 
-const SAVE_KEY = 'rios.save';
+const SAVE_KEY = 'luiz.save';
 
 /**
  * Salva o progresso do jogo no localStorage.
@@ -97,7 +97,7 @@ export function deleteSave(): void {
   }
 }
 
-const COMPLETION_KEY = 'rios.completed';
+const COMPLETION_KEY = 'luiz.completed';
 
 /**
  * Marca o jogo como completado.

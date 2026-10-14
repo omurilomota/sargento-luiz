@@ -57,7 +57,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'chacina', name: 'Chacina', desc: 'Dispare a câmera lenta com 3 ou mais abates em 2 segundos', unlocked: false },
 ];
 
-const STORAGE_KEY = 'rios.achievements';
+const STORAGE_KEY = 'luiz.achievements';
 
 /** Contadores temporários da partida */
 let killsThisRun = 0;

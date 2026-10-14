@@ -99,7 +99,7 @@ export function getClassHealthPerSecond(): number {
   return getCurrentClass().healthPerSecond;
 }
 
-const CLASS_KEY = 'rios.class';
+const CLASS_KEY = 'luiz.class';
 
 export function loadClass(): void {
   try {

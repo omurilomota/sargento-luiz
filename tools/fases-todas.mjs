@@ -1,5 +1,5 @@
 /**
- * Mede as 9 fases de uma vez e imprime a tabela.
+ * Mede as 16 fases de uma vez e imprime a tabela.
  *
  * É a entrega do FUTURO §1.4. O item dizia que a sessão longa "nunca mede
  * Espaço/Castelo/Bunker" porque o bot morria na Cidade — e a resposta que
@@ -27,7 +27,7 @@ const arg = (n, d) => {
 const SEG = arg('seg', 45);
 const SO_RAW = process.argv.includes('--so') ? process.argv[process.argv.indexOf('--so') + 1] : null;
 // `Number('0,7')` é NaN, então filtrar pela lista inteira nunca casava e o
-// `--so` era silenciosamente ignorado — a varredura rodava as 9 fases mesmo
+// `--so` era silenciosamente ignorado — a varredura rodava todas as fases mesmo
 // quando se pedia 2, e o relatório dizia "Cidade" quando media o Bunker.
 const SO = SO_RAW ? SO_RAW.split(',').map((n) => Number(n.trim())) : null;
 

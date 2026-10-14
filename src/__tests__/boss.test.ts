@@ -156,8 +156,8 @@ describe('boss: as duas fases que estavam sem chefe', () => {
     expect(Math.max(...vidas)).toBe(ENEMY_TYPES.nucleo.health);
   });
 
-  it('as duas fases sem boss agora têm um, e ambos ficam nos extremos de HP', () => {
+  it('a campanha abre com o VIGIA e fecha com o NÚCLEO, nos extremos do eixo', () => {
     expect(PHASES[0].boss).toBe('vigia');
-    expect(PHASES[8].boss).toBe('nucleo');
+    expect(PHASES[PHASES.length - 1].boss).toBe('nucleo');
   });
 });

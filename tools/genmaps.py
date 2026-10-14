@@ -201,6 +201,191 @@ def finish(g, name, player_target, spawns, boss=None, nests=(), reach=None):
 
 # ───────────────────────── cada mapa ─────────────────────────
 
+def rodovia():
+    """A estrada norte — um corredor de asfalto com o pedágio no meio."""
+    g = blank()
+    # a estrada corre horizontal, com o pedágio (mureta) no centro
+    for c in range(1, W - 1):
+        g[3][c] = ','; g[16][c] = ','
+    # mureta do pedágio (cobertura)
+    for r in range(4, 16):
+        for c in range(12, 15):
+            g[r][c] = WALL
+    for r in range(4, 16):
+        for c in range(16, 18):
+            g[r][c] = WALL
+    g[9][12] = FLOOR; g[10][12] = FLOOR  # vão da cancela
+    g[9][16] = FLOOR; g[10][16] = FLOOR
+    # carros abandonados como cobertura
+    scatter(g, CRATE, 5, 61)
+    scatter(g, BARREL, 3, 62)
+    scatter(g, DECOR, 6, 63)
+    # hazard: destroços na pista
+    for r, c in ((5, 8), (7, 22), (12, 6), (14, 25)):
+        g[r][c] = HAZARD
+    return finish(g, 'rodovia', (18, 14), [(3, 14), (16, 3), (16, 26), (8, 4)],
+                  boss=(9, 20), reach=None)
+
+def hospital():
+    """Corredores de hospital — salas que saem de um corredor central."""
+    g = blank()
+    # corredor central horizontal
+    for c in range(1, W - 1):
+        g[10][c] = FLOOR; g[9][c] = FLOOR
+    # salas ao norte e ao sul do corredor
+    for r0, c0, r1, c1 in ((2, 2, 7, 9), (2, 12, 7, 18), (2, 21, 7, 27),
+                             (12, 2, 17, 9), (12, 12, 17, 18), (12, 21, 17, 27)):
+        for r in range(r0, r1 + 1):
+            for c in range(c0, c1 + 1):
+                g[r][c] = FLOOR
+        # porta para o corredor
+        g[r1 if r0 == 2 else r0][ (c0 + c1) // 2] = FLOOR
+    # paredes entre as salas
+    for r in range(2, 18):
+        for c in (10, 19):
+            if g[r][c] != FLOOR or r == 2 or r == 17:
+                pass
+    for c in range(2, 28):
+        for r in (8, 11):
+            if not (c in range(5, 7) or c in range(14, 16) or c in range(23, 25)):
+                g[r][c] = WALL
+    # hazard: gás de esterilização
+    for r, c in ((4, 5), (4, 15), (4, 24), (14, 5), (14, 15), (14, 24)):
+        g[r][c] = HAZARD
+    scatter(g, CRATE, 4, 61)
+    scatter(g, BARREL, 3, 62)
+    return finish(g, 'hospital', (17, 15), [(2, 5), (2, 15), (2, 24), (17, 5), (17, 24)],
+                  boss=(4, 15))
+
+def trens():
+    """Pátio de trens — trilhos paralehos com vagões entre eles."""
+    g = blank()
+    # trilhos horizontais (linhas de hazard elétrico)
+    for c in range(1, W - 1):
+        if c not in (5, 15, 25):
+            g[4][c] = HAZARD; g[10][c] = HAZARD; g[14][c] = HAZARD
+    # vagões (blocos de parede)
+    for r0 in (5, 11, 15):
+        for c0 in (3, 10, 17, 24):
+            for r in range(r0, min(r0 + 3, 18)):
+                for c in range(c0, min(c0 + 4, 28)):
+                    g[r][c] = WALL
+    # passagens entre vagões (colunas livres)
+    for r in range(1, 18):
+        for c in (1, 7, 14, 21, 28):
+            g[r][c] = FLOOR
+    # corredores horizontais livres entre as fileiras
+    for c in range(1, 28):
+        for r in (1, 8, 18):
+            g[r][c] = FLOOR
+    # vagões infectados (ninhos)
+    nests = ((6, 5), (12, 12), (16, 19))
+    scatter(g, CRATE, 4, 61)
+    scatter(g, BARREL, 3, 62)
+    return finish(g, 'trens', (18, 15), [(2, 5), (2, 14), (2, 22), (16, 7)],
+                  boss=(2, 27), nests=nests)
+
+def ponte():
+    """O vão da ponte — estreito, com as torres e o vento (lowGravity)."""
+    g = blank()
+    # torres da ponte (pilares)
+    for r in range(1, 6):
+        for c in (6, 7, 22, 23):
+            g[r][c] = WALL
+    # o tabuleiro (faixa livre no meio)
+    for c in range(1, W - 1):
+        for r in range(7, 14):
+            g[r][c] = FLOOR
+    # guardas do tabuleiro (cobertura)
+    for c in range(2, W - 2):
+        if c not in (5, 10, 15, 20, 25):
+            g[6][c] = WALL
+            g[14][c] = WALL
+    # acima e abaixo do tabuleiro é o rio (parede)
+    for c in range(1, W - 1):
+        for r in list(range(1, 6)) + list(range(15, 19)):
+            if g[r][c] == FLOOR:
+                g[r][c] = WALL
+    # cabos (algumas colunas de parede no tabuleiro)
+    for c in (6, 7, 22, 23):
+        for r in range(7, 14):
+            if r not in (9, 10):
+                g[r][c] = WALL
+    scatter(g, CRATE, 3, 61)
+    scatter(g, BARREL, 2, 62)
+    return finish(g, 'ponte', (9, 27), [(9, 3), (10, 3), (9, 12), (10, 12)],
+                  boss=(9, 16), reach=(9, 2))
+
+def refinaria():
+    """A refinaria — torres circulares com lava entre elas."""
+    g = blank()
+    # torres de destilação (círculos fechados — sólidos, sem interior)
+    for cx, cy, rad in ((8, 8, 3), (8, 22, 3), (15, 8, 2), (15, 15, 2), (15, 22, 2)):
+        for r in range(max(1, cy - rad), min(H - 2, cy + rad + 1)):
+            for c in range(max(1, cx - rad), min(W - 2, cx + rad + 1)):
+                d = (r - cy) ** 2 + (c - cx) ** 2
+                if d <= rad * rad:
+                    g[r][c] = WALL
+    # poças de lava entre as torres
+    for r, c in ((4, 15), (5, 15), (11, 12), (11, 13), (18, 8), (18, 9), (12, 25)):
+        g[r][c] = HAZARD
+    scatter(g, CRATE, 5, 61)
+    scatter(g, BARREL, 4, 62)
+    scatter(g, DECOR, 5, 63)
+    return finish(g, 'refinaria', (18, 15), [(2, 5), (2, 15), (2, 25), (18, 5)],
+                  boss=(8, 15))
+
+def subestacao():
+    """A subestação — transformadores em grade com trilhos energizados."""
+    g = blank()
+    # transformadores (blocos 2×2 espaçados)
+    for r0 in (3, 8, 13):
+        for c0 in (3, 9, 15, 21, 26):
+            for r in range(r0, min(r0 + 2, 18)):
+                for c in range(c0, min(c0 + 2, 28)):
+                    g[r][c] = WALL
+    # trilhos energizados (linhas de hazard entre as fileiras)
+    for c in range(1, W - 1):
+        if c not in (2, 6, 12, 18, 24, 28):
+            for r in (6, 11):
+                g[r][c] = HAZARD
+    # corredores livres
+    for c in range(1, W - 1):
+        g[1][c] = FLOOR; g[17][c] = FLOOR; g[18][c] = FLOOR
+    scatter(g, CRATE, 4, 61)
+    scatter(g, BARREL, 3, 62)
+    return finish(g, 'subestacao', (18, 15), [(2, 5), (2, 15), (2, 25), (16, 7)],
+                  boss=(17, 15))
+
+def porto():
+    """O porto — docas com contêineres e a água ao sul."""
+    g = blank()
+    # a água (void ao sul)
+    for r in range(15, 18):
+        for c in range(1, W - 1):
+            g[r][c] = WALL
+    # docas de carga
+    for r in range(15, 18):
+        for c in range(1, W - 1):
+            g[r][c] = WALL
+    g[15][3] = FLOOR; g[15][8] = FLOOR; g[15][15] = FLOOR; g[15][22] = FLOOR
+    # contêineres como cobertura
+    for r0, c0, r1, c1 in ((2, 3, 4, 6), (2, 9, 4, 12), (2, 15, 4, 18), (2, 21, 4, 24),
+                             (6, 3, 8, 6), (6, 9, 8, 12), (6, 15, 8, 18), (6, 21, 8, 24),
+                             (10, 3, 12, 7), (10, 10, 12, 14), (10, 17, 12, 21)):
+        for r in range(r0, r1 + 1):
+            for c in range(c0, c1 + 1):
+                g[r][c] = WALL
+    # passagens entre contêineres
+    for r in range(2, 14):
+        g[r][7] = FLOOR; g[r][13] = FLOOR; g[r][19] = FLOOR; g[r][25] = FLOOR
+    # navios de carga (ninhos para o objetivo destroy)
+    nests = ((3, 4), (7, 10), (11, 18))
+    scatter(g, CRATE, 5, 61)
+    scatter(g, BARREL, 3, 62)
+    return finish(g, 'porto', (18, 15), [(2, 3), (2, 15), (2, 25), (13, 3), (13, 25)],
+                  boss=(10, 27), nests=nests)
+
 def cidade():
     g = blank()
     for box in ((3, 2, 6, 5), (3, 8, 6, 11), (10, 2, 13, 4), (17, 2, 20, 6),
@@ -381,12 +566,19 @@ def bunker():
 
 MAPS = [
     ('cidade', cidade),
+    ('rodovia', rodovia),
     ('floresta', floresta),
+    ('hospital', hospital),
     ('caverna', caverna),
     ('fabrica', fabrica),
+    ('trens', trens),
+    ('ponte', ponte),
     ('pantano', pantano),
+    ('refinaria', refinaria),
     ('castelo', castelo),
+    ('subestacao', subestacao),
     ('vulcao', vulcao),
+    ('porto', porto),
     ('espaco', espaco),
     ('bunker', bunker),
 ]
