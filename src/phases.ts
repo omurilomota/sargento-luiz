@@ -252,6 +252,16 @@ export function wasGameCompleted(): boolean {
  * Reseta toda a progressão: fase, onda, pontuação, combo e kills.
  * Usado ao reiniciar o jogo.
  */
+/**
+ * Reseta toda a progressão: fase, onda, pontuação, combo e kills.
+ * Usado ao reiniciar o jogo.
+ *
+ * `gameCompleted` entra no reset por causa do FINAL SECRETO e da tela de
+ * vitória: depois de UMA campanha terminada, o flag ficava true para sempre
+ * (não é do save, é do módulo) — morrer na campanha seguinte mostrava a
+ * tela de vitória e o toast "PERFEIÇÃO" disparava sozinho. Partida nova
+ * começa com a campanha NÃO completada.
+ */
 export function resetPhases() {
   currentPhase = 0;
   currentWave = 0;
@@ -261,4 +271,5 @@ export function resetPhases() {
   comboTimer = 0;
   killStreak = 0;
   totalKills = 0;
+  gameCompleted = false;
 }

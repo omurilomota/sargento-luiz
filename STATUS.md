@@ -444,6 +444,32 @@ o pedido do dono ("mais vida/dano/raio que o tipo comum, visual maior"):
   inteira); campanha 9/9, protect 2/2, onda 10/10 com titãs nas ondas;
   régua re-medicda — as três sub-45 eram ruído re-amostrado a 45s+.
 
+## Entrega: os cinco bugs do segundo relato do Murilo — 2026-10-13 22:12
+
+1. **Game Over ao entrar no Bunker (2ª vez)** — causa raiz: o índice de
+   cutscene, depois do fim da abertura da fase final, pousa EM CIMA do
+   epílogo; perguntar "era o epílogo?" depois de avançar respondia `true`
+   para a abertura. Fix: capturar antes. Portas: `npm run bunker`
+   (**mordida provada**: linha antiga → "gameover" na entrada; fix →
+   combate), o campanha-proof atravessa a abertura com ENTER agora
+   (era cego: só BACKSPACE), `gameCompleted` zera no reset (a vitória na
+   segunda campanha + o "PERFEIÇÃO" solo eram o mesmo vazamento), e o
+   BACKSPACE de cutscene de fase não chama mais `startRun`.
+2. **Balas no bico do cano** — o tiro nascia no centro do peito, 24px
+   atrás do flash; agora bala e flash nascem juntos na direção da mira.
+3. **Atiradores com sentido** — linha de visão para o tiro (parede na
+   frente = calado até ter visão) e faixa de combate (300/200): aproxima,
+   recua, mas não encosta mais em quem já sabia onde estava.
+4. **Desfocar pausa** — blur da janela em combate → pausa automática.
+5. **Caçador que reage a bala** — 4s de aggro em quem atira nele, depois
+   volta ao foguete (decisão do Murilo: troca temporária).
+- Gates: 963 testes (gameCompleted + a armadilha do índice travados),
+  campanha 9/9 com a porta nova, `npm run bunker` verde com mordida,
+  fases re-medido (Floresta 40s em 1 amostra → re-amostra em curso).
+- Registrado/adiado (instrução do Murilo): modo 2P (setas movem os dois,
+  P2 atravessa paredes — sessão dedicada), modo competitivo (bots como
+  personagens jogáveis), linguagem dev na tela, limpeza dos arquivos.
+
 ---
 
 ## Versão anterior: v1.3 (geometria + HUD)

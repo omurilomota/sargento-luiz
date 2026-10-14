@@ -1,5 +1,5 @@
 {
-  "quando": "2026-10-13T23:57:09.181Z",
+  "quando": "2026-10-14T02:00:55.138Z",
   "segundosPorFase": 45,
   "linhas": [
     {
@@ -7,15 +7,15 @@
       "fase": "Floresta",
       "hazard": 0.75,
       "hp0": 100,
-      "hpFim": 73,
-      "danoTotal": 27,
+      "hpFim": 91,
+      "danoTotal": 9,
       "ondaMax": 1,
       "morreu": false,
       "segundosSobrevividos": 45,
-      "fontePrincipal": "contato",
-      "danoDaFontePrincipal": 21,
-      "inimigoPrincipal": "grunt",
-      "danoDoInimigoPrincipal": 21,
+      "fontePrincipal": "projetil",
+      "danoDaFontePrincipal": 9,
+      "inimigoPrincipal": "spitter",
+      "danoDoInimigoPrincipal": 9,
       "kills": 4
     }
   ]

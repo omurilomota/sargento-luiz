@@ -285,6 +285,19 @@ for (let i = 0; i < ORDEM_ESPERADA.length; i++) {
     nota(`não avançou de ${r.fase}: o índice continua ${st.indice}`);
     break;
   }
+
+  // A porta do bug do Murilo (2026-10-13): a abertura da fase final termina
+  // com o índice EM CIMA do epílogo — o jogador que passava a cutscene com
+  // ENTER ganhava o fim de campanha na entrada do Bunker. A prova terminava
+  // as cenas com BACKSPACE e era cega para isso. Agora ela atravessa a
+  // abertura do NÚCLEO-CENTRAL com a tecla de verdade e exige o combate.
+  if (i === ORDEM_ESPERADA.length - 2 && st.estado === 'playing') {
+    await fecharCenaPorTeclas();
+    const depois = await f();
+    if (depois.estado !== 'playing') {
+      nota(`a abertura da fase final terminou em "${depois.estado}" — fim de campanha por passar a cutscene`);
+    }
+  }
 }
 
 await page.screenshot({ path: join(SHOTS, 'campanha-final.png') });

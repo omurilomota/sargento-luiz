@@ -1529,3 +1529,80 @@
 // (foguete + B3) — sargento-rios.zip, 11MB, 904 arquivos, index.html na
 // raiz, visual sem 404/pageerror no build final. Falta o dono subir no
 // itch.
+
+// ═══════════════════════════════════════════════════════════════
+// RODADA 2026-10-13 (NOITE II) — O SEGUNDO RELATO DO MURILO
+// ═══════════════════════════════════════════════════════════════
+// História completa reafirmada + falas verbatim + 5 bugs + críticas.
+// A maior crítica registrada: "a falta de carinho nos detalhes" — a
+// unidade de TEXTOS desta fila é a resposta. (Murilo pediu para ser
+// chamado de Murilo, não de "dono".)
+
+// ─── BUGS (os cinco desta rodada) ───
+// [x] GAME OVER AO ENTRAR NO BUNKER (2ª vez, "patético!"). CAUSA RAIZ: o
+//     índice de cutscene depois do fim de uma cena aponta para a
+//     SEGUINTE — a abertura do NÚCLEO-CENTRAL termina com o índice EM CIMA
+//     do epílogo, e o main perguntava "era o epílogo?" DEPOIS do
+//     advanceCutscene: passar a cutscene de entrada com ENTER dava fim
+//     de campanha. Fix: capturar `eraEpilogo` ANTES de avançar. Portas:
+//     tools/bunker-entry-proof.mjs (`npm run bunker`) — MORDIDA PROVADA:
+//     com a linha antiga, "gameover" na entrada; com a fix, combate. O
+//     campanha-proof ganhou a travessia por ENTER da abertura final (era
+//     cego: só usava BACKSPACE). JUNTO, dois da mesma família:
+//     (a) BACKSPACE em cutscene de FASE chamava startRun() — agora
+//     distingue menu (começa a partida) de partida (fecha a cena e abre
+//     o combate; epílogo pulado também encerra);
+//     (b) `gameCompleted` nunca era zerado pelo resetPhases — depois de
+//     UMA campanha completada, morrer na seguinte mostrava a tela de
+//     VITÓRIA e o FINAL SECRETO "PERFEIÇÃO" disparava sozinho. Trava:
+//     phaseEnd.test ("partida nova não herda campanha completada") + o
+//     teste da armadilha no cutscene.test documenta o porquê da ordem.
+// [x] BALAS FORA DO BICO DO CANO: o tiro nascia no CENTRO do jogador
+//     (shoot(p.x, p.y)) enquanto o flash nascia a 24px na direção da
+//     mira — a bala saía do peito, atrás do cano que a pose desenha.
+//     Agora bala e flash nascem no mesmo ponto (DISTANCIA_DO_CANO).
+// [x] ATIRADORES SEM SENTIDO: aproximavam de quem já sabiam onde estava
+//     e atiravam através de parede. Agora: (1) LINHA DE VISÃO — o tiro
+//     só nasce quando segmentHitsWall diz que há visão até o alvo
+//     (jogador ou foguete); (2) ALCANCE — o atirador comum segura
+//     distância: aproxima até ALCANCE_DO_ATIRADOR (300), recua abaixo de
+//     RECUO_DO_ATIRADOR (200), fica na faixa (só a separação age).
+// [x] DESFOCAR PAUSA: blur da janela em combate → pausa automática (o
+//     resetInput que já existia ganhou o setGameState('paused')). Alt-tab
+//     no meio da horda não é mais morte de graça.
+// [x] CAÇADORES QUE IGNORAM BALAS ("me ignorando inclusive nas balas"):
+//     quem leva tiro do jogador ganha 4s de aggro (aggroTimer no Enemy)
+//     e troca de alvo — persegue quem atirou — antes de voltar ao
+//     foguete. Decisão do Murilo: troca temporária, não permanente.
+
+// ─── REGISTRADO, ADIADO (instrução: "não focaremos agora") ───
+// [ ] MODO 2P: incontáveis bugs — as SETINHAS movem os DOIS jogadores
+//     juntos e o P2 ATRAVESSA PAREDES. Sessão dedicada quando entrar na
+//     fila; anotar o resto lá dentro.
+// [ ] MODO COMPETITIVO apelão: bots rápidos demais, dano demais.
+//     Proposta registrada: bots como PERSONAGENS JOGÁVEIS (velocidade e
+//     dano do próprio jogador, sem vantagem de máquina).
+// [ ] LINGUAGEM DEV NA TELA ("assets/music/CREDITS.md" na capa — "quem
+//     vai jogar não é dev"): varrer os textos voltados ao jogador
+//     (créditos, capa, game over, pausa, configurações) trocando
+//     jargão por linguagem de gente. Docs de dev ficam como estão.
+// [ ] LIMPEZA DOS ARQUIVOS DA RAIZ (aprovada): descartar session-*.md,
+//     freebuff-chat-*.md, NEGOCIADO.md, RELATORIO*.md, bugs.md, plano*.md,
+//     ashfall.zip — a história fica no git.
+
+// ─── FILA DESTA SESSÃO (ordem aprovada: bugs → H2 → textos) ───
+// [ ] H2 — a Fábrica do Fernando: caixa de diálogo PEQUENA, fase de
+//     coleta (drops melhores, dificuldade seguinte compensa), cápsula +
+//     radiação (todos infectados, player imune sem saber), mid-boss
+//     "Quer–o–o-o o seu cerébrO!!!", pós-morte, volta direto pra loja,
+//     FÚRIA desbloqueia só aqui. Diálogo verbatim completo na sessão.
+// [ ] TEXTOS — o carinho nos detalhes: Castelo reescrito pro texto novo
+//     (Fernandes morre EM JOGO, não em cutscene — decisão do Murilo),
+//     verbatim completos (Floresta/Caverna/Bunker/epílogo), a risada é
+//     do RIOS, o "universo está a meu favo- (EXPLOSÃO)", pós-missão do
+//     Castelo (consertar + voar com os sons H5), linguagem amigável ao
+//     jogador, limpeza dos arquivos.
+// [ ] H5 — sons narrativos (ferramenta, foguete, risada, explosão de
+//     cápsula): caçar CC0/CC-BY + CREDITS.
+// [ ] AS 7 FASES NOVAS (aprovadas: Rodovia/Pedágio, Hospital, Pátio de
+//     trens, Ponte, Refinaria, Subestação, Porto) — a economia arbitra.

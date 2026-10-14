@@ -179,6 +179,25 @@ describe('a fase final não abre o epílogo', () => {
     expect(CUTSCENES[EPILOGUE_CUTSCENE].title).toBe('EPÍLOGO');
   });
 
+  it('terminar a cena ANTES do epílogo deixa o índice NO epílogo — a armadilha do Game Over do Bunker', () => {
+    // O índice depois do fim de uma cena aponta para a SEGUINTE — e a
+    // abertura do NÚCLEO-CENTRAL é a cena que antecede o epílogo. Quem
+    // terminava essa cutscene com ENTER ganhava o fim de campanha na
+    // ENTRADA da fase final: `isEpilogueScene()` lido DEPOIS do
+    // `advanceCutscene` respondia true para a abertura. O main pergunta
+    // ANTES de avançar; este teste documenta o porquê, para ninguém
+    // "simplificar" a ordem de volta. (Relato do Murilo, 2026-10-13.)
+    resetStory();
+    pularPara(ULTIMA - 1);
+    showCutscene();
+    let guarda = 0;
+    while (isShowingCutscene() && guarda++ < 900) advanceCutscene();
+    expect(isShowingCutscene()).toBe(false);
+    // a armadilha em pessoa: a cena fechada foi a ABERTURA, e o índice
+    // já pousou no epílogo
+    expect(isEpilogueScene()).toBe(true);
+  });
+
   it('cada uma das 9 fases abre uma cena, e nenhuma é o epílogo', () => {
     for (let f = 0; f < PHASES.length; f++) {
       const idx = cutsceneForPhase(f);

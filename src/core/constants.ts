@@ -72,6 +72,13 @@ export const PHASE_END_PAUSE = 5;
 /** Segundos de "nave em perigo" na entrada do Espaço: a tela vermelha dos
  * primeiros instantes, que dá peso à fala do Bot #89 (H3, relato do dono). */
 export const PERIGO_NAVE_SEGUNDOS = 5;
+/**
+ * Faixa de combate do atirador comum (relato do Murilo, 2026-10-13: "os
+ * atiradores não fazem sentido aproximar se já sabem onde estou"). Acima do
+ * alcance ele chega; abaixo do recuo ele afasta; entre os dois, fica.
+ */
+export const ALCANCE_DO_ATIRADOR = 300;
+export const RECUO_DO_ATIRADOR = 200;
 /** Fator de escala de stats dos inimigos por onda */
 export const WAVE_SCALE_PER_LEVEL = 0.15;
 /** Fator de escala de velocidade dos inimigos por onda */

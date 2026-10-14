@@ -21,7 +21,7 @@ import { applyRegen, resetRegen } from './entities/player';
 import { getBullets, spawnBullet, updateBullets, updateMines, clearBullets } from './entities/bullet';
 import { getSprite, BULLET_FAMILY, getEnemyCharacter } from './systems/sprites';
 import { getCoins, spawnCoins, updateCoins, clearCoins, setMagnetActive, resetPermanentMagnet } from './entities/coin';
-import { PHASE_END_PAUSE, PLAYER_BASE_HEALTH, PERIGO_NAVE_SEGUNDOS } from './core/constants';
+import { PHASE_END_PAUSE, PLAYER_BASE_HEALTH, PERIGO_NAVE_SEGUNDOS, ALCANCE_DO_ATIRADOR, RECUO_DO_ATIRADOR } from './core/constants';
 import type { Toast, ToastKind, WeaponSheet } from './ui/hud';
 import { updateSupportUrl, drawSupportFallback, hideSupportUrl } from './systems/support';
 
@@ -190,7 +190,16 @@ document.addEventListener('keydown', e => {
   // cutscene: avanço
   if (isShowingCutscene()) {
     if (k === 'backspace' || key === 'ç') {
-      if (skipCutscene()) startRun();
+      // No MENU, pular a cutscene é começar a partida (o prólogo). Em
+      // PARTIDA é só fechar a cena da fase e começar o combate — startRun
+      // reiniciaria a campanha no meio. E o epílogo pulado também encerra:
+      // o fim de campanha não pode depender de o jogador assistir tudo.
+      const eraEpilogo = isEpilogueScene();
+      if (skipCutscene()) {
+        if (getGameState() === 'menu') startRun();
+        else if (eraEpilogo) setGameState('gameover');
+        else resetInput();
+      }
     }
     keys[k] = true;
     return;
@@ -453,8 +462,14 @@ canvas.addEventListener('mousedown', e => {
 });
 document.addEventListener('mouseup', () => { mouse.down = false; });
 document.addEventListener('contextmenu', e => e.preventDefault());
-// segurar o clique na loja e voltar ao jogo não pode dar tiro automático
-window.addEventListener('blur', () => { resetInput(); });
+// segurar o clique na loja e voltar ao jogo não pode dar tiro automático.
+// E pausa automática no blur (relato do Murilo, 2026-10-13): alt-tab no meio
+// da horda era morte de graça — o mundo seguia rodando atrás da aba. Só em
+// combate: loja, menu e tela de fim não têm o que pausar.
+window.addEventListener('blur', () => {
+  resetInput();
+  if (getGameState() === 'playing') setGameState('paused');
+});
 
 // ─── Estado ────────────────────────────────────────────────────
 import { Enemy, Bullet } from './types';
@@ -798,10 +813,17 @@ function update(dt: number) {
   if (state === 'playing' && isShowingCutscene()) {
     updateCutscene(dt);
     if (consumeEnter() || keys[' '] || consumeCutsceneClick()) {
+      // "Era o epílogo?" se pergunta ANTES de avançar: o índice depois do fim
+      // de uma cena aponta para a SEGUINTE — e a abertura do NÚCLEO-CENTRAL,
+      // que antecede o epílogo, termina com o índice EM CIMA do epílogo.
+      // Perguntar depois era responder true para a abertura da fase final:
+      // o jogador passava a cutscene de entrada e ganhava o fim de campanha
+      // — o Game Over "ao entrar no Bunker" que o Murilo reportou duas vezes.
+      const eraEpilogo = isEpilogueScene();
       const finished = advanceCutscene();
       if (finished) {
         // o epílogo não abre a fase: ele encerra a campanha
-        if (isEpilogueScene()) setGameState('gameover');
+        if (eraEpilogo) setGameState('gameover');
         else resetInput();
       }
     }
@@ -977,12 +999,18 @@ function update(dt: number) {
     const weapon = getCurrentWeapon();
     p.shootCooldown = getEffectiveShootRate() * getComboCooldownMult() * getFuryCooldownMult();
     const multiShot = hasPowerUp('multiShot');
-    const fired = shoot(p.x, p.y, p.angle, multiShot, getDamageMultiplier() * getComboDamageBonus() * phaseDmgMult * getClassDamageMult());
+    // A bala nasce no BICO DO CANO, no mesmo ponto do flash — antes saía do
+    // centro do peito, 24px atrás do flash, e o relato do Murilo era
+    // exato: "as balas não saem certinhas do bico do cano da arma". O cano
+    // da pose desenhada termina perto dos 24px na direção da mira; flash e
+    // bala agora concordam.
+    const DISTANCIA_DO_CANO = 24;
+    const muzzleX = p.x + Math.cos(p.angle) * DISTANCIA_DO_CANO;
+    const muzzleY = p.y + Math.sin(p.angle) * DISTANCIA_DO_CANO;
+    const fired = shoot(muzzleX, muzzleY, p.angle, multiShot, getDamageMultiplier() * getComboDamageBonus() * phaseDmgMult * getClassDamageMult());
     for (const b of fired) {
       spawnBullet(b.x, b.y, b.vx, b.vy, b.damage, false, b.color, b.pierce, b.explosive, b.explosionRadius, b.isCrit, b.bulletSprite);
     }
-    const muzzleX = p.x + Math.cos(p.angle) * 24;
-    const muzzleY = p.y + Math.sin(p.angle) * 24;
     spawnParticles(muzzleX, muzzleY, weapon.color, 4, 120, 'muzzle');
     playWeaponSound(weapon.name);
     registerShot();
@@ -2367,10 +2395,18 @@ for (const e of enemies) {
     // legado não tem campo: ele se MEXE, um campo estático apontaria para
     // onde ele não está mais.
     const fogueteNoMapa = phase.objective === 'protect' ? getRocket() : undefined;
-    const prey = fogueteNoMapa ?? ((def?.huntsNpc || phase.objective === 'protect') ? getNPCs().find(n => n.alive) : undefined);
+    // ressentimento (relato do Murilo: caçador "me ignorando inclusive nas
+    // balas"): enquanto o aggro dura, o caçador persegue QUEM ATIROU nele.
+    if (e.aggroTimer !== undefined && e.aggroTimer > 0) e.aggroTimer -= dt;
+    const comAggro = (e.aggroTimer ?? 0) > 0;
+    const prey = !comAggro
+      ? (fogueteNoMapa ?? ((def?.huntsNpc || phase.objective === 'protect') ? getNPCs().find(n => n.alive) : undefined))
+      : undefined;
     const flow = sampleFlowDir(e.x, e.y);
     // perto do jogador o flow field é ruidoso: aí vai o seek direto
     const distToPlayer = Math.hypot(p.x - e.x, p.y - e.y);
+    // atirador comum: sabe onde o jogador está, não faz sentido encostar
+    const atiradorComum = def?.canShoot === true && !def?.isBoss;
     let seekX: number;
     let seekY: number;
     if (prey) {
@@ -2384,6 +2420,23 @@ for (const e of enemies) {
         const caça = normalize({ x: prey.x - e.x, y: prey.y - e.y });
         seekX = caça.x;
         seekY = caça.y;
+      }
+    } else if (atiradorComum) {
+      // Relato do Murilo (2026-10-13): atirador não aproxima de quem já
+      // sabe onde está. Segura o alcance do tiro: aproxima até
+      // ALCANCE_DO_ATIRADOR, recua quando o jogador fecha, e fica parado na
+      // faixa — só a separação age. A bala dele leva ~1s para chegar de
+      // longe, que é a janela de esquiva do jogo.
+      seekX = 0;
+      seekY = 0;
+      if (distToPlayer > ALCANCE_DO_ATIRADOR + 40) {
+        const passo = passoDeCelula(e.x, e.y, flow);
+        seekX = passo.x;
+        seekY = passo.y;
+      } else if (distToPlayer < RECUO_DO_ATIRADOR) {
+        const recuo = normalize({ x: e.x - p.x, y: e.y - p.y });
+        seekX = recuo.x;
+        seekY = recuo.y;
       }
     } else if (distToPlayer < 140) {
       const direct = normalize({ x: p.x + tendency.h * 60 - e.x, y: p.y + tendency.v * 60 - e.y });
@@ -2446,7 +2499,15 @@ for (const e of enemies) {
     // o caçador atira no alvo do protect (foguete primeiro), não no jogador
     const fogueteAqui = phase.objective === 'protect' ? getRocket() : undefined;
     const preyAlvo = fogueteAqui ?? ((def?.huntsNpc || phase.objective === 'protect') ? getNPCs().find(n => n.alive) : undefined);
-    if (e.shootTimer <= 0) shootEnemyAt(e, preyAlvo ? preyAlvo.x : p.x, preyAlvo ? preyAlvo.y : p.y);
+    const alvoX = preyAlvo ? preyAlvo.x : p.x;
+    const alvoY = preyAlvo ? preyAlvo.y : p.y;
+    // Linha de visão (relato do Murilo, 2026-10-13): "não conta atirar sem me
+    // ver se tem parede na frente". O projétil do inimigo já morria na
+    // parede — o tiro nascia, gastava o cooldown e o som e não chegava em
+    // nada. Sem bala saindo da parede, o atirador fica calado até ter visão.
+    if (e.shootTimer <= 0 && !segmentHitsWall(e.x, e.y, alvoX, alvoY)) {
+      shootEnemyAt(e, alvoX, alvoY);
+    }
   }
 
   if (ENEMY_TYPES[e.type]?.leavesFire) {
@@ -2514,6 +2575,11 @@ updateBulletProps(bullets);
 checkBulletEnemyCollisions(bullets, enemies, (b, e) => {
   e.hitFlash = 0.15;
   registerHit();
+  // Relato do Murilo (2026-10-13): os caçadores do foguete "me ignoram
+  // inclusive nas balas". Quem leva tiro do jogador troca de alvo por uns
+  // segundos — a invasão do Castelo não pode ser indiferente a quem está
+  // atirando nela. Depois do ressentimento, volta pro foguete.
+  e.aggroTimer = 4;
   // crítico vem do flag, não de comparar string de cor
   const isCrit = b.isCrit;
   if (b.explosive && b.explosionRadius) {

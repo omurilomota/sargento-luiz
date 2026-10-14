@@ -75,6 +75,12 @@ export interface Enemy {
    * grande da fase.
    */
   isElite?: boolean;
+  /**
+   * Segundos de ressentimento com o JOGADOR (decisão do Murilo, 2026-10-13):
+   * o caçador do alvo que leva tiro troca de alvo temporariamente — persegue
+   * quem atirou — e depois volta ao foguete.
+   */
+  aggroTimer?: number;
   /** Velocidade de movimento em pixels/segundo */
   speed: number;
   /** Pontos de vida atuais */

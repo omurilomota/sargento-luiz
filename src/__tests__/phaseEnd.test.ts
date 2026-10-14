@@ -32,7 +32,7 @@
 import { describe, it, expect } from 'vitest';
 import { ENEMY_TYPES, PHASES } from '../config';
 import { PHASE_END_PAUSE } from '../core/constants';
-import { deveFecharFase, proximoDoRushNasce, nextPhase, getCurrentWave, resetPhases, setGameState, setCurrentWave } from '../phases';
+import { deveFecharFase, proximoDoRushNasce, nextPhase, getCurrentWave, resetPhases, setGameState, setCurrentWave, wasGameCompleted } from '../phases';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { checkEnemyPlayerCollision } from '../systems/collision';
@@ -278,6 +278,18 @@ describe('B4: a fase final não abre com o estado da anterior', () => {
     setCurrentWave(4);
     nextPhase();
     expect(getCurrentWave()).toBe(0);
+  });
+
+  it('partida nova não herda campanha completada — gameCompleted zera no reset', () => {
+    // O flag era estado do MÓDULO que ninguém zerava: depois de UMA campanha
+    // terminada, morrer na seguinte mostrava a tela de vitória e o FINAL
+    // SECRETO "PERFEIÇÃO" disparava sozinho (o main lê `wasGameCompleted() &&
+    // !playerDied`). O reset é o mesmo que `startRun` usa.
+    resetPhases();
+    for (let i = 0; i < 9; i++) nextPhase();
+    expect(wasGameCompleted()).toBe(true);
+    resetPhases();
+    expect(wasGameCompleted()).toBe(false);
   });
 });
 
