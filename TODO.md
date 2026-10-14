@@ -1665,3 +1665,12 @@
 //     sintético (o semProcedural segue verde — som novo vem de arquivo).
 // [ ] AS 7 FASES NOVAS (aprovadas: Rodovia/Pedágio, Hospital, Pátio de
 //     trens, Ponte, Refinaria, Subestação, Porto) — a economia arbitra.
+//     Murilo (2026-10-14): "vamos conversar e sugerir" — próxima sessão.
+// [ ] PAREDE RACHADA (B7): NÃO é arte do dono — "vai ser ela apresentando
+//     defeitos". O dungeon pack tem 96 variantes; a rachada precisa ser
+//     curada por olho (o modelo não lê imagem). Se o pack tiver uma
+//     variante danificada por material, é trocar o tile da fase 9.
+// [ ] O VOO DO FOGUETE (pós-missão do Castelo): o beat hoje é texto +
+//     som. A animação do foguete subindo precisa de decisão de arte.
+// [ ] REPUBLICAR O ZIP NO ITCH — Murilo faz depois ("faço depois").
+//     Rebuild: npm run package com o HEAD de 872422a.
