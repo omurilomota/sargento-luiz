@@ -1291,18 +1291,46 @@
 //     republicar o zip do dist (o publicado é anterior aos fixes).
 // [ ] B5. O fim da Parte I lê como MOTHERSHIP, não como NÚCLEO. É o texto do
 //     epílogo (B1) + a decisão de onde o martelo entra (B2).
-// [ ] B7. Cenário da última fase pouco destrutivo. Quer explosão por todo lado:
-//     barril estourando sozinho, fogo no chão, parede rachando.
+// [x] B7. Cenário da última fase pouco destrutivo — "quer explosão por todo
+//     lado" — ENTREGUE em 2026-10-13 20:41, em camadas que usam o que já
+//     existia: (1) BARRIL ESTOURANDO SOZINHO: a máquina instável acende um
+//     barril vivo ao acaso a cada ~11s, a fase inteira — o pavio de 0,9s é
+//     o aviso, a cadeia faz o resto; (2) FOGO NO CHÃO: poças de fogo
+//     (explosions.ts: FOGO_VIDA 6s, RAIO 44, DPS 8, teto 12) nascem onde o
+//     barril explodiu, onde o chefe caiu, no berço de cada biomaquina e no
+//     impacto de tiro explosivo — hazard do mundo, fere os dois lados
+//     (inimigo direto no HP; jogador 4 a cada 0,5s na fonte 'bioma',
+//     respeitando escudo/invincible). Visual 100% asset: scorch_01 (a
+//     marca de queimado) + flare_01 (a brasa pulsando) do pack de
+//     partículas; (3) PAREDE RACHANDO: PENDÊNCIA DE ARTE — o dungeon pack
+//     tem 96 variantes de parede e escolher a rachada é curadoria de olho,
+//     não de código; o dono redesenha os assets da fase de qualquer forma.
+//     Só na fase do NÚCLEO (o pedido é do cenário final; as outras 8
+//     seguem com o mundo de sempre). Portas: fogo.test.ts (5), 957 testes.
 //
 // ─── TASKS APROVADAS ───
-// [ ] T1. TITÃS/ELITES nas fases, para o chefão parecer mais fraco. JÁ EXISTE
-//     UM PRÉ-TITÃ: `ELITE_TYPES` (`loot.ts:73` = tank, magmaGolem, crystal,
-//     knight, drone) dá loot melhor e 25% de chance de peça no drop. FALTA o
-//     titã de verdade: flag `isElite`, mais vida/dano/raio que o tipo comum,
-//     visual maior e aparecimento por fase. Pedido do jogador marcado como
-//     decisão.
+// [x] T1. TITÃS/ELITES nas fases (2026-10-13, 21:08): o titã de verdade que
+//     faltava. Um inimigo comum do tipo da fase nasce GRANDE a partir da
+//     segunda onda — exatamente 1 por onda, e ele ABRE a onda: 3× vida (em
+//     cima do escalão de onda), 1,5× dano, raio 1,35× (o sprite desenha
+//     pelo raio: o corpo cresce de verdade), 0,85× velocidade, 3× moedas.
+//     Anel mostarda no chão (o vocabulário do anel de chefe, uma escala
+//     abaixo — chefe é terracota) + barra de vida (3× a vida não pode ser
+//     invisível; TOTAL_ATUAL do semDesenho 67 → 70, decisão no diff do
+//     teste). Loot: a taxa elite de 15% (peças de tiers altos) e os 25% de
+//     peça direta estendem ao titã via flag — o corpo grande paga, não o
+//     nome do tipo. tita.test.ts (4) trava o contrato de spawn; o
+//     aparecimento é "por fase" no sentido do dono: toda fase com 2+
+//     ondas tem seus titãs.
 // [ ] T2. PLAYLIST de músicas mais elaborada (hoje são 4 faixas com crossfade).
-// [ ] T3. Tirar auxílio de IA da parte final do site (`site/conteudo.js`).
+// [x] T3. Tirar auxílio de IA da parte final do site (2026-10-13, 21:24).
+//     O aviso "Feito com ajuda de IA" vivia no RODAPÉ do `site/index.html`
+//     (o registro aqui dizia conteudo.js — era o index). Saiu; ficou o
+//     ponteiro de problema ("o lugar é a página do jogo"). Junto, a
+//     atribuição de música do rodapé foi corrigida: dizia só Eric Matyas,
+//     mas o menu do jogo é Juhani Junkala (CC0) — agora os dois, como a
+//     tela de créditos do jogo já diz desde o H4. site-proof: 9 fases,
+//     12 armas, 31 inimigos, zero erro/404.
 // [x] T4a. Vender PONTOS de talento por moedas (decisão do dono: "por
 //     moedas, padrão" — a ambiguidade do C4 já estava respondida). Linha
 //     "VENDER PONTO" na coluna direita da loja, colada abaixo da árvore:

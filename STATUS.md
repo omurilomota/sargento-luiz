@@ -1,14 +1,14 @@
 # SARGENTO RIOS — Status Geral do Projeto
 
 > Atualizado: 2026-10-13 · branch `develop` (v2 mesclada) ·
-> 931 testes em 50 arquivos · `tsc` limpo · build ok.
+> 961 testes em 55 arquivos · `tsc` limpo · build ok.
 > Este arquivo estava parado na v1.3 (420 testes, nome ASHFALL) e foi
 > reconciliado com o código.
 
 ## Verificação atual
 
 ```
-npm test           # 931 passando em 50 arquivos
+npm test           # 961 passando em 55 arquivos
 npx tsc --noEmit   # 0 erros
 npm run build      # ok
 npm run visual     # 8 screenshots, sem 404/pageerror
@@ -49,6 +49,12 @@ Medição pós-`passoDeCelula` (2026-10-13, noite): as ondas avançam mais
  novo). Pântano: 1 morte em 3 amostras (40s, frog); as outras duas em 45s+.
  Castelo: o bot sobrevive — a nota de instrumento do protect continua
  valendo (o bot não defende o alvo).
+
+Com o TITÃ (T1) e o fogo (B7), a régua de 2026-10-13 21:33: três amostras
+ sub-45 (Floresta 32s/Castelo 24s/Vulcão 32s) e TODAS re-amostradas a 45s+
+ (Floresta 3/3, Castelo 2/2, Vulcão 2/2) — ruído de espinho/lava em bot
+ que não lê o chão, com as mortes na onda 1, antes de qualquer titã
+ existir. O NÚCLEO segue 45s+ com o fogo no chão: quem se mexe não paga.
 
 Números crus em `tools/fases-medidas.json`. A linha da fase final acompanha a
 reescrita em andamento (desfile desde a entrada, biomaquina) — medir de novo
@@ -393,6 +399,50 @@ As duas dívidas de UX da rodada do dono:
   função foi REMOVIDA, não aposentada (regra 4).
 - Gates: 952 testes, loja-proof + hud-proof verdes (nada estoura a
   caixa), tsc limpo. PNGs com pendência de leitura (regra 16).
+
+## Entrega: o cenário destrutivo da fase final (B7) — 2026-10-13 21:04
+"Quer explosão por todo lado" — em três camadas que usam o que já existia:
+
+- **Barril estourando sozinho**: a máquina instável acende um barril vivo ao
+  acaso a cada ~11s, a fase inteira — o pavio de 0,9s que já existe é o
+  aviso, a cadeia que já existe faz o resto.
+- **Fogo no chão** (`explosions.ts`): poças de fogo (vida 6s, raio 44,
+  DPS 8, teto 12) nascem onde o barril explodiu, onde o chefe caiu, no
+  berço de cada biomaquina e no impacto de tiro explosivo — hazard do
+  mundo que fere os DOIS lados: inimigo direto no HP; jogador 4 a cada
+  0,5s na fonte `bioma`, respeitando escudo/invincible. Visual 100%
+  asset: `scorch_01` (a marca de queimado) + `flare_01` (a brasa
+  pulsando), do pack de partículas — nenhum desenho de código.
+- **Parede rachada**: PENDÊNCIA DE ARTE — o dungeon pack tem 96 variantes
+  de parede e escolher a rachada é curadoria de olho (DECISIONS #188);
+  o dono redesenha os assets da fase de qualquer forma.
+- Só na fase do NÚCLEO: o pedido é do cenário final, as outras 8 fases
+  seguem com o mundo de sempre.
+- **Gates**: 957 testes (fogo.test.ts +5), rush-proof verde (a fila corre
+  com o fogo), `npm run fases` re-medido — a fase 9 segue 45s+ (o fogo
+  não pegou o bot, que se mexe; quem acampa paga). PNGs com pendência de
+  leitura (regra 16).
+
+## Entrega: o titã da onda (T1) — 2026-10-13 21:33
+
+O que faltava entre o "pré-titã" (`ELITE_TYPES`, que só melhorava loot) e
+o pedido do dono ("mais vida/dano/raio que o tipo comum, visual maior"):
+
+- **Um inimigo comum do tipo da fase nasce GRANDE a partir da segunda
+  onda** — exatamente 1 por onda, e ele ABRE a onda: 3× vida (em cima do
+  escalão de onda), 1,5× dano, raio 1,35× (o sprite desenha pelo raio — o
+  corpo cresce de verdade), 0,85× velocidade, 3× moedas.
+- **Leitura instantânea**: anel mostarda no chão (o vocabulário do anel de
+  chefe, uma escala abaixo — chefe é terracota) + barra de vida — 3× a
+  vida não pode ser invisível. `semDesenho` TOTAL 67 → 70, a decisão no
+  diff da porta.
+- **Loot elite via flag**: o titã é variante de tipo comum — a taxa de 15%
+  e os 25% de peça direta seguem o CORPO, não o nome (o
+  `rollLootDrop` ganhou o flag).
+- **Portas**: `tita.test.ts` (4 — o contrato do spawn: primeira onda sem
+  titã, exatamente 1 abrindo as seguintes, raio 1,35× exato, vida 3×
+  inteira); campanha 9/9, protect 2/2, onda 10/10 com titãs nas ondas;
+  régua re-medicda — as três sub-45 eram ruído re-amostrado a 45s+.
 
 ---
 

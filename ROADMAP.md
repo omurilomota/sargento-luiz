@@ -23,10 +23,21 @@ evita editar esses arquivos até o commit.
 - [x] B4 — estado do rush: NÃO reproduz no HEAD (`02e7733`); ação = republicar
 - [x] B6 + biomaquina + nome NÚCLEO-CENTRAL — pagos na própria rodada 2026-11
       (`3e7458f`, `56395c8`, DECISIONS #169/#170)
-- [ ] B5/B7 — o epílogo que "lia como MOTHERSHIP" foi resolvido por B1+B2 e a
-      reescrita dele é o H4 (DECISIONS #174); resta o cenário destrutivo (B7)
-- [ ] T1–T6 — titãs/elites, playlist, disclosure do site, pontos de talento,
-      anúncio, armaduras
+- [x] B5 + B7 — B5 foi resolvido por B1+B2 e a reescrita do H4 (DECISIONS
+      #174); B7 (cenário destrutivo) entregue em 2026-10-13: barril
+      instável, fogo no chão (hazard dos dois lados), resta a parede
+      rachada como pendência de ARTE (96 variantes esperando o olho do dono)
+- [x] T1 — o TITÃ da onda: 1 por onda a partir da segunda, corpo grande de
+      verdade (2026-10-13)
+- [x] T4a — vender pontos de talento por moedas (2026-10-13)
+- [x] T5 — resgate a 20 moedas, arbitrado pelo teste de economia
+- [ ] T2 — playlist de músicas mais elaborada
+- [ ] T3 — tirar auxílio de IA da parte final do site
+- [ ] T4b — mais níveis e mais perks (atrás da economia medida e do C2)
+- [ ] T6 — armaduras no jogo
+- DESTRAVADO pela sessão: o **teste de economia** (o árbitro,
+      `economia.test.ts`) — as 7 fases novas (PREMISSA-V2) e a poda da
+      árvore agora têm número para decidir
 
 ## Frentes aprovadas (plano de 2026-10-12)
 
