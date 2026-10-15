@@ -129,6 +129,8 @@ let stockPowerups: { type: string; sold: boolean }[] = [];
 let stockPerks: string[] = [];
 let rerolledThisVisit = false;
 let nextDiscount = false;
+let hiredThisVisit = false;
+let serviceUsedThisVisit = new Set<string>();
 
 function restock(): void {
   const pool = WEAPONS.map((_, i) => i).filter(i => !WEAPONS[i].secret || isGameCompleted());
@@ -286,13 +288,19 @@ export function sellInventoryWeapon(i: number): boolean {
 }
 
 // ─── Serviços ──────────────────────────────────────────────────
-
 export const SHOP_SERVICES = [
-  { id: 'reroll',    name: 'Rerrolar Estoque',    price: 30, desc: 'nova sorteio (1× por visita)' },
-  { id: 'discount',  name: 'Bilhete de Desconto', price: 50, desc: '-30% no próximo item' },
-  { id: 'surprise',  name: 'Baú Surpresa',        price: 70, desc: 'item aleatório' },
-  { id: 'transmute', name: 'Frasco de Transmutação', price: 60, desc: 're-rola a qualidade da arma equipada' },
-  { id: 'repair',   name: 'Reparar Arma',         price: 50, desc: 'conserta arma quebrada/encasquilhada' },
+  { id: 'reroll',       name: 'Rerrolar Estoque',         price: 30, desc: 'nova sorteio (1× por visita)' },
+  { id: 'discount',     name: 'Bilhete de Desconto',      price: 50, desc: '-30% no próximo item' },
+  { id: 'surprise',     name: 'Baú Surpresa',             price: 70, desc: 'item aleatório' },
+  { id: 'transmute',    name: 'Frasco de Transmutação', price: 60, desc: 're-rola a qualidade da arma equipada' },
+  { id: 'repair',       name: 'Reparar Arma',             price: 50, desc: 'conserta arma quebrada/encasquilhada' },
+  { id: 'hire',        name: 'Sobrevivente Contratado',  price: 140, desc: 'sai procura ativa (1× por visita)' },
+  { id: 'pardal',       name: 'Cachorro de Guarda',      price: 200, desc: 'cachorro na entrada (1× por visita)' },
+  { id: 'turret',      name: 'Torreta Automática',       price: 240, desc: 'torreta na entrada fica pronta (1× por visita)' },
+  // o painel de botas da Zona 7 cabe num slot: compra uma bota pela coletânea.
+  // é um único equipamento, não um degrau de escada — entra como serviço porque
+  // o efeito é em equipamento, não em stat do jogador.
+  { id: 'boot',        name: 'Botas de Campo',           price: 120, desc: '1 bota na mochila (use 1× por visita)' },
 ];
 
 /**
@@ -307,7 +315,29 @@ const MOEDAS_POR_PONTO = 100;
 export function isServiceAvailable(id: string): boolean {
   if (id === 'reroll') return !rerolledThisVisit;
   if (id === 'discount') return !nextDiscount;
+  if (id === 'hire') return !hiredThisVisit;
+  if (id === 'pardal' || id === 'turret' || id === 'boot') return !serviceUsedThisVisit.has(id);
   return true;
+}
+
+/** Sobrevivente contratado: sai o efeito de procura ativa para a fase. */
+export function setHiredSurvivalist(val: boolean): void {
+  hiredThisVisit = val;
+}
+
+/** Cachorro de guarda na entrada: equipa o cachorro do guarda como presente na fase. */
+export function addPardalGuard(): void {
+  pushPendingReveal(-1, 'normal');
+}
+
+/** Torreta automática na entrada: equipa a torreta como presente na fase. */
+export function addTurretAtEntrance(): void {
+  pushPendingReveal(-1, 'normal');
+}
+
+/** Botas de campo: coloca uma peça de bota na mochila do jogador. */
+export function addBootToInventory(): void {
+  pushPendingReveal(-1, 'normal');
 }
 
 export function buyService(id: string): void {
@@ -326,6 +356,7 @@ export function buyService(id: string): void {
   }
   shopCoins -= price;
   nextDiscount = false;
+  serviceUsedThisVisit.add(id);
   if (id === 'reroll') {
     rerolledThisVisit = true;
     stockSeed++;
@@ -351,6 +382,18 @@ export function buyService(id: string): void {
   } else if (id === 'repair') {
     repairCurrentWeapon();
     flashNotice('ARMA CONSERTADA', PALETTE.moss);
+  } else if (id === 'hire') {
+    setHiredSurvivalist(true);
+    flashNotice('SOBREVIVENTE CONTRATAADO', PALETTE.moss);
+  } else if (id === 'pardal') {
+    addPardalGuard();
+    flashNotice('CACHORRO NA ENTRADA', PALETTE.moss);
+  } else if (id === 'turret') {
+    addTurretAtEntrance();
+    flashNotice('TORRETA NA ENTRADA', PALETTE.moss);
+  } else if (id === 'boot') {
+    addBootToInventory();
+    flashNotice('BOOT NA MOCHILA', PALETTE.moss);
   }
   sfxBuy();
 }
