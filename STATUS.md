@@ -8,10 +8,11 @@
 ## Verificação atual
 
 ```
-npm test           # 1167 passando em 58 arquivos
+npm test           # 1307 passando em 61 arquivos
 npx tsc --noEmit   # 0 erros
 npm run build      # ok
 npm run visual     # 8 screenshots, sem 404/pageerror
+npm run servicos   # os 3 serviços da loja: aliado/torreta nascem, botas 1.3, tiro em campo
 npm run perks      # 13/13 — escada de perks na loja
 npm run hud        # 4 resoluções, texto cabe na caixa
 npm run loja       # 3 scrolls, texto e seções sem sobreposição
@@ -24,6 +25,7 @@ npm run fases      # MEDE as 16 fases — número por fase (FUTURO §1.4 ✅)
 npm run diagnostico# nenhum inimigo dentro de parede, dodge afasta em 360°
 npm run espaco     # reproduz, MAS só contra jogador que não desvia (ver §1.4)
 npm run sessao     # sessão longa com telemetria de dano por fonte
+npm run campanha   # (node tools/campanha-proof.mjs) 16/16 — e TODA fase começa na onda 1
 ```
 
 ### O que o `npm run fases` mede
@@ -113,6 +115,52 @@ Direção do jogo: [`docs/DESIGN.md`](docs/DESIGN.md) ·
 pendências: [`TODO.md`](TODO.md) ·
 decisões autônomas: [`docs/DECISIONS.md`](docs/DECISIONS.md) ·
 ordem das frentes: [`ROADMAP.md`](ROADMAP.md)
+
+---
+
+## Entrega: F0 — o voo da sessão anterior fechado (2026-10-15 20:0x, `develop`)
+
+A sessão de 2026-10-14 deixou trabalho pela metade em 5 arquivos não
+commitados; esta entrega o fecha com efeito REAL e prova em navegador.
+
+- **"Onda 2 na entrada" (M2) — consertado e varrido nas 16.** A cota parcial
+  da última onda da fase anterior vinha junto no spawner, e o primeiro frame
+  da fase nova lia "cota cheia + campo vazio" como onda completa: a fase
+  começava na onda 2. `resetSpawner` agora roda no TOPO de TODO
+  `loadPhaseEnvironment` — e parou de apagar a dificuldade da fase (o WIP o
+  chamava DEPOIS do `setPhaseDifficulty`; irmão pré-existente: o `resetGame`
+  fazia a Cidade valer 1.0 em toda partida nova). Trava dupla:
+  `entradaDeFase.test.ts` (4, com mordida provada: o clobber injetado
+  reprova `expected 20 to be 14`) e o campanha-proof ganhou "a fase começou
+  na onda 1" — 16/16 verdes na primeira rodada com o fix.
+- **Serviços da loja (M3): quem paga, recebe.** O WIP vendia Torreta (240)
+  e Botas (120) que não faziam NADA; o "cachorro" spawnava um NPC humano
+  genérico; e um aliado morrendo disparava o latch do `protect` — comprar
+  reforço reiniciava a fase. Agora: **Contratado** (140) segue e atira no
+  inimigo visível; **Torreta** (240) fixa na entrada, 150 HP, sprite do
+  Kenney Tower Defense Top-Down (CC0, tile 277, cano recomposto para LESTE e
+  pivô no pixel do `drawSpriteFit`); **Botas de Campo** (120) = +30% de
+  velocidade na fase (o efeito do power-up `botas`, por flag de fase).
+  **Cachorro de guarda FORA da loja**: os únicos cães CC0 são de perfil
+  (perspectiva mista — a regra que rejeitou as armas laterais, #91) ou
+  pixel 16×16 (borrão, #93). DECISIONS #213–#216.
+- **`genmaps.py` com um único `__main__`:** o visualizador ASCII do WIP
+  tinha declarado um SEGUNDO entrypoint com lista própria que esquecia
+  floresta/caverna/fabrica. Fundidos: sem argumento regenera e valida as 16
+  (o modo de sempre); `genmaps.py porto` desenha um mapa no terminal.
+- **Economia limpa:** os testes-tautologia do WIP (`expect(true).toBe(true)`)
+  saíram; a sentença medida do árbitro (2,61× na banda 2,5–4,5×) ficou
+  documentada no teste real. `spawnNpcAtEdge` removido como inerte (os NPCs
+  nasciam na loja e morriam no reset do próximo load).
+- **Gates:** tsc limpo, **1307 testes em 61 arquivos**, build ok,
+  `npm run servicos` novo (verde na primeira), loja-proof verde (descs novas
+  cabem nas caixas), campanha-proof 16/16 com o check de onda,
+  `npm run visual` sem 404/pageerror.
+- **Pendências declaradas:** os PNGs desta rodada (`visual` 8 +
+  `servicos-{loja,entrada,combate}` + `loja-*`) foram gerados sem erro mas
+  **não foram lidos por este modelo** (sem leitura de imagem neste
+  ambiente) — a IA multimodal da frente visual e o Murilo cobrem a regra 16
+  por aqui. O enquadramento da torreta em jogo é o primeiro a conferir.
 
 ---
 

@@ -1766,6 +1766,8 @@ interface NPCData {
   health: number; maxHealth: number; radius: number;
   alive: boolean; message: string; messageTimer: number;
   character: string;
+  /** Aliado de loja (contratado/torreta): sprite próprio e rotação do cano. */
+  aliado?: { sprite?: string; angulo: number; modo: string };
 }
 
 export function drawNPCs(npcs: NPCData[]): void {
@@ -1781,9 +1783,17 @@ export function drawNPCs(npcs: NPCData[]): void {
     // O personagem é do NPC, não do jogador — antes TODOS vestiam 'survivor'
     // e os três amigos da campanha eram a mesma pessoa na tela (relato do
     // Murilo: "os dois outros personagens amigos com a mesma skin").
-    const img = isSpritesEnabled() ? getSprite(poseKey(npc.character || 'manOld', 'hold')) : null;
+    // Aliado com sprite próprio (torreta) não tem pose: a chave é a do prop.
+    // O PNG já nasce com o cano apontando para LESTE (ângulo 0 do mundo) e o
+    // montante no pixel (17,21) — o pivô que o drawSpriteFit usa — então a
+    // rotação aqui é o ângulo puro, sem compensação.
+    const img = isSpritesEnabled()
+      ? npc.aliado?.sprite
+        ? getSprite(npc.aliado.sprite)
+        : getSprite(poseKey(npc.character || 'manOld', 'hold'))
+      : null;
     if (img) {
-      drawSpriteFit(ctx, img, npc.x, npc.y, npc.radius * 2.4, 0);
+      drawSpriteFit(ctx, img, npc.x, npc.y, npc.radius * 2.4, npc.aliado ? npc.aliado.angulo : 0);
     } else {
       ctx.fillStyle = npc.color;
       ctx.beginPath();

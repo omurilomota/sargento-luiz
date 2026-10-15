@@ -62,13 +62,21 @@ export function setPhaseDifficulty(value: number): void {
   difficulty = value;
 }
 
+/**
+ * Zera o estado de ONDA — cota, relógio e titã.
+ *
+ * `difficulty` e `phaseTime` NÃO são daqui: a fase os define em
+ * `loadPhaseEnvironment` (`setPhaseDifficulty` + `setPhaseTime`) Toda vez
+ * que carrega. Quando esta função zerava os dois também, ela apagava a
+ * dificuldade da fase recém-carregada (a Cidade voltava ao 1.0 em toda
+ * partida nova) — o contador de onda e o escalonador de fase são donos
+ * diferentes e o reset de um não pode pisar no outro.
+ */
 export function resetSpawner(): void {
   waveTimer = 0;
   enemiesSpawnedThisWave = 0;
   mutantsSpawnedThisWave = 0;
   eliteSaiuNestaOnda = false;
-  difficulty = 1;
-  phaseTime = 0;
 }
 
 /** Distância mínima do jogador para spawnar (px) */

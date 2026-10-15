@@ -80,6 +80,16 @@ flat do jogo.
 - `assets/sprites/topdown-shooter/PNG/Tiles/tile_*.png` — 524 tiles de 64×64
 - `assets/sprites/topdown-shooter/License.txt` — licença original do pack
 
+**Kenney — Tower Defense (Top-Down)** ·
+[kenney.nl/assets/tower-defense-top-down](https://kenney.nl/assets/tower-defense-top-down) ·
+**CC0 1.0 Universal** (domínio público, crédito por cortesia)
+
+- `assets/sprites/props/torreta.png` — a torreta automática da loja (serviço
+  M3). Fonte: tile 277 do pack, girado para o cano apontar para LESTE
+  (ângulo 0 do mundo) e recomposto para o montante cair no pivô (17,21) que
+  o `drawSpriteFit` usa. Mesmo autor do pack de personagens — consistência
+  visual garantida.
+
 **Kay Lousberg — 2D Guns** · [kaylousberg.itch.io/gun-assets](https://kaylousberg.itch.io/gun-assets) ·
 [opengameart.org/content/2d-guns](https://opengameart.org/content/2d-guns) · **CC0 1.0**
 (sem atribuição obrigatória, atribuída aqui por cortesia)
@@ -207,3 +217,28 @@ Atribuição exigida pela licença CC-BY 3.0 dos 4 tiros
 (pistol, shotgun, sniper, enemyShoot):
 "Gunshot Sounds by Vincent Sevedge —
 opengameart.org/content/gunshot-sounds — CC-BY 3.0".
+
+## Assets autorais
+
+Os tiles de asfalto da Rodovia (**CC0**, autoria do projeto) são os únicos
+tiles de piso que não vêm do pack. O pack Kenney não tem asfalto: os sheets
+Top Down Dungeon oferecem pedra, terra, areia, metal e vidro, e o tilesheet
+Top-down Shooter só tem sinalização solta (tiles 261–268, setas e cunhas) sem
+corpo de pista. Antes desses tiles a Rodovia tinha chão de pedra com 77
+células decoradas pelo `tile_260` — uma marca laranja/cinza repetida, que lia
+como padrão e não como estrada.
+
+| arquivo | o que é | gerado por |
+|---|---|---|
+| `assets/sprites/dungeon/piso_asfalto_00.png` | asfalto liso (variante 1) | `tools/gen_assets_estrada.py` |
+| `assets/sprites/dungeon/piso_asfalto_01.png` | asfalto com passagem de pneu | idem |
+| `assets/sprites/dungeon/piso_asfalto_02.png` | asfalto com remendo claro | idem |
+| `assets/sprites/dungeon/piso_asfalto_03.png` | asfalto rachado | idem |
+| `assets/sprites/dungeon/piso_faixa_00.png` | faixa de pista (traço tracejado) | idem |
+| `assets/sprites/dungeon/piso_borda_00.png` | linha de borda no topo do tile | idem |
+| `assets/sprites/dungeon/piso_borda_01.png` | linha de borda na base do tile | idem |
+
+Os tiles são gerados em **escala de cinza** de propósito: `applyTint` e
+`tintTile` aplicam `saturation` com `#808080` antes do `multiply`, então a cor
+não sobrevive ao pipeline — só a luminância. A estrada se lê pelo contraste
+(corpo a 31, faixa e borda a 122 na tela, medido no shot da fase 2).

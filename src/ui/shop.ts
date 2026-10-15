@@ -157,16 +157,28 @@ export function getShopStock(): { weapons: StockWeapon[]; powerups: { type: stri
   if (key !== stockKey) {
     stockKey = key;
     rerolledThisVisit = false;
+    // Serviços de 1× por visita: sem isto a compra da loja da fase 3
+    // bloqueava o serviço em TODAS as lojas seguintes da partida — o
+    // "por visita" virava "por campanha".
+    hiredThisVisit = false;
+    serviceUsedThisVisit.clear();
     restock();
   }
   return { weapons: stockWeapons, powerups: stockPowerups, rerolled: rerolledThisVisit };
 }
 
 let boughtPowerups: string[] = [];
+let boughtServices: string[] = [];
 
 export function consumeShopPowerups(): string[] {
   const out = boughtPowerups;
   boughtPowerups = [];
+  return out;
+}
+
+export function consumeShopServices(): string[] {
+  const out = boughtServices;
+  boughtServices = [];
   return out;
 }
 
@@ -289,18 +301,19 @@ export function sellInventoryWeapon(i: number): boolean {
 
 // ─── Serviços ──────────────────────────────────────────────────
 export const SHOP_SERVICES = [
-  { id: 'reroll',       name: 'Rerrolar Estoque',         price: 30, desc: 'nova sorteio (1× por visita)' },
+  { id: 'reroll',       name: 'Rerrolar Estoque',         price: 30, desc: 'novo sorteio (1× por visita)' },
   { id: 'discount',     name: 'Bilhete de Desconto',      price: 50, desc: '-30% no próximo item' },
   { id: 'surprise',     name: 'Baú Surpresa',             price: 70, desc: 'item aleatório' },
   { id: 'transmute',    name: 'Frasco de Transmutação', price: 60, desc: 're-rola a qualidade da arma equipada' },
   { id: 'repair',       name: 'Reparar Arma',             price: 50, desc: 'conserta arma quebrada/encasquilhada' },
-  { id: 'hire',        name: 'Sobrevivente Contratado',  price: 140, desc: 'sai procura ativa (1× por visita)' },
-  { id: 'pardal',       name: 'Cachorro de Guarda',      price: 200, desc: 'cachorro na entrada (1× por visita)' },
-  { id: 'turret',      name: 'Torreta Automática',       price: 240, desc: 'torreta na entrada fica pronta (1× por visita)' },
-  // o painel de botas da Zona 7 cabe num slot: compra uma bota pela coletânea.
-  // é um único equipamento, não um degrau de escada — entra como serviço porque
-  // o efeito é em equipamento, não em stat do jogador.
-  { id: 'boot',        name: 'Botas de Campo',           price: 120, desc: '1 bota na mochila (use 1× por visita)' },
+  { id: 'hire',        name: 'Sobrevivente Contratado',  price: 140, desc: 'soldado te cobre: segue e atira (1× por visita)' },
+  { id: 'turret',      name: 'Torreta Automática',       price: 240, desc: 'torreta na entrada atira sozinha (1× por visita)' },
+  // Botas de Campo: o efeito é o do power-up `botas` (+30% velocidade),
+  // aplicado direto na fase seguinte — consumível de fase única, não peça
+  // (peça mexe em arma; isto mexe no pé). O cachorro de guarda previsto no
+  // M3 ficou FORA: sem arte top-down CC0 o sprite seria perspectiva mista
+  // (DECISIONS #214) — volta quando existir asset.
+  { id: 'boot',        name: 'Botas de Campo',           price: 120, desc: '+30% velocidade na próxima fase (1× por visita)' },
 ];
 
 /**
@@ -316,28 +329,8 @@ export function isServiceAvailable(id: string): boolean {
   if (id === 'reroll') return !rerolledThisVisit;
   if (id === 'discount') return !nextDiscount;
   if (id === 'hire') return !hiredThisVisit;
-  if (id === 'pardal' || id === 'turret' || id === 'boot') return !serviceUsedThisVisit.has(id);
+  if (id === 'turret' || id === 'boot') return !serviceUsedThisVisit.has(id);
   return true;
-}
-
-/** Sobrevivente contratado: sai o efeito de procura ativa para a fase. */
-export function setHiredSurvivalist(val: boolean): void {
-  hiredThisVisit = val;
-}
-
-/** Cachorro de guarda na entrada: equipa o cachorro do guarda como presente na fase. */
-export function addPardalGuard(): void {
-  pushPendingReveal(-1, 'normal');
-}
-
-/** Torreta automática na entrada: equipa a torreta como presente na fase. */
-export function addTurretAtEntrance(): void {
-  pushPendingReveal(-1, 'normal');
-}
-
-/** Botas de campo: coloca uma peça de bota na mochila do jogador. */
-export function addBootToInventory(): void {
-  pushPendingReveal(-1, 'normal');
 }
 
 export function buyService(id: string): void {
@@ -383,17 +376,17 @@ export function buyService(id: string): void {
     repairCurrentWeapon();
     flashNotice('ARMA CONSERTADA', PALETTE.moss);
   } else if (id === 'hire') {
-    setHiredSurvivalist(true);
-    flashNotice('SOBREVIVENTE CONTRATAADO', PALETTE.moss);
-  } else if (id === 'pardal') {
-    addPardalGuard();
-    flashNotice('CACHORRO NA ENTRADA', PALETTE.moss);
+    // O efeito viaja em `boughtServices`: o `loadPhaseEnvironment` da fase
+    // seguinte consome e nasce o soldado ao lado do jogador.
+    hiredThisVisit = true;
+    boughtServices.push('hire');
+    flashNotice('CONTRATADO — ELE TE COBRE NA PRÓXIMA FASE', PALETTE.moss);
   } else if (id === 'turret') {
-    addTurretAtEntrance();
-    flashNotice('TORRETA NA ENTRADA', PALETTE.moss);
+    boughtServices.push('turret');
+    flashNotice('TORRETA MONTADA NA ENTRADA', PALETTE.moss);
   } else if (id === 'boot') {
-    addBootToInventory();
-    flashNotice('BOOT NA MOCHILA', PALETTE.moss);
+    boughtServices.push('boot');
+    flashNotice('BOTAS — +30% VELOCIDADE NA PRÓXIMA FASE', PALETTE.moss);
   }
   sfxBuy();
 }
@@ -555,12 +548,15 @@ export function resetShop() {
   purchasedUpgrades = [];
   pendingReveals = [];
   boughtPowerups = [];
+  boughtServices = [];
   stockSeed = 0;
   stockKey = '';
   // sem isto a run seguinte abre a loja com a oferta da partida anterior
   stockPerks = [];
   rerolledThisVisit = false;
   nextDiscount = false;
+  hiredThisVisit = false;
+  serviceUsedThisVisit.clear();
   shopScrollOffset = 0;
   notice = null;
 }

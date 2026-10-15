@@ -6,7 +6,8 @@ plano sinaliza. Aqui cada mapa é montado a partir de blocos declarados,
 conferido (largura, borda fechada, P único, BFS de P até todo E/B/N) e só
 depois impresso no formato de string usado pelo jogo.
 
-Uso: python3 tools/genmaps.py          # imprime os blocos para colar em maps.ts
+Uso: python3 tools/genmaps.py          # valida e imprime os 16 blocos para colar em maps.ts
+     python3 tools/genmaps.py porto    # desenha um mapa em ASCII colorido no terminal
 """
 from collections import deque
 
@@ -377,18 +378,23 @@ def subestacao():
                   boss=(17, 15))
 
 def porto():
-    """O porto — docas com contêineres e a água ao sul."""
+    """O porto — docas com contêineres e a água ao sul.
+
+    Fase 15 de PREMISSA-V2 (Parte I). A nave da MegaCorp estava aqui: galpão,
+    docas, escória de decolagem quente, casco vazio. O jogador destrói as 3
+    docas (ninhos) — é "destroy", não apenas chegar/percorrer.
+
+    A água fica ao sul (rows 15-17, com 4 passagens). A cobertura vem de
+    contêineres em pilha — mesmo formato de caixa do castelo/bunker, só muda
+    o enquadramento e a história.
+    """
     g = blank()
-    # a água (void ao sul)
-    for r in range(15, 18):
-        for c in range(1, W - 1):
-            g[r][c] = WALL
-    # docas de carga
+    # água ao sul: rows 15-17 são a doca/lagoa; deixamos 3 aberturas
     for r in range(15, 18):
         for c in range(1, W - 1):
             g[r][c] = WALL
     g[15][3] = FLOOR; g[15][8] = FLOOR; g[15][15] = FLOOR; g[15][22] = FLOOR
-    # contêineres como cobertura
+    # contêineres como cobertura (pilhas de depósito)
     for r0, c0, r1, c1 in ((2, 3, 4, 6), (2, 9, 4, 12), (2, 15, 4, 18), (2, 21, 4, 24),
                              (6, 3, 8, 6), (6, 9, 8, 12), (6, 15, 8, 18), (6, 21, 8, 24),
                              (10, 3, 12, 7), (10, 10, 12, 14), (10, 17, 12, 21)):
@@ -398,7 +404,7 @@ def porto():
     # passagens entre contêineres
     for r in range(2, 14):
         g[r][7] = FLOOR; g[r][13] = FLOOR; g[r][19] = FLOOR; g[r][25] = FLOOR
-    # navios de carga (ninhos para o objetivo destroy)
+    # ninhos (as 3 docas-vazias = "naves destruir")
     nests = ((3, 4), (7, 10), (11, 18))
     scatter(g, CRATE, 5, 61)
     scatter(g, BARREL, 3, 62)
@@ -602,9 +608,120 @@ MAPS = [
     ('bunker', bunker),
 ]
 
+# ─── VISUALIZAÇÃO ASCII (debug de layout sem abrir o jogo) ───
+
+MAPA_LEGENDA = {
+    '#': 'parede',
+    '.': 'piso',
+    ',': 'decor/chão',
+    '^': 'hazard',
+    'c': 'caixote',
+    'b': 'barril',
+    'P': 'jogador',
+    'E': 'spawn inimigo',
+    'B': 'boss',
+    'N': 'ninho',
+    'R': 'zona extração (reach)',
+}
+
+PALETA_ASCII = {
+    '#': '\033[47m \033[0m',   # parede - cinza claro
+    '.': '\033[47m \033[0m',   # piso - branco (mesmo cinza)
+    ',': '\033[40m \033[0m',   # decor - preto
+    '^': '\033[41m \033[0m',   # hazard - vermelho
+    'c': '\033[43m \033[0m',   # caixote - amarelo
+    'b': '\033[100m \033[0m',  # barril - cinza escuro
+    'P': '\033[42m\033[1mP\033[0m',  # jogador - verde
+    'E': '\033[44mE\033[0m',   # spawn - azul
+    'B': '\033[45mB\033[0m',   # boss - roxo
+    'N': '\033[33mN\033[0m',   # ninho - amarelo
+    'R': '\033[35mR\033[0m',   # reach - roxo claro
+}
+
+CELL_WIDTH = 4
+
+
+def visualizar_mapa(g, title="Mapa"):
+    """Desenha o mapa em ASCII colorido para debug/exibição no terminal."""
+    print(f"\n{'='*60}")
+    print(f"  {title}")
+    print(f"{'='*60}")
+    
+    for row in g:
+        line = []
+        for cell in row:
+            if cell in PALETA_ASCII:
+                line.append(PALETA_ASCII[cell] * CELL_WIDTH)
+            else:
+                line.append(' ' * CELL_WIDTH)
+        print(''.join(line))
+    
+    # Estatísticas
+    flat = ''.join(''.join(row) for row in g)
+    stats = {}
+    for ch in MAPA_LEGENDA:
+        count = flat.count(ch)
+        if count > 0:
+            stats[ch] = count
+    
+    print(f"\n  Estatísticas:")
+    for ch, label in MAPA_LEGENDA.items():
+        if ch in stats:
+            print(f"    {label:15s}: {stats[ch]:3d}")
+    
+    # Validação rápida dos pontos-chave
+    print(f"\n  Pontos obrigatórios:")
+    print(f"    Jogador (P):    {'✓' if flat.count('P') == 1 else '✗'} ({flat.count('P')} encontrado(s))")
+    print(f"    Spawns (E):     {'✓' if flat.count('E') >= 4 else '✗'} ({flat.count('E')} encontrado(s), mínimo 4)")
+    
+    has_boss = 'B' in flat
+    print(f"    Boss (B):       {'✓' if has_boss else 'N/A'} ({flat.count('B')} encontrado(s))")
+    print(f"    Ninhos (N):     {flat.count('N')} encontrado(s)")
+    print(f"    Reach (R):      {flat.count('R')} encontrado(s)")
+    
+    # Conectividade
+    start = next((r, c) for r in range(H) for c in range(W) if g[r][c] == PLAYER)
+    seen = reachable_from(g, start)
+    isolated = []
+    for target in ('E', 'B', 'N', 'R'):
+        for r in range(H):
+            for c in range(W):
+                if g[r][c] == target and (r, c) not in seen:
+                    isolated.append(f"{target} em ({c},{r})")
+    if isolated:
+        print(f"\n  ✗ Células isoladas: {isolated}")
+    else:
+        print(f"\n  ✓ Todos os pontos conectados ao jogador")
+    
+    orphan = sum(
+        1 for r in range(1, H - 1) for c in range(1, W - 1)
+        if g[r][c] != WALL and (r, c) not in seen
+    )
+    if orphan:
+        print(f"  ✗ {orphan} células órfãs (piso não alcançável)")
+    else:
+        print(f"  ✓ Sem células órfãs")
+    
+    print(f"{'='*60}\n")
+
+
 if __name__ == '__main__':
-    for name, fn in MAPS:
-        g = fn()
-        print(f'--- {name} ---')
-        for row in g:
-            print(f"      '{''.join(row)}',")
+    import sys
+    # Sem argumento: valida as 16 e emite as grades no formato de maps.ts —
+    # o modo de sempre. Com o nome de um mapa: desenha esse mapa em ASCII
+    # colorido no terminal (visualizar_mapa) — leitura rápida de paredes,
+    # hazards e conectividade sem abrir o jogo.
+    if len(sys.argv) > 1:
+        target = sys.argv[1].lower()
+        for name, fn in MAPS:
+            if name == target:
+                visualizar_mapa(fn(), f'Mapa: {name.upper()}')
+                break
+        else:
+            print(f"Mapa '{target}' não encontrado. Disponíveis: {[n for n, _ in MAPS]}")
+    else:
+        for name, fn in MAPS:
+            g = fn()
+            print(f'--- {name} ---')
+            for row in g:
+                print(f"      '{''.join(row)}',")

@@ -284,6 +284,12 @@ for (let i = 0; i < ORDEM_ESPERADA.length; i++) {
   if (r.ultimaOndaVista !== r.ondas && i < ORDEM_ESPERADA.length - 1) {
     nota(`${r.fase}: viu só até a onda ${r.ultimaOndaVista} de ${r.ondas}`);
   }
+  // O "onda 2 na entrada" (relato 2026-10-14): a cota parcial da fase
+  // anterior fazia o primeiro frame pular a onda 1. A fase tem que COMEÇAR
+  // na onda 1 — sem isto, o que se mede depois é uma fase pela metade.
+  if (!r.ondasVistas.includes(1) && i < ORDEM_ESPERADA.length - 1) {
+    nota(`${r.fase}: começou na onda ${r.ondasVistas[0] ?? '?'} — a onda 1 foi pulada na entrada`);
+  }
   if (r.estadoFinal === 'shop') await sairDaLoja();
   const st = await f();
   if (st.estado === 'gameover' && i < ORDEM_ESPERADA.length - 1) {

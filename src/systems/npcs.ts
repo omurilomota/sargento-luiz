@@ -36,6 +36,8 @@ export interface Aliado {
   nome: string;
   /** Sprite próprio (chave do cache, ex.: 'prop_torreta'). Vazio usa `character`. */
   sprite?: string;
+  /** Vida própria — a torreta é aço (150); o padrão do def é para gente. */
+  vida?: number;
   /** Posto do aliado: a torreta não sai daqui; o contratado volta ao jogador. */
   postX: number;
   postY: number;
@@ -147,8 +149,8 @@ export function spawnNPC(x: number, y: number, defIndex: number, character?: str
     x, y,
     name: aliado ? aliado.nome : def.name,
     color: def.color,
-    health: def.health,
-    maxHealth: def.health,
+    health: aliado?.vida ?? def.health,
+    maxHealth: aliado?.vida ?? def.health,
     radius: def.radius,
     speed: def.speed,
     alive: true,
@@ -165,6 +167,13 @@ export function spawnNPC(x: number, y: number, defIndex: number, character?: str
 }
 
 let tirosDeAliado = 0;
+
+/**
+ * Tiros de aliado desde o load da fase — o `servicos-proof` lê por aqui para
+ * provar que a torreta/contratado comprados atiram de verdade.
+ */
+export function getTirosDeAliado(): number { return tirosDeAliado; }
+export function zeraTirosDeAliado(): void { tirosDeAliado = 0; }
 
 /** O inimigo mais próximo dentro do alcance E com linha de visão limpa. */
 function inimigoMaisProximoVisivel(
@@ -347,5 +356,5 @@ export function getNPCs(): NPC[] {
 export function resetNPCs(): void {
   npcs = [];
   // o contador é "tiros nesta fase": o reset de fase passa por aqui
-  tirosDeAliado = 0;
+  zeraTirosDeAliado();
 }

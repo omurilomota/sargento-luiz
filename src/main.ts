@@ -57,7 +57,7 @@ import {
 
 // UI
 import { initHud, drawHud, drawTabScreen, medirHud, HudData } from './ui/hud';
-import { drawShop, handleShopClick, setShopCoins, getShopCoins, addShopCoins, resetShop, updateShopAds, getPurchasedUpgrades, getPurchasedWeapons, getPurchasedWeaponPairs, attachShopWheelListener, addPurchasedWeapon, pushPendingReveal, consumeShopPowerups, restoreUpgrades, applySavedTalentos, buyPerk, getStockPerks, getShopStock, getShopLayout, medirTextosDaLoja, setShopScroll } from './ui/shop';
+import { drawShop, handleShopClick, setShopCoins, getShopCoins, addShopCoins, resetShop, updateShopAds, getPurchasedUpgrades, getPurchasedWeapons, getPurchasedWeaponPairs, attachShopWheelListener, addPurchasedWeapon, pushPendingReveal, consumeShopPowerups, consumeShopServices, restoreUpgrades, applySavedTalentos, buyPerk, buyService, getStockPerks, getShopStock, getShopLayout, medirTextosDaLoja, setShopScroll } from './ui/shop';
 
 // Modules
 import { shoot, getCurrentWeapon, resetWeapons, refillAmmo, canShoot, startReload, updateReload, getCurrentAmmo, getIsReloading, getReloadTimer, setWeapon, getEffectiveShootRate, setWeaponQuality, getCurrentWeaponIndex, getWeaponQuality, isJammed, getCurrentCapacity, getReloadTimeOf, getWeaponStats, getWeaponFamily, onReloadStarted } from './weapons';
@@ -95,14 +95,14 @@ import { registrarTiroPerks, tickPerks, acenderInimigo, danoPassoFantasma, checa
 import { resetDanoTelemetria, danoPorFonte } from './systems/danoTelemetria';
 import { startTutorial, isTutorialActive, getCurrentHint, updateTutorial, advanceHint, endTutorial } from './systems/tutorial';
 import { updateBehavior, registerShot, registerHit, getPlayerTendency, resetBehavior } from './systems/dynamicDifficulty';
-import { spawnNPC, updateNPCs, getNPCs, resetNPCs, npcBark, isNpcFollowing, consumeNpcDeath } from './systems/npcs';
+import { spawnNPC, updateNPCs, getNPCs, resetNPCs, npcBark, isNpcFollowing, consumeNpcDeath, getTirosDeAliado } from './systems/npcs';
 import { getBots, createBot, updateBots, removeDeadBots, resetBots, addBot, BotDifficulty } from './systems/bots';
 import { isEnabled as isLocalEnabled, initLocalMultiplayer, movePlayer2, shootPlayer2, getPlayer2, resetLocalMultiplayer, checkPlayer2EnemyCollision, damagePlayer2, resetPlayer2, getWinner, getPlacarLocal, matarPlayer2 } from './systems/localMultiplayer';
 import { showCutscene, showCutsceneAt, cutsceneForPhase, advanceCutscene, skipCutscene, isShowingCutscene, updateCutscene, resetStory, isEpilogueScene, EPILOGUE_CUTSCENE, getCurrentCutscene, getCurrentLine } from './systems/story';
 import { dialogoAtivo, avancarDialogo, abrirDialogo, setEfeitoDialogo, resetDialogo, EntradaDialogo } from './systems/dialogo';
 import { getCurrentMode, setGameMode, GameMode, GAME_MODES } from './systems/gameModes';
 import { BIOMES, CELL_SIZE } from './maps';
-import { loadAllSprites } from './systems/sprites';
+import { loadAllSprites, loadSprite } from './systems/sprites';
 import { observarTelaCheia, estaEmTelaCheia, sairDaTelaCheia, alternarTelaCheia, estaEmIframe } from './systems/fullscreen';
 
 // ─── Canvas Setup ──────────────────────────────────────────────
@@ -487,6 +487,12 @@ let phaseTransitionTimer = 0;
 let achievementNotifications: Toast[] = [];
 let playerDied = false;
 let bossZoomTriggered = false;
+// Botas de Campo (serviço M3): +30% na pilha de velocidade da fase em que
+// foram compradas — zerado no load de cada fase e rearmado só quando o
+// serviço foi pago na loja anterior.
+let botasDeCampo = false;
+// pilha de velocidade do último frame (telemetria da prova de serviços)
+let ultimoStackVelocidade = 1;
 let currentBossZoom = 1;
 let currentFlash: string | null = null;
 /** O véu de radiação da cápsula — sustentado, não pisca como o flash. */
@@ -635,6 +641,13 @@ function loadPhaseEnvironment(): void {
   phaseEnding = false;
   phaseEndPause = 0;
 
+  // Estado de ONDA é por fase: sem isto, a cota parcial da última onda da
+  // fase anterior vinha junto, e o primeiro frame da nova onda 1 lia
+  // "cota cheia + campo vazio" como onda completa — a fase abria na ONDA 2
+  // (o "onda 2 na entrada" do relato de 2026-10-14). Vai ANTES do
+  // setPhaseDifficulty: o reset não toca mais em difficulty/phaseTime.
+  resetSpawner();
+
   worldW = map.width;
   worldH = map.height;
   setWorldSize(worldW, worldH);
@@ -683,6 +696,34 @@ function loadPhaseEnvironment(): void {
     const vip = cellCenter(vipCell.col, vipCell.row);
     spawnNPC(vip.x, vip.y, 1);
   }
+  // Serviços comprados na loja ANTERIOR aplicam na entrada desta fase. O
+  // consumo é o único caminho: quem paga em 'shop' recebe aqui, na ordem
+  // natural (leaveShop → loadPhaseEnvironment).
+  botasDeCampo = false;
+  for (const svc of consumeShopServices()) {
+    // os dois aliados nascem colados no jogador: ±40px às cegas podia pôr o
+    // corpo DENTRO da parede (spawn de borda) — o mesmo resgate do loot
+    const postContratado = pushOutOfWalls(pos.x + 40, pos.y, 16);
+    const postTorreta = pushOutOfWalls(pos.x - 40, pos.y, 16);
+    if (svc === 'hire') {
+      // soldado contratado: te segue e atira no inimigo visível mais próximo
+      spawnNPC(postContratado.x, postContratado.y, 1, 'soldier', {
+        modo: 'contratado', nome: 'Contratado',
+        postX: postContratado.x, postY: postContratado.y,
+        alcance: 280, dano: 6, intervalo: 0.55, tiroTimer: 0, angulo: 0,
+      });
+    } else if (svc === 'turret') {
+      // torreta de entrada: fixa no posto, atira sozinha com linha de visão
+      spawnNPC(postTorreta.x, postTorreta.y, 1, 'soldier', {
+        modo: 'torreta', nome: 'Torreta', sprite: 'prop_torreta', vida: 150,
+        postX: postTorreta.x, postY: postTorreta.y,
+        alcance: 320, dano: 5, intervalo: 0.45, tiroTimer: 0, angulo: 0,
+      });
+    } else if (svc === 'boot') {
+      // Botas de Campo: +30% na pilha de velocidade da fase (M3)
+      botasDeCampo = true;
+    }
+  }
   player.placePlayer(pos.x, pos.y);
   initCamera(worldW, worldH, canvas.width, canvas.height, pos.x, pos.y);
   bossSpawned = false;
@@ -710,7 +751,6 @@ function resetGame() {
   // enferrujada de novo na loja não faria som nenhum
   resetFerrugem();
   resetShop();
-  resetSpawner();
   resetEffects();
   resetSkills();
   // H2: a fúria começa travada em toda partida nova (decisão do Murilo) e a
@@ -942,7 +982,10 @@ function update(dt: number) {
   if (keys['d'] || keys['arrowright']) mx += 1;
   setMoveDirection(mx, my);
 
-  const speedMult = hasPowerUp('speed') ? 1.5 : hasPowerUp('botas') ? 1.3 : hasPowerUp('trajeNucleo') ? 1.3 : 1;
+  // As Botas de Campo da loja (M3) são o MESMO efeito do power-up `botas`,
+  // pagas antecipadamente e válidas só na fase em que foram compradas — o
+  // flag é zerado no load de cada fase e rearmado pelo consumeShopServices.
+  const speedMult = hasPowerUp('speed') ? 1.5 : (hasPowerUp('botas') || botasDeCampo) ? 1.3 : hasPowerUp('trajeNucleo') ? 1.3 : 1;
   const classSpeedMult = getClassSpeedMult();
   // lama deixa o jogador lento — é o efeito mecânico do bioma Pântano
   const onMud = phase.hazard === 'mud' && charAt(colAt(p.x), rowAt(p.y)) === '^';
@@ -950,6 +993,7 @@ function update(dt: number) {
   // corre não alcança o próprio tiro (relato do Murilo: "consigo andar mais
   // rápido que as balas" — 320 base vira 744 com perks + power-up + Ponte).
   const stackDeVelocidade = speedMult * (onMud ? 0.55 : 1) * phaseSpeedMult * classSpeedMult;
+  ultimoStackVelocidade = stackDeVelocidade;
   player.movePlayer(keys, dt, { w: worldW, h: worldH }, stackDeVelocidade);
 
   updateSkills(dt, p, { w: worldW, h: worldH });
@@ -2149,7 +2193,6 @@ function enterShop(): void {
     const nome = getUnlockedDiary().find((e) => e.event === evento.event)?.title ?? 'EVENTO';
     pushToast(`${evento.moedas >= 0 ? '+' : ''}${evento.moedas} MOEDAS · ${nome}`, 3.5);
   }
-  if (Math.random() < 0.4) spawnNpcAtEdge();
   saveGame(
     phaseIdx,
     0,
@@ -2180,17 +2223,6 @@ function restoreSavedWeapons(weapons: { index: number; quality: string }[]): voi
   for (const w of weapons) {
     addPurchasedWeapon(w.index, w.quality);
   }
-}
-
-function spawnNpcAtEdge(): void {
-  const side = Math.floor(Math.random() * 4);
-  let nx = 0;
-  let ny = 0;
-  if (side === 0) { nx = Math.random() * worldW; ny = CELL_SIZE * 1.5; }
-  else if (side === 1) { nx = worldW - CELL_SIZE * 1.5; ny = Math.random() * worldH; }
-  else if (side === 2) { nx = Math.random() * worldW; ny = worldH - CELL_SIZE * 1.5; }
-  else { nx = CELL_SIZE * 1.5; ny = Math.random() * worldH; }
-  spawnNPC(nx, ny, Math.floor(Math.random() * 3));
 }
 
 function leaveShop(): void {
@@ -2674,6 +2706,13 @@ async function init() {
   // de prefixo. Sem isto, quem já jogou perde save, conquistas e recordes.
   migrarChavesDeSave();
   await loadAllSprites();
+  // A torreta da loja (serviço M3) registra AQUI, pela API pública de
+  // `loadSprite`, em vez da tabela PROP_EXTRA: o `sprites.ts` é o arquivo
+  // compartilhado com a frente visual (tileset) e a fila de tiles em voo
+  // não pode esperar por um registro de 1 linha. Mesma chave que o aliado
+  // lê (`sprite: 'prop_torreta'`); se o arquivo faltar, o NPC cai no
+  // fallback declarado — nunca em desenho novo.
+  await loadSprite('prop_torreta', 'assets/sprites/props/torreta.png');
   // som de recarga por família de arma: `audio.ts` importa `weapons.ts`, então
   // a direção do hook é weapons -> main -> audio, sem ciclo
   onReloadStarted(() => sfxReload(getWeaponFamily()));
@@ -3202,6 +3241,7 @@ window.__ashfall = {
       escudo: p.shield,
       invicivel: Number(p.invincible.toFixed(2)),
       dano: danoPorFonte(),
+      velocidade: Number(ultimoStackVelocidade.toFixed(3)),
     };
   },
   // Estado de fim de fase: o harness precisa disto para provar que matar o
@@ -3430,6 +3470,13 @@ window.__ashfall = {
     },
   }),
   comprarPerk: (id: string) => buyPerk(id),
+  // prova de serviços (M3): compra de verdade, pelo mesmo caminho do clique
+  comprarServico: (id: string) => buyService(id),
+  // estado dos aliados pagos: quem vive, quantos tiros deu nesta fase
+  aliados: () => getNPCs()
+    .filter(n => n.aliado)
+    .map(n => ({ modo: n.aliado!.modo, nome: n.name, vivo: n.alive, hp: Math.round(n.health) })),
+  tirosDeAliado: () => getTirosDeAliado(),
   // devolve o estado da run nova depois do `resetGame`: o `perks-proof` compara
   // com a run anterior para provar que perks e stats não sobreviveram.
   resetarPartida: () => { resetGame(); return true; },

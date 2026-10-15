@@ -27,6 +27,7 @@
     "vulcao": "npm run build && node tools/vulcao-proof.mjs",
     "cacador": "npm run build && node tools/cacador-proof.mjs",
     "bunker": "npm run build && node tools/bunker-entry-proof.mjs",
+    "servicos": "npm run build && node tools/servicos-proof.mjs",
     "itch": "node tools/itch-fullscreen-proof.mjs"
   },
   "devDependencies": {

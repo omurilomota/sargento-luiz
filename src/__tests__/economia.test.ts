@@ -8,8 +8,8 @@
  * médio dos tipos, mutante com cota própria, chefe no fim) contra os
  * custos das pias da loja (escada de perks, serviços).
  *
- * Fases 0..7: a economia é o que a loja consome, e a última loja fica
- * ANTES do NÚCLEO-CENTRAL — a fase 9 não tem onda comum nem loja depois,
+ * Fases 0..14: a economia é o que a loja consome, e a última loja fica
+ * ANTES do NÚCLEO-CENTRAL — a fase 16 não tem onda comum nem loja depois,
  * fica fora do modelo por construção.
  */
 import { describe, it, expect } from 'vitest';
@@ -56,6 +56,10 @@ describe('economia: o árbitro da loja × progressão', () => {
     // de 4,5× os 4 especiais nunca parecem alcançáveis. A campanha de 16
     // fases dobrava a renda — os degraus altos subiram para a escada
     // continuar custando várias campanhas (2026-10-14).
+    //
+    // ÁRBITRO MEDIDO em 2026-10-14: custoEscada 6.510 / rendaTotal 2.492
+    // = 2,61× — dentro da banda. Toda mudança de preço/renda (T4b, fases
+    // novas) tem que manter este teste verde.
     const razao = custoEscada / rendaTotal;
     expect(razao).toBeGreaterThan(2.5);
     expect(razao).toBeLessThan(4.5);
