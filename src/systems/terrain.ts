@@ -6,9 +6,10 @@
  * uma dessaturação + `multiply` com a cor do bioma e um leve `overlay` de
  * granulação, e por frame o jogo faz um único `drawImage` deslocado pela câmera.
  *
- * Paredes e hazards são desenhados proceduralmente: tile do Kenney com borda
- * direcional não serve como geometria legível, e é aqui que o jogador precisa
- * ler "isto bloqueia" num relance.
+ * Piso e parede vêm exclusivamente do pack Top Down Dungeon (textura real com
+ * rejunte). Não há desenho procedural no terreno: não há `fillRect`/`strokeRect`
+ * inventando tijolo, laje ou textura de bioma — apenas o tile do pack, o
+ * contorno da parede e os objetos (decor, hazard) que já são sprites do pack.
  */
 
 import { Biome, BIOMES, CELL_SIZE } from '../maps';
@@ -44,7 +45,7 @@ export function buildTerrain(biome: Biome, cells: string[][]): HTMLCanvasElement
         case '#': drawWall(c, px, py, biome, cells, col, row); break;
         case ',': drawDecor(c, px, py, biome, (col * 7 + row * 13) % 4); break;
         case '^': drawHazard(c, px, py, biome, (col * 7 + row * 13) % 4); break;
-        default: drawFloor(c, px, py, biome, (col * 31 + row * 17) % biome.floorTiles.length, col, row); break;
+        default: drawFloor(c, px, py, biome, col, row); break;
       }
     }
   }
@@ -63,39 +64,22 @@ export function buildTerrain(biome: Biome, cells: string[][]): HTMLCanvasElement
  * saem do bioma. Sem ele, o chão do Kenney brilha e o jogador lê o piso como
  * objeto em vez de espaço.
  */
-function drawFloor(c: CanvasRenderingContext2D, px: number, py: number, biome: Biome, variant: number, col: number, row: number): void {
-  // O tile do pack Top Down Dungeon tem textura real; o do Kenney é 87%
-  // chapado e é o que produz a costura de 64px visível no chão.
-  //
-  // O multiply usa `biome.tint`, não `biome.floor`: `floor` é uma cor escura
-  // (#2a2521 na Cidade) e multiplicar textura por ela apaga a textura — o
-  // chão fica preto chapado, que é justamente o defeito que este pack veio
-  // resolver. A cor escura entra depois, na passada de valor.
+function drawFloor(c: CanvasRenderingContext2D, px: number, py: number, biome: Biome, col: number, row: number): void {
+  // O chão vem exclusivamente do pack Top Down Dungeon (textura real com
+  // rejunte). Sem fallback para tiles chapados do Kenney nem desenho
+  // procedural: se o tile não carregou, fica a cor base já pintada em
+  // buildTerrain — não inventa forma no código.
   const dngeon = getDungeonTile(biome.dungeonFloor, varianteDeChao(col, row), biome.tint);
   if (dngeon) {
     c.drawImage(dngeon, px, py, CELL_SIZE, CELL_SIZE);
     // O rejunte do pack é forte demais na escala 64px: sem esta lavagem o chão
     // lê como azulejo de banheiro e compete com os inimigos. Alpha baixo e
-    // uma única passada de escurecimento tiram o excesso sem voltar ao
-    // chapado — o traço da textura continua lá, só que discreto.
+    // uma única passada de escurecimento tiram o excesso — o traço da textura
+    // continua lá, só que discreto.
     c.fillStyle = biome.floor;
     c.globalAlpha = 0.62;
     c.fillRect(px, py, CELL_SIZE, CELL_SIZE);
     c.globalAlpha = 1;
-    return;
-  }
-  const n = biome.floorTiles[variant % biome.floorTiles.length];
-  const tile = getFloorTile(n, biome.floor);
-  if (tile) {
-    c.drawImage(tile, px, py, CELL_SIZE, CELL_SIZE);
-    return;
-  }
-  // fallback sem tile carregado: mesmo tom, com variação de valor
-  c.fillStyle = biome.floor;
-  c.fillRect(px, py, CELL_SIZE, CELL_SIZE);
-  if ((variant % 3) === 0) {
-    c.fillStyle = shade(biome.floor, 0.12);
-    c.fillRect(px + 8, py + 12, 20, 14);
   }
 }
 
@@ -338,125 +322,15 @@ function drawWall(
   c.fillStyle = v === 0 ? baseWall : shade(baseWall, v === 1 ? 0.08 : -0.08);
   c.fillRect(px, py, CELL_SIZE, CELL_SIZE);
 
-  // superfície de tile: substitui a textura procedural inteira, mas o beiral
-  // e a cumeeira continuam vindo embaixo porque são o que diz "isto é parede".
-  //
-  // O tile do Top Down Dungeon tem tijolo/rejunte de verdade. O do Kenney é
-  // chapado, e a escolha `(col*5 + row*3) % 4` tinha período 4x4: parede longa
-  // mostrava sempre o mesmo bloco de 16 células. Aqui são 16 variações com um
-  // hash que não tem período curto.
+  // A parede vem exclusivamente do pack Top Down Dungeon (tijolo/rejunte de
+  // verdade). Sem textura procedural por bioma: se o tile não carregou, fica
+  // a cor base já pintada acima + o contorno que diz "isto bloqueia".
   const variante = (col * 7 + row * 13 + ((col * row) % 5)) % DUNGEON_COUNT.parede;
   const dngeonWall = tintTile(`dngeon_${biome.dungeonWall}_${variante}`, biome.wall);
   if (dngeonWall) {
     c.drawImage(dngeonWall, px, py, CELL_SIZE, CELL_SIZE);
-    drawWallOutline(c, px, py, col, row, isWall);
-    return;
   }
-  // textura específica do bioma (substitui a argamassa genérica)
-  c.lineWidth = 2;
-  switch (biome.key) {
-    case 'caverna':
-      // rocha irregular: poucos traços diagonais
-      c.strokeStyle = 'rgba(0,0,0,0.3)';
-      c.beginPath();
-      c.moveTo(px + 6, py + 20 + (v * 6)); c.lineTo(px + 26, py + 34);
-      c.moveTo(px + 34, py + 8 + (v * 5)); c.lineTo(px + 58, py + 26);
-      c.stroke();
-      break;
-    case 'fabrica':
-      // painel metálico: grade rígida + parafusos se houver borda de chão
-      c.strokeStyle = 'rgba(0,0,0,0.25)';
-      c.beginPath();
-      c.moveTo(px, py + CELL_SIZE / 2); c.lineTo(px + CELL_SIZE, py + CELL_SIZE / 2);
-      c.moveTo(px + CELL_SIZE / 2, py); c.lineTo(px + CELL_SIZE / 2, py + CELL_SIZE);
-      c.stroke();
-      c.fillStyle = 'rgba(0,0,0,0.35)';
-      c.fillRect(px + 4, py + 4, 3, 3); c.fillRect(px + CELL_SIZE - 7, py + 4, 3, 3);
-      c.fillRect(px + 4, py + CELL_SIZE - 7, 3, 3); c.fillRect(px + CELL_SIZE - 7, py + CELL_SIZE - 7, 3, 3);
-      break;
-    case 'pantano':
-      // ripas verticais de madeira podre
-      c.strokeStyle = 'rgba(0,0,0,0.28)';
-      c.beginPath();
-      for (let i = 1; i < 4; i++) {
-        c.moveTo(px + i * 16, py); c.lineTo(px + i * 16, py + CELL_SIZE);
-      }
-      c.stroke();
-      break;
-    case 'castelo':
-      // pedra grande: bloco único com rejunte central
-      c.strokeStyle = 'rgba(0,0,0,0.25)';
-      c.beginPath();
-      c.moveTo(px, py + CELL_SIZE / 2); c.lineTo(px + CELL_SIZE, py + CELL_SIZE / 2);
-      c.moveTo(px + CELL_SIZE / 2, py); c.lineTo(px + CELL_SIZE / 2, py + CELL_SIZE / 2);
-      c.stroke();
-      break;
-    case 'vulcao':
-      // basalto: poucas rachaduras quentes
-      c.strokeStyle = 'rgba(200,90,40,0.35)';
-      c.lineWidth = 1.5;
-      c.beginPath();
-      c.moveTo(px + 8, py + 24); c.lineTo(px + 30, py + 30); c.lineTo(px + 44, py + 18);
-      c.stroke();
-      c.lineWidth = 2;
-      break;
-    case 'espaco':
-      // painel com listra horizontal de alerta
-      c.strokeStyle = 'rgba(0,0,0,0.25)';
-      c.beginPath();
-      c.moveTo(px, py + CELL_SIZE / 2); c.lineTo(px + CELL_SIZE, py + CELL_SIZE / 2);
-      c.stroke();
-      c.fillStyle = 'rgba(200,184,120,0.18)';
-      c.fillRect(px, py + CELL_SIZE / 2 - 3, CELL_SIZE, 6);
-      break;
-    case 'bunker':
-      // concreto com faixa de alerta no contato com chão
-      c.strokeStyle = 'rgba(0,0,0,0.25)';
-      c.beginPath();
-      c.moveTo(px, py + 20); c.lineTo(px + CELL_SIZE, py + 20);
-      c.moveTo(px, py + 44); c.lineTo(px + CELL_SIZE, py + 44);
-      c.stroke();
-      break;
-    case 'floresta': {
-      // copa de árvore: o bloco deixa de ser parede de madeira e vira vegetação densa
-      const canopySeed = (col * 3 + row * 5) % 2 === 0 ? 181 : 209;
-      const canopy = getSprite(`tile_${canopySeed}`);
-      if (canopy) {
-        c.drawImage(canopy, px - 6, py - 6, CELL_SIZE + 12, CELL_SIZE + 12);
-      } else {
-        c.strokeStyle = 'rgba(0,0,0,0.28)';
-        c.beginPath();
-        for (let i = 1; i < 4; i++) {
-          c.moveTo(px + i * 16, py); c.lineTo(px + i * 16, py + CELL_SIZE);
-        }
-        c.stroke();
-      }
-      c.fillStyle = 'rgba(70,90,50,0.35)';
-      c.fillRect(px, py, CELL_SIZE, 5);
-      break;
-    }
-    default:
-      // cidade: textura de telha (lajes horizontais)
-      c.strokeStyle = 'rgba(0,0,0,0.22)';
-      c.beginPath();
-      for (let i = 1; i < 4; i++) {
-        const yy = py + i * 16;
-        c.moveTo(px, yy);
-        c.lineTo(px + CELL_SIZE, yy);
-      }
-      c.stroke();
-      c.strokeStyle = shade(biome.wall, 0.2);
-      c.lineWidth = 1;
-      c.beginPath();
-      for (let i = 1; i < 4; i++) {
-        const yy = py + i * 16 + 2;
-        c.moveTo(px, yy);
-        c.lineTo(px + CELL_SIZE, yy);
-      }
-      c.stroke();
-  }
-
-  drawWallEdges(c, px, py, biome, cells, col, row, isWall);
+  drawWallOutline(c, px, py, col, row, isWall);
 }
 
 /**
@@ -491,9 +365,8 @@ function drawWallOutline(
  * duplicada" da auditoria. Agora `drawWallEdges` só faz o contorno, que é o
  * que separa a parede do chão e torna a leitura "isto bloqueia" instantânea.
  *
- * Chamado pelo caminho do tile Kenney (`WALL_TILES`) como fallback quando o
- * tile do dungeon não carrega. O caminho do dungeon (`dngeonWall`) já chama
- * `drawWallOutline` diretamente em `drawWall`.
+ * Chamado quando o tile do dungeon não carrega: apenas o contorno, sem
+ * textura procedural.
  */
 function drawWallEdges(
   c: CanvasRenderingContext2D,
@@ -528,11 +401,6 @@ function applyTint(c: CanvasRenderingContext2D, off: HTMLCanvasElement, biome: B
   c.globalAlpha = 1;
   c.globalCompositeOperation = 'source-over';
   c.restore();
-}
-
-/** Cacheia a versão dessaturada e tingida de um tile. */
-function getFloorTile(n: number, biomeColor: string): HTMLCanvasElement | null {
-  return tintTile(`tile_${n}`, biomeColor);
 }
 
 /**
