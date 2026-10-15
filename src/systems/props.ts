@@ -16,13 +16,13 @@ import { getSprite } from './sprites';
  * a cor do bioma (`propCrate`/`propBarrel` do mapa) continua vindo do tint.
  * Por isso os mesmos 5 caixotes do pack servem aos 9 biomas.
  *
- * `barrel` fica de fora porque o pack não tem barril nem bomba redonda
- * (163 objetos inspecionados): o barril com cintas continua procedural até
- * o download do Sprint 3 trazer um.
+ * `barrel` usa os tiles 505-510 do pack Kenney (barril com cintas), que
+ * substituem o desenho procedural (regra 15: visual vem de asset).
  */
-export const PROP_SPRITES: Record<'crate' | 'nest', number[]> = {
+export const PROP_SPRITES: Record<'crate' | 'nest' | 'barrel', number[]> = {
   crate: [129, 130, 156, 157, 158],
   nest: [181, 182, 183],
+  barrel: [505, 506, 507, 508, 509, 510],
 };
 
 /** Tinta um sprite do pack com a cor do bioma. Offscreen por prop vivo. */
@@ -409,22 +409,33 @@ export function drawProps(
         ctx.stroke();
       }
     } else if (p.kind === 'barrel') {
-      ctx.fillStyle = p.hitFlash > 0 ? PALETTE.crit : paleta.barrel;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.radius * 0.7, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = shadeCor(paleta.barrel, -0.3);
-      ctx.lineWidth = 3;
-      ctx.stroke();
-      // cintas do barril
-      ctx.strokeStyle = shadeCor(paleta.barrel, -0.18);
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(p.x - p.radius * 0.7, p.y - 6);
-      ctx.lineTo(p.x + p.radius * 0.7, p.y - 6);
-      ctx.moveTo(p.x - p.radius * 0.7, p.y + 6);
-      ctx.lineTo(p.x + p.radius * 0.7, p.y + 6);
-      ctx.stroke();
+      // barril: sprite do pack (tiles 505-510) na cor do bioma, com cintas e pavio.
+      // Fallback procedural só se o asset não carregar (regra 15).
+      const barrelTiles = PROP_SPRITES.barrel;
+      const barrelImg = getSprite(`tile_${barrelTiles[(p.col + p.row) % barrelTiles.length]}`);
+      if (barrelImg) {
+        const s = p.radius * 2.1;
+        const body = tintSprite(barrelImg, paleta.barrel, Math.ceil(s));
+        ctx.drawImage(body, p.x - s / 2, p.y - s / 2, s, s);
+      } else {
+        // fallback procedural (regra 15)
+        ctx.fillStyle = p.hitFlash > 0 ? PALETTE.crit : paleta.barrel;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius * 0.7, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = shadeCor(paleta.barrel, -0.3);
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.strokeStyle = shadeCor(paleta.barrel, -0.18);
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(p.x - p.radius * 0.7, p.y - 6);
+        ctx.lineTo(p.x + p.radius * 0.7, p.y - 6);
+        ctx.moveTo(p.x - p.radius * 0.7, p.y + 6);
+        ctx.lineTo(p.x + p.radius * 0.7, p.y + 6);
+        ctx.stroke();
+      }
+      // pavio aceso (estado que muda por frame, não identidade)
       if (p.fuse > 0) {
         ctx.fillStyle = p.fuse < 0.35 ? PALETTE.danger : PALETTE.mustard;
         ctx.beginPath();

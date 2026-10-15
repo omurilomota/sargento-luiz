@@ -56,6 +56,8 @@ export const TILE_NUMBERS = [
   197, 198, 267, 268, 511,
   // sprites de prop (PROP_SPRITES em props.ts)
   130, 156, 157, 158, 182, 183,
+  // barril do pack Kenney (tiles 505-510: barril com cintas) — substitui o desenho procedural
+  505, 506, 507, 508, 509, 510,
   // copas e arbusto do fundo de cutscene (CENAS_CUTSCENE em terrain.ts):
   // 208/209 são as duas metades da mesma copa, 186 é a de outono
   186, 208,

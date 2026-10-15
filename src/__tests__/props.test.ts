@@ -296,7 +296,10 @@ describe('props: sprites de caixote e ninho', () => {
     }
   });
 
-  it('barril não tem sprite no pacote atual — fica de fora de propósito', () => {
-    expect(PROP_SPRITES).not.toHaveProperty('barrel');
+  it('barril tem sprite no pacote (tiles 505-510) — substitui o desenho procedural', () => {
+    expect(PROP_SPRITES.barrel).toEqual([505, 506, 507, 508, 509, 510]);
+    for (const n of PROP_SPRITES.barrel) {
+      expect(TILE_NUMBERS, `tile_${n} do barril não está em TILE_NUMBERS`).toContain(n);
+    }
   });
 });
