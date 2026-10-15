@@ -123,17 +123,25 @@ function drawDecor(c: CanvasRenderingContext2D, px: number, py: number, biome: B
 
   // decor de chão por bioma: um objeto do pack que resume o lugar —
   // entulho na Cidade, sucata na Fábrica, pedra no Castelo, placa no Espaço
-  // e caixa no Bunker. Os outros 4 biomas já tinham objeto próprio.
+  // e caixa no Bunker. Cada bioma novo recebeu o próprio objeto em vez de
+  // cair no fallback procedural (`ellipse`).
   const spriteFor: Record<string, number> = {
-    floresta: 134,
+    floresta: 181,
     caverna: 238,
-    pantano: 209,
+    pantano: 320,
     vulcao: 316,
     cidade: 292,
     fabrica: 180,
     castelo: 133,
     espaco: 333,
     bunker: 129,
+    hospital: 156,
+    rodovia: 260,
+    trens: 180,
+    ponte: 238,
+    refinaria: 316,
+    subestacao: 264,
+    porto: 134,
   };
   const n = spriteFor[biome.key];
   if (n !== undefined) {
@@ -184,7 +192,7 @@ function blobPath(c: CanvasRenderingContext2D, px: number, py: number, variant: 
 export const HAZARD_SPRITES: Record<string, number[]> = {
   debris: [292, 265, 260],
   fog: [320],
-  mud: [320],
+  mud: [260],
   lava: [316, 319],
   electric: [264],
   spikes: [268],
@@ -308,33 +316,6 @@ function drawHazard(c: CanvasRenderingContext2D, px: number, py: number, biome: 
  * sempre bem mais escura que o piso e tem uma silhueta fechada — sem isso o
  * mapa vira um código de barras e o jogador não sabe onde pode andar.
  */
-/**
- * Tiles do Kenney usados como superfície de parede, por bioma.
- *
- * O pack tem textura de tijolo, placa metálica e rocha; o que separa parede
- * de piso é o desenho do tile (junta, painel, camada) mais as bordas que
- * `drawWallEdges` põe em cima. Verificado visualmente: cada tile passado por
- * `saturation` + `multiply` do `applyTint` vira a cor do bioma e mantém só a
- * variação de valor, que é o que dá a leitura.
- *
- * Floresta fica de fora de propósito: a copa (181/209) é desenhada MAIOR que
- * a célula, e mover isso para cá perderia o efeito de vegetação que invade o
- * corredor — ela já é desenho por sprite, não procedural.
- *
- * Sem o número em `TILE_NUMBERS` (sprites.ts) o sprite não carrega e o jogo
- * cai silenciosamente no desenho procedural de baixo.
- */
-export const WALL_TILES: Record<string, number[]> = {
-  cidade: [96, 97, 98, 99],
-  castelo: [43, 44, 45, 46],
-  fabrica: [110, 111, 112, 113],
-  espaco: [489, 490, 491, 492],
-  bunker: [415, 416, 417, 418],
-  caverna: [334, 335, 336, 337],
-  pantano: [172, 173, 174, 175],
-  vulcao: [163, 164, 165, 166],
-};
-
 function drawWall(
   c: CanvasRenderingContext2D,
   px: number, py: number,
@@ -371,16 +352,6 @@ function drawWall(
     drawWallOutline(c, px, py, col, row, isWall);
     return;
   }
-  const wallTiles = WALL_TILES[biome.key];
-  if (wallTiles) {
-    const img = getSprite(`tile_${wallTiles[(col * 5 + row * 3) % wallTiles.length]}`);
-    if (img) {
-      c.drawImage(img, px, py, CELL_SIZE, CELL_SIZE);
-      drawWallEdges(c, px, py, biome, cells, col, row, isWall);
-      return;
-    }
-  }
-
   // textura específica do bioma (substitui a argamassa genérica)
   c.lineWidth = 2;
   switch (biome.key) {
@@ -512,12 +483,17 @@ function drawWallOutline(
 }
 
 /**
- * Borda da parede: cumeeira, claraboia, beiral, face superior e contorno.
+ * Borda da parede: apenas o contorno fechado que diz "isto bloqueia".
  *
- * Saiu de `drawWall` porque agora há dois caminhos de preenchimento (tile do
- * pack e textura procedural) e as bordas são idênticas nos dois — sem esta
- * separação, a superfície de tile ficava sem contorno e a parede deixava de
- * ser legível contra o chão.
+ * O tile do Top Down Dungeon já traz o volume 3D assado (topo claro, frente
+ * escura, junta sombreados). Desenhar cumeeira, claraboia, beiral e face
+ * superior POR CIMA do tile empilhava uma SEGUNDA altura — o "parede
+ * duplicada" da auditoria. Agora `drawWallEdges` só faz o contorno, que é o
+ * que separa a parede do chão e torna a leitura "isto bloqueia" instantânea.
+ *
+ * Chamado pelo caminho do tile Kenney (`WALL_TILES`) como fallback quando o
+ * tile do dungeon não carrega. O caminho do dungeon (`dngeonWall`) já chama
+ * `drawWallOutline` diretamente em `drawWall`.
  */
 function drawWallEdges(
   c: CanvasRenderingContext2D,
@@ -527,53 +503,7 @@ function drawWallEdges(
   col: number, row: number,
   isWall: (cc: number, rr: number) => boolean
 ): void {
-  const baseWall = biome.key === 'vulcao' ? shade(biome.wall, -0.12) : biome.wall;
-  // cumeeira só onde faz sentido (não em rocha nem teto)
-  if (biome.key !== 'caverna' && (isWall(col - 1, row) || isWall(col + 1, row))) {
-    c.strokeStyle = shade(baseWall, 0.35);
-    c.lineWidth = 3;
-    c.beginPath();
-    c.moveTo(px, py + CELL_SIZE / 2);
-    c.lineTo(px + CELL_SIZE, py + CELL_SIZE / 2);
-    c.stroke();
-  }
-
-  // claraboia: não em rocha nem teto
-  if (biome.key !== 'caverna' && biome.key !== 'espaco' && (col * 7 + row * 11) % 5 === 0) {
-    c.fillStyle = 'rgba(0,0,0,0.25)';
-    c.fillRect(px + CELL_SIZE / 2 - 7, py + CELL_SIZE / 2 - 5, 14, 10);
-    c.strokeStyle = shade(baseWall, 0.3);
-    c.lineWidth = 1;
-    c.strokeRect(px + CELL_SIZE / 2 - 7, py + CELL_SIZE / 2 - 5, 14, 10);
-  }
-
-  // beiral: borda escura interna em todo contato com o chão
-  c.strokeStyle = 'rgba(0,0,0,0.4)';
-  c.lineWidth = 6;
-  c.beginPath();
-  if (!isWall(col, row - 1)) { c.moveTo(px, py + 3); c.lineTo(px + CELL_SIZE, py + 3); }
-  if (!isWall(col, row + 1)) { c.moveTo(px, py + CELL_SIZE - 3); c.lineTo(px + CELL_SIZE, py + CELL_SIZE - 3); }
-  if (!isWall(col - 1, row)) { c.moveTo(px + 3, py); c.lineTo(px + 3, py + CELL_SIZE); }
-  if (!isWall(col + 1, row)) { c.moveTo(px + CELL_SIZE - 3, py); c.lineTo(px + CELL_SIZE - 3, py + CELL_SIZE); }
-  c.stroke();
-
-  // face superior mais clara: dá volume e separa a parede do chão
-  if (!isWall(col, row - 1)) {
-    c.fillStyle = shade(biome.wall, 0.42);
-    c.fillRect(px, py, CELL_SIZE, 14);
-    c.fillStyle = shade(biome.accent, -0.15);
-    c.fillRect(px, py + 14, CELL_SIZE, 3);
-  }
-
-  // contorno fechado onde encosta em chão andável
-  c.strokeStyle = 'rgba(0,0,0,0.75)';
-  c.lineWidth = 3;
-  c.beginPath();
-  if (!isWall(col, row - 1)) { c.moveTo(px - 1.5, py - 1.5); c.lineTo(px + CELL_SIZE + 1.5, py - 1.5); }
-  if (!isWall(col, row + 1)) { c.moveTo(px - 1.5, py + CELL_SIZE + 1.5); c.lineTo(px + CELL_SIZE + 1.5, py + CELL_SIZE + 1.5); }
-  if (!isWall(col - 1, row)) { c.moveTo(px - 1.5, py - 1.5); c.lineTo(px - 1.5, py + CELL_SIZE + 1.5); }
-  if (!isWall(col + 1, row)) { c.moveTo(px + CELL_SIZE + 1.5, py - 1.5); c.lineTo(px + CELL_SIZE + 1.5, py + CELL_SIZE + 1.5); }
-  c.stroke();
+  drawWallOutline(c, px, py, col, row, isWall);
 }
 
 /**
@@ -714,8 +644,8 @@ const CENAS_CUTSCENE: Record<string, CenaCutscene> = {
   'VULCÃO': { bioma: 'vulcao', objetos: [319, 316, 319, 320], escala: 1.4, brasa: '#c46a3a' },
   'PRÓLOGO': { bioma: 'cidade', objetos: [292, 265, 260, 292, 265], escala: 1.2, longe: [265, 260, 292] },
   'FÁBRICA': { bioma: 'fabrica', objetos: [180, 129, 180, 264, 180], escala: 1.3, longe: [129, 180, 129] },
-  'PÂNTANO': { bioma: 'pantano', objetos: [320, 134, 320, 134], escala: 1.1, longe: [134, 320, 134] },
-  'CASTELO': { bioma: 'castelo', objetos: [133, 268, 133, 268, 133], escala: 1.2, longe: [268, 133, 268] },
+  'PÂNTANO': { bioma: 'pantano', objetos: [320, 260, 320, 260], escala: 1.1, longe: [260, 320, 260] },
+  'CASTELO': { bioma: 'castelo', objetos: [268, 133, 268, 133, 268], escala: 1.2, longe: [133, 268, 133] },
   'EPÍLOGO': { bioma: 'bunker', objetos: [129, 156, 130, 158, 129], escala: 1.3, longe: [130, 129, 156] },
   // A abertura da fase 9 é o mesmo galpão do epílogo, visto antes da luta:
   // mesmo bioma, mesma engradagem, mais longe — é o mesmo lugar, outra vez.
@@ -731,8 +661,8 @@ const CENAS_CUTSCENE: Record<string, CenaCutscene> = {
   'PÁTIO DE TRENS': { bioma: 'trens', objetos: [180, 129, 180, 264], escala: 1.3, longe: [129, 180, 129] },
   'PONTE': { bioma: 'ponte', objetos: [238, 264, 239, 238], escala: 1.2, longe: [264, 238, 264], veu: 0.3 },
   'REFINARIA': { bioma: 'refinaria', objetos: [319, 316, 319, 320], escala: 1.4, brasa: '#c46a3a' },
-  'SUBESTAÇÃO': { bioma: 'subestacao', objetos: [180, 333, 264, 180], escala: 1.2, longe: [333, 180, 333] },
-  'PORTO': { bioma: 'porto', objetos: [260, 134, 292, 134], escala: 1.2, longe: [134, 292, 260] },
+  'SUBESTAÇÃO': { bioma: 'subestacao', objetos: [180, 264, 264, 180], escala: 1.2, longe: [264, 180, 264] },
+  'PORTO': { bioma: 'porto', objetos: [260, 292, 292, 260], escala: 1.2, longe: [292, 260, 292] },
 };
 
 /** Alpha com que o renderer desenha a cena (o véu é parte do fundo). */

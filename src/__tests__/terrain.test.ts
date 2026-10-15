@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { BIOMES, tileKindAt } from '../maps';
-import { shade, WALL_TILES, HAZARD_SPRITES } from '../systems/terrain';
+import { shade, HAZARD_SPRITES } from '../systems/terrain';
 import { TILE_NUMBERS } from '../systems/sprites';
 
 // `buildTerrain` e `drawTerrain` precisam de canvas, e o projeto não tem jsdom —
@@ -151,37 +151,6 @@ describe('terrain: o contrato do tilemap', () => {
     expect(tileKindAt('^')).not.toBe(tileKindAt('#'));
   });
 });
-describe('superfícies de parede por bioma', () => {
-  it('todo bioma com tile de parede cobre exatamente um dos 9', () => {
-    // 8 porque a Floresta fica de fora de propósito (a copa é maior que a
-    // célula e continua sendo desenho por sprite)
-    const keys = Object.keys(BIOMES);
-    const comTile = Object.keys(WALL_TILES);
-    expect(comTile.length).toBe(8);
-    for (const k of comTile) expect(keys, `bioma inexistente: ${k}`).toContain(k);
-    expect(comTile).not.toContain('floresta');
-  });
-
-  it('todo tile de parede está em TILE_NUMBERS, senão não é carregado', () => {
-    // É este o teste que segura o fallback silencioso: se o número faltar da
-    // lista de carregamento, o sprite não chega e o bioma inteiro volta pro
-    // desenho procedural — sem erro, sem 404, sem ninguém perceber.
-    // A existência no disco é garantida por mapValidation.test.ts, que percorre
-    // TILE_NUMBERS inteiro contra EXISTING_TILES levantado do pack.
-    for (const [biome, nums] of Object.entries(WALL_TILES)) {
-      for (const n of nums) {
-        expect(TILE_NUMBERS, `tile_${n} (${biome}) fora da lista de carregamento`).toContain(n);
-      }
-    }
-  });
-
-  it('cada bioma tem pelo menos 2 tiles, para a parede não virar repetição óbvia', () => {
-    for (const [biome, nums] of Object.entries(WALL_TILES)) {
-      expect(new Set(nums).size, `${biome} com tile único`).toBeGreaterThanOrEqual(2);
-    }
-  });
-});
-
 describe('objetos de hazard por tipo', () => {
   it('todo tile de hazard está em TILE_NUMBERS, senão não é carregado', () => {
     for (const [hazard, nums] of Object.entries(HAZARD_SPRITES)) {
@@ -191,10 +160,10 @@ describe('objetos de hazard por tipo', () => {
     }
   });
 
-  it('debris e lava têm 2+ tiles; fog e mud dividem o 320 de propósito', () => {
+  it('debris e lava têm 2+ tiles; fog e mud usam tiles distintos', () => {
     expect(new Set(HAZARD_SPRITES.debris).size).toBeGreaterThanOrEqual(2);
     expect(new Set(HAZARD_SPRITES.lava).size).toBeGreaterThanOrEqual(2);
-    expect(HAZARD_SPRITES.fog).toEqual(HAZARD_SPRITES.mud);
+    expect(new Set(HAZARD_SPRITES.fog)).not.toEqual(new Set(HAZARD_SPRITES.mud));
   });
 
   it('spikes e electric usam tiles do pack com o resto (268 = aviso, 264 = cristal)', () => {

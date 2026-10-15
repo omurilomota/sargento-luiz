@@ -105,7 +105,7 @@ export const DUNGEON_COUNT: {
 } = {
   piso: {
     piso_pedra: 2, piso_pedra2: 1, piso_terra: 2, piso_terra2: 2,
-    piso_areia: 3, piso_grama: 2, piso_metal: 2, piso_madeira: 2,
+    piso_areia: 2, piso_grama: 1, piso_metal: 1, piso_madeira: 1,
   },
   parede: 16,
 };
@@ -187,8 +187,8 @@ export const ITEM_SPRITES = ['coinGold', 'gemRed', 'gemGreen', 'gemBlue', 'gemYe
 /** Projéteis fora do pack Kay Lousberg. */
 export const BULLET_EXTRA = ['foguete', 'plasma', 'orbe', 'feixe', 'estilhaco'];
 
-/** Props com sprite próprio (não vem do tileset): hoje só o foguete do Castelo. */
-export const PROP_EXTRA = ['foguete'];
+/** Props com sprite próprio (não vem do tileset): o foguete do Castelo e a torreta da loja. */
+export const PROP_EXTRA = ['foguete', 'torreta'];
 
 /**
  * Sprite de arma por nome, para a loja e o HUD. 6 famílias para 12 armas: as
