@@ -2,6 +2,17 @@
 
 ## Sons
 
+**Kenney — Racing Pack** ·
+[kenney.nl/assets/racing-pack](https://kenney.nl/assets/racing-pack) ·
+**CC0 1.0 Universal** (mesmo autor do pack de personagens)
+
+- `assets/sprites/props/carro_{00,01,02}.png` — as carcaças abandonadas
+  da Rodovia e da Cidade (M6/J3b): três carros top-down do pack
+  (sedan preto, hatch verde, compacto amarelo) rotacionados para pista
+  horizontal e dessaturados a 45% — a cor de fábrica leria como
+  concessionária; o jogo pede abandonado. São cobertura PERMANENTE:
+  bloqueiam como a árvore, não queimam.
+
 **Tsorthan Grove — Storm Arwen 2022** ·
 [opengameart.org/content/storm-arwen-2022](https://opengameart.org/content/storm-arwen-2022) ·
 **CC-BY 4.0**

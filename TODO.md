@@ -1871,16 +1871,22 @@
 //     ('Pirotecnista', contados POST-explosão: health<=0 no raio, sem
 //     estimativa de falloff) e o traje ('Traje de Contenção').
 //     Prova: npm run m5 (grito arma/expira, fala na pilha, traje).
-// [ ] M6 — CENOGRAFIA POR BIOMA (aprovado 2026-10-14 ~20:00): o mapa não
-//     parece o lugar que diz ser. Vocabulário hoje = parede/chão/decor/
-//     hazard/caixote/barril/ninho, zero cenografia estática. Frentes:
-//     (a) custo-zero do pack vendido — árvores/arbustos, rochas, tambores,
-//         engrenagens, grades/corrimãos, tábuas, óleo, pneus, cone,
-//         asfalto com faixas p/ a Rodovia (hoje piso_pedra2 genérico);
-//     (b) Kenney Racing Kit (CC0) — carcaças de carro p/ Cidade+Rodovia;
-//     (c) Tiny Dungeon — estandartes/tochas/baús p/ Castelo, cristais p/
-//         Caverna (o inimigo crystal existe e o mapa não tem um);
-//     (d) verificar pack sci-fi p/ Espaço+NÚCLEO.
+// [ ] M6 — CENOGRAFIA POR BIOMA (aprovado 2026-10-14 ~20:00):
+//     [x] as árvores (frente visual, `8ff3ac5`) e o asfalto com faixas
+//         (verificado J3a 2026-10-16: `npm run asfalto` mede faixa 124 ×
+//         corpo 25 × ombro 0 — a pista lê). [x] AS CARCAÇAS (J3b,
+//         2026-10-16): carros do Kenney Racing Pack (CC0) processados
+//         (horizontal + dessaturação 45%), prop `carro` bloqueador
+//         permanente como a árvore, char 'A' no genmaps — 8 na Rodovia
+//         (fila nas faixas, no lugar dos engradados curados) e 4 na
+//         Cidade (nas ruas; 1 caiu dentro da arena e foi comido pelo
+//         gerador — 3 ficaram). ACHADO da frente: o genmaps.py estava
+//         ATRASADO vs maps.ts — regerar destruía a estrada; o rodovia()
+//         virou especificação LITERAL byte a byte (DECISIONS #245).
+//         Prova: `npm run carros` (pixel: rodovia 109×24, cidade 172×45).
+//     (c) RESTA: Tiny Dungeon — estandartes/tochas/baús p/ Castelo,
+//         cristais p/ Caverna (o inimigo crystal existe e o mapa não tem
+//         um); (d) RESTA: pack sci-fi p/ Espaço+NÚCLEO.
 //     Achado: o pack TEM tambor (~tile 505-511) e o barril seguia
 //     procedural — dívida da regra 15. Sistema: cenografia nasce no
 //     genmaps.py (ele REGERA o maps.ts — edição manual é apagada); a

@@ -15,6 +15,7 @@ W, H = 30, 20
 
 FLOOR, DECOR, HAZARD, CRATE, BARREL = '.', ',', '^', 'c', 'b'
 PLAYER, SPAWN, BOSS, NEST = 'P', 'E', 'B', 'N'
+CAR = 'A'
 REACH = 'R'
 WALL = '#'
 
@@ -203,43 +204,52 @@ def finish(g, name, player_target, spawns, boss=None, nests=(), reach=None):
 # ───────────────────────── cada mapa ─────────────────────────
 
 def rodovia():
-    """A estrada norte: pistas, canteiro com passagens e a praça de pedágio.
+    """A rodovia — pista de asfalto de verdade (M4/estrada, commit da frente
+    visual) + pedágio como arena do chefe.
 
-    Redesenho de 2026-10-14 — o relato do Murilo foi "umas das piores
-    rodovias já feitas", e era: um corredor com uma mureta no meio não é
-    uma estrada. Agora o asfalto atravessa o mapa inteiro em duas pistas
-    com canteiro, o guarda-corpo vaza para o campo pelos acostamentos, a
-    cancela é o vão entre as cabines do pedágio e os carros pararam em
-    fila nas faixas — cobertura de verdade no lugar de `scatter` aleatório.
+    A estrada é o mapa: asfalto autoral por char (= corpo, : faixa, - e _
+    bordas — ver tools/gen_assets_estrada.py), o pedágio fecha a leste e o
+    vão da cancela é a entrada da arena. J3b: os carros pararam em fila
+    nas faixas — carcaças do Kenney Racing Pack (CC0), cobertura
+    permanente como a árvore.
+
+    Este bloco é ESPECIFICAÇÃO LITERAL: a estrada nasceu de um estado do
+    gerador que nunca foi commitado, e o maps.ts andou sozinho — regerar
+    do gerador velho DESTRUIA a pista (2026-10-16). A função agora emite o
+    mapa real, e o validador confere ele.
     """
     g = blank()
-    # asfalto: as pistas ocupam as linhas 6..15, com o acostamento marcado
-    for c in range(1, W - 1):
-        for r in range(6, 16):
-            g[r][c] = DECOR if r in (6, 15) else FLOOR
-    # canteiro central (mureta dupla) com passagens
-    for c in range(1, W - 1):
-        if c not in (3, 8, 13, 18, 23, 27):
-            g[10][c] = WALL
-            g[11][c] = WALL
-    # guarda-corpo com aberturas — o acostamento vaza para o campo
-    for c in range(1, W - 1):
-        if c not in (2, 7, 12, 17, 22):
-            g[5][c] = WALL
-        if c not in (4, 9, 14, 19, 24):
-            g[16][c] = WALL
-    # praça de pedágio: as cabines nas duas pistas, a cancela é o vão
-    for r in (7, 8, 12, 13):
-        for c in (12, 17):
-            g[r][c] = WALL
-    # carros abandonados: parados em fila nas faixas
-    for r, c in ((8, 5), (8, 6), (9, 20), (13, 4), (13, 5), (14, 22), (8, 24), (13, 18)):
-        g[r][c] = CRATE
-    # barris no acostamento
-    for r, c in ((6, 10), (15, 3), (15, 26), (6, 18)):
-        g[r][c] = BARREL
-    return finish(g, 'rodovia', (17, 15), [(2, 4), (2, 15), (2, 26), (17, 4), (17, 26)],
-                  boss=(9, 15), reach=None)
+    G = [
+        "##############################",
+        "#............................#",
+        "#............................#",
+        "#............................#",
+        "#............................#",
+        "#.#........................#.#",
+        "#.#....----------------....#.#",
+        "#.#....================....#.#",
+        "#.#....:=:=:=:=:=:=:=:=....#.#",
+        "#.#....================....#.#",
+        "#.#...._______c________....#.#",
+        "#.#........................#.#",
+        "#.#........................#.#",
+        "#.#........................#.#",
+        "#............................#",
+        "#............................#",
+        "#............................#",
+        "#............................#",
+        "#............................#",
+        "##############################",
+    ]
+    for r, linha in enumerate(G):
+        for c, ch in enumerate(linha):
+            g[r][c] = ch
+    # carcaças em fila nas faixas (J3b): na pista, nunca selando (a estrada
+    # tem 5 fileiras — duas carcaças por fileira no máximo)
+    for r, c in ((7, 7), (7, 8), (7, 20), (8, 16), (8, 17), (9, 10), (10, 13), (10, 19)):
+        g[r][c] = CAR
+    return finish(g, 'rodovia', (7, 11), [(2, 4), (2, 15), (2, 26), (16, 4), (16, 15), (16, 26)],
+                  boss=(8, 14), reach=None)
 
 def hospital():
     """Corredores de hospital — salas que saem de um corredor central."""
@@ -420,6 +430,11 @@ def cidade():
     scatter(g, CRATE, 9, 11)
     scatter(g, BARREL, 5, 12)
     scatter(g, DECOR, 8, 13)
+    # J3b: carcaças nas ruas da cidade — o trânsito que parou para sempre.
+    # Posições fixas nas vias abertas (entre os quarteirões), nunca selando
+    # passagem: o validador BFS confere.
+    for r, c in ((7, 8), (7, 21), (13, 10), (13, 22)):
+        g[r][c] = CAR
     # Praça do VIGIA no canto inferior direito. A primeira luta do jogo existe
     # para ensinar que parede é cobertura: quatro blocos no meio da praça
     # dão onde se esconder da investida, e os barris nas bordas dão o que

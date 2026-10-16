@@ -36,6 +36,8 @@
     "tornado": "npm run build && node tools/m1-tornado-proof.mjs",
     "ambiente": "npm run build && node tools/m1-ambiente-proof.mjs",
     "ponte": "npm run build && node tools/m3-ponte-proof.mjs",
+    "asfalto": "npm run build && node tools/m3-asfalto-proof.mjs",
+    "carros": "npm run build && node tools/m3-carros-proof.mjs",
     "itch": "node tools/itch-fullscreen-proof.mjs"
   },
   "devDependencies": {

@@ -59,7 +59,7 @@ export interface Prop {
    * `tree` é a árvore da Floresta e do Pântano: o ÚNICO prop que bloqueia
    * passagem (copa de 27px de raio, colisão de 20) e não morre — é a
    * identidade do bioma, não cobertura perecível. */
-  kind: 'crate' | 'barrel' | 'nest' | 'rocket' | 'capsula' | 'tree';
+  kind: 'crate' | 'barrel' | 'nest' | 'rocket' | 'capsula' | 'tree' | 'carro';
   health: number;
   maxHealth: number;
   hitFlash: number;
@@ -102,6 +102,16 @@ const BARREL_BLAST_DAMAGE = 45;
 const TREE_RADIUS = 20;
 const TREE_HEALTH = Infinity;
 
+/**
+ * O carro abandonado (M6, J3b): carcaça do Kenney Racing Pack (CC0)
+ * processada — rotação p/ pista horizontal + dessaturação de 45% (a cor
+ * de fábrica leria como concessionária; o jogo pede abandonado). É
+ * COBERTURA PERMANENTE: chassi não queima, não explode, não sai do lugar.
+ */
+const CARRO_RADIUS = 34;
+const CARRO_HEALTH = Infinity;
+const CARRO_SPRITES = ['prop_carro_00', 'prop_carro_01', 'prop_carro_02'];
+
 /** Sprites autorais das árvores (CC0, ver tools/gen_assets_arvores.py). */
 const TREE_SPRITES: Record<'viva' | 'morta', string[]> = {
   viva: ['prop_arvore_00', 'prop_arvore_01'],
@@ -132,21 +142,22 @@ export function initProps(cells: string[][]): void {
   for (let row = 0; row < cells.length; row++) {
     for (let col = 0; col < cells[row].length; col++) {
       const ch = cells[row][col];
-      if (ch !== 'c' && ch !== 'b' && ch !== 'N' && ch !== 'F' && ch !== 'T' && ch !== 'D') continue;
+      if (ch !== 'c' && ch !== 'b' && ch !== 'N' && ch !== 'F' && ch !== 'T' && ch !== 'D' && ch !== 'A') continue;
       const isBarrel = ch === 'b';
       const isNest = ch === 'N';
       const isRocket = ch === 'F';
       const isTree = ch === 'T' || ch === 'D';
+      const isCarro = ch === 'A';
       const hp = isRocket ? ROCKET_HEALTH : isNest ? NEST_HEALTH : isBarrel ? BARREL_HEALTH
-        : isTree ? TREE_HEALTH : CRATE_HEALTH;
+        : isTree ? TREE_HEALTH : isCarro ? CARRO_HEALTH : CRATE_HEALTH;
       props.push({
         col, row,
         x: col * CELL_SIZE + CELL_SIZE / 2,
         y: row * CELL_SIZE + CELL_SIZE / 2,
         radius: isRocket ? ROCKET_RADIUS : isNest ? CELL_SIZE * 0.46 : isBarrel ? BARREL_RADIUS
-          : isTree ? TREE_RADIUS : CELL_SIZE * 0.38,
+          : isTree ? TREE_RADIUS : isCarro ? CARRO_RADIUS : CELL_SIZE * 0.38,
         kind: isRocket ? 'rocket' : isNest ? 'nest' : isBarrel ? 'barrel'
-          : isTree ? 'tree' : 'crate',
+          : isTree ? 'tree' : isCarro ? 'carro' : 'crate',
         health: hp,
         maxHealth: hp,
         hitFlash: 0,
@@ -211,7 +222,9 @@ export function getProps(): Prop[] {
  * em obstáculo mudaria todas as 16 fases de uma vez.
  */
 export function getBlockingProps(): Prop[] {
-  return props.filter(p => p.kind === 'tree' && p.health > 0);
+  // carro bloqueia como árvore: cobertura permanente que a IA e o BFS
+  // precisam ver (o mapaValidation conta os DOIS como parede)
+  return props.filter(p => (p.kind === 'tree' || p.kind === 'carro') && p.health > 0);
 }
 
 export function clearProps(): void {
@@ -331,7 +344,20 @@ export function drawProps(
     ctx.ellipse(p.x, p.y + p.radius * 0.55, p.radius * 0.85, p.radius * 0.35, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    if (p.kind === 'tree') {
+    if (p.kind === 'carro') {
+      // carro: sprite horizontal (2 células de comprimento), cru — a
+      // dessaturação entrou no processamento do PNG, não no draw. Varia
+      // por célula como a árvore, para a fila não vir carimbo.
+      const img = getSprite(CARRO_SPRITES[(p.col + p.row) % CARRO_SPRITES.length]);
+      if (img) {
+        const largura = CELL_SIZE * 2;
+        const altura = largura * (img.naturalHeight / img.naturalWidth);
+        ctx.drawImage(img, p.x - largura / 2, p.y - altura / 2, largura, altura);
+      }
+      // sem fallback de desenho: carro que não carregou é cobertura
+      // invisível — o radiador do jogo é a colisão (regra 15 no espírito:
+      // aqui o que faltaria é o ASSET, e o código não inventa chassi)
+    } else if (p.kind === 'tree') {
       // Árvore: o tile AUTORAL cru, sem tint (a justificativa está no
       // gen_assets_arvores.py — o multiplicador do bioma deixaria a copa na
       // mesma luminância do piso). Varia por célula, como o caixote, para a

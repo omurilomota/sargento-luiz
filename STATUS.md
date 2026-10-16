@@ -213,6 +213,31 @@ commitados; esta entrega o fecha com efeito REAL e prova em navegador.
   contra explosão, Munição Incandescente, caçador que responde, e a
   ponte que cai.
 
+## Entrega: J3a-b — asfalto verificado, carcaças reais, e o gerador reconciliado (2026-10-16 19:20, `develop`)
+
+- **J3a (verificação)**: o asfalto da Rodovia já estava ÍNTEGRO — a IA
+  visual terminou o fio (mapa com `=/:/-/_`, `drawAsphalt`, tiles no
+  portão) e o `piso_pedra` é o ACOSTAMENTO por design. Provado com
+  pixel: faixa 124 × corpo 25 × ombro 0 — a pista lê como estrada morta
+  (`npm run asfalto`).
+- **J3b — as carcaças**: carros do **Kenney Racing Pack (CC0)** — sedan
+  preto, hatch verde e compacto amarelo, rotacionados para pista
+  horizontal e dessaturados a 45% (cor de fábrica leria como
+  concessionária). Prop `carro`: **cobertura permanente** — bloqueia
+  como a árvore (getBlockingProps, o BFS do mapValidation conta como
+  parede), HP infinito, sem fallback de desenho. 8 na Rodovia (a fila de
+  engradados virou fila de verdade), 3 nas ruas da Cidade. Pixel medido:
+  rodovia 109×24, cidade 172×45 (`npm run carros`).
+- **O ACHADO da frente**: o `genmaps.py` estava ATRASADO em relação ao
+  `maps.ts` — a estrada da frente visual nunca foi portada ao gerador, e
+  regerar do gerador velho DESTRUIA a pista (0 células de asfalto,
+  pego pelo mapValidation ao plantar os carros). O `rodovia()` virou
+  **especificação literal byte a byte** do mapa commitado (DECISIONS
+  #245) — o regenerador volta a ser fonte de verdade de verdade.
+- **Gates**: tsc, **1409 testes** (mapValidation 234, terrain CONHECIDOS
+  + 'A'), `npm run carros` verde, PNGs `carros-{rodovia,cidade}.png` +
+  `rodovia-asfalto.png` na fila de leitura.
+
 ## Deploy: o Vercel no build da J1+J2 (2026-10-16 17:10)
 
 Terceira atualização do dia, no HEAD de `f3096c0` (ambiência + Ponte):
