@@ -1,6 +1,6 @@
 # SARGENTO LUIZ — Status Geral do Projeto
 
-> Atualizado: 2026-10-15 · branch `develop` · 1376 testes em 62 arquivos ·
+> Atualizado: 2026-10-16 · branch `develop` · 1409 testes em 62 arquivos ·
 > `tsc` limpo · build ok.
 > (antes: SARGENTO RIOS, e antes disso ASHFALL — o jogo trocou de nome duas
 > vezes e o save migra as duas gerações de prefixo)
@@ -27,7 +27,10 @@ npm run fases      # MEDE as 16 fases — número por fase (FUTURO §1.4 ✅)
 npm run diagnostico# nenhum inimigo dentro de parede, dodge afasta em 360°
 npm run espaco     # reproduz, MAS só contra jogador que não desvia (ver §1.4)
 npm run sessao     # sessão longa com telemetria de dano por fonte
-npm run campanha   # (node tools/campanha-proof.mjs) 16/16 — e TODA fase começa na onda 1
+npm run campanha   # (node tools/campanha-proof.mjs) 16/16 — TODA fase começa na onda 1
+npm run cenografia # tocha/painel/berço renderizam nas fases (pixel medido)
+npm run carros    # as carcaças na Rodovia e na Cidade (pixel)
+npm run asfalto   # a pista da Rodovia (faixa 124 × corpo 25 × ombro 0)
 ```
 
 ### O que o `npm run fases` mede
