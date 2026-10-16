@@ -213,6 +213,15 @@ commitados; esta entrega o fecha com efeito REAL e prova em navegador.
   contra explosão, Munição Incandescente, caçador que responde, e a
   ponte que cai.
 
+## Deploy: o Vercel no build da J1+J2 (2026-10-16 17:10)
+
+Terceira atualização do dia, no HEAD de `f3096c0` (ambiência + Ponte):
+production **Ready**. Verificado ao vivo: bundle `index-Bt4aBwjk.js` = o
+build local; as strings da rodada ("A PONTE CAI EM", a ambiência, o
+TORNADO) no JS do ar. Nota de infra: um push perdeu o webhook do Actions
+(commit no remoto sem run) — o `workflow_dispatch` entrou no ci.yml como
+rede manual, e o push seguinte validou a árvore inteira (CI verde).
+
 ## Entrega: J1 — a ambiência sonora dos biomas (2026-10-16 17:20, `develop`)
 
 O M1 fecha completo: **o lugar soa como o lugar.**
