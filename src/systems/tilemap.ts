@@ -512,6 +512,20 @@ export function hasPath(fromCol: number, fromRow: number, toCol: number, toRow: 
 }
 
 /** Lista todas as coordenadas com um dado caractere. */
+/**
+ * Mutates a cell and invalidates the flow: the Ponte collapses in RUNTIME
+ * (M3) — without invalidating, `rebuildFlowField` skips (same target cell)
+ * and the enemy path keeps crossing through the wall that just fell.
+ */
+export function setCellChar(col: number, row: number, ch: string): void {
+  if (!map || row < 0 || col < 0 || row >= map.rows || col >= map.cols) return;
+  map.cells[row][col] = ch;
+  flowTargetCol = -1;
+  flowTargetRow = -1;
+  alvoTargetCol = -1;
+  alvoTargetRow = -1;
+}
+
 export function findAll(ch: string): { col: number; row: number }[] {
   const out: { col: number; row: number }[] = [];
   if (!map) return out;

@@ -1813,9 +1813,20 @@
 //     qualquer arma" (id preservado: é a chave do save). [x] archers do
 //     Castelo alternam alvo: "encostou, vira alvo" — caçador a 90px arma
 //     o mesmo aggro de 4s (cacador re-medido: sem regressão, a variância
-//     documentada domina). [ ] Ponte com multi-spawn + timer de quebra —
-//     o único resto do M3 (design de um dia: o timer muda o grid em
-//     runtime, mexe no prerender do terreno e no flow field junto).
+//     documentada domina). [x] PONTE COM MULTI-SPAWN + TIMER DE QUEBRA
+//     (2026-10-16, J2): a fala da cutscene virou mecânica — o tabuleiro
+//     cede uma coluna por vez, de leste pra oeste ATRÁS do jogador
+//     (graça 10s, passo 6s): a coluna anterior SELA em parede, a nova
+//     frente vira entulho (10/s para quem fica em pé), e DOIS inimigos
+//     acordam por passo (o multi-spawn: a queda tira quem aninhava nos
+//     cabos). O terreno re-prerenderiza por passo, o minimapa aprende as
+//     paredes novas, o HUD mostra "A PONTE CAI EM Xs". A frente PARA na
+//     coluna 3 — a zona de extração (col 2) nunca cai; e a queda PAUSA
+//     quando o objetivo cumpre: quem atravessa rápido luta o chefe com
+//     espaço, quem demora, apertado. Trava: ponte.test (7) + npm run
+//     ponte (a queda anda, o objetivo congela, o prerender aguenta).
+//     → O M3 ESTÁ COMPLETO: economia medida, placa, munição, caçador,
+//     ponte.
 //     Histórico da loja nova (entregue na F0, 2026-10-15): contratado
 //     (segue e atira), torreta na entrada (fixa, atira com linha de
 //     visão, sprite Kenney TD 277 CC0) e consumível Botas de Campo

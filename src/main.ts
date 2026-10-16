@@ -38,7 +38,7 @@ let wasJammed = false;
 const killTimes: number[] = [];
 import { checkBulletEnemyCollisions, checkEnemyPlayerCollision, checkEnemyBulletPlayerCollision, bulletHitsCircle } from './systems/collision';
 import { createExplosion, updateExplosions, clearExplosions, spawnFire, updateFires, clearFires, pisaEmFogo, getFires, FOGO_DPS, FOGO_RAIO } from './systems/explosions';
-import { loadMap, colAt, rowAt, charAt, isWall, hasPath, moveCircleBy, rebuildFlowField, rebuildFlowFieldAlvo, sampleFlowDir, sampleFlowDirAlvo, pushOutOfWalls, findAll, segmentHitsWall, findFreeSpotNear } from './systems/tilemap';
+import { loadMap, colAt, rowAt, charAt, isWall, hasPath, moveCircleBy, rebuildFlowField, rebuildFlowFieldAlvo, sampleFlowDir, sampleFlowDirAlvo, pushOutOfWalls, findAll, segmentHitsWall, findFreeSpotNear, setCellChar, getMap } from './systems/tilemap';
 import { initCamera, setViewportSize, setWorldSize, updateCamera, snapCamera, getCamX, getCamY, screenToWorld, drawVoid, isVisible, setShake } from './systems/camera';
 import { initProps, getProps, updateProps, damageProp, detonateProp, getBlast, drawProps, clearProps, collapsesOnHit, getRocket, getAnyRocket, igniteBarrel, ROCKET_CONTACT_DPS, Prop, spawnCapsula, consumirCapsula } from './systems/props';
 import { buildTerrain, drawTerrain, clearTerrain } from './systems/terrain';
@@ -59,6 +59,7 @@ import {
 import { initHud, drawHud, drawTabScreen, medirHud, HudData } from './ui/hud';
 import { rendaDeAbate } from './systems/economia';
 import { resetAmbiente, updateAmbiente, agendaAmbiente } from './systems/ambiente';
+import { armarQuedaDaPonte, resetQuedaDaPonte, updateQuedaDaPonte, pausarQueda, quedaAtiva, estadoDaQueda } from './systems/ponte';
 import { drawShop, handleShopClick, setShopCoins, getShopCoins, addShopCoins, resetShop, updateShopAds, getPurchasedUpgrades, getPurchasedWeapons, getPurchasedWeaponPairs, attachShopWheelListener, addPurchasedWeapon, pushPendingReveal, consumeShopPowerups, consumeShopServices, restoreUpgrades, applySavedTalentos, buyPerk, buyService, getStockPerks, getShopStock, getShopLayout, medirTextosDaLoja, setShopScroll } from './ui/shop';
 
 // Modules
@@ -676,6 +677,26 @@ function findVipCell(origin: { col: number; row: number }): { col: number; row: 
   return { col: origin.col + 1, row: origin.row };
 }
 
+/**
+ * Os retângulos de parede do minimapa. Extraído do load: a QUEDA DA PONTE
+ * (M3) muta células em runtime e o minimapa conta a história — a ponte
+ * sumindo do mapa enquanto ela cai é metade da leitura.
+ */
+function rebuildWallRects(): void {
+  const map = getMap();
+  if (!map) return;
+  wallRects = [];
+  let wallCount = 0;
+  for (let row = 0; row < map.rows; row++) {
+    for (let col = 0; col < map.cols; col++) {
+      if (map.cells[row][col] !== '#') continue;
+      wallCount++;
+      wallRects.push({ x: col * CELL_SIZE, y: row * CELL_SIZE, w: CELL_SIZE, h: CELL_SIZE });
+    }
+  }
+  mapDensity = wallCount / (map.cols * map.rows);
+}
+
 function loadPhaseEnvironment(): void {
   const phase = getCurrentPhase();
   const biome = BIOMES[phase.map];
@@ -697,16 +718,7 @@ function loadPhaseEnvironment(): void {
   worldH = map.height;
   setWorldSize(worldW, worldH);
 
-  wallRects = [];
-  let wallCount = 0;
-  for (let row = 0; row < map.rows; row++) {
-    for (let col = 0; col < map.cols; col++) {
-      if (charAt(col, row) !== '#') continue;
-      wallCount++;
-      wallRects.push({ x: col * CELL_SIZE, y: row * CELL_SIZE, w: CELL_SIZE, h: CELL_SIZE });
-    }
-  }
-  mapDensity = wallCount / (map.cols * map.rows);
+  rebuildWallRects();
 
   clearProps();
   initProps(map.cells);
@@ -753,6 +765,10 @@ function loadPhaseEnvironment(): void {
   checkAchievements('phase_start');
   zeraMoedasGeradas();
   resetAmbiente(phase.name);
+  // A QUEDA DA PONTE (M3): só a Ponte atravessa com o chão cedendo — nas
+  // outras fases o estado limpa (a run nova não herda a ponte caída)
+  if (phase.name === 'Ponte') armarQuedaDaPonte();
+  else resetQuedaDaPonte();
   for (const svc of consumeShopServices()) {
     // os dois aliados nascem colados no jogador: ±40px às cegas podia pôr o
     // corpo DENTRO da parede (spawn de borda) — o mesmo resgate do loot
@@ -1273,6 +1289,37 @@ function update(dt: number) {
     // spawnando.
     || bossKilled
     || peekObjective(p.x, p.y, enemies.length, reachZones).done;
+  // A QUEDA PAUSA quando o objetivo cumpre (M3): a extração segura o que
+  // sobrou — quem atravessa rápido luta com espaço, quem demora, apertado
+  if (objetivoLiberouChefe && quedaAtiva()) pausarQueda();
+  // ── a queda da Ponte: um tabuleiro que cede uma coluna por vez ──
+  const queda = updateQuedaDaPonte(dt, colAt(p.x), rowAt(p.y), setCellChar);
+  if (queda.entulho.length > 0) {
+    // o passo caiu: o terreno re-prerenderiza (o entulho tem tile), o
+    // minimapa aprende as paredes novas, o chão treme
+    clearTerrain();
+    buildTerrain(BIOMES[phase.map], getMap()!.cells);
+    rebuildWallRects();
+    triggerScreenShake(5, 0.4);
+    sfxExplosion();
+    pushToast('A PONTE CEDEU', 1.5, 'aviso');
+    // multi-spawn: a queda acorda quem aninhava nos cabos
+    for (const cai of queda.acordados) {
+      const pool = phase.enemyTypes.filter(t => !ENEMY_TYPES[t]?.isBoss && !ENEMY_TYPES[t]?.isMutant);
+      const tipo = pool[Math.floor(Math.random() * pool.length)];
+      const nascido = spawnEnemy(tipo, worldW, worldH, 0, cai.x, cai.y);
+      if (nascido) enemies.push(nascido);
+    }
+  }
+  if (queda.dano > 0 && p.invincible <= 0) {
+    const dmg = damageTaken(queda.dano);
+    if (dmg > 0) {
+      checkAchievements('damage_taken');
+      player.enemyCollisionDamage(dmg, { fonte: 'evento' });
+      sfxPlayerHit();
+      triggerDamageFlash();
+    }
+  }
   if (waveComplete) {
     ganhaXp(XP_BONUS_ONDA);
     const fechaFase = getCurrentWave() + 1 >= phase.waves;
@@ -2738,6 +2785,8 @@ function buildHudData(): HudData {
     coins: getShopCoins(),
     wave: getCurrentWave(),
     maxWave: phase.waves,
+    // M3: o relógio da queda da Ponte — desenhado sob o objetivo
+    quedaPonte: quedaAtiva() ? estadoDaQueda().proximoPasso : 0,
     enemies: enemies.length,
     weapon: weapon.name,
     // A condição é do PAR equipado, e o adjetivo é o da arma: "Corroída" numa
@@ -3657,6 +3706,8 @@ window.__ashfall = {
   tornadoAtivo: () => tornadoNoAr(),
   // prova M1: a agenda da ambiência da fase atual (chave + quanto falta)
   ambiente: () => agendaAmbiente(),
+  // prova M3: o estado da queda da Ponte (frente, colunas caídas, próximo passo)
+  queda: () => estadoDaQueda(),
   // devolve o estado da run nova depois do `resetGame`: o `perks-proof` compara
   // com a run anterior para provar que perks e stats não sobreviveram.
   resetarPartida: () => { resetGame(); return true; },

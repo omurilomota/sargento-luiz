@@ -72,6 +72,9 @@ export interface HudData {
   coins: number;
   wave: number;
   maxWave: number;
+  /** O relógio da QUEDA DA PONTE (M3): segundos até o próximo tombo;
+   * 0 = a ponte está firme (ou a fase nem é a Ponte). */
+  quedaPonte: number;
   enemies: number;
   weapon: string;
   /** Adjetivo da condição da arma, ex.: 'CORROÍDA'. Vazio se estiver boa. */
@@ -243,6 +246,12 @@ function drawTopCenter(d: HudData, W: number): number {
   ctx!.fillStyle = PALETTE.textOff;
   ctx!.font = '12px monospace';
   ctx!.fillText(d.objective.detail, cx, L.objectiveDetailY);
+  // A QUEDA DA PONTE (M3): o countdown do tombo embaixo do objetivo —
+  // a linha só existe na Ponte enquanto a queda anda
+  if (d.quedaPonte > 0) {
+    ctx!.fillStyle = PALETTE.mustard;
+    ctx!.fillText(`A PONTE CAI EM ${Math.ceil(d.quedaPonte)}s`, cx, L.objectiveDetailY + 16);
+  }
   ctx!.textAlign = 'left';
   ctx!.restore();
   return L.nextY;

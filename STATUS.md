@@ -185,6 +185,34 @@ commitados; esta entrega o fecha com efeito REAL e prova em navegador.
   verde nos 3 contratos, visual sem 404. PNG `m5-grito-maquinista.png` com
   pendência de leitura (regra 16).
 
+## Entrega: J2 — a Ponte que cai (M3 completo, 2026-10-16 18:05, `develop`)
+
+"Atravessa ou morre tentando" — a fala da cutscene virou mecânica:
+
+- **O tabuleiro cede uma coluna por vez** (graça 10s, passo 6s), de leste
+  para oeste — ATRÁS do jogador, que atravessa na direção oposta. A
+  coluna anterior sela em parede, a nova frente vira entulho: quem fica
+  em pé na fatia que cede leva 10/s — sair da rota é a defesa.
+- **Multi-spawn é a quebra acordando o que aninhava**: dois inimigos do
+  pool da fase caem no tabuleiro a cada coluna.
+- **O objetivo segura o resto**: a queda PAUSA quando o `reach` cumpre —
+  a luta do chefe acontece na ponte que o jogador deixou vivo (rápido =
+  espaço; lento = apertado). E a frente tem piso na coluna 3: a zona de
+  extração NUNCA cai (DECISIONS #242).
+- **As superfícies que esfriam**: `setCellChar` invalida os DOIS flow
+  fields (o caminho dos inimigos vê a parede nova), o terreno
+  re-prerenderiza por passo, o minimapa aprende as paredes ("a ponte
+  sumindo do mapa é metade da leitura"), o HUD mostra "A PONTE CAI EM
+  Xs" sob o objetivo.
+- **Trava**: `ponte.test` (7 — a coreografia pura com o coletor: graça,
+  frente única, dois por passo, dano na fatia, a zona intacta, o
+  congelamento) + `npm run ponte` verde (a queda anda, o objetivo
+  congela, o prerender aguenta). PNG `ponte-caindo.png` com pendência de
+  leitura.
+- **Com isto o M3 fecha**: economia medida (torneiras + escada), placa
+  contra explosão, Munição Incandescente, caçador que responde, e a
+  ponte que cai.
+
 ## Entrega: J1 — a ambiência sonora dos biomas (2026-10-16 17:20, `develop`)
 
 O M1 fecha completo: **o lugar soa como o lugar.**

@@ -35,6 +35,7 @@
     "m3economia": "npm run build && node tools/m3-economia-proof.mjs",
     "tornado": "npm run build && node tools/m1-tornado-proof.mjs",
     "ambiente": "npm run build && node tools/m1-ambiente-proof.mjs",
+    "ponte": "npm run build && node tools/m3-ponte-proof.mjs",
     "itch": "node tools/itch-fullscreen-proof.mjs"
   },
   "devDependencies": {
