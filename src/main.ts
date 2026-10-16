@@ -3411,6 +3411,13 @@ window.__ashfall = {
   canvas, ctx, spawnBullet, getBullets, clearBullets,
   spriteFor: (k: string) => getSprite(k),
   camera: () => ({ x: getCamX(), y: getCamY() }),
+  // posição do jogador ao vivo — a prova do A5 ("player para de se mover")
+  // amostra a posição por segundo para achar travadas; o hospital-proof
+  // usa para ler o piso ao lado do corpo
+  player: () => {
+    const p = player.getPlayer();
+    return { x: p.x, y: p.y, hp: p.health };
+  },
   inimigoMaisProximo: () => {
     const p = player.getPlayer();
     let melhor: { x: number; y: number; type: string; health: number; dist: number } | null = null;

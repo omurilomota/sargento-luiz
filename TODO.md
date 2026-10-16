@@ -1972,6 +1972,13 @@
 //     estilhaçado) no lugar do concreto de dungeon — DUNGEON_COUNT.parede
 //     virou Record (3 do prédio, 16 do pack), os tiles passam no portão
 //     de cobertura do tiles.test.
-// [ ] F-C RESTA: hospital com identidade (chão de ladrilho, salas,
-//     decoração) — os tiles autorais seguem o molde do prédio.
+// [x] F-C RESTA (2026-10-17 01:40): hospital com identidade —
+//     `piso_hospital` autoral (ladrilho com rejunte e manchas de uso) e
+//     `parede_hospital` (azulejo com rodapé). O bioma virou o ÚNICO claro
+//     do jogo: piso ~92 de luminância na tela, parede branca encardida
+//     ~120 A MAIS CLARA que o piso (regra do projeto: massa clara =
+//     obstáculo, os 3 testes de contraste continuam verdes). Prova:
+//     npm run hospital (mediana do anel ao redor do jogador + desvio
+//     máximo do rejunte). DECISIONS #263/#264; a linha de erro nova no
+//     AGENTS (índice de fase se conta no config, não no resumo).
 // [ ] F-D (refinaria=combustível, subestação opcional, melee, moral)

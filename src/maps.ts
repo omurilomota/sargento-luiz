@@ -27,13 +27,14 @@ export type TileKind = 'wall' | 'floor' | 'decor' | 'hazard' | 'crate' | 'barrel
 /** Material do piso, do pack Top Down Dungeon (Screaming Brain, CC0). */
 export type DungeonFloor =
   | 'piso_pedra' | 'piso_pedra2' | 'piso_terra' | 'piso_terra2'
-  | 'piso_areia' | 'piso_grama' | 'piso_metal' | 'piso_vidro' | 'piso_madeira';
+  | 'piso_areia' | 'piso_grama' | 'piso_metal' | 'piso_vidro' | 'piso_madeira'
+  | 'piso_asfalto' | 'piso_faixa' | 'piso_borda' | 'piso_hospital';
 
 /** Material da parede, do mesmo pack. */
 export type DungeonWall =
   | 'parede_pedra' | 'parede_tijolo' | 'parede_concreto'
   | 'parede_metal' | 'parede_terra' | 'parede_areia'
-  | 'parede_predio';
+  | 'parede_predio' | 'parede_hospital';
 
 export interface MapDef {
   /** Linhas do mapa (30 × 20) */
@@ -401,12 +402,25 @@ export const BIOMES: Record<string, Biome> = {
   },
   hospital: {
     key: 'hospital', name: 'Hospital de Campanha', hazard: 'fog', hazardColor: '#8aaa9a',
-    floor: '#20282a', wall: '#485a5c', accent: '#8a9a9a', tint: '#d8e4e4',
+    // O floor do hospital é CLARO de propósito: o drawFloor lava cada tile
+    // com 62% desta cor (a lavada que acalma o rejunte do pack), e com o
+    // escuro antigo (#20282a) o ladrilho autoral morria em ~75 de
+    // luminância — igual a qualquer outro bioma, zero identidade. Um
+    // teal-cinza claro deixa o ladrilho lendo ~100: o único piso claro do
+    // jogo, "hospital abandonado" no relance.
+    // A PAREDE sobe junto (#b4c4c6): a regra do projeto é parede mais
+    // clara que o piso (o olho lê a massa clara como obstáculo — invertido
+    // o mapa vira buracos, ver terrain.test). Hospital branco encardido:
+    // parede ~125 na tela contra piso ~90.
+    floor: '#4c5c5e', wall: '#b4c4c6', accent: '#8a9a9a', tint: '#d8e4e4',
     floorTiles: [31, 32, 58, 59, 169, 178],
     // Curadoria de identidade: hospital ganha o sheet Glass 1 do mesmo pack
     // (piso_vidro) — cerâmica de enfermaria, o único piso claro do jogo. O
     // sheet existia no pack e não tinha nenhuma fase usando.
-    dungeonFloor: 'piso_vidro', dungeonWall: 'parede_concreto',
+    // F-C: o hospital com cara de HOSPITAL — ladrilho com manchas de
+    // uso no chão, azulejo com rodapé na parede ("não tem chão de
+    // hospital, não tem salas" era do playtest)
+    dungeonFloor: 'piso_hospital', dungeonWall: 'parede_hospital',
     propCrate: '#5a4a3a', propBarrel: '#4a3a2a',
     grain: '#141a1a', grainAlpha: 0.12, void: '#0a0d0d',
     rows: [

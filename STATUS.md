@@ -216,6 +216,30 @@ commitados; esta entrega o fecha com efeito REAL e prova em navegador.
   contra explosão, Munição Incandescente, caçador que responde, e a
   ponte que cai.
 
+## Entrega: F-C-resto — o hospital com identidade (2026-10-17 01:40, `develop`)
+
+Fecha a frente dos SPRITES do playtest:
+
+- **LADRILHO E AZULEJO AUTORAIS**: `piso_hospital` (rejunte a cada 32px,
+  manchas de uso, rachaduras ocasionais) e `parede_hospital` (azulejo com
+  rodapé de borracha). No lugar de `piso_vidro`/`parede_concreto` —
+  "hospital não tem chão de hospital" era do playtest.
+- **O BIOMA CLARO DO JOGO**: a lavada de 62% do `drawFloor` domina a
+  luminância final (o piso renderiza ~no `floor` do bioma), então o
+  hospital ganhou `floor` #4c5c5e e `wall` #b4c4c6 — piso ~92 na tela
+  (o mais claro do jogo) e parede branca encardida ~120, MAIS clara que
+  o piso: a regra "o olho lê a massa clara como obstáculo" foi
+  respeitada, os 3 testes de contraste verdes.
+- **Prova**: `npm run hospital` — mediana do anel ao redor do jogador
+  (o corpo está sempre sobre piso) e desvio máximo do anel para o
+  rejunte (patch 10×10 sozinho cai entre juntas: leu 0.0 com rejunte
+  na tela). Piso 92, desvio 5.3.
+- **Erros cometidos no caminho** (AGENTS atualizado): índice de fase
+  confiado no resumo da sessão — a prova foi para a Floresta achando
+  que era o hospital, e uma rodada inteira diagnosticou o chão da
+  Floresta como "piso escuro do hospital". DECISIONS #263/#264.
+- **Gates**: tsc, **1426 testes**, visual sem 404, campanha 16/16.
+
 ## Entrega: F-C — o tint, a mão e as casas (os SPRITES, 2026-10-17 00:50, `develop`)
 
 A resposta à pergunta principal do playtest ("cadê os sprites?"):

@@ -292,6 +292,11 @@ não sobrevive ao pipeline — só a luminância. A estrada se lê pelo contrast
 - `assets/sprites/dungeon/parede_predio_*.png` — as CASAS da Cidade em
   Ruínas: laje com janelas quebradas e vidro estilhaçado, o vocabulário
   de prédio que o concreto de dungeon não tinha.
+- `assets/sprites/dungeon/piso_hospital_*.png` e
+  `parede_hospital_*.png` — o HOSPITAL com cara de hospital: ladrilho
+  com rejunte e manchas de uso no chão, azulejo com rodapé na parede.
+  O bioma virou o único claro do jogo (piso ~92 de luminância na tela,
+  parede branca encardida ~120) — o "hospital abandonado" no relance.
 
 Gerados por `tools/gen_assets_mao.py` e no mesmo molde do painel; a
 paleta sóbria é por construção (dessaturação + matiz terrosa).

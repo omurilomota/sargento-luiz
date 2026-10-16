@@ -95,14 +95,18 @@ export const DUNGEON_FLOORS = [
   'piso_pedra', 'piso_pedra2', 'piso_terra', 'piso_terra2', 'piso_areia',
   'piso_grama', 'piso_metal', 'piso_vidro', 'piso_madeira',
   'piso_asfalto', 'piso_faixa', 'piso_borda',
+  // hospital (F-C): ladrilho autoral com manchas de uso
+  'piso_hospital',
 ] as const;
 
-/** Materiais de parede disponíveis, 16 tiles cada. */
+/** Materiais de parede disponíveis; a contagem vem de DUNGEON_COUNT.parede. */
 export const DUNGEON_WALLS = [
   'parede_pedra', 'parede_tijolo', 'parede_concreto',
   'parede_metal', 'parede_terra', 'parede_areia',
   // casas da Cidade (F-C): prédio autoral com janelas quebradas
   'parede_predio',
+  // hospital (F-C): azulejo com rodapé
+  'parede_hospital',
 ] as const;
 
 /**
@@ -130,6 +134,8 @@ export const DUNGEON_COUNT: {
     piso_areia: 2, piso_grama: 1, piso_metal: 1, piso_vidro: 1, piso_madeira: 1,
     // autorais (gerados): asfalto liso 3 variantes + rachado, faixa e bordas
     piso_asfalto: 4, piso_faixa: 1, piso_borda: 2,
+    // hospital (F-C): ladrilho autoral com manchas de uso
+    piso_hospital: 2,
   },
   // parede por material: o predio autoral (F-C, casas da Cidade) tem 3
   // variantes; os do pack, 16
@@ -137,6 +143,8 @@ export const DUNGEON_COUNT: {
     parede_pedra: 16, parede_tijolo: 16, parede_concreto: 16,
     parede_metal: 16, parede_terra: 16, parede_areia: 16,
     parede_predio: 3,
+    // hospital (F-C): azulejo com rodapé
+    parede_hospital: 2,
   },
 };
 

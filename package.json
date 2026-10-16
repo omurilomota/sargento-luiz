@@ -40,6 +40,7 @@
     "carros": "npm run build && node tools/m3-carros-proof.mjs",
     "cenografia": "npm run build && node tools/m3-cenografia-proof.mjs",
     "tint": "npm run build && node tools/m4-tint-proof.mjs",
+    "hospital": "npm run build && node tools/m4-hospital-proof.mjs",
     "itch": "node tools/itch-fullscreen-proof.mjs"
   },
   "devDependencies": {
