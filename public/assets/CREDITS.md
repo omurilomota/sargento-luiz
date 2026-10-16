@@ -1,5 +1,16 @@
 # Créditos de Assets
 
+## Sons
+
+**Tsorthan Grove — Storm Arwen 2022** ·
+[opengameart.org/content/storm-arwen-2022](https://opengameart.org/content/storm-arwen-2022) ·
+**CC-BY 4.0**
+
+- `assets/sfx/tornado.ogg` — o uivo do tornado da Cidade (M1): 7s cortados
+  da cena de vendaval (gravação de campo da tempestade que bateu recorde de
+  vento no Reino Unido, colhida pelo autor em risco de perder a janela e o
+  gravador). Trecho t=88-95, fade de 0,6s entrando, normalizado ao banco.
+
 ## Sprites
 
 **Screaming Brain Studios — Top Down Dungeon Pack** ·

@@ -633,6 +633,7 @@ function drawWarningStrip(d: HudData, W: number, y: number): void {
     earthquake: 'TERREMOTO',
     lightning: 'RELÂMPAGO',
     storm: 'TEMPESTADE',
+    tornado: 'TORNADO',
   };
   const stripH = 20;
   ctx!.fillStyle = 'rgba(0,0,0,0.55)';

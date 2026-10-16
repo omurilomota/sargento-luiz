@@ -185,6 +185,33 @@ commitados; esta entrega o fecha com efeito REAL e prova em navegador.
   verde nos 3 contratos, visual sem 404. PNG `m5-grito-maquinista.png` com
   pendência de leitura (regra 16).
 
+## Entrega: I — o tornado da Cidade (M1, 2026-10-16 16:40, `develop`)
+
+O evento que o PRÓLOGO promete ("o céu fecha pesado do lado do mar") existe
+em jogo:
+
+- **A mecânica é o empurrão**: vórtice que nasce numa borda e atravessa o
+  mapa; tudo a menos de 260px é empurrado radialmente para longe do centro
+  (480 px/s no centro, caindo a zero na borda). Jogador via canal novo
+  (`playerPush`) com `moveCircleBy` — vento não fura parede. Inimigos
+  idem, com `moveCircleBy` cada um. Dano só para quem fica DENTRO do
+  funil (90px, 4/s): o empurrão é a defesa, sair da rota.
+- **Visual 100% asset**: fumaça em espiral + poeira na base, partículas de
+  sprite do pack Kenney — nenhum desenho novo no renderer.
+- **Som de verdade**: "Storm Arwen 2022" (Tsorthan Grove, **CC-BY 4.0**) —
+  gravação de campo da tempestade de recorde no Reino Unido; trecho mais
+  forte medido (pico −17,3 dB) e cortado em 7s. O portão `sfxAssets`
+  mordeu a chave não registrada e o contador 41→42 — o diff consciente
+  que ele exige.
+- **Permissão por bioma**: só na Cidade (debris). O gancho de prova
+  (`forcarEventoAmbiente`) força timing e posição, mas NÃO a permissão —
+  no Espaço o update mata o evento no primeiro frame (DECISIONS #239).
+- **Trava dupla**: `tornado.test` (6 — o empurrão puro cai a zero no raio,
+  radial, o canal chega no resultado) + `npm run tornado` (174px de
+  empurrão no jogador; termina sozinho; Espaço nega).
+- **Resta no M1**: a ambiência sonora dos biomas (gaivota, gotejamento,
+  apito, drone/alarme) — documentada no TODO, caça CC0 um a um.
+
 ## Entrega: H — M3, o dinheiro e o desafio (2026-10-16 15:10, `develop`)
 
 A economia medida **achou as torneiras de verdade** — e o árbitro mandou

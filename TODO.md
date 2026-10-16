@@ -1757,13 +1757,20 @@
 //     URL estável: https://sargento-luiz-murilohenriquemota935-1958s-projects.vercel.app
 // [ ] M1 — ASSETS: [x] piso sem costura 2026-10-14 20:23 (re-extração do
 //     miolo = tile 47 do wangset, o único fill puro; prova: folha-contato
-//     dos 16 biomas lida, grade de 64px sumiu) + parede com altura
-//     duplicada (tirar cumeeira/claraboia/beiral somados ao bloco 3D).
-//     Repertório por bioma (CC0/CC-BY + CREDITS.md): Porto (gaivota,
-//     água no cais, navio distante), tempestade/trovão/terremoto,
-//     TORNADO novo (visual + som + empurrão em jogador e zumbi),
-//     Caverna (gotejamento, eco), Fábrica/Trens (maquinário, apito),
-//     Espaço (drone de vácuo, alarme da estação).
+//     dos 16 biomas lida, grade de 64px sumiu). [x] parede com altura
+//     duplicada (frente visual, `8ff3ac5` — drawWallEdges virou só
+//     contorno). [x] TORNADO (2026-10-16, F8/I): o evento showpiece da
+//     Cidade — vórtice que atravessa o mapa EMPURRANDO jogador e zumbi
+//     (força que cai a zero a 260px; dano só dentro do funil), visual de
+//     partículas de sprite (fumaça em espiral + poeira na base), uivo de
+//     "Storm Arwen 2022" (Tsorthan Grove, CC-BY 4.0) tornado.ogg, aviso
+//     "TORNADO" no HUD, permissão SÓ no bioma da Cidade (o prólogo fecha
+//     o céu "do lado do mar"). Trava: tornado.test (6) + npm run tornado
+//     (174px de empurrão no jogador; no Espaço a permissão mata o
+//     evento no 1º update). RESTA a ambiência sonora dos biomas:
+//     Porto (gaivota, água no cais), Caverna (gotejamento, eco),
+//     Fábrica/Trens (maquinário, apito), Espaço (drone, alarme) — caça
+//     CC0/CC-BY, um a um, com CREDITS.md.
 // [x] M2 — BUGS DE FLUXO (2026-10-15, F1): [x] resetSpawner no load de
 //     fase ("onda 2 na entrada") — F0; [x] anúncio de onda cala sob a caixa
 //     de diálogo (Hospital): o som agora arma PENDENTE na abertura do

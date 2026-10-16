@@ -245,6 +245,7 @@ export const SFX_FILES: Record<string, SfxDef> = {
   // campanha, a chave de roda do conserto do motor e o lançamento do foguete
   // — o pós-missão do Castelo.
   risada:              { file: 'assets/sfx/risada.ogg' },
+  tornado:             { file: 'assets/sfx/tornado.ogg' },
   ferramenta:          { file: 'assets/sfx/ferramenta.ogg' },
   foguete_lancamento:  { file: 'assets/sfx/foguete_lancamento.ogg' },
 };
@@ -607,6 +608,17 @@ export function sfxPiece(): void {
 export function sfxRisada(): void {
   if (playSfxFile('risada')) return;
   playTone(220, 0.15, 'square', 0.1);
+}
+
+/**
+ * O uivo do TORNADO (M1): 7s de vendaval real — "Storm Arwen 2022", de
+ * Tsorthan Grove (CC-BY 4.0), gravação de campo da tempestade que bateu
+ * recorde de vento no Reino Unido. Toca uma vez por evento; o fallback
+ * sintetizado é ruído filtrado sozinho no escuro.
+ */
+export function sfxTornado(): void {
+  if (playSfxFile('tornado')) return;
+  playBurst(0.3, 7, 'highpass', 200, 0.6);
 }
 
 /** A chave de roda no motor do foguete (pós-missão do Castelo). */

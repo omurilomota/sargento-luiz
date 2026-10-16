@@ -80,7 +80,7 @@ import { triggerScreenShake, triggerDamageFlash, triggerBossKillFlash, triggerLe
 import { useSkill, isSkillActive, updateSkills, resetSkills, getDamageMultiplier, getDamageTakenMultiplier, getSkillCooldown, getSkillMaxCooldown, setMoveDirection, furiaDesbloqueada, desbloquearFuria, restoreFuria, resetFuria } from './systems/skills';
 import { toggleNpcFollow } from './systems/npcs';
 import { getCurrentClass, setCurrentClass, getClassDamageMult, getClassSpeedMult, getClassReloadMult, getClassHealthPerSecond, loadClass, saveClass, resetClass, ClassId, CLASSES } from './systems/classes';
-import { updateEnvironmentEvents, resetEnvironmentEvents, getEnvironmentWarnings } from './systems/environment';
+import { updateEnvironmentEvents, resetEnvironmentEvents, getEnvironmentWarnings , forcarEventoAmbiente, tornadoNoAr , EnvironmentEvent } from './systems/environment';
 import { updateCombos, getActiveCombos, getComboDamageBonus, getComboCooldownMult, getComboHealthBonus, resetCombos } from './systems/combos';
 import { setComboHealthMultiplier } from './entities/player';
 import { resetSkins } from './systems/skins';
@@ -1133,6 +1133,13 @@ function update(dt: number) {
 
   // ── eventos ambientais (agora com dimensões do mundo) ──
   const envResult = updateEnvironmentEvents(dt, enemies, p.x, p.y, worldW, worldH, phase.hazard);
+  // O EMPURRÃO do tornado no jogador (M1): moveCircleBy para não furar
+  // parede — ser empurrado PARA DENTRO de um muro não é física de vento.
+  if (envResult.playerPush.x !== 0 || envResult.playerPush.y !== 0) {
+    const movido = moveCircleBy(p.x, p.y, envResult.playerPush.x, envResult.playerPush.y, p.radius);
+    p.x = movido.x;
+    p.y = movido.y;
+  }
   for (const d of envResult.enemyDamages) {
     damageNumbers.push({ x: d.x + (Math.random() - 0.5) * 16, y: d.y, text: String(Math.floor(d.damage)), color: d.color, life: 0.8, vy: -60 });
   }
@@ -3638,6 +3645,11 @@ window.__ashfall = {
   // M3: a moeda GERADA desde o load da fase — o lado do spawn que a
   // medição da economia compara contra o modelo (coletar é do jogador)
   moedasGeradas: () => getMoedasGeradas(),
+  // prova M1: força um evento ambiente AGORA (o tornado nasce perto do
+  // ponto dado — determinismo; fora do bioma permitido não faz nada) e
+  // lê se o tornado está na tela
+  forcarEvento: (type: EnvironmentEvent, x?: number, y?: number) => forcarEventoAmbiente(type, x, y),
+  tornadoAtivo: () => tornadoNoAr(),
   // devolve o estado da run nova depois do `resetGame`: o `perks-proof` compara
   // com a run anterior para provar que perks e stats não sobreviveram.
   resetarPartida: () => { resetGame(); return true; },

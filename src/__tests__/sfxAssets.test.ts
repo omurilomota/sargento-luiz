@@ -5,7 +5,7 @@ import { SFX_FILES } from '../systems/audio';
 
 /**
  * Este arquivo existe pela mesma razão de `assets.test.ts`: o caminho
- * do asset é contrato, não tipo. `SFX_FILES` declara 41 chaves que o
+ * do asset é contrato, não tipo. `SFX_FILES` declara 42 chaves que o
  * jogo busca em `assets/sfx/<chave>.ogg` (as 29 originais + as 9 de 10/10:
  * 7 recargas por família, ferrugem e peça — as que zeraram o `semProcedural`); se o arquivo não existe, o
  * jogo cai no procedural sem avisar — o som "funciona", mas a campanha
@@ -17,9 +17,9 @@ import { SFX_FILES } from '../systems/audio';
 const SFX_DIR = 'public/assets/sfx';
 
 describe('sfx: toda chave de SFX_FILES tem arquivo no disco', () => {
-  it('as 41 chaves declaram arquivo em assets/sfx/', () => {
+  it('as 42 chaves declaram arquivo em assets/sfx/ (42ª: tornado, M1)', () => {
     const chaves = Object.keys(SFX_FILES);
-    expect(chaves).toHaveLength(41);
+    expect(chaves).toHaveLength(42);
     for (const chave of chaves) {
       const arquivo = SFX_FILES[chave].file;
       expect(arquivo, `${chave} declara caminho fora de assets/sfx/`).toBe(`assets/sfx/${chave}.ogg`);
