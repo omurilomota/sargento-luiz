@@ -185,6 +185,21 @@ commitados; esta entrega o fecha com efeito REAL e prova em navegador.
   verde nos 3 contratos, visual sem 404. PNG `m5-grito-maquinista.png` com
   pendência de leitura (regra 16).
 
+## Entrega: G — GitHub decorado + Actions (2026-10-16 14:20, `9a73d4f`)
+
+- **Repo renomeado**: `BubbleGame` → [`github.com/omurilomota/sargento-luiz`](https://github.com/omurilomota/sargento-luiz) — description e 7 topics (jogo, canvas, roguelite, top-down-shooter, typescript, vite, cc0-assets); remote local atualizado; GitHub redireciona as URLs antigas.
+- **CI no Actions** (`.github/workflows/ci.yml`): `tsc --noEmit` → build →
+  suíte inteira a cada push/PR em develop e main. A primeira rodada
+  **reprovou e mordiu**: a suíte assume o `dist/` construído
+  (distBuild + semAssetQuebrado) e o workflow testava antes de buildar —
+  repro local provado com `rm -rf dist && npm test` (8 falhas). Ordem
+  corrigida; run `38914800998` **verde**.
+- **README na era atual**: título SARGENTO **LUIZ** (era RIOS), tabela das
+  16 fases na ordem M4, pistola custa 30, a fúria saiu da lista de teclas
+  (é segredo), provas novas na lista, contagens 9→16.
+- **Push do develop** (17 commits desta e das sessões anteriores) — o
+  remote estava 15+ commits atrás desde o rename LUIZ.
+
 ## Deploy: o Vercel no build desta sessão (2026-10-16 01:58)
 
 `vercel deploy dist --prod` no HEAD de `080d804` — target **production**,
