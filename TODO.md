@@ -1884,9 +1884,17 @@
 //         ATRASADO vs maps.ts — regerar destruía a estrada; o rodovia()
 //         virou especificação LITERAL byte a byte (DECISIONS #245).
 //         Prova: `npm run carros` (pixel: rodovia 109×24, cidade 172×45).
-//     (c) RESTA: Tiny Dungeon — estandartes/tochas/baús p/ Castelo,
-//         cristais p/ Caverna (o inimigo crystal existe e o mapa não tem
-//         um); (d) RESTA: pack sci-fi p/ Espaço+NÚCLEO.
+//     [x] (c-parcial, 2026-10-16 J3c): o decor por bioma virou LISTA de
+//         tiles com as escolhas erradas da auditoria T6 fora — castelo
+//         ganhou o BRASÃO/ESTANDARTE (312 no lugar do quadrado bege), a
+//         CAVERNA ganhou os CRISTAIS 264/265 (o inimigo crystal existia
+//         e o mapa não tinha um), o porto perdeu o "avião de papel" por
+//         pedra de cais, cidade/vulcão ganham variedade (289/319). As
+//         TOCHAS do Castelo continuam pendentes: nenhum pack do disco
+//         tem (o topdown é caixa/cilindro medido pela auditoria) — pede
+//         geração autoral (o precedente das árvores) ou caça externa.
+//     (d) RESTA: pack sci-fi p/ Espaço+NÚCLEO — o "Space Shooter Redux"
+//         mudou de nome no catálogo do Kenney; recaçar na próxima.
 //     Achado: o pack TEM tambor (~tile 505-511) e o barril seguia
 //     procedural — dívida da regra 15. Sistema: cenografia nasce no
 //     genmaps.py (ele REGERA o maps.ts — edição manual é apagada); a

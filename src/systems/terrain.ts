@@ -140,30 +140,36 @@ function drawDecor(c: CanvasRenderingContext2D, px: number, py: number, biome: B
   // entulho na Cidade, sucata na Fábrica, pedra no Castelo, placa no Espaço
   // e caixa no Bunker. Cada bioma novo recebeu o próprio objeto em vez de
   // cair no fallback procedural (`ellipse`).
-  const spriteFor: Record<string, number> = {
-    floresta: 181,
-    caverna: 238,
-    pantano: 320,
-    vulcao: 316,
-    cidade: 292,
-    fabrica: 180,
-    castelo: 133,
-    espaco: 333,
-    bunker: 129,
-    hospital: 156,
+  // J3c: listas por bioma — a variante da célula escolhe o tile. As
+  // escolhas erradas da auditoria T6 saíram: castelo 133 (quadrado bege a
+  // 84% de saturação) → 312 (brasão/estandarte); caverna ganha os CRISTAIS
+  // que o M6 pedia (o inimigo crystal existia e o mapa não tinha um).
+  const spriteFor: Record<string, number[]> = {
+    floresta: [181],
+    caverna: [264, 265, 238],
+    pantano: [320],
+    vulcao: [316, 319],
+    cidade: [292, 289],
+    fabrica: [180],
+    castelo: [312],
+    espaco: [333],
+    bunker: [129],
+    hospital: [156],
     // Rodovia não entra nesta tabela: a faixa de asfalto do mapa dela usa os
     // caracteres próprios (`=`, `:`, `-`, `_`) e não o `,`. O tile 260 que
     // estava nesta linha era uma marca laranja/cinza do pack repetida em 77
     // células — lia como padrão, não como estrada, e foi escolhido por número
     // sem nunca ser aberto.
-    trens: 180,
-    ponte: 238,
-    refinaria: 316,
-    subestacao: 264,
-    porto: 134,
+    trens: [180],
+    ponte: [238],
+    refinaria: [316],
+    subestacao: [264],
+    // 134 era o "avião de papel" da auditoria T6: o cais pede pedra/amarração
+    porto: [317],
   };
-  const n = spriteFor[biome.key];
-  if (n !== undefined) {
+  const lista = spriteFor[biome.key];
+  if (lista !== undefined && lista.length > 0) {
+    const n = lista[variant % lista.length];
     const img = getSprite(`tile_${n}`);
     if (img) {
       const s = CELL_SIZE * (0.5 + (variant % 2) * 0.2);

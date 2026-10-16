@@ -213,6 +213,20 @@ commitados; esta entrega o fecha com efeito REAL e prova em navegador.
   contra explosão, Munição Incandescente, caçador que responde, e a
   ponte que cai.
 
+## Entrega: J3c — o decor que o mapa pede (2026-10-16 20:10, `develop`)
+
+- **Decor por bioma vira lista** (a variante da célula escolhe o tile):
+  a CAVERNA ganha os **cristais 264/265** — o inimigo crystal existia
+  desde a v1 e o mapa não tinha um único; o CASTELO troca o quadrado
+  bege a 84% de saturação (a pior escolha da auditoria T6) pelo
+  **brasão/estandarte 312**; o PORTO perde o "avião de papel" por pedra
+  de cais; cidade (entulho 289) e vulcão (respingo 319) ganham variedade.
+- **As tochas do Castelo ficam pendentes com porquê**: nenhum pack do
+  disco tem (o topdown é caixa/cilindro, medido pela auditoria) — pedem
+  geração autoral (precedente das árvores) ou caça externa.
+- **Gates**: tsc, 1409 testes, visual sem 404 (os tiles 264/265/312/317/
+  289/319 carregam — entraram em TILE_NUMBERS).
+
 ## Entrega: J3a-b — asfalto verificado, carcaças reais, e o gerador reconciliado (2026-10-16 19:20, `develop`)
 
 - **J3a (verificação)**: o asfalto da Rodovia já estava ÍNTEGRO — a IA

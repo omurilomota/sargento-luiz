@@ -44,6 +44,9 @@ export const TILE_NUMBERS = [
   1, 2, 3, 4, 13, 15, 17, 18, 19, 20, 31, 32, 35, 36, 37, 40, 41, 58, 59, 62, 63, 64, 67, 68, 76, 77, 79, 80, 86, 89, 90, 91, 92, 93, 95, 169, 178, 334, 340, 349, 350, 361, 362, 363, 376, 377, 398,
   // objetos de decoração (copas, folhas, pedras) usados nas paredes/decor do bioma
   134, 181, 209, 238, 239, 316,
+  // J3c: cristais da Caverna (264/265), brasão do Castelo (312) e os
+  // decor variados (289 entulho, 317 pedra do cais, 319 respingo de lava)
+  264, 265, 289, 312, 317, 319,
   // superfícies de parede por bioma (WALL_TILES em terrain.ts)
   43, 44, 45, 46, 96, 97, 98, 99, 110, 111, 112, 113,
   163, 164, 165, 166, 172, 173, 174, 175, 335, 336, 337,
