@@ -209,7 +209,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
   // ─── Bosses ────────────────────────────────────────────────
   vigia: {
     radius: 40, speed: 78, health: 290, damage: 18, color: '#8a7a6a', scoreValue: 250, coinDrop: 30,
-    canShoot: false, isBoss: true, bossName: 'VIGIA', telegraph: 1.1,
+    canShoot: false, isBoss: true, bossName: 'VIGIA', deathLine: 'A cidade cai comigo.', telegraph: 1.1,
     // Primeira luta do jogo, então o padrão é uma aula: telegrafia longa,
     // uma ação por faixa, e o texto da telegrafia diz o que vai acontecer.
     // A investida é a primeira coisa que o jogador aprende a desviar, e os
@@ -222,7 +222,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
   },
   alphaWolf: {
     radius: 42, speed: 95, health: 380, damage: 26, color: '#7a6a5a', scoreValue: 400, coinDrop: 45,
-    canShoot: false, isBoss: true, bossName: 'ALPHA WOLF', telegraph: 0.9,
+    canShoot: false, isBoss: true, bossName: 'ALPHA WOLF', deathLine: 'A matilha corre sem mim.', telegraph: 0.9,
     pattern: [
       { atHp: 1.0, action: 'charge', telegraph: 'CARREGANDO' },
       { atHp: 0.6, action: 'summon', telegraph: 'CHAMANDO A MATILHA' },
@@ -231,7 +231,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
   },
   crystalQueen: {
     radius: 46, speed: 45, health: 550, damage: 30, color: '#608090', scoreValue: 550, coinDrop: 60,
-    canShoot: true, shootRate: 2.4, bulletSpeed: 260, isBoss: true, bossName: 'CRYSTAL QUEEN', telegraph: 1.0,
+    canShoot: true, shootRate: 2.4, bulletSpeed: 260, isBoss: true, bossName: 'CRYSTAL QUEEN', deathLine: 'O escuro era meu.', telegraph: 1.0,
     projectileColor: PALETTE.stone,
     pattern: [
       { atHp: 1.0, action: 'split', telegraph: 'FRATURANDO' },
@@ -241,7 +241,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
   },
   sentinel: {
     radius: 48, speed: 38, health: 360, damage: 34, color: '#6a6a6a', scoreValue: 700, coinDrop: 80,
-    canShoot: true, shootRate: 1.8, bulletSpeed: 300, isBoss: true, bossName: 'SENTINEL', telegraph: 0.8,
+    canShoot: true, shootRate: 1.8, bulletSpeed: 300, isBoss: true, bossName: 'SENTINEL', deathLine: 'Setor encerrado.', telegraph: 0.8,
     projectileColor: PALETTE.terracotta,
     pattern: [
       { atHp: 1.0, action: 'spread', telegraph: 'ALVO IDENTIFICADO' },
@@ -252,7 +252,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
   },
   leviathan: {
     radius: 50, speed: 60, health: 420, damage: 36, color: '#5a7a5a', scoreValue: 750, coinDrop: 85,
-    canShoot: true, shootRate: 2.0, bulletSpeed: 280, isBoss: true, bossName: 'LEVIATHAN', telegraph: 0.9,
+    canShoot: true, shootRate: 2.0, bulletSpeed: 280, isBoss: true, bossName: 'LEVIATHAN', deathLine: 'A lama me devolve.', telegraph: 0.9,
     projectileColor: '#5a7a5a',
     pattern: [
       { atHp: 1.0, action: 'spread', telegraph: 'JATO ABRASIVO' },
@@ -261,7 +261,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
   },
   reiMutante: {
     radius: 46, speed: 55, health: 630, damage: 38, color: '#8a8a7a', scoreValue: 800, coinDrop: 90,
-    canShoot: true, shootRate: 2.2, bulletSpeed: 320, isBoss: true, bossName: 'REI MUTANTE', telegraph: 0.9,
+    canShoot: true, shootRate: 2.2, bulletSpeed: 320, isBoss: true, bossName: 'REI MUTANTE', deathLine: 'O portão é teu.', telegraph: 0.9,
     projectileColor: PALETTE.terracotta, armor: true,
     pattern: [
       { atHp: 1.0, action: 'ring', telegraph: 'GOLPE REAL' },
@@ -279,7 +279,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
    */
   rogerioInf: {
     radius: 30, speed: 72, health: 520, damage: 22, color: '#8a6a4a', scoreValue: 500, coinDrop: 60,
-    canShoot: true, shootRate: 1.6, bulletSpeed: 320, isBoss: true, bossName: 'ROGÉRIO INFECTADO', telegraph: 0.8,
+    canShoot: true, shootRate: 1.6, bulletSpeed: 320, isBoss: true, bossName: 'ROGÉRIO INFECTADO', deathLine: 'Rios... me desculpa.', telegraph: 0.8,
     projectileColor: '#8a6a4a',
     pattern: [
       { atHp: 1.0, action: 'ring', telegraph: 'CUSPE DE RADIAÇÃO' },
@@ -289,7 +289,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
   },
   infernoPrime: {
     radius: 48, speed: 62, health: 830, damage: 40, color: '#c46a3a', scoreValue: 900, coinDrop: 100,
-    canShoot: true, shootRate: 1.4, bulletSpeed: 340, isBoss: true, bossName: 'INFERNO PRIME', telegraph: 0.7,
+    canShoot: true, shootRate: 1.4, bulletSpeed: 340, isBoss: true, bossName: 'INFERNO PRIME', deathLine: 'O legado arde sem mim.', telegraph: 0.7,
     projectileColor: '#c46a3a',
     pattern: [
       { atHp: 1.0, action: 'spread', telegraph: 'CABRAÇAS' },
@@ -299,7 +299,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
   },
   mothership: {
     radius: 54, speed: 30, health: 980, damage: 44, color: '#7a6a8a', scoreValue: 1200, coinDrop: 140,
-    canShoot: true, shootRate: 1.2, bulletSpeed: 300, isBoss: true, bossName: 'MOTHERSHIP', telegraph: 0.8,
+    canShoot: true, shootRate: 1.2, bulletSpeed: 300, isBoss: true, bossName: 'MOTHERSHIP', deathLine: 'A estação fica vazia.', telegraph: 0.8,
     projectileColor: '#7a6a8a',
     pattern: [
       { atHp: 1.0, action: 'ring', telegraph: 'ESCUDO EXTERNO' },
@@ -314,7 +314,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
 
   pedagiario: {
     radius: 42, speed: 60, health: 320, damage: 20, color: '#6a5a50', scoreValue: 300, coinDrop: 35,
-    canShoot: false, isBoss: true, bossName: 'PEDAGIÁRIO', telegraph: 1.0,
+    canShoot: false, isBoss: true, bossName: 'PEDAGIÁRIO', deathLine: 'O pedágio... ficou barato.', telegraph: 1.0,
     projectileColor: PALETTE.stone,
     // O cobrador que nunca foi embora — o corpo fundiu com a cancela.
     // A investida é a cancela que desce; o ring é a "tarifa" em estilhaços.
@@ -326,7 +326,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
   },
   cirurgiao: {
     radius: 36, speed: 76, health: 460, damage: 26, color: '#7a8a8a', scoreValue: 450, coinDrop: 50,
-    canShoot: true, shootRate: 1.5, bulletSpeed: 320, isBoss: true, bossName: 'FERNANDO INFECTADO', telegraph: 0.9,
+    canShoot: true, shootRate: 1.5, bulletSpeed: 320, isBoss: true, bossName: 'FERNANDO INFECTADO', deathLine: 'Foi o soro... não fui eu.', telegraph: 0.9,
     projectileColor: '#8a9a9a',
     // O doutor Fernando depois do Nando-01 — o remédio que ele mesmo bebeu
     // "para provar seu ponto". O relato do Murilo: a luta era fácil demais;
@@ -342,6 +342,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
   maquinista: {
     radius: 48, speed: 52, health: 560, damage: 30, color: '#5a4a3a', scoreValue: 600, coinDrop: 65,
     canShoot: false, isBoss: true, bossName: 'MAQUINISTA', telegraph: 1.1,
+    entryShout: 'YOU SHALL NOT PASS!', deathLine: 'O último trem partiu.',
     // O condutor fundido com a locomotiva. O apito de vapor é a
     // telegrafia; a investida é a locomotiva em marcha.
     pattern: [
@@ -352,7 +353,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
   },
   gargula: {
     radius: 38, speed: 85, health: 580, damage: 28, color: '#4a4a5a', scoreValue: 650, coinDrop: 70,
-    canShoot: true, shootRate: 2.0, bulletSpeed: 360, isBoss: true, bossName: 'GÁRGULA', telegraph: 0.8,
+    canShoot: true, shootRate: 2.0, bulletSpeed: 360, isBoss: true, bossName: 'GÁRGULA', deathLine: 'A ponte me segurava.', telegraph: 0.8,
     projectileColor: '#6a6a7a',
     // Coisa que aninha nas torres da ponte. Desce em picada (investida
     // rápida) e cospe pedras (ring). O summon são os filhotes do ninho.
@@ -364,7 +365,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
   },
   torre: {
     radius: 52, speed: 40, health: 640, damage: 36, color: '#7a4a30', scoreValue: 750, coinDrop: 80,
-    canShoot: true, shootRate: 1.5, bulletSpeed: 280, isBoss: true, bossName: 'TORRE', telegraph: 1.0,
+    canShoot: true, shootRate: 1.5, bulletSpeed: 280, isBoss: true, bossName: 'TORRE', deathLine: 'O fogo esfriou.', telegraph: 1.0,
     projectileColor: '#c46a3a',
     // A torre de destilação, viva de fogo. Lenta, quase imóvel, mas o
     // chão ao redor dela derrete — cada passo é uma escolha.
@@ -376,7 +377,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
   },
   transformador: {
     radius: 44, speed: 50, health: 720, damage: 40, color: '#6a7a8a', scoreValue: 850, coinDrop: 95,
-    canShoot: true, shootRate: 1.3, bulletSpeed: 400, isBoss: true, bossName: 'TRANSFORMADOR', telegraph: 0.7,
+    canShoot: true, shootRate: 1.3, bulletSpeed: 400, isBoss: true, bossName: 'TRANSFORMADOR', deathLine: 'Sem corrente.', telegraph: 0.7,
     projectileColor: '#8a9aaa',
     // Criatura de raio e metal — cada golpe é um trovão. A telegrafia é
     // curta porque o raio não avisa.
@@ -388,7 +389,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
   },
   capitao: {
     radius: 40, speed: 62, health: 780, damage: 42, color: '#4a5a6a', scoreValue: 950, coinDrop: 110,
-    canShoot: true, shootRate: 1.1, bulletSpeed: 380, isBoss: true, bossName: 'CAPITÃO', telegraph: 0.8,
+    canShoot: true, shootRate: 1.1, bulletSpeed: 380, isBoss: true, bossName: 'CAPITÃO', deathLine: 'O navio afundou antes.', telegraph: 0.8,
     projectileColor: '#6a8a9a',
     // O mestre do porto — a última coisa entre a terra e o espaço.
     // Comanda os navios (summon) e a doca é o campo dele.
@@ -401,7 +402,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
 
   nucleo: {
     radius: 46, speed: 34, health: 1060, damage: 46, color: '#7a7a8a', scoreValue: 1500, coinDrop: 180,
-    canShoot: true, shootRate: 1.0, bulletSpeed: 340, isBoss: true, bossName: 'NÚCLEO', telegraph: 0.7,
+    canShoot: true, shootRate: 1.0, bulletSpeed: 340, isBoss: true, bossName: 'NÚCLEO', deathLine: 'INSTABILIDADE REGISTRADA.', telegraph: 0.7,
     projectileColor: PALETTE.stone, armor: true,
     // O último chefe tira uma opção por faixa, em vez de somar HP: tiro
     // mirado → o salão vira combustível → nenhuma diagonal é segura → nenhuma

@@ -86,7 +86,7 @@ import { resetSkins } from './systems/skins';
 import { resetAds, resetAdsPerPhase } from './systems/ads';
 import { saveGame, loadGame, hasSave, markGameCompleted, isGameCompleted } from './systems/saveSystem';
 import { addLeaderboardEntry } from './systems/leaderboard';
-import { loadAchievements, checkAchievements, checkObjectiveAchievement, resetRunCounters } from './systems/achievements';
+import { loadAchievements, checkAchievements, checkObjectiveAchievement, resetRunCounters , getAllAchievements } from './systems/achievements';
 import { loadDiary, unlockDiaryEntry, unlockDiaryEvent, getUnlockedDiary, getDiaryEvents, rollDiaryEvent } from './systems/diary';
 import { addXp, resetProgress, restoreTalentos, restoreXp, getNivel, getPontosLivres, getTalentos, buyTalento, getXp, progressoNoNivel, TALENTOS, XP_BONUS_ONDA, XP_BONUS_FASE } from './systems/progress';
 import { migrarChavesDeSave } from './systems/migracaoSave';
@@ -511,6 +511,12 @@ let anuncioDeOndaPendente = false;
 // O VOO (M4): a sequência de decolagem no respiro do Castelo — o mesmo
 // relógio do respiro de 5s, no lugar de um countdown nu. Zerado no load.
 let vooAtivo = 0;
+// M5: o GRITO de entrada do chefe (a barra de boss mostra enquanto conta) e
+// o relógio dele. Zerado no load de fase.
+let bossGritoTexto = '';
+let bossGritoTimer = 0;
+// M5: as balas que JÁ deram rasante (uma vez cada; WeakSet morre com a bala)
+const balsRasantes = new WeakSet<Bullet>();
 
 /**
  * Arma o respiro de fim de fase — os DOIS caminhos passam daqui: o abate
@@ -521,6 +527,11 @@ let vooAtivo = 0;
 function armarRespiro(): void {
   phaseEnding = true;
   phaseEndPause = PHASE_END_PAUSE;
+  // M5 "Intocável": fechar a fase SEM dano nenhum — o dano por fase é
+  // zerado no load e qualquer toque marca (a Onda Limpa já existia; esta
+  // é a fase INTEIRA, ondas + chefe).
+  const faseAch = checkAchievements('phase_end');
+  if (faseAch) pushToast(faseAch.name, 3.5);
   if (getCurrentPhase()?.name === 'Castelo' && getCurrentMode() === 'campaign') vooAtivo = PHASE_END_PAUSE;
 }
 // pilha de velocidade do último frame (telemetria da prova de serviços)
@@ -735,6 +746,9 @@ function loadPhaseEnvironment(): void {
   marteloForcado = false;
   anuncioDeOndaPendente = false;
   vooAtivo = 0;
+  bossGritoTexto = '';
+  bossGritoTimer = 0;
+  checkAchievements('phase_start');
   for (const svc of consumeShopServices()) {
     // os dois aliados nascem colados no jogador: ±40px às cegas podia pôr o
     // corpo DENTRO da parede (spawn de borda) — o mesmo resgate do loot
@@ -1012,6 +1026,7 @@ function update(dt: number) {
   if (phaseTransitionTimer > 0) phaseTransitionTimer -= dt;
   if (phaseEndPause > 0) phaseEndPause = Math.max(0, phaseEndPause - dt);
   if (vooAtivo > 0) vooAtivo = Math.max(0, vooAtivo - dt);
+  if (bossGritoTimer > 0) bossGritoTimer = Math.max(0, bossGritoTimer - dt);
   if (perigoNave > 0) perigoNave = Math.max(0, perigoNave - dt);
   phaseElapsed += dt;
   setPhaseTime(phaseElapsed);
@@ -1486,6 +1501,13 @@ function update(dt: number) {
       boss.health = boss.maxHealth;
       enemies.push(boss);
       bossSpawned = true;
+      // M5: o grito de ENTRADA do chefe — o Maquinista chega gritando
+      // "YOU SHALL NOT PASS!" na barra de boss, antes da primeira telegrafia.
+      const grito = ENEMY_TYPES[tipoChefe]?.entryShout;
+      if (grito) {
+        bossGritoTexto = grito;
+        bossGritoTimer = 2.6;
+      }
       // O CASTELO (2026-10-14): o sacrifício fixo do Cabo Fernandes saiu —
       // era ele a causa do "morreu do nada quando o boss apareceu e voltou
       // a fase pra onda 1" do relato do Murilo. O Júlio fica em campo: se
@@ -1665,6 +1687,17 @@ function explodeProp(prop: Prop): void {
   const { radius, damage } = getBlast(prop);
   if (radius > 0) {
     createExplosion(prop.x, prop.y, radius, damage, enemies, PALETTE.terracotta);
+    // M5 "Pirotecnista": abates que ESTA explosão causou — contados depois
+    // do dano aplicado (health <= 0 dentro do raio), não antes (estimativa
+    // com falloff contaria sobrevivente).
+    if (prop.kind === 'barrel') {
+      const abates = enemies.filter(e => e.health <= 0
+        && Math.hypot(e.x - prop.x, e.y - prop.y) < radius).length;
+      if (abates > 0) {
+        const barrilAch = checkAchievements('barril', abates);
+        if (barrilAch) pushToast(barrilAch.name, 3);
+      }
+    }
     acenderFogoDaFase(prop.x, prop.y);
     spawnParticles(prop.x, prop.y, PALETTE.terracotta, 14, 220);
     sfxExplosion();
@@ -1870,11 +1903,22 @@ function killEnemy(e: Enemy, award: boolean): void {
     if (killAch) pushToast(killAch.name, 3);
     const scoreAch = checkAchievements('score', getScore());
     if (scoreAch) pushToast(scoreAch.name, 3);
+    // M5: a conquista por ARMA conta o abate na arma que estava na mão —
+    // "10/50 com arma" é devoção a uma só.
+    const armaAch = checkAchievements('weapon_kill', getCurrentWeaponIndex());
+    if (armaAch) pushToast(armaAch.name, 3);
   }
 
   if (def?.isBoss) {
     clearBossState(e);
     bossKilled = true;
+    // M5: a última fala flutua ONDE O CHEFE CAIU (número de dano, 3s de
+    // leitura) — mais diegético que um toast competindo com a conquista
+    // de chefe e a entrada de diário no mesmo segundo.
+    if (def.deathLine) {
+      damageNumbers.push({ x: e.x, y: e.y - 50, text: def.deathLine, color: PALETTE.title, life: 3.2, vy: -28 });
+      triggerSlowMotion(0.3, 0.9);
+    }
     // B7: o chefe cai e o chão onde ele caiu queima — na fase do NÚCLEO o
     // próprio campo é o cenário destrutivo que o dono pediu.
     acenderFogoDaFase(e.x, e.y, 64);
@@ -1933,6 +1977,9 @@ function killEnemy(e: Enemy, award: boolean): void {
       abrirDialogo(SEQUENCIA_POS_DOUTOR);
     }
     if (unlockDiaryEvent('boss_kill')) pushToast('NOVA ENTRADA NO DIÁRIO', 3, 'aviso');
+    // M5: o toast da fala entra por ÚLTIMO de propósito — o cap de 3 comia
+    // a fala quando ela vinha antes da conquista, do diário e da onda limpa
+    if (def.deathLine) pushToast(def.deathLine, 3.2, 'aviso');
     spawnParticles(e.x, e.y, PALETTE.crit, 50, 400, 'smoke');
     triggerBossKillFlash();
     triggerScreenShake(18, 0.8);
@@ -2718,7 +2765,9 @@ function buildHudData(): HudData {
         health: boss.health,
         maxHealth: boss.maxHealth,
         telegraphing: isBossTelegraphing(boss),
-        telegraphLabel: getBossTelegraphLabel(boss),
+        // M5: o GRITO de entrada tem precedência enquanto conta — a
+        // primeira telegrafia dele vem logo depois
+        telegraphLabel: bossGritoTimer > 0 && bossGritoTexto ? bossGritoTexto : getBossTelegraphLabel(boss),
       }
       : null,
     objective: peekObjective(p.x, p.y, enemies.length, reachZones),
@@ -3025,6 +3074,19 @@ checkEnemyPlayerCollision(activeEnemies, p.x, p.y, p.radius, p.invincible, (e) =
 
 const bullets = getBullets();
 
+// M5 "Rasante": a bala inimiga que passa RENTE sem tocar (a faixa entre o
+// corpo e 30px) é o dodge no seu limite — conta uma vez por bala. Se ela
+// acertar em seguida, o dano cobra o preço do show-off.
+for (const b of bullets) {
+  if (!b.isEnemy || b.life <= 0 || balsRasantes.has(b)) continue;
+  const d = Math.hypot(b.x - p.x, b.y - p.y);
+  if (d < p.radius + 30 && d > p.radius + 6) {
+    balsRasantes.add(b);
+    const grazeAch = checkAchievements('graze');
+    if (grazeAch) pushToast(grazeAch.name, 3);
+  }
+}
+
 checkEnemyBulletPlayerCollision(bullets, p.x, p.y, p.radius, p.invincible, (b) => {
   const dmg = damageTaken(b.damage);
   if (dmg > 0) {
@@ -3164,7 +3226,12 @@ updateCoins(dt, p.x, p.y, p.radius, (v) => {
 updatePowerUps(dt, p.x, p.y, p.radius, (type) => {
   if (type === 'health') player.healPlayer(30);
   if (type === 'shield') p.shield += 2;
-  if (type === 'trajeNucleo') p.shield += 3;
+  if (type === 'trajeNucleo') {
+    p.shield += 3;
+    // M5: vestir o traje da fase final é conquista própria
+    const trajeAch = checkAchievements('traje');
+    if (trajeAch) pushToast(trajeAch.name, 3);
+  }
   spawnParticles(p.x, p.y, POWERUP_TYPES[type].color, 15, 200, 'muzzle');
   sfxPowerup();
 });
@@ -3415,6 +3482,13 @@ window.__ashfall = {
     b.health = b.maxHealth;
     enemies.push(b);
     bossSpawned = true;
+    // M5: o grito de entrada vale no atalho da prova também — senão o
+    // harness nunca exercitaria o que o jogador vê no caminho natural.
+    const grito = ENEMY_TYPES[faseAtual.boss]?.entryShout;
+    if (grito) {
+      bossGritoTexto = grito;
+      bossGritoTimer = 2.6;
+    }
     return true;
   },
   /**
@@ -3540,6 +3614,12 @@ window.__ashfall = {
   telaDeFim: () => (fimLocal() ? 'local' : isGameCompleted() ? 'vitoria' : 'gameover'),
   // prova M4: o relógio do voo (segundos restantes de decolagem no Castelo)
   voo: () => vooAtivo,
+  // prova M5: o grito de entrada do chefe e o último toast (a fala de morte)
+  bossGrito: () => ({ texto: bossGritoTexto, timer: Number(bossGritoTimer.toFixed(2)) }),
+  // a pilha inteira (máx. 3): a fala de morte pode ser coberta pelo toast
+  // da onda que fecha junto — o contrato é "chegou ao jogador", não "foi a última"
+  toasts: () => achievementNotifications.map(t => t.name),
+  temConquista: (id: string) => getAllAchievements().some(a => a.id === id && a.unlocked),
   // devolve o estado da run nova depois do `resetGame`: o `perks-proof` compara
   // com a run anterior para provar que perks e stats não sobreviveram.
   resetarPartida: () => { resetGame(); return true; },

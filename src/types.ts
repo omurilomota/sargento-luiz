@@ -342,6 +342,10 @@ export interface EnemyType {
   pattern?: BossPatternStep[];
   /** Nome exibido na barra de boss */
   bossName?: string;
+  /** Grito de ENTRADA: o que ele grita ao aparecer (barra de boss, M5) */
+  entryShout?: string;
+  /** Fala de MORTE: o que a barra de boss mostra quando ele cai (M5) */
+  deathLine?: string;
   /** Duração da telegrafia antes de uma ação (segundos) */
   telegraph?: number;
 }

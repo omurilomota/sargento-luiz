@@ -1816,9 +1816,22 @@
 //     cauda RECUPOA acima do pré-dip: 5091→2864→5306→6447, medido);
 //     variedade ganhou a guarda BIOMAS[i]==PHASES[i].map; ondas idem
 //     (respiro declarado). PNGs do voo com pendência de leitura (regra 16).
-// [ ] M5 — EMOÇÃO E CONQUISTAS: "YOU SHALL NOT PASS!" do MAQUINISTA na
-//     entrada, abates de chefe com slow-mo + fala de morte, conquistas
-//     (10/50 com arma, fase sem dano, graze, barril, o traje).
+// [x] M5 — EMOÇÃO E CONQUISTAS (2026-10-16, F6): [x] "YOU SHALL NOT
+//     PASS!" do MAQUINISTA na entrada — `entryShout` no config, a barra de
+//     boss mostra o grito por 2,6s antes da primeira telegrafia (só dele: o
+//     grito é a assinatura do vigia do pedágio, não ruído dos 17). [x]
+//     abates de chefe com slow-mo + fala de morte: `deathLine` para os 17
+//     chefes (de 'A cidade cai comigo.' do VIGIA ao 'INSTABILIDADE
+//     REGISTRADA.' do NÚCLEO), câmera lenta 0,3/0,9s na queda, a fala
+//     flutua ONDE o chefe caiu (damageNumber) e o toast entra por ÚLTIMO —
+//     o cap de 3 comia a fala quando ela vinha antes de
+//     conquista/diário/onda (mordida da prova m5). [x] conquistas: 10/50
+//     com a mesma arma ('Pistoleiro Leal'/'Uma Arma Só'), fase inteira sem
+//     dano ('Intocável' — o nome histórico de volta), 20 rasantes
+//     ('Rasante', banda de 6-30px, uma vez por bala), 10 abates por barril
+//     ('Pirotecnista', contados POST-explosão: health<=0 no raio, sem
+//     estimativa de falloff) e o traje ('Traje de Contenção').
+//     Prova: npm run m5 (grito arma/expira, fala na pilha, traje).
 // [ ] M6 — CENOGRAFIA POR BIOMA (aprovado 2026-10-14 ~20:00): o mapa não
 //     parece o lugar que diz ser. Vocabulário hoje = parede/chão/decor/
 //     hazard/caixote/barril/ninho, zero cenografia estática. Frentes:

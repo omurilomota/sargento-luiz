@@ -3,7 +3,7 @@ import {
   ACHIEVEMENTS, checkAchievements, checkObjectiveAchievement,
   resetRunCounters, getAllAchievements,
 } from '../systems/achievements';
-import { PHASES } from '../config';
+import { PHASES, ENEMY_TYPES } from '../config';
 import { ObjectiveKind } from '../types';
 
 // O achievements.ts toca sfxAchievement ao desbloquear, e não existe
@@ -146,3 +146,77 @@ describe('achievements: nenhum gatilho pode desbloquear duas vezes', () => {
     expect(ACHIEVEMENTS.find(a => a.id === 'no_damage_wave')!.unlocked).toBe(true);
   });
 });
+describe('achievements: os chefes falam (M5)', () => {
+  it('todo chefe de fase tem fala de morte — o toast nunca sai vazio', () => {
+    for (const fase of PHASES) {
+      const def = ENEMY_TYPES[fase.boss!];
+      expect(def?.deathLine, `${fase.boss} sem fala de morte`).toBeTruthy();
+    }
+  });
+
+  it('o MAQUINISTA chega gritando — o grito de entrada é dele', () => {
+    expect(ENEMY_TYPES['maquinista'].entryShout).toBe('YOU SHALL NOT PASS!');
+    // os outros chefes não gritam: o grito é a assinatura DELE, não um ruído
+    const outros = PHASES.map(f => f.boss).filter((b): b is string => !!b && b !== 'maquinista');
+    for (const b of outros) expect(ENEMY_TYPES[b].entryShout).toBeUndefined();
+  });
+});
+
+describe('achievements: a leva M5 (arma, fase limpa, rasante, barril, traje)', () => {
+  it('10 e 50 abates com a MESMA arma destravam os dois degraus', () => {
+    for (let i = 0; i < 9; i++) checkAchievements('weapon_kill', 0);
+    expect(ACHIEVEMENTS.find(a => a.id === 'weapon_10')!.unlocked).toBe(false);
+    checkAchievements('weapon_kill', 0); // o 10º
+    expect(ACHIEVEMENTS.find(a => a.id === 'weapon_10')!.unlocked).toBe(true);
+    for (let i = 0; i < 39; i++) checkAchievements('weapon_kill', 0);
+    checkAchievements('weapon_kill', 0); // o 50º
+    expect(ACHIEVEMENTS.find(a => a.id === 'weapon_50')!.unlocked).toBe(true);
+  });
+
+  it('abates em armas DIFERENTES não somam entre si', () => {
+    for (let i = 0; i < 10; i++) checkAchievements('weapon_kill', i % 2);
+    expect(ACHIEVEMENTS.find(a => a.id === 'weapon_10')!.unlocked).toBe(false);
+  });
+
+  it('a fase limpa exige zero dano na fase INTEIRA — e recomeça a cada fase', () => {
+    checkAchievements('phase_start');
+    const limpa = checkAchievements('phase_end');
+    expect(limaNome(limpa)).toBe('Intocável');
+    // dano na segunda fase: a conquista não volta
+    checkAchievements('phase_start');
+    checkAchievements('damage_taken');
+    expect(checkAchievements('phase_end')).toBeNull();
+    // a terceira fase começa limpa de novo
+    checkAchievements('phase_start');
+    expect(ACHIEVEMENTS.find(a => a.id === 'no_damage_phase')!.unlocked).toBe(true);
+  });
+
+  it('o rasante conta cada bala uma vez e destrava às 20', () => {
+    for (let i = 0; i < 19; i++) expect(checkAchievements('graze')).toBeNull();
+    expect(limaNome(checkAchievements('graze'))).toBe('Rasante');
+  });
+
+  it('o barril acumula abates e destrava aos 10', () => {
+    checkAchievements('barril', 4);
+    checkAchievements('barril', 5);
+    expect(ACHIEVEMENTS.find(a => a.id === 'barrel_10')!.unlocked).toBe(false);
+    expect(limaNome(checkAchievements('barril', 1))).toBe('Pirotecnista');
+  });
+
+  it('o traje destrava ao vestir — uma vez só', () => {
+    expect(limaNome(checkAchievements('traje'))).toBe('Traje de Contenção');
+    expect(checkAchievements('traje')).toBeNull();
+  });
+
+  it('a run nova não herda contadores (M5 zera no resetRunCounters)', () => {
+    for (let i = 0; i < 15; i++) checkAchievements('weapon_kill', 2);
+    resetRunCounters();
+    for (const a of ACHIEVEMENTS) a.unlocked = false;
+    checkAchievements('weapon_kill', 2);
+    expect(ACHIEVEMENTS.find(a => a.id === 'weapon_10')!.unlocked).toBe(false);
+  });
+});
+
+function limaNome(r: { name: string } | null): string {
+  return r?.name ?? '(nada)';
+}

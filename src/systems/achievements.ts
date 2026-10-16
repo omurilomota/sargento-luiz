@@ -55,6 +55,14 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'medkit_5', name: 'Primeiros Socorros', desc: 'Use 5 medkits no total', unlocked: false },
   { id: 'medkit_20', name: 'Posto Avançado', desc: 'Use 20 medkits no total', unlocked: false },
   { id: 'chacina', name: 'Chacina', desc: 'Dispare a câmera lenta com 3 ou mais abates em 2 segundos', unlocked: false },
+  // M5 (relato de 2026-10-14): a leva pedida — arma, fase limpa, rasante,
+  // barril e o traje da fase final.
+  { id: 'weapon_10', name: 'Pistoleiro Leal', desc: 'Derrube 10 inimigos com a mesma arma numa partida', unlocked: false },
+  { id: 'weapon_50', name: 'Uma Arma Só', desc: 'Derrube 50 inimigos com a mesma arma numa partida', unlocked: false },
+  { id: 'no_damage_phase', name: 'Intocável', desc: 'Feche uma fase inteira sem tomar dano', unlocked: false },
+  { id: 'graze_20', name: 'Rasante', desc: 'Deixe 20 projéteis inimigos passar rente sem ser tocado', unlocked: false },
+  { id: 'barrel_10', name: 'Pirotecnista', desc: 'Derrube 10 inimigos com explosões de barril numa partida', unlocked: false },
+  { id: 'traje', name: 'Traje de Contenção', desc: 'Vista o traje que espera na porta do NÚCLEO', unlocked: false },
 ];
 
 const STORAGE_KEY = 'luiz.achievements';
@@ -65,6 +73,12 @@ let waveDamageTaken = false;
 let bossesThisRun = 0;
 let objetivosVistos = new Set<string>();
 let medkitsUsados = 0;
+// M5: abates por ARMA (índice da arma → abates na partida), rasantes, mortes
+// por barril e o flag de dano por FASE (o da onda já existia).
+let abatesPorArma = new Map<number, number>();
+let rasantesThisRun = 0;
+let mortesPorBarril = 0;
+let phaseDamageTaken = false;
 
 /**
  * Carrega achievements salvos.
@@ -130,7 +144,31 @@ export function checkAchievements(event: string, value?: number): { id: string; 
       break;
     case 'damage_taken':
       waveDamageTaken = true;
+      phaseDamageTaken = true;
       break;
+    case 'phase_start':
+      // a fase nova começa limpa — o dano da fase anterior não conta
+      phaseDamageTaken = false;
+      break;
+    case 'phase_end':
+      if (!phaseDamageTaken) return unlock('no_damage_phase');
+      break;
+    case 'weapon_kill':
+      if (value === undefined) break;
+      abatesPorArma.set(value, (abatesPorArma.get(value) ?? 0) + 1);
+      if (abatesPorArma.get(value)! >= 10) unlock('weapon_10');
+      if (abatesPorArma.get(value)! >= 50) return unlock('weapon_50');
+      break;
+    case 'graze':
+      rasantesThisRun++;
+      if (rasantesThisRun >= 20) return unlock('graze_20');
+      break;
+    case 'barril':
+      mortesPorBarril += value ?? 0;
+      if (mortesPorBarril >= 10) return unlock('barrel_10');
+      break;
+    case 'traje':
+      return unlock('traje');
     case 'medkit':
       medkitsUsados++;
       if (medkitsUsados >= 5) unlock('medkit_5');
@@ -185,6 +223,10 @@ export function resetRunCounters(): void {
   waveDamageTaken = false;
   bossesThisRun = 0;
   objetivosVistos = new Set<string>();
+  abatesPorArma = new Map<number, number>();
+  rasantesThisRun = 0;
+  mortesPorBarril = 0;
+  phaseDamageTaken = false;
 }
 
 /**

@@ -166,6 +166,25 @@ commitados; esta entrega o fecha com efeito REAL e prova em navegador.
 
 ---
 
+## Entrega: F6 — M5, a emoção e as conquistas (2026-10-16 01:25, `develop`)
+
+- **O MAQUINISTA chega gritando**: `entryShout: 'YOU SHALL NOT PASS!'` — a
+  barra de boss mostra o grito por 2,6s antes da primeira telegrafia. Só
+  dele: grito coletivo seria outdoor.
+- **O chefe cai em câmera lenta e fala**: `deathLine` nos 17 chefes (do
+  "A cidade cai comigo." do VIGIA ao "INSTABILIDADE REGISTRADA." do
+  NÚCLEO), slow-mo 0,3/0,9s, e a fala flutua ONDE ele caiu. A prova m5
+  mordeu: o toast da fala era comido pelo cap de 3 (Caçador/Diário/Onda
+  Limpa entravam depois) — agora entra por ÚLTIMO (DECISIONS #230).
+- **Cinco conquistas**: 'Pistoleiro Leal'/'Uma Arma Só' (10/50 abates com
+  a mesma arma), 'Intocável' (fase inteira sem dano — o nome histórico de
+  volta), 'Rasante' (20 balas passando na banda de 6-30px, uma vez por
+  bala), 'Pirotecnista' (10 abates por barril — contados POST-explosão,
+  sem estimativa de falloff) e 'Traje de Contenção'.
+- **Gates**: tsc, 1388 testes em 62 (achievements 15→24), `npm run m5`
+  verde nos 3 contratos, visual sem 404. PNG `m5-grito-maquinista.png` com
+  pendência de leitura (regra 16).
+
 ## Entrega: F4 — M4, a ordem e o voo (2026-10-16 00:50, `develop`)
 
 A campanha reordenada pela narrativa e a decolagem visível:
