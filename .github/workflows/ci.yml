@@ -34,8 +34,12 @@ jobs:
       - name: Type check
         run: npx tsc --noEmit
 
-      - name: Testes (suíte inteira, inclui os 5 portões anti-IA)
-        run: npm test
-
+      # O build vem ANTES dos testes: a suíte assume o dist/ construído
+      # (distBuild.test confere o título no index.html buildado e
+      # semAssetQuebrado valida public/ -> dist/). Localmente o dist
+      # sempre existe das builds — o CI sem esta ordem reprovaria verde.
       - name: Build de produção
         run: npm run build
+
+      - name: Testes (suíte inteira, inclui os 5 portões anti-IA)
+        run: npm test
