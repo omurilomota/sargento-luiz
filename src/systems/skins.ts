@@ -86,6 +86,7 @@ export function resetSkins(): void {
     const raw = localStorage.getItem('luiz.skins_unlocked');
     if (raw) {
       const ids = JSON.parse(raw) as number[];
+    if (!Array.isArray(ids)) return;
       for (const idx of ids) if (idx in skins) skins[idx].unlocked = true;
     }
   } catch {}

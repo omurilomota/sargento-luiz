@@ -1425,6 +1425,7 @@ export const PAUSE_OPTIONS = [
   { id: 'resume', label: 'CONTINUAR' },
   { id: 'music', label: 'MÚSICA' },
   { id: 'sfx', label: 'EFEITOS' },
+  { id: 'fullscreen', label: 'TELA CHEIA' },
   { id: 'config', label: 'CONFIGURAÇÕES' },
   { id: 'menu', label: 'VOLTAR AO MENU' },
 ] as const;

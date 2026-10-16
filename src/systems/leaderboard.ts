@@ -25,7 +25,13 @@ export function getLeaderboard(): LeaderboardEntry[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
-    return JSON.parse(raw) as LeaderboardEntry[];
+    const dado = JSON.parse(raw);
+    // parse válido ≠ FORMA válida: um localStorage de formato antigo ou
+    // corrompido parseia (catch não pega) e devolve não-array — o .map do
+    // fim de campanha explodia depois (relato do playtest 2026-10-16).
+    // A fronteira é o único lugar de validação: dentro do jogo se confia.
+    if (!Array.isArray(dado)) return [];
+    return dado as LeaderboardEntry[];
   } catch {
     return [];
   }

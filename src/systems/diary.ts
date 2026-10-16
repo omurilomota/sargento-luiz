@@ -161,7 +161,8 @@ export function loadDiary(): void {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      const saved = JSON.parse(raw) as (number | string)[];
+      const saved = JSON.parse(raw);
+      if (!Array.isArray(saved)) return;
       for (const entry of DIARY_ENTRIES) {
         entry.unlocked = entry.event ? saved.includes(entry.event) : saved.includes(entry.phase);
       }

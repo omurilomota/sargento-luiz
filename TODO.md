@@ -1914,3 +1914,37 @@
 //     vivo: bundle novo servido, `torreta.png` 200/PNG/398b, e as strings
 //     desta sessão ("MUITO BEM, SOLDADO", "YOU SHALL NOT PASS",
 //     "APROXIMANDO DA ESTAÇÃO") no JS do ar.
+
+// ═══════════════════════════════════════════════════════════════
+// PLAYTEST 2026-10-16 (Fase III) — triagem da frente F-A/F-B
+// ═══════════════════════════════════════════════════════════════
+// [x] A1 carros somem com um tiro: o caminho do debris derrubava
+//     QUALQUER prop atingido — carro e árvore agora são cobertura
+//     intocável (fagulha, a bala morre); colisor 34→40 e desenho a
+//     1,75 célula (zumbi não entra mais pela ponta). Prova: balas
+//     direto no carro, pixel 172→172 (carros-proof).
+// [x] A2 TypeError .map no fim: JSON.parse válido ≠ forma válida —
+//     as 5 fronteiras de localStorage (leaderboard/achievements/diary/
+//     skins/save) validam a forma; save velho descarta limpo.
+//     saveSystem.test +3.
+// [x] A3 o lag após matar muitos: VAZAMENTO de grafo de áudio — todo
+//     SFX conectava um GainNode sem nunca desconectar; centenas de
+//     hits = centenas de nós presos. onended+disconnect nos 5 caminhos
+//     one-shot + crossfade de música (DECISIONS #251).
+// [x] A4 pause dessincronizado: ESC em tela cheia SAÍA do fullscreen
+//     em vez de pausar (#111) e ESC no tutorial dispensava sem pausar —
+//     a máquina ficava um atrás ("pausar e voltar não progride"). ESC
+//     pausa SEMPRE; sair da tela cheia = opção no menu de pausa
+//     (DECISIONS #253). Prova: m4-pausa-proof (ESC#1 paused, ESC#2
+//     playing, ondas andam).
+// [x] recarga "só um ruidinho": o progresso VIAJA com a arma (trocar
+//     pausa, voltar retoma — antes trocar CANCELAVA) e arma emperrada
+//     não começa recarga. weaponAmmo.test +2 (DECISIONS #252).
+// [ ] A5 player para de se mover em certos mapas — SUSPEITO: o
+//     empurrão (tornado/ponte) prendendo contra parede + input = net
+//     zero. Repro: bot andando nas 16 fases + instrumento de stall.
+// [ ] o restante da F-B (torre=zumbi, contratado armado/morte, botas
+//     FORA, continue do save, amigo na parede, faixa branca sobre a
+//     caixa, risada, 1-9 hints, U do pântano, coletando) e as frentes
+//     F-C (SPRITES: tint por inimigo, arma na mão, casas, hospital) e
+//     F-D (refinaria=combustível, subestação opcional, melee, moral)

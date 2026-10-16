@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
   resetWeapons, refillAmmo, setWeapon, shoot, getCurrentAmmo, getCurrentWeaponIndex, startReload,
   updateReload, canShoot, isJammed, repairCurrentWeapon, getCurrentCapacity,
-  getDamageMultiplier, addDamageMultiplier,
+  getDamageMultiplier, addDamageMultiplier, getIsReloading, getReloadTimer, setWeaponQuality,
 } from '../weapons';
 import { WEAPONS } from '../config';
 import { applyStat, resetStats, getStat } from '../core/stats';
@@ -206,5 +206,49 @@ describe('setWeapon não reinicia a partida silenciosamente', () => {
     resetWeapons();
     expect(getCurrentWeaponIndex()).toBe(IDX_PISTOLA);
     expect(getCurrentAmmo()).toBe(WEAPONS[IDX_PISTOLA].magazineSize);
+  });
+});
+
+describe('recarga: o progresso viaja com a arma (playtest 2026-10-16)', () => {
+  beforeEach(() => resetWeapons());
+
+  it('trocar de arma NO MEIO da recarga não perde o progresso', () => {
+    // esvazia a pistola e começa a recarga
+    setWeapon(0);
+    for (let i = 0; i < 10; i++) shoot(100, 100, 0, false);
+    expect(getCurrentAmmo()).toBe(0);
+    startReload();
+    expect(getIsReloading()).toBe(true);
+    // metade do tempo de recarga...
+    for (let i = 0; i < 30; i++) updateReload(0.02); // 0.6s de 1.2s
+    const progressoAntes = getReloadTimer();
+    expect(progressoAntes).toBeLessThan(1.2);
+    // ...troca para a metralhadora e VOLTA: a recarga retoma, não recomeça
+    setWeapon(2);
+    expect(getIsReloading()).toBe(false); // a metralhadora não está recarregando
+    setWeapon(0);
+    expect(getIsReloading()).toBe(true);
+    expect(getReloadTimer()).toBeCloseTo(progressoAntes, 5);
+    // e completa
+    for (let i = 0; i < 60; i++) updateReload(0.02);
+    expect(getIsReloading()).toBe(false);
+    expect(getCurrentAmmo()).toBe(10);
+  });
+
+  it('arma emperrada NÃO começa recarga (o som não mente mais)', () => {
+    setWeapon(0);
+    for (let i = 0; i < 10; i++) shoot(100, 100, 0, false);
+    // encasquilha via o mesmo caminho do jogo
+    setWeaponQuality('quebrada');
+    let disparos = 0;
+    while (!isJammed() && disparos < 200) {
+      shoot(100, 100, 0, false);
+      updateReload(0.01);
+      disparos++;
+    }
+    expect(isJammed()).toBe(true);
+    startReload();
+    expect(getIsReloading()).toBe(false);
+    setWeaponQuality('normal');
   });
 });

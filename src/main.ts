@@ -209,17 +209,16 @@ document.addEventListener('keydown', e => {
     return;
   }
 
-  // ─── Tela cheia tem precedência sobre TODAS as telas ─────────────
-  // O ESC é ação dupla: o navegador usa para sair do fullscreen e o jogo usava
-  // para abrir a pausa. Duas respostas para uma tecla, e dentro do iframe do
-  // itch não há barra para clicar de volta — se o navegador não entregar o
-  // ESC, o jogador ficava sem saída nenhuma.
-  //
-  // Aqui o jogo assume a saída: se está em tela cheia, o ESC pede
-  // `exitFullscreen()` e não abre a pausa. Se o navegador já estava saindo,
-  // a chamada é idempotente.
+  // ─── ESC pausa SEMPRE (playtest 2026-10-16) ─────────────────────
+  // A decisão antiga (#111) dava ao ESC em tela cheia a função de SAIR da
+  // tela cheia — o jogador pausava e "nada acontecia": a tecla só tinha
+  // saído do fullscreen. Uma tecla, duas respostas, e a que o jogador
+  // queria (pausar) era a que nunca vinha — a máquina de pause ficava
+  // DESSINCRONIZADA por um (o "pausar e voltar não progride" do relato).
+  // Agora ESC pausa em qualquer estado; sair da tela cheia é a opção
+  // TELA CHEIA no menu de pausa.
   if (key === 'Escape' && estaEmTelaCheia()) {
-    void sairDaTelaCheia();
+    setGameState('paused');
     keys[k] = true;
     return;
   }
@@ -375,10 +374,12 @@ document.addEventListener('keydown', e => {
       startMusic();
       return;
     }
-    // as teclas agora ficam visíveis no HUD o tempo todo, então as dicas do
-    // tutorial viram ruído depois dos primeiros segundos
+    // as dicas dispensam NO MESMO ESC que pausa: o jogador novo que aperta
+    // ESC no primeiro minuto esperava pausa e ganhava "tutorial fechou,
+    // nada mais" — a mesma dessincronização da tela cheia (playtest
+    // 2026-10-16). Uma tecla, os dois efeitos, na ordem que o jogador lê.
     if (isTutorialActive()) endTutorial();
-    else setGameState('paused');
+    setGameState('paused');
   }
 });
 
@@ -1840,6 +1841,16 @@ function updateBulletProps(bullets: ReturnType<typeof getBullets>): void {
         if (!b.pierce) b.life = 0;
         break;
       }
+      // O CARRO não desmorona (relato do playtest 2026-10-16: "os carros
+      // somem com um tiro?"): o caminho do debris derruba QUALQUER prop
+      // atingido, e a Rodovia/Cidade são exatamente os biomas dele — a
+      // carcaça é cobertura PERMANENTE, a bala morre nela com fagulha.
+      if (prop.kind === 'carro' || prop.kind === 'tree') {
+        spawnParticles(b.x, b.y, PALETTE.mustard, 3, 120);
+        if (b.explosive && b.explosionRadius) detonateBullet(b);
+        if (!b.pierce) b.life = 0;
+        break;
+      }
       // A cápsula é cobertura que não queima: ela abre no roteiro, não no
       // dano — um jogador que atirar nela antes da hora não adianta a
       // história nem estraga a cobertura dos primeiros segundos.
@@ -2508,6 +2519,11 @@ function applyPauseOption(): void {
     case 'sfx':
       setSfxEnabled(!isSfxEnabled());
       break;
+    case 'fullscreen':
+      // o toggle é async mas o estado fica 'paused': o jogador escolhe no
+      // menu e o jogo continua pausado por baixo
+      void alternarTelaCheia();
+      break;
     case 'config':
       // estado continua 'paused' por baixo do overlay
       openSettings();
@@ -2672,7 +2688,9 @@ function draw() {
  * fica sem nenhuma pista de como sair.
  */
 function drawFullscreenHint(W: number, H: number): void {
-  const texto = 'ESC: sair da tela cheia';
+  // o texto antigo ("ESC: sair da tela cheia") mentia desde a mudança do
+  // ESC — agora a saída é opção do menu de pausa, e o aviso diz o caminho
+  const texto = 'em tela cheia · pause: opção TELA CHEIA para sair';
   ctx.save();
   ctx.font = '11px monospace';
   const largura = ctx.measureText(texto).width + 20;

@@ -34,6 +34,34 @@ const amostra = await page.evaluate(() => {
 });
 console.log(`  rodovia — luminância: carro ${amostra.carro.toFixed(0)} · asfalto ${amostra.asfalto.toFixed(0)} · faixa ${amostra.faixa.toFixed(0)}`);
 if (Math.abs(amostra.carro - amostra.asfalto) < 10) nota(`o carro não lê sobre o asfalto (${amostra.carro.toFixed(0)} vs ${amostra.asfalto.toFixed(0)})`);
+// A1 (playtest: "os carros somem com um tiro?"): balas DIRETO na
+// carcaça — o colisor absorve, a bala morre, o carro fica de pé
+const antesDoTiro = await page.evaluate(() => {
+  const canvas = document.querySelector('canvas');
+  const ctx = canvas.getContext('2d');
+  const cam = window.__ashfall.camera();
+  const d = ctx.getImageData(Math.round(7 * 64 + 32 - cam.x), Math.round(7 * 64 + 32 - cam.y), 1, 1).data;
+  return d[0] * 0.3 + d[1] * 0.59 + d[2] * 0.11;
+});
+for (let i = 0; i < 12; i++) {
+  await page.evaluate(() => {
+    const cam = window.__ashfall.camera();
+    const cx = 7 * 64 + 32, cy = 7 * 64 + 32;
+    const ang = Math.atan2(cy - cam.y - 360, cx - cam.x - 640);
+    window.__ashfall.spawnBullet(640 + cam.x - 0, 360 + cam.y - 0, Math.cos(ang) * 700, Math.sin(ang) * 700, 50, false, '#fff', false);
+  });
+  await page.waitForTimeout(120);
+}
+await page.waitForTimeout(600);
+const depoisDoTiro = await page.evaluate(() => {
+  const canvas = document.querySelector('canvas');
+  const ctx = canvas.getContext('2d');
+  const cam = window.__ashfall.camera();
+  const d = ctx.getImageData(Math.round(7 * 64 + 32 - cam.x), Math.round(7 * 64 + 32 - cam.y), 1, 1).data;
+  return d[0] * 0.3 + d[1] * 0.59 + d[2] * 0.11;
+});
+console.log(`  bala no carro: pixel ${antesDoTiro.toFixed(0)} -> ${depoisDoTiro.toFixed(0)}`);
+if (Math.abs(depoisDoTiro - antesDoTiro) > 25) nota('o carro sumiu com o tiro (o pixel virou piso)');
 await page.screenshot({ path: 'tools/shots/carros-rodovia.png' });
 
 // ── Cidade: carcaça na rua ──

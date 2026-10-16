@@ -216,6 +216,39 @@ commitados; esta entrega o fecha com efeito REAL e prova em navegador.
   contra explosão, Munição Incandescente, caçador que responde, e a
   ponte que cai.
 
+## Entrega: F-A — os quatro que quebram o jogo + o recarregamento (2026-10-16 22:30, `develop`)
+
+A triagem do playtest virou fixes com repro:
+
+- **A1 — os carros morriam com um tiro (bug meu)**: no bioma debris,
+  TODO prop atingido passava por `detonateProp` — a carcaça (e a árvore)
+  agora são cobertura intocável: fagulha, a bala morre neles. Colisor
+  34→40 e desenho a 1,75 célula: zumbi não entra mais pela ponta da
+  silhueta. Prova: 12 balas direto no carro, pixel 172→172.
+- **A2 — o TypeError `.map` no fim da campanha**: JSON.parse válido ≠
+  forma válida — localStorage de formato antigo parseava como não-array e
+  explodia longe da causa. As 5 fronteiras (leaderboard, achievements,
+  diário, skins, save) validam a forma; save velho descarta limpo (+3
+  testes).
+- **A3 — o lag "após matar muitos"**: VAZAMENTO de grafo de áudio —
+  cada SFX conectava um GainNode sem nunca desconectar; nó conectado não
+  é coletado. Centenas de hits depois, o grafo processava centenas de
+  nós presos. `onended` + `disconnect` nos 5 caminhos one-shot + no
+  crossfade de música (DECISIONS #251).
+- **A4 — o pause dessincronizado** ("pausar e voltar não progride"): o
+  ESC em tela cheia SAÍA do fullscreen em vez de pausar (a decisão #111)
+  e o ESC no primeiro minuto dispensava o tutorial sem pausar — a
+  máquina de pause ficava UM ATRÁS. ESC pausa sempre; sair da tela cheia
+  é a opção TELA CHEIA no menu de pausa (DECISIONS #253). Prova:
+  `m4-pausa-proof` (ESC#1 paused, ESC#2 playing, ondas andam).
+- **O recarregamento "só um ruidinho"** (relato ao vivo): trocar de arma
+  CANCELAVA a recarga — a munição ficava pela metade na arma guardada.
+  O progresso agora VIAJA com a arma (troca pausa, volta retoma), e
+  arma emperrada não começa recarga: o encasquilamento É o estado
+  (DECISIONS #252). weaponAmmo.test +2.
+- **Gates**: tsc, 1414 testes, build ok. Restam na F-A: A5 (player para
+  de mover — repro com bot nas 16 fases pendente).
+
 ## Entrega: J3-final — tochas, painel e berço: a cenografia fecha (M6 completo, 2026-10-16 20:55, `develop`)
 
 O resto da M6 por geração autoral (o pack não tem e a caça externa não

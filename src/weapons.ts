@@ -46,10 +46,6 @@ export function getEffectiveShootRate(): number {
 
 /** Índice da arma atualmente equipada */
 let currentWeaponIndex = 0;
-/** Se está recarregando */
-let isReloading = false;
-/** Timer de recarga restante */
-let reloadTimer = 0;
 
 /**
  * Retorna a arma atualmente equipada.
@@ -103,6 +99,10 @@ interface WeaponState {
   jammed: boolean;
   jamTimer: number;
   shotsSinceRepair: number;
+  /** Recarga É da arma: o progresso viaja com ela na troca (playtest
+   *  2026-10-16 — "os reloads parecem só um ruidinho"). */
+  reloading: boolean;
+  reloadTimer: number;
 }
 
 const estadoPorArma = new Map<number, WeaponState>();
@@ -124,14 +124,14 @@ function capacidadeDe(index: number): number {
 function estadoDe(index: number): WeaponState {
   let st = estadoPorArma.get(index);
   if (!st) {
-    st = { ammo: capacidadeDe(index), jammed: false, jamTimer: 0, shotsSinceRepair: 0 };
+    st = { ammo: capacidadeDe(index), jammed: false, jamTimer: 0, shotsSinceRepair: 0, reloading: false, reloadTimer: 0 };
     estadoPorArma.set(index, st);
   }
   return st;
 }
 
 /** Aponta para o estado da arma equipada. Nunca chama `capacidadeDe` no tiro. */
-let ativa: WeaponState = { ammo: 0, jammed: false, jamTimer: 0, shotsSinceRepair: 0 };
+let ativa: WeaponState = { ammo: 0, jammed: false, jamTimer: 0, shotsSinceRepair: 0, reloading: false, reloadTimer: 0 };
 
 export function isJammed(): boolean { return ativa.jammed; }
 
@@ -295,12 +295,12 @@ export function refillAmmo(): void {
   // `estadoDe` cria com o pente cheio na primeira vez, então percorrer todos os
   // índices também registra as armas que ainda não foram equipadas — sem isso a
   // metralhadora chegaria na horda com o estado do primeiro disparo.
-  for (let i = 0; i < WEAPONS.length; i++) estadoDe(i).ammo = capacidadeDe(i);
-  // a recarga é global (`isReloading`/`reloadTimer`), não por arma: recarregar
-  // custa tempo e o jogador entra na fase com o pente cheio, sem recarga
-  // pendente no meio do combate.
-  isReloading = false;
-  reloadTimer = 0;
+  for (let i = 0; i < WEAPONS.length; i++) {
+    const st = estadoDe(i);
+    st.ammo = capacidadeDe(i);
+    st.reloading = false;
+    st.reloadTimer = 0;
+  }
 }
 
 export function resetWeapons() {
@@ -311,8 +311,6 @@ export function resetWeapons() {
   resetStat('reloadSpeed');
   estadoPorArma.clear();
   ativa = estadoDe(0);
-  isReloading = false;
-  reloadTimer = 0;
 }
 
 /**
@@ -327,7 +325,7 @@ export function getCurrentAmmo(): number {
  * @returns true se recarregando
  */
 export function getIsReloading(): boolean {
-  return isReloading;
+  return ativa.reloading;
 }
 
 /**
@@ -335,7 +333,7 @@ export function getIsReloading(): boolean {
  * @returns segundos restantes de recarga
  */
 export function getReloadTimer(): number {
-  return reloadTimer;
+  return ativa.reloadTimer;
 }
 
 /**
@@ -343,7 +341,7 @@ export function getReloadTimer(): number {
  * @returns true se pode disparar (tem munição e não está recarregando)
  */
 export function canShoot(): boolean {
-  return (ativa.ammo > 0 || hasPowerUp('municaoInfinita')) && !isReloading && !ativa.jammed;
+  return (ativa.ammo > 0 || hasPowerUp('municaoInfinita')) && !ativa.reloading && !ativa.jammed;
 }
 
 /**
@@ -357,10 +355,12 @@ export function useAmmo(): void {
  * Inicia a recarga da arma atual.
  */
 export function startReload(): void {
-  if (isReloading || ativa.ammo >= capacidadeDe(currentWeaponIndex)) return;
+  // emperrada não recarrega: o encasquilamento É o estado (o som de
+  // recarga tocando sem nada acontecer era o "ruidinho" do playtest)
+  if (ativa.jammed || ativa.reloading || ativa.ammo >= capacidadeDe(currentWeaponIndex)) return;
   const pieceMods = getPieceModifiers(currentWeaponIndex);
-  isReloading = true;
-  reloadTimer = WEAPONS[currentWeaponIndex].reloadTime * getStat('reloadSpeed') * getClassReloadMult() * pieceMods.reloadMult;
+  ativa.reloading = true;
+  ativa.reloadTimer = WEAPONS[currentWeaponIndex].reloadTime * getStat('reloadSpeed') * getClassReloadMult() * pieceMods.reloadMult;
   // O som de recarga sai aqui, no início da recarga — `updateReload` roda todo
   // frame e dispararia o som 60x por segundo.
   reloadHook?.();
@@ -392,12 +392,12 @@ export function updateReload(dt: number): void {
     }
     return;
   }
-  if (!isReloading) return;
-  reloadTimer -= dt;
-  if (reloadTimer <= 0) {
-    isReloading = false;
+  if (!ativa.reloading) return;
+  ativa.reloadTimer -= dt;
+  if (ativa.reloadTimer <= 0) {
+    ativa.reloading = false;
     ativa.ammo = capacidadeDe(currentWeaponIndex);
-    reloadTimer = 0;
+    ativa.reloadTimer = 0;
   }
 }
 
@@ -410,10 +410,11 @@ export function setWeapon(index: number, quality?: string) {
   currentWeaponIndex = index;
   if (quality) currentQuality = quality;
   ativa = estadoDe(index);
-  // Recarga em andamento é da arma que estava na mão: trocar cancela, mas a
-  // munição e o encasquilhamento ficam guardados para quando ela voltar.
-  isReloading = false;
-  reloadTimer = 0;
+  // A recarga VIAJA com a arma (playtest 2026-10-16: "os reloads parecem
+  // só um ruidinho"): antes trocar cancelava e a munição ficava pela
+  // metade — com 4 armas e 1-9/Q no dedo, o R morria a cada troca. O
+  // progresso mora no estado da arma: trocar PAUSA (só a da mão tica),
+  // voltar retoma de onde parou.
 }
 
 /**

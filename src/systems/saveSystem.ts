@@ -69,7 +69,16 @@ export function loadGame(): SaveData | null {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as SaveData;
+    const dado = JSON.parse(raw);
+    // save de formato antigo parseia como objeto incompleto — o jogo
+    // inteiro lê save.coins/save.weapons, e meia-carga crasha longe da
+    // causa (o TypeError do fim de campanha do playtest 2026-10-16 nasceu
+    // desta família). A fronteira garante a forma mínima ou descarta.
+    if (!dado || typeof dado !== 'object' || !Array.isArray(dado.upgrades) || !Array.isArray(dado.weapons)) {
+      deleteSave();
+      return null;
+    }
+    return dado as SaveData;
   } catch {
     return null;
   }

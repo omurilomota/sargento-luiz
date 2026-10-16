@@ -100,6 +100,10 @@ function playTone(freq: number, duration: number, type: OscillatorType = 'square
   gain.connect(sfxGain);
   osc.start(ac.currentTime);
   osc.stop(ac.currentTime + duration);
+  osc.onended = () => {
+    gain.disconnect();
+    osc.disconnect();
+  };
 }
 
 /** Toca ruído (para explosões, impactos) */
@@ -120,6 +124,10 @@ function playNoise(duration: number, volume = 0.2): void {
   source.connect(gain);
   gain.connect(sfxGain);
   source.start(ac.currentTime);
+  source.onended = () => {
+    gain.disconnect();
+    source.disconnect();
+  };
 }
 
 /**
@@ -150,6 +158,11 @@ function playBurst(duration: number, volume: number, filter: BiquadFilterType, f
   biquad.connect(gain);
   gain.connect(sfxGain);
   source.start(ac.currentTime);
+  source.onended = () => {
+    gain.disconnect();
+    biquad.disconnect();
+    source.disconnect();
+  };
 }
 
 /**
@@ -176,6 +189,10 @@ function playSweep(from: number, to: number, duration: number, type: OscillatorT
   gain.connect(sfxGain);
   osc.start(ac.currentTime);
   osc.stop(ac.currentTime + duration);
+  osc.onended = () => {
+    gain.disconnect();
+    osc.disconnect();
+  };
 }
 
 // ─── SFX em arquivo (freesound, CC0/CC-BY) ──────────────
@@ -304,6 +321,13 @@ function playSfxFile(key: string): boolean {
   source.connect(gain);
   gain.connect(sfxGain);
   source.start();
+  // o ganho morre com o som: GainNode conectado é referenciado pelo grafo
+  // de áudio e NUNCA é coletado — cada hit/tiro/moeda vazava um nó, e o
+  // lag "depois de matar muitos" era o grafo processando centenas deles.
+  source.onended = () => {
+    gain.disconnect();
+    source.disconnect();
+  };
   return true;
 }
 
@@ -797,6 +821,12 @@ export async function playMusic(track: MusicTrack): Promise<void> {
     oldGain.gain.setValueAtTime(oldGain.gain.value, now);
     oldGain.gain.linearRampToValueAtTime(0, now + CROSSFADE);
     oldSource.stop(now + CROSSFADE);
+    // o crossfade de música vazava 1 ganho por troca de faixa — menos que
+    // o SFX, mas o mesmo buraco (nó conectado nunca é coletado)
+    oldSource.onended = () => {
+      oldGain.disconnect();
+      oldSource.disconnect();
+    };
   }
 }
 

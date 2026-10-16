@@ -108,7 +108,7 @@ const TREE_HEALTH = Infinity;
  * de fábrica leria como concessionária; o jogo pede abandonado). É
  * COBERTURA PERMANENTE: chassi não queima, não explode, não sai do lugar.
  */
-const CARRO_RADIUS = 34;
+const CARRO_RADIUS = 40;
 const CARRO_HEALTH = Infinity;
 const CARRO_SPRITES = ['prop_carro_00', 'prop_carro_01', 'prop_carro_02'];
 
@@ -350,7 +350,10 @@ export function drawProps(
       // por célula como a árvore, para a fila não vir carimbo.
       const img = getSprite(CARRO_SPRITES[(p.col + p.row) % CARRO_SPRITES.length]);
       if (img) {
-        const largura = CELL_SIZE * 2;
+        // 1.75 célula: o círculo de colisão (raio 40 = 80px) tem que cobrir
+        // a massa visual — a 2 células (128px) os zumbi entravam pelas
+        // pontas sem colisor (relato do playtest)
+        const largura = CELL_SIZE * 1.75;
         const altura = largura * (img.naturalHeight / img.naturalWidth);
         ctx.drawImage(img, p.x - largura / 2, p.y - altura / 2, largura, altura);
       }

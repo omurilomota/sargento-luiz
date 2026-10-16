@@ -16,6 +16,8 @@ vi.mock('../systems/audio', () => {
 });
 
 import { saveGame, loadGame, hasSave, deleteSave, markGameCompleted, isGameCompleted } from '../systems/saveSystem';
+import { getLeaderboard } from '../systems/leaderboard';
+import { ACHIEVEMENTS, loadAchievements } from '../systems/achievements';
 import {
   resetShop, getPurchasedWeapons, getPurchasedUpgrades, restoreUpgrades, buyPerk,
   getStockPerks, setShopCoins, addPurchasedWeapon, getShopLayout, SHOP_SERVICES,
@@ -406,5 +408,27 @@ describe('getShopLayout cobre os serviços atuais', () => {
     const L = getShopLayout(1280, 720);
     expect(L.services).toHaveLength(SHOP_SERVICES.length);
     expect(SHOP_SERVICES.map(s => s.id)).toContain('repair');
+  });
+});
+
+describe('fronteiras de localStorage: parse válido ≠ forma válida', () => {
+  it('leaderboard corrompido (JSON de objeto) devolve [] em vez de explodir no .map', () => {
+    localStorage.setItem('luiz.leaderboard', '{"velho": true}');
+    const lb = getLeaderboard();
+    expect(Array.isArray(lb)).toBe(true);
+    expect(lb).toEqual([]);
+  });
+
+  it('save de formato antigo (sem arrays) é descartado limpo, não meia-carga', () => {
+    localStorage.setItem('luiz.save', JSON.stringify({ coins: 99 }));
+    const save = loadGame();
+    expect(save).toBeNull();
+    expect(hasSave()).toBe(false);
+  });
+
+  it('achievements corrompido (string JSON) não trava o load', () => {
+    localStorage.setItem('luiz.achievements', '"texto-solto"');
+    loadAchievements();
+    expect(ACHIEVEMENTS[0].unlocked).toBe(false);
   });
 });
