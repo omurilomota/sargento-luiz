@@ -213,6 +213,30 @@ commitados; esta entrega o fecha com efeito REAL e prova em navegador.
   contra explosão, Munição Incandescente, caçador que responde, e a
   ponte que cai.
 
+## Entrega: J3-final — tochas, painel e berço: a cenografia fecha (M6 completo, 2026-10-16 20:55, `develop`)
+
+O resto da M6 por geração autoral (o pack não tem e a caça externa não
+achou — `gen_assets_cenografia.py`, CC0, o precedente das árvores):
+
+- **TOCHAS do Castelo**: braseiro visto de cima — bacia de pedra
+  irregular, carvão e chama âmbar em blob (nunca triângulo de lado).
+  Convive com o brasão 312 na lista de decor.
+- **PAINEL da estação no Espaço**: placa chanfrada com luzes apagadas e
+  grade de ventilação — equipamento morto de uma estação morrendo.
+- **BERÇO das biomaquinas no NÚCLEO**: laje com guias âmbar e fenda
+  central — onde a máquina encosta.
+- **Volume por construção**: painel e berço ganham borda clara em cima e
+  escura embaixo (o sombreamento que todo objeto do pack tem — sem ele o
+  slab leria como retângulo procedural, o anti-padrão da auditoria T6).
+- **Decor vira lista de chaves**: tiles do pack e autorais convivem na
+  mesma lista, sem ramo especial (DECISIONS #250).
+- **Gates**: tsc, 1409 testes, visual sem 404, `npm run cenografia` verde
+  (berço 19×38, painel 129×30, brasão 56×41 — pixel medido). PNGs
+  `cenografia-{Castelo,Espaço,NÚCLEO}.png` na fila de leitura.
+- **Com isto a M6 completa**: árvores, asfalto, carcaças, cristais,
+  brasão, tochas, painel e berço — os 16 mapas têm o vocabulário do
+  lugar que dizem ser.
+
 ## Entrega: J3c — o decor que o mapa pede (2026-10-16 20:10, `develop`)
 
 - **Decor por bioma vira lista** (a variante da célula escolhe o tile):

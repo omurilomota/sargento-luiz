@@ -1890,11 +1890,18 @@
 //         CAVERNA ganhou os CRISTAIS 264/265 (o inimigo crystal existia
 //         e o mapa não tinha um), o porto perdeu o "avião de papel" por
 //         pedra de cais, cidade/vulcão ganham variedade (289/319). As
-//         TOCHAS do Castelo continuam pendentes: nenhum pack do disco
-//         tem (o topdown é caixa/cilindro medido pela auditoria) — pede
-//         geração autoral (o precedente das árvores) ou caça externa.
-//     (d) RESTA: pack sci-fi p/ Espaço+NÚCLEO — o "Space Shooter Redux"
-//         mudou de nome no catálogo do Kenney; recaçar na próxima.
+//         [x] TOCHAS do Castelo (2026-10-16, J3c-final): AUTORAIS
+//             (`gen_assets_cenografia.py`, CC0 — o precedente das
+//             árvores; braseiro visto de cima, chama âmbar blob). [x]
+//             (d) A ESTAÇÃO (J3d, 2026-10-16): painel de piso autoral no
+//             Espaço (placa chanfrada, luzes apagadas, grade de ventilação)
+//             e BERÇO das biomaquinas no NÚCLEO (laje com guias âmbar e
+//             fenda central) — a caça externa falhou (pack renomeado no
+//             catálogo do Kenney), a geração autoral cobriu com a paleta
+//             medida. Prova: npm run cenografia (berço 19×38 no NÚCLEO,
+//             painel 129×30 no Espaço, brasão 56×41 no Castelo).
+//             → A FRENTE M6 ESTÁ COMPLETA: árvores, asfalto, carcaças,
+//             cristais, brasão, tochas, painel e berço.
 //     Achado: o pack TEM tambor (~tile 505-511) e o barril seguia
 //     procedural — dívida da regra 15. Sistema: cenografia nasce no
 //     genmaps.py (ele REGERA o maps.ts — edição manual é apagada); a

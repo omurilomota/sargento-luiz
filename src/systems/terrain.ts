@@ -140,37 +140,40 @@ function drawDecor(c: CanvasRenderingContext2D, px: number, py: number, biome: B
   // entulho na Cidade, sucata na Fábrica, pedra no Castelo, placa no Espaço
   // e caixa no Bunker. Cada bioma novo recebeu o próprio objeto em vez de
   // cair no fallback procedural (`ellipse`).
-  // J3c: listas por bioma — a variante da célula escolhe o tile. As
-  // escolhas erradas da auditoria T6 saíram: castelo 133 (quadrado bege a
-  // 84% de saturação) → 312 (brasão/estandarte); caverna ganha os CRISTAIS
-  // que o M6 pedia (o inimigo crystal existia e o mapa não tinha um).
-  const spriteFor: Record<string, number[]> = {
-    floresta: [181],
-    caverna: [264, 265, 238],
-    pantano: [320],
-    vulcao: [316, 319],
-    cidade: [292, 289],
-    fabrica: [180],
-    castelo: [312],
-    espaco: [333],
-    bunker: [129],
-    hospital: [156],
+  // J3c/J3d: listas por bioma de CHAVES de sprite — a variante da célula
+  // escolhe. Mistura tiles do pack (tile_N) com AUTORAIS (prop_tocha/painel/
+  // berco, gerados por gen_assets_cenografia.py — o pack não tem tocha nem
+  // painel de estação; medido na auditoria T6, os objetos são caixa ou
+  // cilindro). As escolhas erradas saíram: castelo 133 (quadrado bege 84%
+  // saturação) → brasão + TOCHAS; espaco ganha o PAINEL da estação; o
+  // bunker (NÚCLEO) ganha o BERÇO das biomaquinas.
+  const spriteFor: Record<string, string[]> = {
+    floresta: ['tile_181'],
+    caverna: ['tile_264', 'tile_265', 'tile_238'],
+    pantano: ['tile_320'],
+    vulcao: ['tile_316', 'tile_319'],
+    cidade: ['tile_292', 'tile_289'],
+    fabrica: ['tile_180'],
+    castelo: ['tile_312', 'prop_tocha_00', 'prop_tocha_01'],
+    espaco: ['tile_333', 'prop_painel_00'],
+    bunker: ['tile_129', 'prop_berco_00'],
+    hospital: ['tile_156'],
     // Rodovia não entra nesta tabela: a faixa de asfalto do mapa dela usa os
     // caracteres próprios (`=`, `:`, `-`, `_`) e não o `,`. O tile 260 que
     // estava nesta linha era uma marca laranja/cinza do pack repetida em 77
     // células — lia como padrão, não como estrada, e foi escolhido por número
     // sem nunca ser aberto.
-    trens: [180],
-    ponte: [238],
-    refinaria: [316],
-    subestacao: [264],
+    trens: ['tile_180'],
+    ponte: ['tile_238'],
+    refinaria: ['tile_316'],
+    subestacao: ['tile_264'],
     // 134 era o "avião de papel" da auditoria T6: o cais pede pedra/amarração
-    porto: [317],
+    porto: ['tile_317'],
   };
   const lista = spriteFor[biome.key];
   if (lista !== undefined && lista.length > 0) {
-    const n = lista[variant % lista.length];
-    const img = getSprite(`tile_${n}`);
+    const chave = lista[variant % lista.length];
+    const img = getSprite(chave);
     if (img) {
       const s = CELL_SIZE * (0.5 + (variant % 2) * 0.2);
       c.drawImage(img, px + (CELL_SIZE - s) / 2, py + (CELL_SIZE - s) / 2, s, s);

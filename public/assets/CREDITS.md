@@ -282,6 +282,20 @@ Os tiles são gerados em **escala de cinza** de propósito: `applyTint` e
 não sobrevive ao pipeline — só a luminância. A estrada se lê pelo contraste
 (corpo a 31, faixa e borda a 122 na tela, medido no shot da fase 2).
 
+### A cenografia autoral de interior (tocha, painel, berço)
+
+Quatro sprites autorais (**CC0**, autoria do projeto) em
+`assets/sprites/props/`, gerados por `tools/gen_assets_cenografia.py` —
+o pack Top-down Shooter não tem tocha, painel de estação nem berço
+(medido na auditoria: os 185 objetos são caixa ou cilindro), e a caça
+externa da sessão não achou pack 2D compatível:
+
+| arquivo | o que é |
+|---|---|
+| `tocha_00.png` · `tocha_01.png` | braseiro do Castelo visto de cima: bacia de pedra irregular, carvão e chama âmbar |
+| `painel_00.png` | módulo de piso da estação do Espaço: placa chanfrada com luzes apagadas e grade de ventilação |
+| `berco_00.png` | berço das biomaquinas do NÚCLEO: laje com guias âmbar e fenda central |
+
 ### As árvores da Floresta e do Pântano
 
 Três tiles autoral (**CC0**, autoria do projeto) em
