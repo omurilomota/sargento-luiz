@@ -567,10 +567,13 @@ export function drawGameOver(score: number, killStreak: number): void {
 // Tela separada da derrota: zerar o jogo caindo no mesmo desenho lia como
 // derrota. Vitória usa o verde-musgo do jogador, morte continua terracota.
 export function drawVictory(score: number, killStreak: number): void {
-  drawEndScreen('NÚCLEO DESTRUIDO', PALETTE.moss, score, killStreak);
+  // M2, relato de 2026-10-14: a vitória de quem zerou a campanha lê como o
+  // cumprimento do sargento — "Muito bem, soldado!" — e não como o fim
+  // genérico. O fato fica no subtítulo: a tela celebra quem chegou aqui.
+  drawEndScreen('MUITO BEM, SOLDADO!', PALETTE.moss, score, killStreak, 'O NÚCLEO CAIU — A CAMPANHA ACABOU');
 }
 
-function drawEndScreen(title: string, titleColor: string, score: number, killStreak: number): void {
+function drawEndScreen(title: string, titleColor: string, score: number, killStreak: number, subtitulo?: string): void {
   const W = canvas.width;
   const H = canvas.height;
 
@@ -581,6 +584,12 @@ function drawEndScreen(title: string, titleColor: string, score: number, killStr
   ctx.font = 'bold 36px monospace';
   ctx.textAlign = 'center';
   ctx.fillText(title, W / 2, H * 0.12);
+
+  if (subtitulo) {
+    ctx.fillStyle = PALETTE.textDim;
+    ctx.font = '16px monospace';
+    ctx.fillText(subtitulo, W / 2, H * 0.17);
+  }
 
   ctx.fillStyle = PALETTE.text;
   ctx.font = '18px monospace';

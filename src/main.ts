@@ -319,6 +319,10 @@ document.addEventListener('keydown', e => {
   // 1-9 equipam pares (arma + qualidade) já comprados, sem abrir a loja.
   // Antes lia `getPurchasedWeapons()`, que devolve só índices: com a mesma arma
   // em duas raridades as duas linhas equipavam a mesma.
+  if (key >= '1' && key <= '9' && marteloForcado) {
+    pushToast('O DESTRUIDOR É A ÚNICA ARMA DESTA FASE', 1.4, 'aviso');
+    return;
+  }
   if (key >= '1' && key <= '9') {
     const slot = parseInt(key, 10) - 1;
     const pares = getPurchasedWeaponPairs();
@@ -333,6 +337,11 @@ document.addEventListener('keydown', e => {
   // (fúria em :287 e ciclo de arma aqui), e a fúria é a habilidade mais cara do
   // jogo — gastá-la trocando de arma era erro de quem jogou. Decisão do jogador
   // em 2026-10-11: E só fúria, Q só arma anterior, sem ciclo para frente.
+  // No NÚCLEO o martelo é a única arma (M2): Q cala como 1-9.
+  if (key === 'q' && marteloForcado) {
+    pushToast('O DESTRUIDOR É A ÚNICA ARMA DESTA FASE', 1.4, 'aviso');
+    return;
+  }
   if (key === 'q') {
     const pares = getPurchasedWeaponPairs();
     if (pares.length > 1) {
@@ -491,6 +500,14 @@ let bossZoomTriggered = false;
 // foram compradas — zerado no load de cada fase e rearmado só quando o
 // serviço foi pago na loja anterior.
 let botasDeCampo = false;
+// O Destruidor forçado na fase do NÚCLEO: as teclas de troca de arma ficam
+// caladas (M2). Zerado no load de toda fase — só o leaveShop do NÚCLEO arma.
+let marteloForcado = false;
+// O anúncio de onda que esperou a caixa de diálogo fechar (M2): no
+// Hospital/Fábrica/Castelo a onda 2 nasce JUNTO com um encontro, o som
+// tocava debaixo do mundo congelado e o jogador nunca ouvia — a onda
+// já estava em andamento quando a caixa fechava.
+let anuncioDeOndaPendente = false;
 // pilha de velocidade do último frame (telemetria da prova de serviços)
 let ultimoStackVelocidade = 1;
 let currentBossZoom = 1;
@@ -700,6 +717,8 @@ function loadPhaseEnvironment(): void {
   // consumo é o único caminho: quem paga em 'shop' recebe aqui, na ordem
   // natural (leaveShop → loadPhaseEnvironment).
   botasDeCampo = false;
+  marteloForcado = false;
+  anuncioDeOndaPendente = false;
   for (const svc of consumeShopServices()) {
     // os dois aliados nascem colados no jogador: ±40px às cegas podia pôr o
     // corpo DENTRO da parede (spawn de borda) — o mesmo resgate do loot
@@ -927,7 +946,13 @@ function update(dt: number) {
     // também". A caixa é a única entrada que não aceitava clique.
     if (consumeEnter() || consumeCutsceneClick() || tempoDaLinha >= 10) {
       tempoDaLinha = 0;
-      avancarDialogo();
+      const fechou = avancarDialogo();
+      // M2: a onda que nasceu junto com este diálogo se anuncia AGORA — o
+      // mundo voltou a andar, o aviso chega junto com os primeiros passos.
+      if (fechou && anuncioDeOndaPendente) {
+        anuncioDeOndaPendente = false;
+        sfxWaveStart();
+      }
     }
     return;
   }
@@ -1255,13 +1280,17 @@ function update(dt: number) {
   })) {
     nextWave();
     if (!hard) player.healOnWaveComplete();
-    sfxWaveStart();
     npcBark();
+    // M2: o anúncio de onda espera a caixa de diálogo fechar — os encontros
+    // da Fábrica/Hospital/Castelo abrem a caixa na MESMA onda, e o som sob
+    // mundo congelado é anúncio que nunca chegou (relato 2026-10-14).
+    let caixaAbriuNestaOnda = false;
     // H2: a SEGUNDA onda da Fábrica traz o Rogério — o amigo do relato
     // do Murilo. O NPC nasce do lado do jogador e a caixa pequena conta
     // a cápsula. O mundo congela na hora (a caixa é pausada por linha).
     if (phase.name === 'Fábrica' && getCurrentWave() === 1 && getCurrentMode() === 'campaign' && !amigoApareceu) {
       amigoApareceu = true;
+      caixaAbriuNestaOnda = true;
       spawnNPC(p.x + 60, p.y, 0, 'manBrown');
       abrirDialogo(SEQUENCIA_AMIGO);
     }
@@ -1271,6 +1300,7 @@ function update(dt: number) {
     // vem no gatilho do chefe, e o mapa da região (minimapa) no abate dele.
     if (phase.name === 'Hospital de Campanha' && getCurrentWave() === 1 && getCurrentMode() === 'campaign' && !doutorApareceu) {
       doutorApareceu = true;
+      caixaAbriuNestaOnda = true;
       spawnNPC(p.x + 60, p.y, 0, 'hitman');
       abrirDialogo(SEQUENCIA_MEDICO);
     }
@@ -1279,9 +1309,12 @@ function update(dt: number) {
     // da fase é o foguete. Sobreviver até o fim paga a sala 4B e o nome.
     if (phase.name === 'Castelo' && getCurrentWave() === 1 && getCurrentMode() === 'campaign' && !julioApareceu) {
       julioApareceu = true;
+      caixaAbriuNestaOnda = true;
       spawnNPC(p.x + 60, p.y, 0, 'manBlue');
       abrirDialogo(SEQUENCIA_JULIO);
     }
+    if (caixaAbriuNestaOnda) anuncioDeOndaPendente = true;
+    else sfxWaveStart();
     const waveAch = checkAchievements('wave', getCurrentWave());
     if (waveAch) pushToast(waveAch.name, 3);
     if (getGameState() === 'shop') enterShop();
@@ -2239,6 +2272,12 @@ function leaveShop(): void {
   if (getGameState() !== 'playing') {
     resetShop();
     if (wasGameCompleted()) {
+      // A vitória entra no save AQUI, no caminho natural de encerramento —
+      // antes só o FINAL SECRETO "PERFEIÇÃO" chamava markGameCompleted, e
+      // quem zerou morrendo no caminho via GAME OVER no fim da campanha
+      // vencida (relato 2026-10-14: "tela de vitória no lugar do game over
+      // final"). O save é o que a tela de fim e as armas secretas leem.
+      markGameCompleted();
       setGameState('playing');
       showCutsceneAt(EPILOGUE_CUTSCENE);
       // A música nostálgica da reescrita (DECISIONS #174): Autumn Changes,
@@ -2259,25 +2298,20 @@ function leaveShop(): void {
   // velocidade, +3 escudo e metade do dano recebido por 20s; o martelo é a arma
   // que ele tira do coração da máquina.
   //
-  // O martelo vai para a MOCHILA, não para a mão: equipar aqui trocaria a arma
-  // que o jogador trouxe da fase 8 (a build de 8 fases) por uma arma de 3
-  // tiros. Na mochila ele usa as teclas 1-9 quando quiser — a diferença entre
-  // receber a arma e trocar de arma sem querer.
+  // O martelo vem FORÇADO para a mão no NÚCLEO (M2, relato 2026-10-14:
+  // "martelo forçado no NÚCLEO — única arma da fase"). A entrega anterior
+  // ia para a mochila para não trocar a build do jogador sem querer — mas a
+  // fase final é o desfile do Destruidor: o martelo na mão e as teclas 1-9
+  // e Q caladas até o fim são o poder fantasia que a fase promete.
   if (getGameState() === 'playing' && getCurrentMode() === 'campaign' && getCurrentPhase()?.boss === 'nucleo') {
     const pp = player.getPlayer();
     spawnPowerUpDeTipo(pp.x + 60, pp.y, 'trajeNucleo');
     damageNumbers.push({ x: pp.x, y: pp.y - 40, text: 'TRAJE DE CONTENÇÃO', color: PALETTE.terracotta, life: 2.4, vy: -40 });
     const martelo = WEAPONS.findIndex(w => w.name === 'Destruidor');
-    // Mochila cheia não pode engolir o martelo: a fase final é apelona e o
-    // jogador precisa dele. Nesse caso ele vai para NOVIDADES — a caixa que
-    // o jogador abre e escolhe entre ativar e vender, que é o mesmo caminho
-    // do prêmio de chefe.
-    if (!addPurchasedWeapon(martelo, 'ascendente')) {
-      pushPendingReveal(martelo, 'ascendente');
-      damageNumbers.push({ x: pp.x, y: pp.y - 70, text: 'DESTRUIDOR — NOVIDADES', color: PALETTE.mustard, life: 2.4, vy: -40 });
-    } else {
-      damageNumbers.push({ x: pp.x, y: pp.y - 70, text: 'DESTRUIDOR — MOCHILA', color: PALETTE.mustard, life: 2.4, vy: -40 });
-    }
+    addPurchasedWeapon(martelo, 'ascendente');
+    setWeapon(martelo, 'ascendente');
+    marteloForcado = true;
+    damageNumbers.push({ x: pp.x, y: pp.y - 70, text: 'O DESTRUIDOR É SUA ÚNICA ARMA AQUI', color: PALETTE.mustard, life: 2.6, vy: -40 });
   }
   enemies.length = 0;
   clearBullets();
@@ -3477,6 +3511,12 @@ window.__ashfall = {
     .filter(n => n.aliado)
     .map(n => ({ modo: n.aliado!.modo, nome: n.name, vivo: n.alive, hp: Math.round(n.health) })),
   tirosDeAliado: () => getTirosDeAliado(),
+  // prova M2 #1: o anúncio de onda diferido (caixa de diálogo do Hospital)
+  ondaPendente: () => anuncioDeOndaPendente,
+  // prova M2 #4: o Destruidor forçado na fase do NÚCLEO
+  armaAtual: () => WEAPONS[getCurrentWeaponIndex()]?.name ?? '',
+  // prova M2 #3: qual tela de fim o jogo desenhou (vitoria | gameover | local)
+  telaDeFim: () => (fimLocal() ? 'local' : isGameCompleted() ? 'vitoria' : 'gameover'),
   // devolve o estado da run nova depois do `resetGame`: o `perks-proof` compara
   // com a run anterior para provar que perks e stats não sobreviveram.
   resetarPartida: () => { resetGame(); return true; },

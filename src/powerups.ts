@@ -6,6 +6,7 @@
 
 import { PowerUp } from './types';
 import { POWERUP_TYPES } from './config';
+import { furiaDesbloqueada } from './systems/skills';
 import { rand } from './utils';
 import { pushOutOfWalls } from './systems/tilemap';
 import { PICKUP_RADIUS, POWERUP_LIFE } from './core/constants';
@@ -37,8 +38,21 @@ SEM_SORTEIO.push('trajeNucleo');
  * Cria um power-up aleatório na posição especificada.
  * O tipo é escolhido aleatoriamente entre todos os tipos disponíveis.
  */
+/**
+ * A FÚRIA é SEGREDO de história (H2): a tecla E só existe depois que a
+ * Fábrica do Rogério abre ela — e a gema "F" dizendo "FÚRIA" no chão da
+ * fase 1 vazava o segredo (relato de 2026-10-14: "gate da fúria no spawn
+ * do powerup"). Enquanto travada, a gema não dropa de inimigo nenhum.
+ */
+function poolDePowerups(sorteioDeChefe: boolean): string[] {
+  const fora = new Set<string>(SEM_SORTEIO);
+  if (sorteioDeChefe) fora.delete('invincible'); // o chefe é a recompensa por limpar a fase
+  if (!furiaDesbloqueada()) fora.add('furia');
+  return Object.keys(POWERUP_TYPES).filter(t => !fora.has(t));
+}
+
 export function spawnPowerUp(x: number, y: number) {
-  const tipos = Object.keys(POWERUP_TYPES).filter(t => !SEM_SORTEIO.includes(t));
+  const tipos = poolDePowerups(false);
   const type = tipos[Math.floor(rand(0, tipos.length))];
   const at = pushOutOfWalls(x, y, PICKUP_RADIUS);
   powerups.push({ x: at.x, y: at.y, type, life: POWERUP_LIFE });
@@ -62,7 +76,7 @@ export function spawnPowerUpDeTipo(x: number, y: number, type: string) {
  * a recompensa por limpar a fase.
  */
 export function spawnPowerUpDeChefe(x: number, y: number) {
-  const tipos = Object.keys(POWERUP_TYPES);
+  const tipos = poolDePowerups(true);
   const type = tipos[Math.floor(rand(0, tipos.length))];
   const at = pushOutOfWalls(x, y, PICKUP_RADIUS);
   powerups.push({ x: at.x, y: at.y, type, life: POWERUP_LIFE });

@@ -19,6 +19,7 @@ import { getAllSkins, buySkin, equipSkin, Skin } from '../systems/skins';
 import { canWatchAd, startWatchingAd, getIsWatchingAd, getAdProgress, getAdCooldown, getNextAdReward, getAdsWatched, getAdsRemaining, updateAd } from '../systems/ads';
 import { openSupportLink } from '../systems/support';
 import { getGameState, getCurrentPhase } from '../phases';
+import { furiaDesbloqueada } from '../systems/skills';
 import { sfxBuy, sfxError } from '../systems/audio';
 import { PALETTE } from '../core/palette';
 import { getSprite } from '../systems/sprites';
@@ -141,7 +142,9 @@ function restock(): void {
     // a sorte empurra a qualidade do estoque: um ponto vale um passo de boost
     stockWeapons.push({ index: idx, quality: rollQuality(0, sorte), sold: false });
   }
-  const keys = Object.keys(POWERUP_TYPES).filter(k => k !== 'health' && k !== 'shield');
+  // A gema FÚRIA é segredo de história (H2): enquanto a Fábrica não abriu a
+  // tecla E, o estoque não pode vender o que o chão não pode dropar.
+  const keys = Object.keys(POWERUP_TYPES).filter(k => k !== 'health' && k !== 'shield' && (k !== 'furia' || furiaDesbloqueada()));
   stockPowerups = [];
   while (stockPowerups.length < 3 && keys.length > 0) {
     const k = keys.splice(Math.floor(Math.random() * keys.length), 1)[0];

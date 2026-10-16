@@ -1764,18 +1764,23 @@
 //     TORNADO novo (visual + som + empurrão em jogador e zumbi),
 //     Caverna (gotejamento, eco), Fábrica/Trens (maquinário, apito),
 //     Espaço (drone de vácuo, alarme da estação).
-// [ ] M2 — BUGS DE FLUXO: [x] resetSpawner no load de fase (a "onda 2 na
-//     entrada", varrida nas 16) — F0 2026-10-15: o estado de onda (cota,
-//     relógio, titã) agora zera em TODO loadPhaseEnvironment, ANTES do
-//     setPhaseDifficulty; `resetSpawner` parou de apagar a dificuldade da
-//     fase (a Cidade voltava ao 1.0 em toda partida nova — bug irmão
-//     pré-existente no resetGame). Trava: entradaDeFase.test.ts (4,
-//     mordida provada) + campanha-proof ganhou "a fase começou na onda 1"
-//     nas 16. Restam: anúncio de onda cala sob a caixa de
-//     diálogo (Hospital), input morto no blur da aba (repro no harness
-//     antes do fix), tela de vitória "Muito bem, soldado!" no lugar do
-//     game over final, martelo forçado no NÚCLEO (única arma da fase),
-//     gate da fúria no spawn do powerup.
+// [x] M2 — BUGS DE FLUXO (2026-10-15, F1): [x] resetSpawner no load de
+//     fase ("onda 2 na entrada") — F0; [x] anúncio de onda cala sob a caixa
+//     de diálogo (Hospital): o som agora arma PENDENTE na abertura do
+//     encontro e toca quando a caixa fecha — m2fluxo-proof testemunha o
+//     flag armar/consumir; [x] input morto no blur da aba: NÃO REPRODUZ
+//     no HEAD (blur-proof: 256px de movimento pós-blur+ESC nas duas
+//     variantes, 60q/s) — o relato é do build publicado, anterior ao fix
+//     de 2026-10-13; ação = republicar o zip; [x] tela de vitória "Muito
+//     bem, soldado!": o título novo + o markGameCompleted no caminho
+//     natural (antes só o FINAL SECRETO "PERFEIÇÃO" marcava — quem zerou
+//     morrendo via GAME OVER no fim vencido); [x] martelo forçado no
+//     NÚCLEO: o Destruidor vem NA MÃO e as teclas 1-9/Q respondem com
+//     aviso em vez de trocar (m2fluxo-proof: arma Destruidor na entrada,
+//     tecla 2 não troca); [x] gate da fúria no spawn do powerup: a gema
+//     "F" não dropa (comum NEM chefe) e não entra no estoque da loja
+//     enquanto a Fábrica não abrir a tecla E — gateFuria.test (5).
+//     Prova: npm run m2fluxo (3 contratos verdes) + npm run blur.
 // [ ] M3 — DINHEIRO E DESAFIO: economia medida contra o modelo do
 //     árbitro (achar a torneira), resistência a explosão nos chefes,
 //     rework da Pistola Incandescente (o efeito vale em qualquer arma),
