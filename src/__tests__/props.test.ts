@@ -76,11 +76,14 @@ describe('props: dano', () => {
     expect(caixa.hitFlash).toBeGreaterThan(0);
   });
 
-  it('getBlockingProps esconde o que já morreu, getNests só ninho vivo', () => {
-    initProps(mapa({ c: [3, 3], b: [5, 3], N: [7, 3] }));
+  it('getBlockingProps devolve SÓ a árvore, getNests só ninho vivo', () => {
+    initProps(mapa({ c: [3, 3], b: [5, 3], N: [7, 3], T: [9, 3] }));
     const ninho = getNests()[0];
     damageProp(ninho, ninho.maxHealth);
-    expect(getBlockingProps()).toHaveLength(2);
+    // caixote e barril são cobertura de tiro, não parede: andar por cima é o
+    // jogo de sempre. Quem segura passagem é a árvore.
+    expect(getBlockingProps()).toHaveLength(1);
+    expect(getBlockingProps()[0].kind).toBe('tree');
     expect(getNests()).toHaveLength(0);
   });
 });
@@ -105,6 +108,38 @@ describe('props: o foguete do protect (Castelo)', () => {
   it('o foguete não explode: a onda que o ataca não ganha explosão de graça', () => {
     initProps(mapa({ F: [13, 10] }));
     expect(getBlast(getProps()[0]).radius).toBe(0);
+  });
+});
+
+describe('props: a árvore que bloqueia passagem (Floresta e Pântano)', () => {
+  it('T é árvore viva e D é árvore morta, as duas do mesmo tipo', () => {
+    initProps(mapa({ T: [3, 3], D: [5, 3] }));
+    expect(getProps().every(p => p.kind === 'tree')).toBe(true);
+  });
+
+  it('o raio de colisão é menor que a copa', () => {
+    // a sprite é desenhada no tamanho da célula (64px) e a copa tem raio 27:
+    // o jogador entra sob a folhagem da beirada e só o tronco segura. Se os
+    // dois números empatarem, a árvore lê como caixote grande.
+    initProps(mapa({ T: [3, 3] }));
+    const arvore = getProps()[0];
+    expect(arvore.radius).toBeLessThan(CELL_SIZE / 2);
+    expect(arvore.radius).toBeLessThan(27);
+  });
+
+  it('a árvore não morre: tiro nela não derruba e não muda o mapa no meio da onda', () => {
+    initProps(mapa({ T: [3, 3] }));
+    const arvore = getProps()[0];
+    for (let i = 0; i < 50; i++) damageProp(arvore, 999);
+    expect(arvore.health).toBeGreaterThan(0);
+    expect(getBlockingProps()).toHaveLength(1);
+  });
+
+  it('a árvore continua na lista depois do tiro, diferente do caixote', () => {
+    initProps(mapa({ T: [3, 3], c: [5, 3] }));
+    damageProp(getProps()[1], 9999);
+    expect(getProps()).toHaveLength(2);
+    expect(getProps().filter(p => p.kind === 'tree')).toHaveLength(1);
   });
 });
 

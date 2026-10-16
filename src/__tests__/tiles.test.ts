@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'fs';
+import { readFileSync, readdirSync } from 'fs';
 import { inflateSync } from 'zlib';
 import { join } from 'path';
 import { DUNGEON_FLOORS, DUNGEON_WALLS, DUNGEON_COUNT } from '../systems/sprites';
@@ -232,6 +232,47 @@ describe('tiles: nenhum tile de preenchimento é papél chapado', () => {
       });
     }
   }
+});
+
+describe('tiles: contagem do disco bate com DUNGEON_COUNT', () => {
+  // O extrador escolhe os tiles; DUNGEON_COUNT diz ao jogo quantos existem. Os
+  // dois divergindo, `getDungeonTile` carrega arquivo que não existe — e nenhum
+  // outro gate vê: `tsc` passa, `semAssetQuebrado` só olha o que foi carregado.
+  // Medido: com a faixa de luminância das variantes, `piso_areia` passou de 2
+  // para 1 arquivo no disco e o jogo teria pedido `piso_areia_01.png`.
+
+  function contar(grupo: string): number {
+    return readdirSync(DIR).filter(
+      (a) => a.startsWith(`${grupo}_`) && a.endsWith('.png'),
+    ).length;
+  }
+
+  for (const grupo of DUNGEON_FLOORS) {
+    it(`${grupo}: quantidade de tiles no disco`, () => {
+      expect(
+        contar(grupo),
+        `${grupo}: ${contar(grupo)} arquivo(s) no disco, DUNGEON_COUNT diz ${DUNGEON_COUNT.piso[grupo]}`,
+      ).toBe(DUNGEON_COUNT.piso[grupo]);
+    });
+  }
+
+  for (const grupo of DUNGEON_WALLS) {
+    it(`${grupo}: 16 tiles de parede no disco`, () => {
+      expect(contar(grupo), `${grupo}: ${contar(grupo)} arquivo(s) no disco`).toBe(DUNGEON_COUNT.parede);
+    });
+  }
+
+  it('nenhum arquivo de piso ou parede órfão no disco', () => {
+    const orfaos = readdirSync(DIR)
+      .filter((a) => a.endsWith('.png'))
+      .map((a) => a.replace(/_\d+\.png$/, ''))
+      .filter(
+        (g) =>
+          (g.startsWith('piso_') && !(DUNGEON_FLOORS as readonly string[]).includes(g)) ||
+          (g.startsWith('parede_') && !(DUNGEON_WALLS as readonly string[]).includes(g)),
+      );
+    expect(orfaos, `materiais no disco sem uso: ${[...new Set(orfaos)].join(', ')}`).toEqual([]);
+  });
 });
 
 describe('tiles: hierarquia de saturação — objeto de cutscene não brilha mais que o cenário', () => {

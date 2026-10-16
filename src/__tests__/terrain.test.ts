@@ -136,8 +136,10 @@ describe('terrain: o contrato do tilemap', () => {
 
   it.each(KEYS)('%s: só usa caracteres que tileKindAt conhece', (key) => {
     // caractere desconhecido cai no `default` do drawFloor e vira mais um tile
-    // de chão sem querer
-    const CONHECIDOS = ['#', ',', '^', '.', 'c', 'b', 'N', 'P', 'E', 'B', 'R', 'F'];
+    // de chão sem querer. Os quatro da estrada da Rodovia ('=', ':', '-', '_')
+    // têm tratamento próprio em buildTerrain: asfalto autoral, não o chão do
+    // bioma.
+    const CONHECIDOS = ['#', ',', '^', '.', 'c', 'b', 'N', 'P', 'E', 'B', 'R', 'F', '=', ':', '-', '_', 'T', 'D'];
     for (const row of BIOMES[key].rows) {
       for (const ch of row) {
         expect(CONHECIDOS, `caractere '${ch}' sem tratamento`).toContain(ch);

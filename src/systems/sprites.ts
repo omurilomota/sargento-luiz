@@ -79,10 +79,19 @@ const BASE = 'assets/sprites/topdown-shooter/PNG';
  */
 export const DUNGEON_BASE = 'assets/sprites/dungeon';
 
-/** Materiais de piso disponíveis; a quantidade de tiles vem de DUNGEON_COUNT. */
+/**
+ * Materiais de piso disponíveis; a quantidade de tiles vem de DUNGEON_COUNT.
+ *
+ * `piso_asfalto`/`piso_faixa`/`piso_borda` são AUTORAIS (CC0), gerados por
+ * `tools/gen_assets_estrada.py`: o pack não tem asfalto. Não são piso de
+ * bioma — a estrada da Rodovia é desenhada por caractere do mapa (`=`, `:`,
+ * `-`, `_` em `buildTerrain`), então `dungeonFloor` da Rodovia continua sendo
+ * o acostamento de pedra.
+ */
 export const DUNGEON_FLOORS = [
   'piso_pedra', 'piso_pedra2', 'piso_terra', 'piso_terra2', 'piso_areia',
-  'piso_grama', 'piso_metal', 'piso_madeira',
+  'piso_grama', 'piso_metal', 'piso_vidro', 'piso_madeira',
+  'piso_asfalto', 'piso_faixa', 'piso_borda',
 ] as const;
 
 /** Materiais de parede disponíveis, 16 tiles cada. */
@@ -98,16 +107,24 @@ export const DUNGEON_WALLS = [
  * wangset: as 4 arestas e os 4 cantos no mesmo terreno — medido pela costura,
  * delta -1 da borda pro miolo, contra -38 das peças de borda que a extração
  * velha pegava). A variedade honesta vem dos sheets da família; a curadoria
- * visual derrubou o Stone_04 (junta preta pesada) e o Sand_02 (cinza-azulado
- * longe de praia). Parede fica no mesmo lugar de sempre: linhas 0+1 do sheet.
+ * visual derrubou o Stone_01 (0 dos 48 tiles passa o portão de costura: é
+ * bloco, não piso) e o Sand_02 como piso (cinza-azulado longe de praia).
+ * `piso_vidro` é o sheet Glass 1 do mesmo pack. Parede fica no mesmo lugar
+ * de sempre: linhas 0+1 do sheet.
  */
 export const DUNGEON_COUNT: {
   piso: Record<string, number>;
   parede: number;
 } = {
   piso: {
-    piso_pedra: 2, piso_pedra2: 1, piso_terra: 2, piso_terra2: 2,
-    piso_areia: 2, piso_grama: 1, piso_metal: 1, piso_madeira: 1,
+    // Contagem no disco, conferida pelo gate de contagem em tiles.test.ts. O
+    // extrador pode derrubar um material para 1 tile (a faixa de luminância
+    // das variantes rejeita o 2o quando ele sai de ±60 do 1o) e o jogo
+    // carregaria arquivo inexistente sem esse teste.
+    piso_pedra: 1, piso_pedra2: 1, piso_terra: 2, piso_terra2: 2,
+    piso_areia: 2, piso_grama: 1, piso_metal: 1, piso_vidro: 1, piso_madeira: 1,
+    // autorais (gerados): asfalto liso 3 variantes + rachado, faixa e bordas
+    piso_asfalto: 4, piso_faixa: 1, piso_borda: 2,
   },
   parede: 16,
 };
@@ -189,8 +206,12 @@ export const ITEM_SPRITES = ['coinGold', 'gemRed', 'gemGreen', 'gemBlue', 'gemYe
 /** Projéteis fora do pack Kay Lousberg. */
 export const BULLET_EXTRA = ['foguete', 'plasma', 'orbe', 'feixe', 'estilhaco'];
 
-/** Props com sprite próprio (não vem do tileset): o foguete do Castelo e a torreta da loja. */
-export const PROP_EXTRA = ['foguete', 'torreta'];
+/**
+ * Props com sprite próprio (não vem do tileset): o foguete do Castelo e as
+ * árvores autorais da Floresta e do Pântano (o pack não tem vegetação — os
+ * 185 tiles-objeto dele são caixa e cilindro).
+ */
+export const PROP_EXTRA = ['foguete', 'arvore_00', 'arvore_01', 'arvore_morta_00'];
 
 /**
  * Sprite de arma por nome, para a loja e o HUD. 6 famílias para 12 armas: as

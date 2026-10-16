@@ -1,15 +1,18 @@
 /**
  * src/systems/props.ts
  *
- * Caixotes e barris: geometria que o jogador pode destruir.
- * Barris explodem em cadeia; caixotes soltam moedas. São poucos e mudam,
- * então são desenhados por frame por cima do terreno prerenderizado.
+ * Caixotes, barris e árvores: geometria viva sobre o terreno.
+ * Barris explodem em cadeia; caixotes soltam moedas; a árvore é a única que
+ * bloqueia passagem — e não morre, porque é o bioma, não cobertura.
+ * São poucos e mudam, então são desenhados por frame por cima do terreno
+ * prerenderizado.
  */
 
 import { CELL_SIZE } from '../maps';
 import { HazardKind } from '../types';
 import { PALETTE } from '../core/palette';
 import { getSprite } from './sprites';
+import { charAt, setBlockers } from './tilemap';
 
 /**
  * Sprite de prop por tipo. Mesmo padrão das paredes: o tile cobre o corpo e
@@ -52,8 +55,11 @@ export interface Prop {
    * `protect` do Castelo (as ondas atacam ELE, não um NPC que foge);
    * `capsula` é a cápsula BioGen caída na Fábrica: cenário da história,
    * cobre tiro mas não queima — ela só abre no roteiro (relato do Murilo:
-   * "poderia ter a cápsula desde o início da fase"). */
-  kind: 'crate' | 'barrel' | 'nest' | 'rocket' | 'capsula';
+   * "poderia ter a cápsula desde o início da fase");
+   * `tree` é a árvore da Floresta e do Pântano: o ÚNICO prop que bloqueia
+   * passagem (copa de 27px de raio, colisão de 20) e não morre — é a
+   * identidade do bioma, não cobertura perecível. */
+  kind: 'crate' | 'barrel' | 'nest' | 'rocket' | 'capsula' | 'tree';
   health: number;
   maxHealth: number;
   hitFlash: number;
@@ -83,6 +89,26 @@ const BARREL_BLAST_RADIUS = 96;
 const BARREL_BLAST_DAMAGE = 45;
 
 /**
+ * A árvore. RAIO DE COLISÃO 20 contra copa de 27 no sprite: o jogador entra
+ * sob a folhagem da beirada e só o tronco segura — é o que faz a árvore parecer
+ * árvore e não caixote grande. O raio fica abaixo de 32 (metade da célula) para
+ * que o mutante (r 26) tenha passagem por qualquer lado que o mapa abrir.
+ *
+ * Vida infinita: a árvore é cenário do bioma, não loot. Tiro nela não derruba
+ * (o flash acende, o dano some) e a conectividade do mapa não muda no meio da
+ * onda. Caixote e barril continuam perecíveis — a diferença é o que dá à
+ * Floresta o chão firme.
+ */
+const TREE_RADIUS = 20;
+const TREE_HEALTH = Infinity;
+
+/** Sprites autorais das árvores (CC0, ver tools/gen_assets_arvores.py). */
+const TREE_SPRITES: Record<'viva' | 'morta', string[]> = {
+  viva: ['prop_arvore_00', 'prop_arvore_01'],
+  morta: ['prop_arvore_morta_00'],
+};
+
+/**
  * O foguete que o Castelo protege (decisão do dono de 2026-10-12: "o alvo do
  * protect é o FOGUETE com HP, não uma escolta"). 300 HP contra contato de 12
  * DPS por inimigo encostado e a flecha do arqueiro: dá para errar e chegar,
@@ -106,17 +132,21 @@ export function initProps(cells: string[][]): void {
   for (let row = 0; row < cells.length; row++) {
     for (let col = 0; col < cells[row].length; col++) {
       const ch = cells[row][col];
-      if (ch !== 'c' && ch !== 'b' && ch !== 'N' && ch !== 'F') continue;
+      if (ch !== 'c' && ch !== 'b' && ch !== 'N' && ch !== 'F' && ch !== 'T' && ch !== 'D') continue;
       const isBarrel = ch === 'b';
       const isNest = ch === 'N';
       const isRocket = ch === 'F';
-      const hp = isRocket ? ROCKET_HEALTH : isNest ? NEST_HEALTH : isBarrel ? BARREL_HEALTH : CRATE_HEALTH;
+      const isTree = ch === 'T' || ch === 'D';
+      const hp = isRocket ? ROCKET_HEALTH : isNest ? NEST_HEALTH : isBarrel ? BARREL_HEALTH
+        : isTree ? TREE_HEALTH : CRATE_HEALTH;
       props.push({
         col, row,
         x: col * CELL_SIZE + CELL_SIZE / 2,
         y: row * CELL_SIZE + CELL_SIZE / 2,
-        radius: isRocket ? ROCKET_RADIUS : isNest ? CELL_SIZE * 0.46 : isBarrel ? BARREL_RADIUS : CELL_SIZE * 0.38,
-        kind: isRocket ? 'rocket' : isNest ? 'nest' : isBarrel ? 'barrel' : 'crate',
+        radius: isRocket ? ROCKET_RADIUS : isNest ? CELL_SIZE * 0.46 : isBarrel ? BARREL_RADIUS
+          : isTree ? TREE_RADIUS : CELL_SIZE * 0.38,
+        kind: isRocket ? 'rocket' : isNest ? 'nest' : isBarrel ? 'barrel'
+          : isTree ? 'tree' : 'crate',
         health: hp,
         maxHealth: hp,
         hitFlash: 0,
@@ -124,6 +154,9 @@ export function initProps(cells: string[][]): void {
       });
     }
   }
+  // A árvore é o único prop que segura passagem, então quem colide precisa
+  // saber onde elas estão. O registro é refeito a cada fase junto com o mapa.
+  setBlockers(getBlockingProps());
 }
 
 /**
@@ -172,8 +205,13 @@ export function getProps(): Prop[] {
   return props;
 }
 
+/**
+ * Props que SEGURAM passagem. Só a árvore: caixote e barril são cobertura de
+ * tiro, não parede — andar por cima deles é o jogo de sempre, e transformá-los
+ * em obstáculo mudaria todas as 16 fases de uma vez.
+ */
 export function getBlockingProps(): Prop[] {
-  return props.filter(p => p.health > 0);
+  return props.filter(p => p.kind === 'tree' && p.health > 0);
 }
 
 export function clearProps(): void {
@@ -293,7 +331,31 @@ export function drawProps(
     ctx.ellipse(p.x, p.y + p.radius * 0.55, p.radius * 0.85, p.radius * 0.35, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    if (p.kind === 'nest') {
+    if (p.kind === 'tree') {
+      // Árvore: o tile AUTORAL cru, sem tint (a justificativa está no
+      // gen_assets_arvores.py — o multiplicador do bioma deixaria a copa na
+      // mesma luminância do piso). Varia por célula, como o caixote, para a
+      // floresta não vir carimbo.
+      const morta = charAt(p.col, p.row) === 'D';
+      const nomes = TREE_SPRITES[morta ? 'morta' : 'viva'];
+      const img = getSprite(nomes[(p.col + p.row) % nomes.length]);
+      const s = CELL_SIZE;
+      if (img) {
+        ctx.drawImage(img, p.x - s / 2, p.y - s / 2, s, s);
+      } else {
+        // fallback se o asset não carregar (regra 15)
+        ctx.fillStyle = morta ? '#3a3428' : '#4a5236';
+        ctx.beginPath();
+        ctx.ellipse(p.x, p.y, p.radius, p.radius * 0.9, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      if (p.hitFlash > 0) {
+        ctx.fillStyle = PALETTE.crit;
+        ctx.globalAlpha = 0.4;
+        ctx.fillRect(p.x - s / 2, p.y - s / 2, s, s);
+        ctx.globalAlpha = 1;
+      }
+    } else if (p.kind === 'nest') {
       // ninho: arbusto do pack na cor do bioma, com a brasa no meio. A brasa
       // pulsa e acende no dano — é feedback de "cabeça" do objetivo, não
       // identidade, então continua em código.

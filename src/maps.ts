@@ -27,7 +27,7 @@ export type TileKind = 'wall' | 'floor' | 'decor' | 'hazard' | 'crate' | 'barrel
 /** Material do piso, do pack Top Down Dungeon (Screaming Brain, CC0). */
 export type DungeonFloor =
   | 'piso_pedra' | 'piso_pedra2' | 'piso_terra' | 'piso_terra2'
-  | 'piso_areia' | 'piso_grama' | 'piso_metal' | 'piso_madeira';
+  | 'piso_areia' | 'piso_grama' | 'piso_metal' | 'piso_vidro' | 'piso_madeira';
 
 /** Material da parede, do mesmo pack. */
 export type DungeonWall =
@@ -117,22 +117,22 @@ export const BIOMES: Record<string, Biome> = {
     rows: [
       '##############################',
       '#cE..............,..b....###E#',
-      '#...###,...###c....###...###.#',
-      '#,..###.b..###....#####..###.#',
-      '#..,###....###....#####.b....#',
+      '#...###,T..###cT...###...###.#',
+      '#,T.###.bT.###....#####..###.#',
+      '#..,###.T..###.TT.#####.b....#',
       '#..###..b.....E...#####...c..#',
       '#.#####.......###..###..###..#',
-      '#.#####..,...#####......###..#',
-      '#.#####.c....#####..,...###..#',
-      '#..###.......#####...........#',
+      '#.#####..,.T.#####......###..#',
+      '#.#####.c..T.#####..,...###..#',
+      '#..###....T..#####.TTT.......#',
       '#............####.....,....E.#',
       '#.E...###..........,.....###.#',
       '#....#####........###.,..###.#',
       '#....#####.......#####...###.#',
       '#..c.#####..,....#####.......#',
-      '#,..B.###........#####,......#',
-      '#..###,.....###...###.###.cE.#',
-      '#..###c.....###..c....###....#',
+      '#,..B.###........#####,...TT.#',
+      '#..###,...T.###...###.###.cE.#',
+      '#..###c..TT.###..c....###.T..#',
       '#..###N.....###P......###N...#',
       '##############################',
     ],
@@ -204,28 +204,31 @@ export const BIOMES: Record<string, Biome> = {
     key: 'pantano', name: 'Pântano', hazard: 'mud', hazardColor: '#5a7a5a',
     floor: '#18231e', wall: '#37483c', accent: '#5a7a5a', tint: '#dcece2',
     floorTiles: [19, 20, 76, 77],
-    dungeonFloor: 'piso_terra2', dungeonWall: 'parede_tijolo',
+    // Curadoria de identidade (2026-10-15): a parede sai do tijolo (5 das 16
+    // fases em concreto/metal repetido) e vem da terra — o pântano é lama,
+    // e o par (piso_terra2, parede_terra) fica único entre as 16 fases.
+    dungeonFloor: 'piso_terra2', dungeonWall: 'parede_terra',
     propCrate: '#4a4436', propBarrel: '#3c382c',
     grain: '#0e1512', grainAlpha: 0.26, void: '#050807',
     rows: [
       '##############################',
       '#..E......................E.,#',
-      '#..###,.###.,......###..###..#',
+      '#..###,.###.,..DDD.###..###..#',
       '#..###..###........###..###..#',
       '#..###..###........###..###..#',
       '#..,.,..^^^^^^^...^^^^^^.....#',
       '#.......c...b..E..........b..#',
-      '#....###,...###,.....###.....#',
-      '#....###....###,.....###...c.#',
+      '#.DD.###,...###,.....###..DD.#',
+      '#..D.###....###,.....###.D.c.#',
       '#.b..###..^^^^^^^....###.....#',
       '#.....E......................#',
       '#..###...,......###c...###...#',
       '#..###.......cb.###....###...#',
       '#.,###^^^^^^^...##^^^^^###...#',
-      '#.......................E..b.#',
-      '#......###.........###..c....#',
-      '#......###.........###.,.....#',
-      '#..E...###..^^^^^^^###.,.....#',
+      '#.............D.........E..b.#',
+      '#..DD..###..DD.....###..c....#',
+      '#....D.###.........###.,..DD.#',
+      '#..E...###..^^^^^^^###.,..D..#',
       '#.......Bc.....P.c...........#',
       '##############################',
     ],
@@ -235,7 +238,9 @@ export const BIOMES: Record<string, Biome> = {
     key: 'castelo', name: 'Castelo', hazard: 'spikes', hazardColor: '#8a8a7a',
     floor: '#24231a', wall: '#524f33', accent: '#a08050', tint: '#f0e8c8',
     floorTiles: [89, 90, 91, 92, 95, 334],
-    dungeonFloor: 'piso_pedra', dungeonWall: 'parede_tijolo',
+    // Curadoria de identidade: arenito (parede_areia era o único sheet do pack
+    // sem nenhuma fase) sobre piso de pedra — castelo de pedra, não de tijolo.
+    dungeonFloor: 'piso_pedra', dungeonWall: 'parede_areia',
     propCrate: '#6a625a', propBarrel: '#565048',
     grain: '#16150f', grainAlpha: 0.22, void: '#070706',
     rows: [
@@ -266,6 +271,9 @@ export const BIOMES: Record<string, Biome> = {
     key: 'vulcao', name: 'Vulcão', hazard: 'lava', hazardColor: '#c46a3a',
     floor: '#271915', wall: '#57362b', accent: '#c46a3a', tint: '#f0d8c0',
     floorTiles: [77, 79, 80, 398],
+    // Curadoria de identidade: cinza vulcânica (areia) sobre basalto (pedra) —
+    // a rocha vulcânica é literalmente pedra escura, e o tijolo volta a ser
+    // só do Porto (armazém velho), que era onde ele fazia sentido.
     dungeonFloor: 'piso_areia', dungeonWall: 'parede_pedra',
     propCrate: '#4e3630', propBarrel: '#402c26',
     grain: '#180a06', grainAlpha: 0.24, void: '#0a0403',
@@ -328,7 +336,9 @@ export const BIOMES: Record<string, Biome> = {
     key: 'bunker', name: 'Bunker Central', hazard: 'none', hazardColor: '#a08050',
     floor: '#1d1f24', wall: '#4a4d57', accent: '#a08050', tint: '#e8eaf0',
     floorTiles: [40, 41, 67, 68, 86, 93],
-    dungeonFloor: 'piso_terra2', dungeonWall: 'parede_concreto',
+    // Curadoria de identidade: o bunker ganha o piso de terra (Dirt 1/2) para
+    // não repetir o par do Pântano; a parede de concreto é a dele.
+    dungeonFloor: 'piso_terra', dungeonWall: 'parede_concreto',
     propCrate: '#52565a', propBarrel: '#43474b',
     grain: '#101216', grainAlpha: 0.16, void: '#060607',
     rows: [
@@ -371,11 +381,11 @@ export const BIOMES: Record<string, Biome> = {
       '#............................#',
       '#............................#',
       '#.#........................#.#',
-      '#.#....,,,,,,,,,,,,,,,,....#.#',
-      '#.#....,,,,P,,,,,,,,,,,....#.#',
-      '#.#....,,,,,,,B,,,,,,,,....#.#',
-      '#.#....,,,,,,,,,,,,,,,,....#.#',
-      '#.#....,,,,,,,c,,,,,,,,....#.#',
+      '#.#....----------------....#.#',
+      '#.#....====P===========....#.#',
+      '#.#....:=:=:=:B:=:=:=:=....#.#',
+      '#.#....================....#.#',
+      '#.#...._______c________....#.#',
       '#.#........................#.#',
       '#.#........................#.#',
       '#.#........................#.#',
@@ -391,7 +401,10 @@ export const BIOMES: Record<string, Biome> = {
     key: 'hospital', name: 'Hospital de Campanha', hazard: 'fog', hazardColor: '#8aaa9a',
     floor: '#20282a', wall: '#485a5c', accent: '#8a9a9a', tint: '#d8e4e4',
     floorTiles: [31, 32, 58, 59, 169, 178],
-    dungeonFloor: 'piso_madeira', dungeonWall: 'parede_concreto',
+    // Curadoria de identidade: hospital ganha o sheet Glass 1 do mesmo pack
+    // (piso_vidro) — cerâmica de enfermaria, o único piso claro do jogo. O
+    // sheet existia no pack e não tinha nenhuma fase usando.
+    dungeonFloor: 'piso_vidro', dungeonWall: 'parede_concreto',
     propCrate: '#5a4a3a', propBarrel: '#4a3a2a',
     grain: '#141a1a', grainAlpha: 0.12, void: '#0a0d0d',
     rows: [
@@ -541,7 +554,10 @@ export const BIOMES: Record<string, Biome> = {
     key: 'porto', name: 'Porto', hazard: 'fog', hazardColor: '#6a8a9a',
     floor: '#1a1e22', wall: '#2e3a40', accent: '#6a8a9a', tint: '#c8d0d8',
     floorTiles: [31, 32, 58, 59, 169, 178],
-    dungeonFloor: 'piso_terra', dungeonWall: 'parede_concreto',
+    // Curadoria de identidade: areia (Sand 2) no cais, tijolo dos armazéns
+    // velhos — para não repetir o par (piso_terra, concreto) do Bunker. A
+    // água de verdade entra como asset autoral no item 3.
+    dungeonFloor: 'piso_areia', dungeonWall: 'parede_tijolo',
     propCrate: '#3a4a3a', propBarrel: '#2a3a2a',
     grain: '#0e1214', grainAlpha: 0.15, void: '#05070a',
     rows: [
@@ -581,6 +597,10 @@ export function tileKindAt(ch: string): TileKind {
     case '^': return 'hazard';
     case 'c': return 'crate';
     case 'b': return 'barrel';
+    // estrada da Rodovia: asfalto autoral, todo ele caminável
+    case '=': case ':': case '-': case '_': return 'floor';
+    // árvore: o terreno embaixo é piso (a copa é prop, não parede de grid)
+    case 'T': case 'D': return 'floor';
     default: return 'floor';
   }
 }

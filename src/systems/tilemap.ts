@@ -60,6 +60,10 @@ export function loadMap(rows: string[]): Tilemap {
   const c = rows[0]?.length ?? 0;
   const cells = rows.map(line => line.split(''));
   map = { cols: c, rows: r, cells, width: c * CELL_SIZE, height: r * CELL_SIZE };
+  // geometria nova, obstáculos novos: sem esta linha um tronco da fase anterior
+  // continuaria segurando passagem no mapa que acabou de carregar. O
+  // `initProps` (que vem sempre depois) registra as árvores da fase atual.
+  blockers = [];
   flowDist = new Int32Array(c * r);
   flowDir = new Float32Array(c * r * 2);
   flowTargetCol = -1;
@@ -113,9 +117,46 @@ export function isWallAtPx(px: number, py: number): boolean {
   return isWall(colAt(px), rowAt(py));
 }
 
-/** Verifica se um círculo sobrepõe qualquer parede próxima. */
+/**
+ * Círculos que obstruem passagem além das paredes: as árvores.
+ * `initProps` registra os da fase a cada mapa; sem registro, a colisão é só
+ * parede, como sempre foi.
+ */
+let blockers: { x: number; y: number; radius: number }[] = [];
+/**
+ * Células ocupadas por tronco — parede para a IA. A árvore senta no CENTRO
+ * da célula, então a célula dela é a única bloqueada; o contrato é o mesmo
+ * do BFS de `mapValidation.test` ("o tronco conta como parede") — o portão
+ * do plantador e o teste de conectividade existem para garantir que o mapa
+ * continua navegável sob esta regra. Sem isto o inimigo viajava LINHA
+ * RETA ao alvo, esbarrava no tronco e ficava espetado: a onda não
+ * encostava e a fase não fechava (medido: 6px em 15s na Floresta).
+ */
+let blockedCells = new Set<number>();
+
+export function setBlockers(list: readonly { x: number; y: number; radius: number }[]): void {
+  blockers = list.slice();
+  blockedCells = new Set<number>();
+  if (!map) return;
+  for (const b of list) {
+    blockedCells.add(Math.floor(b.y / CELL_SIZE) * map.cols + Math.floor(b.x / CELL_SIZE));
+  }
+}
+
+/**
+ * Verifica se um círculo sobrepõe qualquer parede próxima ou árvore.
+ * É a ÚNICA pergunta de colisão do jogo: `sweepAxis` (que move jogador e
+ * inimigo), `pushOutOfWalls` e o mapa de fluxo passam por aqui, então o
+ * bloqueio vale para os dois lados sem mexer em nenhum chamador.
+ */
 export function circleOverlaps(x: number, y: number, r: number): boolean {
   if (!map) return false;
+  for (const b of blockers) {
+    const dx = x - b.x;
+    const dy = y - b.y;
+    const soma = r + b.radius;
+    if (dx * dx + dy * dy < soma * soma) return true;
+  }
   const minCol = colAt(x - r);
   const maxCol = colAt(x + r);
   const minRow = rowAt(y - r);
@@ -329,9 +370,14 @@ function construirCampo(
       const nx = cx + dx;
       const ny = cy + dy;
       if (nx < 0 || ny < 0 || nx >= map.cols || ny >= map.rows) continue;
-      if (isWall(nx, ny)) continue;
+      // tronco conta como parede para a IA (blockedCells): o mesmo contrato
+      // do BFS de conectividade — o desvio existe porque o plantador
+      // garante portão, e o teste de mapa garante o portão
+      if (isWall(nx, ny) || blockedCells.has(ny * map.cols + nx)) continue;
       // não cortar quina: as duas ortogonais adjacentes precisam estar livres
-      if (dx !== 0 && dy !== 0 && (isWall(cx + dx, cy) || isWall(cx, cy + dy))) continue;
+      if (dx !== 0 && dy !== 0
+        && (isWall(cx + dx, cy) || blockedCells.has(cy * map.cols + cx + dx)
+          || isWall(cx, cy + dy) || blockedCells.has((cy + dy) * map.cols + cx))) continue;
       const ni = ny * map.cols + nx;
       // Hazard custa caro. O custo zero fazia o caminho mais curto do mapa —
       // o que todo inimigo segue — atravessar espinho, lava e piso elétrico

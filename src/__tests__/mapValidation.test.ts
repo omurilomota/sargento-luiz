@@ -3,6 +3,7 @@ import { BIOMES, CELL_SIZE, tileKindAt } from '../maps';
 import { ENEMY_TYPES, PHASES } from '../config';
 import { TILE_NUMBERS, tileFileName, POSES, WEAPON_CLASSES } from '../systems/sprites';
 import { loadMap, hasPath, findAll, isWall, moveCircleBy, rebuildFlowField, sampleFlowDir, isReachable } from '../systems/tilemap';
+import { initProps, getBlockingProps } from '../systems/props';
 
 const KEYS = Object.keys(BIOMES);
 
@@ -145,6 +146,116 @@ describe('mapas: conectividade', () => {
   it.each(KEYS)('%s: pelo menos 4 pontos de spawn de inimigo', (key) => {
     const rows = BIOMES[key].rows.join('');
     expect((rows.match(/E/g) ?? []).length).toBeGreaterThanOrEqual(4);
+  });
+});
+
+describe('mapas: o tronco não sela região de spawn', () => {
+  // O gate de conectividade acima usa `hasPath`, que só enxerga parede — e o
+  // flow field do inimigo também. A árvore é o primeiro obstáculo do jogo que
+  // existe no mundo e não na grade: ela entra em `circleOverlaps` pelo
+  // `setBlockers`, o inimigo colide e desliza, mas nada no campo sabe dela.
+  // Um tronco no lugar errado sela uma região inteira e os spawns dentro dela
+  // fecham a onda sozinhos — o inimigo nasce, bate no tronco e a fase não
+  // termina. Medido: plantar por bosques sem portão deixaria a Floresta e o
+  // Pântano nesse estado; o portão do `plantar_arvores.py` (raio 30, o maior
+  // inimigo comum) existe por causa deste teste.
+  const VIZINHOS: readonly (readonly [number, number])[] = [
+    [1, 0], [-1, 0], [0, 1], [0, -1],
+    [1, 1], [1, -1], [-1, 1], [-1, -1],
+  ];
+
+  /** BFS igual ao do `hasPath`, com o tronco contado como parede. */
+  function alcancaComTronco(rows: string[], de: { col: number; row: number }, para: { col: number; row: number }): boolean {
+    const grade = loadMap(rows);
+    initProps(rows.map(linha => linha.split('')));
+    const tronco = new Set<number>();
+    for (const p of getBlockingProps()) tronco.add(p.row * grade.cols + p.col);
+    const bloqueia = (col: number, row: number) =>
+      row < 0 || col < 0 || row >= grade.rows || col >= grade.cols ||
+      rows[row][col] === '#' || tronco.has(row * grade.cols + col);
+    const alvo = para.row * grade.cols + para.col;
+    const inicio = de.row * grade.cols + de.col;
+    const visto = new Set<number>([inicio]);
+    const fila: number[] = [inicio];
+    while (fila.length) {
+      const cur = fila.shift()!;
+      if (cur === alvo) return true;
+      const cx = cur % grade.cols;
+      const cy = (cur - cx) / grade.cols;
+      for (const [dx, dy] of VIZINHOS) {
+        if (bloqueia(cx + dx, cy + dy)) continue;
+        // mesma regra do hasPath: diagonal não corta quina
+        if (dx !== 0 && dy !== 0 && (bloqueia(cx + dx, cy) || bloqueia(cx, cy + dy))) continue;
+        const ni = (cy + dy) * grade.cols + (cx + dx);
+        if (visto.has(ni)) continue;
+        visto.add(ni);
+        fila.push(ni);
+      }
+    }
+    return false;
+  }
+
+  it.each(KEYS)('%s: todo E, B, N e R ainda alcança o jogador com o tronco plantado', (key) => {
+    const rows = BIOMES[key].rows;
+    loadMap(rows);
+    const spawn = findAll('P')[0];
+    for (const target of ['E', 'B', 'N', 'R']) {
+      for (const cell of findAll(target)) {
+        expect(
+          alcancaComTronco(rows, spawn, cell),
+          `${key}: ${target} em (${cell.col},${cell.row}) ficou selado pelo tronco`,
+        ).toBe(true);
+      }
+    }
+  });
+});
+
+describe('rodovia: a faixa de asfalto é estrada de verdade', () => {
+  // A Rodovia era piso de pedra com 77 células de ',' decoradas com o tile 260
+  // do pack — uma marca laranja/cinza repetida, que lia como padrão e foi
+  // escolhida por número sem nunca ser aberta. A faixa agora usa caracteres
+  // próprios ('=', ':', '-', '_'), desenhados como asfalto autoral por
+  // buildTerrain. O gate trava o contrato: os caracteres existem no mapa, toda
+  // célula de asfalto é caminável e alcançável do spawn, e a pista não depende
+  // mais do piso do bioma.
+  const CHAVES_ASFALTO = '=:_-';
+
+  it('a faixa usa os caracteres de asfalto e não sobrou vírgula', () => {
+    const linhas = BIOMES.rodovia.rows.join('');
+    for (const ch of CHAVES_ASFALTO) {
+      expect(linhas.includes(ch), `personagem ${ch} sumiu do mapa da Rodovia`).toBe(true);
+    }
+    expect(linhas.includes(','), 'sobrou célula de "," na Rodovia — a faixa é asfalto, não decor').toBe(false);
+  });
+
+  it('toda célula de asfalto é caminável e alcançável do spawn', () => {
+    loadMap(BIOMES.rodovia.rows);
+    const spawn = findAll('P')[0];
+    let celulas = 0;
+    for (let row = 0; row < BIOMES.rodovia.rows.length; row++) {
+      for (let col = 0; col < BIOMES.rodovia.rows[row].length; col++) {
+        if (!CHAVES_ASFALTO.includes(BIOMES.rodovia.rows[row][col])) continue;
+        celulas++;
+        expect(isWall(col, row), `asfalto em (${col},${row}) bloqueia passagem`).toBe(false);
+        expect(hasPath(spawn.col, spawn.row, col, row), `asfalto em (${col},${row}) inalcançável`).toBe(true);
+      }
+    }
+    // a faixa entregue tem 77 células; abaixo disso o mapa encolheu a estrada
+    expect(celulas).toBeGreaterThanOrEqual(60);
+  });
+
+  it('o jogador nasce na faixa de asfalto', () => {
+    loadMap(BIOMES.rodovia.rows);
+    const spawn = findAll('P')[0];
+    // a célula do spawn guarda o 'P', então a faixa se confirma pelos vizinhos:
+    // nascer fora da estrada deixaria o traço da pista fora da primeira tela
+    const vizinhos = [
+      BIOMES.rodovia.rows[spawn.row - 1]?.[spawn.col],
+      BIOMES.rodovia.rows[spawn.row + 1]?.[spawn.col],
+      BIOMES.rodovia.rows[spawn.row][spawn.col - 1],
+      BIOMES.rodovia.rows[spawn.row][spawn.col + 1],
+    ];
+    expect(vizinhos.some(v => v && CHAVES_ASFALTO.includes(v))).toBe(true);
   });
 });
 
@@ -341,5 +452,255 @@ describe('objetivo reach: a zona de extração existe e é alcançável', () => 
       // uma zona colada no spawn não é objetivo: é um passo
       expect(dist, `${fase.name}: zona a ${dist} células do spawn`).toBeGreaterThanOrEqual(8);
     }
+  });
+});
+
+describe('árvores: o tronco bloqueia passagem sem selar o mapa', () => {
+  // A árvore é o único prop que segura o passo (props.ts). O QUE PODE Dar errado
+  // é medido: raio de colisão 20 contra copa de 27, e o maior corpo do jogo
+  // tem raio 26 (mutante/tank). Um tronco no lugar errado sela um corredor, o
+  // inimigo para na folhagem, a onda nunca fecha — o mesmo travamento que a
+  // parede já causou. Medido no Castelo: dois caixotes nos dois únicos vãos de
+  // 1 célula fecham 116 das 375 células (31%).
+  //
+  // O portão é contínuo, não de grade: BFS de célula deixaria passar a árvore
+  // ENCOSTADA no corredor, porque a célula do corredor continua livre — só que
+  // um círculo de 30 não caberia mais por ela.
+  // O raio é o do maior inimigo COMUM (magmaGolem, 30 em config.ts). Boss tem
+  // `isBoss` e raio até 54 — não respeita corredor de célula: a arena dele é
+  // outra conversa, e incluí-lo aqui reprovaria todo mapa do jogo.
+  const RAIO = Math.max(
+    ...Object.values(ENEMY_TYPES).filter(e => !e.isBoss).map(e => e.radius),
+  );
+  const ARVORE = 20;
+  const PASSO = RAIO / 2;
+
+  type Cel = { col: number; row: number };
+
+  /** Um círculo de raio RAIO cabe centrado neste ponto do mundo? */
+  function cabe(rows: string[], arvores: Cel[], px: number, py: number): boolean {
+    const col = Math.floor(px / CELL_SIZE);
+    const row = Math.floor(py / CELL_SIZE);
+    for (let r = row - 1; r <= row + 1; r++) {
+      for (let c = col - 1; c <= col + 1; c++) {
+        if (rows[r]?.[c] !== '#') continue;
+        // distância do ponto ao retângulo da parede
+        const dx = Math.max(c * CELL_SIZE - px, 0, px - (c + 1) * CELL_SIZE);
+        const dy = Math.max(r * CELL_SIZE - py, 0, py - (r + 1) * CELL_SIZE);
+        if (Math.hypot(dx, dy) < RAIO) return false;
+      }
+    }
+    for (const a of arvores) {
+      const ax = (a.col + 0.5) * CELL_SIZE;
+      const ay = (a.row + 0.5) * CELL_SIZE;
+      if (Math.hypot(px - ax, py - ay) < RAIO + ARVORE) return false;
+    }
+    return true;
+  }
+
+  /** Um círculo de raio RAIO atravessa do centro de uma célula à da vizinha? */
+  function passagem(rows: string[], arvores: Cel[], a: Cel, b: Cel): boolean {
+    const x1 = (a.col + 0.5) * CELL_SIZE;
+    const y1 = (a.row + 0.5) * CELL_SIZE;
+    const x2 = (b.col + 0.5) * CELL_SIZE;
+    const y2 = (b.row + 0.5) * CELL_SIZE;
+    const n = Math.max(1, Math.round(CELL_SIZE / PASSO));
+    for (let i = 0; i <= n; i++) {
+      const t = i / n;
+      if (!cabe(rows, arvores, x1 + (x2 - x1) * t, y1 + (y2 - y1) * t)) return false;
+    }
+    return true;
+  }
+
+  /** Quantas células do mapa o maior inimigo não alcança mais, do spawn. */
+  function inalcancaveis(rows: string[], arvores: Cel[]): number {
+    let inicio: Cel | undefined;
+    for (let row = 0; row < rows.length; row++) {
+      for (let col = 0; col < rows[row].length; col++) {
+        if (rows[row][col] === 'P') inicio = { col, row };
+      }
+    }
+    if (!inicio) return -1;
+    if (!cabe(rows, arvores, (inicio.col + 0.5) * CELL_SIZE, (inicio.row + 0.5) * CELL_SIZE)) {
+      return Number.MAX_SAFE_INTEGER;
+    }
+    const vistos = new Set<string>([`${inicio.col},${inicio.row}`]);
+    const fila: Cel[] = [inicio];
+    while (fila.length) {
+      const { col, row } = fila.pop()!;
+      for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const b = { col: col + dc, row: row + dr };
+        const chave = `${b.col},${b.row}`;
+        if (vistos.has(chave)) continue;
+        if (rows[b.row]?.[b.col] === undefined || rows[b.row][b.col] === '#') continue;
+        if (arvores.some(a => a.col === b.col && a.row === b.row)) continue;
+        if (!passagem(rows, arvores, { col, row }, b)) continue;
+        vistos.add(chave);
+        fila.push(b);
+      }
+    }
+    let total = 0;
+    for (let row = 0; row < rows.length; row++) {
+      for (let col = 0; col < rows[row].length; col++) {
+        if (rows[row][col] === '#') continue;
+        if (arvores.some(a => a.col === col && a.row === row)) continue;
+        total++;
+      }
+    }
+    return total - vistos.size;
+  }
+
+  const COM_ARVORE: Record<string, string> = { floresta: 'T', pantano: 'D' };
+
+  it('só a floresta e o pântano têm árvore, e os dois têm', () => {
+    for (const [key, ch] of Object.entries(COM_ARVORE)) {
+      const linhas = BIOMES[key].rows.join('');
+      expect(linhas.includes(ch), `${key} ficou sem árvore`).toBe(true);
+    }
+    for (const key of KEYS) {
+      const linhas = BIOMES[key].rows.join('');
+      const dono = COM_ARVORE[key];
+      for (const ch of Object.values(COM_ARVORE)) {
+        if (ch === dono) continue;
+        expect(linhas.includes(ch), `${key} tem ${ch}, que é de outro bioma`).toBe(false);
+      }
+    }
+  });
+
+  it('a árvore nasce em piso e longe do spawn', () => {
+    for (const [key, ch] of Object.entries(COM_ARVORE)) {
+      const rows = BIOMES[key].rows;
+      const p = rows.join('').indexOf('P');
+      const pCol = p % 30;
+      const pRow = Math.floor(p / 30);
+      let quantas = 0;
+      for (let row = 0; row < rows.length; row++) {
+        for (let col = 0; col < rows[row].length; col++) {
+          if (rows[row][col] !== ch) continue;
+          quantas++;
+          // o piso embaixo é piso: a copa é prop, não parede de grid
+          expect(isWall(col, row), `${key}: árvore em (${col},${row}) sobre parede`).toBe(false);
+          // duas células de distância do spawn: o jogador nasce com espaço
+          expect(Math.max(Math.abs(col - pCol), Math.abs(row - pRow)),
+            `${key}: árvore em (${col},${row}) colada no spawn`).toBeGreaterThan(2);
+          // a vizinhança imediata não é parede: tronco encostado em parede
+          // não é árvore, é canto
+          const vizinhos = [
+            rows[row - 1]?.[col], rows[row + 1]?.[col],
+            rows[row][col - 1], rows[row][col + 1],
+          ];
+          expect(vizinhos.some(v => v === '#'),
+            `${key}: árvore em (${col},${row}) encostada em parede`).toBe(false);
+        }
+      }
+      expect(quantas, `${key}: bosque pequeno demais`).toBeGreaterThanOrEqual(12);
+    }
+  });
+
+  it('nenhuma árvore sela o mapa para o maior inimigo', () => {
+    for (const [key, ch] of Object.entries(COM_ARVORE)) {
+      const rows = BIOMES[key].rows;
+      const arvores: Cel[] = [];
+      for (let row = 0; row < rows.length; row++) {
+        for (let col = 0; col < rows[row].length; col++) {
+          if (rows[row][col] === ch) arvores.push({ col, row });
+        }
+      }
+      expect(inalcancaveis(rows, arvores), `${key}: células seladas pelas árvores`).toBe(0);
+    }
+  });
+
+  it('o portão morde: um tronco no corredor da direita reprova', () => {
+    // contrato testemunhável, não ausência de sintoma: (28,3) é o corredor
+    // vertical da borda da floresta, e a célula a leste dele (28,2) só se
+    // alcança por ali. Se o portão passar a deixar essa árvore entrar, o
+    // mapa selou e a trava nunca fecha.
+    const rows = BIOMES.floresta.rows.map((r, i) => (i === 3 ? r.slice(0, 28) + 'T' + r.slice(29) : r));
+    expect(inalcancaveis(rows, [{ col: 28, row: 3 }])).toBeGreaterThan(0);
+  });
+});
+
+describe('árvores: a colisão real segura o passo (funções de produção)', () => {
+  // Prova com as funções de verdade, não com a contabilidade do teste: carrega
+  // o mapa, chama o `initProps` da fase e empurra um círculo de raio do
+  // JOGADOR contra o tronco. Antes do registro em tilemap, `moveCircleBy` só
+  // sabia de parede — o tronco era decoração e o jogador passava por cima.
+  const PLAYER = 18;
+
+  it('o corpo empurrado contra o tronco não entra nele', () => {
+    loadMap(BIOMES.floresta.rows);
+    initProps(BIOMES.floresta.rows.map(r => r.split('')));
+    const arvore = BIOMES.floresta.rows.join('').indexOf('T');
+    const col = arvore % 30;
+    const row = Math.floor(arvore / 30);
+    const ax = (col + 0.5) * CELL_SIZE;
+    const ay = (row + 0.5) * CELL_SIZE;
+
+    // começa a uma célula de distância e caminha 3 células na direção do tronco
+    const dirs: [number, number][] = [[0, -1], [0, 1], [-1, 0], [1, 0]];
+    for (const [dc, dr] of dirs) {
+      let x = ax - dc * CELL_SIZE;
+      let y = ay - dr * CELL_SIZE;
+      for (let passo = 0; passo < 96; passo++) {
+        const next = moveCircleBy(x, y, dc * 2, dr * 2, PLAYER);
+        x = next.x;
+        y = next.y;
+      }
+      // 38px de soma de raios: o jogador para na borda da folhagem, não no
+      // centro. Se ele chegasse ao centro, o registro do bloqueio não valeu.
+      expect(Math.hypot(x - ax, y - ay),
+        `chegou a ${Math.hypot(x - ax, y - ay).toFixed(1)}px do tronco vindo de (${dc},${dr})`)
+        .toBeGreaterThan(PLAYER + 20 - 2);
+    }
+  });
+
+  it('sem o registro, o mesmo caminho atravessa — é o antes do bloqueio', () => {
+    // contraparte que reprova o teste de cima: o mapa carregado SEM `initProps`
+    // não registra tronco nenhum, e o corpo atravessa a célula da árvore. Se os
+    // dois passassem, a colisão não estaria medindo nada.
+    loadMap(BIOMES.floresta.rows);
+    const arvore = BIOMES.floresta.rows.join('').indexOf('T');
+    const ax = ((arvore % 30) + 0.5) * CELL_SIZE;
+    const ay = (Math.floor(arvore / 30) + 0.5) * CELL_SIZE;
+    let x = ax - CELL_SIZE;
+    for (let i = 0; i < 64; i++) x = moveCircleBy(x, ay, 2, 0, PLAYER).x;
+    expect(x, 'sem tronco registrado o corpo passa reto').toBeGreaterThan(ax + 32);
+  });
+
+  it('o corpo desliza na folhagem em vez de travar nela', () => {
+    // andar de frente empaca, andar de lado passa: é o deslize do `sweepAxis`
+    // valendo também para prop. Sem isso o inimigo encostaria na árvore e a
+    // onda nunca fecharia. Mapa sintético de 6x10 porque a Floresta tem
+    // árvore entalada entre parede e tronco, que é outro caso (e o portão de
+    // plantio já garante que esse caso não sela nada).
+    const linhas = ['##########', '#........#', '#...T....#', '#........#', '#........#', '##########'];
+    loadMap(linhas);
+    initProps(linhas.map(l => l.split('')));
+    let x = 160;
+    let y = 96;
+    for (let i = 0; i < 90; i++) {
+      const next = moveCircleBy(x, y, 2, 1.2, PLAYER);
+      x = next.x;
+      y = next.y;
+    }
+    expect(Math.hypot(x - 256, y - 160), 'o corpo nunca entra no tronco').toBeGreaterThan(38);
+    expect(x, 'houve escorregão: o corpo passou pela árvore').toBeGreaterThan(256);
+  });
+
+  it('por uma passagem aberta o corpo atravessa o mapa inteiro', () => {
+    // o bloqueio é local, não uma parede nova: o piso em volta continua piso.
+    loadMap(BIOMES.floresta.rows);
+    initProps(BIOMES.floresta.rows.map(r => r.split('')));
+    const arvores: { col: number; row: number }[] = [];
+    BIOMES.floresta.rows.forEach((r, row) => {
+      for (let col = 0; col < r.length; col++) if (r[col] === 'T') arvores.push({ col, row });
+    });
+    const alvo = arvores.find(a =>
+      BIOMES.floresta.rows[a.row][a.col - 1] === '.' && BIOMES.floresta.rows[a.row][a.col + 1] === '.');
+    const ax = (alvo!.col + 0.5) * CELL_SIZE;
+    const ay = (alvo!.row + 0.5) * CELL_SIZE + 60;
+    let x = ax - 96;
+    for (let i = 0; i < 96; i++) x = moveCircleBy(x, ay, 2, 0, PLAYER).x;
+    expect(x).toBeGreaterThan(ax + 32);
   });
 });

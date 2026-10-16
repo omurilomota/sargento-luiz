@@ -242,3 +242,37 @@ Os tiles são gerados em **escala de cinza** de propósito: `applyTint` e
 `tintTile` aplicam `saturation` com `#808080` antes do `multiply`, então a cor
 não sobrevive ao pipeline — só a luminância. A estrada se lê pelo contraste
 (corpo a 31, faixa e borda a 122 na tela, medido no shot da fase 2).
+
+### As árvores da Floresta e do Pântano
+
+Três tiles autoral (**CC0**, autoria do projeto) em
+`assets/sprites/props/`, gerados por `tools/gen_assets_arvores.py`:
+
+| arquivo | o que é |
+|---|---|
+| `arvore_00.png` | árvore viva, copa irregular com tronco e galhos (variante 1) |
+| `arvore_01.png` | árvore viva, variante 2 |
+| `arvore_morta_00.png` | árvore morta: tronco grosso e galhos sem copa |
+
+O pack não tem vegetação. Medido: dos 524 tiles do tilesheet Top-down Shooter,
+185 são objetos (alfa parcial) e todos são caixa ou cilindro — caixote, barril,
+saco de areia, carro, parede. Os 17 tiles com verde dominante são peças de
+**chão** (cobertura de alfa 94–97%) mais os ninhos 181–183, já usados como
+prop do objetivo `destroy`. O manifesto do pack não nomeia nenhuma árvore.
+
+A árvore é o **único prop que bloqueia passagem** (raio de colisão 20 contra
+copa de raio 27 na sprite) e o único que **não toma dano**: é identidade de
+bioma, não cobertura perecível — caixote e barril seguem destruíveis.
+
+Ela **não leva o tint do bioma**, como o foguete. `tintSprite` multiplica a
+luminância do tile pelo fator médio da cor do bioma (~0.26), e um tile autoral
+morreria no mesmo multiplicador: o caixote do pack, com luminância 121 no PNG,
+chega a 31 na tela do Pântano — igual ao piso. A copa autoral nasce a ~120 com
+saturação de ~20% (verde-cinza sóbrio), que lê contra o piso a 31 sem virar o
+objeto mais claro da fase.
+
+O plantio (`tools/plantar_arvores.py`) passa por um portão de conectividade
+**contínuo** antes de escrever o mapa: varre o segmento entre células vizinhas
+e exige que um círculo de raio 30 — o maior inimigo comum, o magmaGolem — caiba
+em todos os pontos. Sem ele um tronco no lugar errado sela um corredor e a onda
+nunca fecha.

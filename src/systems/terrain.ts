@@ -45,6 +45,11 @@ export function buildTerrain(biome: Biome, cells: string[][]): HTMLCanvasElement
         case '#': drawWall(c, px, py, biome, cells, col, row); break;
         case ',': drawDecor(c, px, py, biome, (col * 7 + row * 13) % 4); break;
         case '^': drawHazard(c, px, py, biome, (col * 7 + row * 13) % 4); break;
+        // estrada da Rodovia: '=' asfalto liso, ':' faixa de pista, '-'
+        // linha de borda no topo, '_' linha de borda na base
+        case '=': case ':': case '-': case '_':
+          drawAsphalt(c, px, py, biome, col, row, ch);
+          break;
         default: drawFloor(c, px, py, biome, col, row); break;
       }
     }
@@ -64,6 +69,32 @@ export function buildTerrain(biome: Biome, cells: string[][]): HTMLCanvasElement
  * saem do bioma. Sem ele, o chão do Kenney brilha e o jogador lê o piso como
  * objeto em vez de espaço.
  */
+/**
+ * Estrada da Rodovia: asfalto autoral (`tools/gen_assets_estrada.py`, CC0).
+ *
+ * '=' corpo liso (variante por hash), ':' faixa de pista, '-' linha de borda
+ * no topo e '_' na base. O material é fixo: `biome.dungeonFloor` da Rodovia é
+ * o acostamento de pedra, então a estrada não pode sair do material do bioma.
+ *
+ * Sem a lavagem de 62% que `drawFloor` aplica: ela existe para domar o
+ * rejunte ASSADO do pack, e o asfalto autoral não tem borda (costura medida
+ * ~0 pelo gerador, com o mesmo portão do tiles.test.ts). Lavar aqui
+ * achataria a faixa — que é o que lê "estrada".
+ */
+function drawAsphalt(
+  c: CanvasRenderingContext2D, px: number, py: number, biome: Biome,
+  col: number, row: number, ch: string,
+): void {
+  let material = 'piso_asfalto';
+  let variant = varianteDeChao(col, row);
+  if (ch === ':') variant = 0, material = 'piso_faixa';
+  if (ch === '-') variant = 0, material = 'piso_borda';
+  if (ch === '_') variant = 1, material = 'piso_borda';
+  const tile = getDungeonTile(material, variant, biome.tint);
+  // tile não carregou: fica a cor base pintada em buildTerrain, sem desenho
+  if (tile) c.drawImage(tile, px, py, CELL_SIZE, CELL_SIZE);
+}
+
 function drawFloor(c: CanvasRenderingContext2D, px: number, py: number, biome: Biome, col: number, row: number): void {
   // O chão vem exclusivamente do pack Top Down Dungeon (textura real com
   // rejunte). Sem fallback para tiles chapados do Kenney nem desenho
@@ -120,7 +151,11 @@ function drawDecor(c: CanvasRenderingContext2D, px: number, py: number, biome: B
     espaco: 333,
     bunker: 129,
     hospital: 156,
-    rodovia: 260,
+    // Rodovia não entra nesta tabela: a faixa de asfalto do mapa dela usa os
+    // caracteres próprios (`=`, `:`, `-`, `_`) e não o `,`. O tile 260 que
+    // estava nesta linha era uma marca laranja/cinza do pack repetida em 77
+    // células — lia como padrão, não como estrada, e foi escolhido por número
+    // sem nunca ser aberto.
     trens: 180,
     ponte: 238,
     refinaria: 316,
