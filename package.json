@@ -39,6 +39,7 @@
     "asfalto": "npm run build && node tools/m3-asfalto-proof.mjs",
     "carros": "npm run build && node tools/m3-carros-proof.mjs",
     "cenografia": "npm run build && node tools/m3-cenografia-proof.mjs",
+    "tint": "npm run build && node tools/m4-tint-proof.mjs",
     "itch": "node tools/itch-fullscreen-proof.mjs"
   },
   "devDependencies": {

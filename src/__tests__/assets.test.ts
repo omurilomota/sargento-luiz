@@ -354,7 +354,7 @@ describe('assets: pack Top Down Dungeon (chão e parede com textura)', () => {
 
   it('todo material de parede tem os 16 tiles que o jogo pede', () => {
     for (const grupo of DUNGEON_WALLS) {
-      for (let i = 0; i < DUNGEON_COUNT.parede; i++) {
+      for (let i = 0; i < DUNGEON_COUNT.parede[grupo]; i++) {
         const arq = join(DIR, `${grupo}_${String(i).padStart(2, '0')}.png`);
         expect(existsSync(arq), `parede faltando: ${grupo}_${i}`).toBe(true);
       }

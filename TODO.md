@@ -1960,5 +1960,18 @@
 //     letra — precisa do seu olho pra apontar qual), a onda 1 do Vulcão
 //     (medição), SFX timing (auditoria por gatilho) e A5 (player para
 //     de se mover — repro com bot).
-// [ ] F-C (SPRITES: tint por inimigo, arma na mão, casas, hospital) e
-//     F-D (refinaria=combustível, subestação opcional, melee, moral)
+// [x] F-C (2026-10-16, madrugada): [x] TINT POR TIPO — cada inimigo
+//     com a própria cor em cache (`getTintedSprite`, dessaturado por
+//     construção; o `color` do config era DADO MORTO com sprite
+//     carregado). Prova: npm run tint (distância RGB 66 entre corpos
+//     de fases distintas, patch 7×7). [x] ARMA NA MÃO por arma — 13
+//     sprites autorais top-down (`gen_assets_mao.py`): o Kay Lousberg
+//     é de perfil, mistura de perspectiva na mão vista de cima; a mão
+//     nasce grip no ombro e o cano segue a mira. [x] CASAS na Cidade:
+//     `parede_predio` autoral (laje + janelas quebradas + vidro
+//     estilhaçado) no lugar do concreto de dungeon — DUNGEON_COUNT.parede
+//     virou Record (3 do prédio, 16 do pack), os tiles passam no portão
+//     de cobertura do tiles.test.
+// [ ] F-C RESTA: hospital com identidade (chão de ladrilho, salas,
+//     decoração) — os tiles autorais seguem o molde do prédio.
+// [ ] F-D (refinaria=combustível, subestação opcional, melee, moral)

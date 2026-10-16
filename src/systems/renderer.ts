@@ -15,12 +15,13 @@ import { Player } from '../entities/player';
 import { ENEMY_TYPES, POWERUP_TYPES } from '../config';
 import { hasPowerUp } from '../powerups';
 import { isSkillActive } from './skills';
-import { getSprite, getEnemyCharacter, poseKey, drawSpriteFit, Pose, isSpritesEnabled } from './sprites';
+import { getSprite, getTintedSprite, getEnemyCharacter, poseKey, drawSpriteFit, Pose, isSpritesEnabled, HAND_SPRITES } from './sprites';
 import { buildCutsceneBackdrop, cutsceneVeil } from './terrain';
 import { getIsReloading, getWeaponFamily, WeaponFamily } from '../weapons';
 import { getCurrentCutscene, getCurrentLine, isLineComplete, getTextProgress, getPortraitInfo, getBeatRestante } from './story';
 import { getDialogo, retratoDoDialogo } from './dialogo';
 import { estaEmTelaCheia } from './fullscreen';
+import { getCurrentWeapon } from '../weapons';
 import { getEquippedSkin } from './skins';
 import { hasSave } from './saveSystem';
 import { getLeaderboard } from './leaderboard';
@@ -1109,7 +1110,12 @@ export function drawEnemies(
     // Sem o índice da fase, a variação existia na tabela e nunca chegava na tela.
     const char = getEnemyCharacter(e.type, faseIndex);
     const pose = enemyPose(e);
-    const img = spritesOn ? getSprite(poseKey(char, pose)) : null;
+    // F-C: o corpo vem TINTADO com a cor do tipo (o `color` do config era
+    // morto com sprite carregado — só pintava o fallback). O tint é
+    // dessaturado por construção (getTintedSprite), então a paleta sóbria
+    // se mantém. Chefe também tinge: a identidade dele é o ANEL terracota,
+    // não a cor crua.
+    const img = spritesOn ? getTintedSprite(poseKey(char, pose), def?.color ?? '#888') : null;
 
     if (img) {
       drawSpriteFit(ctx, img, e.x, e.y, e.radius * 2.4, facing(e));
@@ -1289,6 +1295,17 @@ export function drawPlayer(player: Player): void {
   if (hasSprite) {
     const img = getSprite(poseKey('survivor', playerPose()))!;
     drawSpriteFit(ctx, img, 0, 0, player.radius * 2.5, 0);
+    // A ARMA NA MÃO POR ARMA (playtest: "para cada arma equipada, um
+    // sprite na mão"): autoral top-down (o pack é perfil — DECISIONS #91
+    // para o corpo, vale para a mão). Nasce GRIP no ombro (o (0,0) local
+    // já é o corpo girado para a mira) e o cano segue o eixo +x local.
+    // a chave do cache é a própria id da mão: HAND_SPRITES já devolve 'mao_X'
+    const mao = getSprite(HAND_SPRITES[getCurrentWeapon().name] ?? 'mao_pistola');
+    if (mao) {
+      const largura = mao.naturalWidth * (player.radius / 16);
+      const altura = mao.naturalHeight * (player.radius / 16);
+      ctx.drawImage(mao, -largura / 2, -altura * 0.72, largura, altura);
+    }
   } else {
     let bodyColor = skin.bodyColor;
     if (hasPowerUp('invincible')) bodyColor = PALETTE.crit;

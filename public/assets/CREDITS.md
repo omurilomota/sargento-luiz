@@ -282,6 +282,20 @@ Os tiles são gerados em **escala de cinza** de propósito: `applyTint` e
 não sobrevive ao pipeline — só a luminância. A estrada se lê pelo contraste
 (corpo a 31, faixa e borda a 122 na tela, medido no shot da fase 2).
 
+### A arma na mão e as casas (autoral, CC0)
+
+- `assets/sprites/hand/mao_*.png` — a arma na mão de CADA arma (13),
+  vista de cima: cano com coronha, comprimento e detalhe por família
+  (luneta na sniper, caixa na metralhadora, boca larga no Destruidor).
+  Por que não o pack: o Kay Lousberg é de PERFIL (mistura de
+  perspectiva em vista de cima — DECISIONS #91 para o corpo).
+- `assets/sprites/dungeon/parede_predio_*.png` — as CASAS da Cidade em
+  Ruínas: laje com janelas quebradas e vidro estilhaçado, o vocabulário
+  de prédio que o concreto de dungeon não tinha.
+
+Gerados por `tools/gen_assets_mao.py` e no mesmo molde do painel; a
+paleta sóbria é por construção (dessaturação + matiz terrosa).
+
 ### A cenografia autoral de interior (tocha, painel, berço)
 
 Quatro sprites autorais (**CC0**, autoria do projeto) em

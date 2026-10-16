@@ -222,7 +222,7 @@ describe('tiles: nenhum tile de preenchimento é papél chapado', () => {
   // Tiles usados como chão/parede precisam de textura, não de preenchimento sólido.
   // A cobertura de alfa >= 85% e a luminância não podem ser quase uniforme.
   for (const grupo of [...DUNGEON_FLOORS, ...DUNGEON_WALLS]) {
-    const maxI = grupo.startsWith('piso') ? DUNGEON_COUNT.piso[grupo] : DUNGEON_COUNT.parede;
+    const maxI = grupo.startsWith('piso') ? DUNGEON_COUNT.piso[grupo] : DUNGEON_COUNT.parede[grupo];
     for (let i = 0; i < maxI; i++) {
       it(`${grupo}_${i}: cobertura de alfa >= 85% e não é preenchimento sólido`, () => {
         const p = caminho(grupo, i);
@@ -258,7 +258,7 @@ describe('tiles: contagem do disco bate com DUNGEON_COUNT', () => {
 
   for (const grupo of DUNGEON_WALLS) {
     it(`${grupo}: 16 tiles de parede no disco`, () => {
-      expect(contar(grupo), `${grupo}: ${contar(grupo)} arquivo(s) no disco`).toBe(DUNGEON_COUNT.parede);
+      expect(contar(grupo), `${grupo}: ${contar(grupo)} arquivo(s) no disco`).toBe(DUNGEON_COUNT.parede[grupo]);
     });
   }
 

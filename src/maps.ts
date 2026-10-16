@@ -32,7 +32,8 @@ export type DungeonFloor =
 /** Material da parede, do mesmo pack. */
 export type DungeonWall =
   | 'parede_pedra' | 'parede_tijolo' | 'parede_concreto'
-  | 'parede_metal' | 'parede_terra' | 'parede_areia';
+  | 'parede_metal' | 'parede_terra' | 'parede_areia'
+  | 'parede_predio';
 
 export interface MapDef {
   /** Linhas do mapa (30 × 20) */
@@ -80,7 +81,10 @@ export const BIOMES: Record<string, Biome> = {
     key: 'cidade', name: 'Cidade em Ruínas', hazard: 'debris', hazardColor: '#8a7a60',
     floor: '#2a2521', wall: '#5d5340', accent: '#a08050', tint: '#e8e0d4',
     floorTiles: [13, 15, 349, 350, 376, 377],
-    dungeonFloor: 'piso_pedra2', dungeonWall: 'parede_concreto',
+    // F-C: os blocos da Cidade são CASAS — parede_predio (autoral CC0,
+    // telhado com janelas quebradas). "casas não parecem ser casas" era do
+    // playtest; o concreto de dungeon era o vocabulário errado pro lugar.
+    dungeonFloor: 'piso_pedra2', dungeonWall: 'parede_predio',
     propCrate: '#6a5a48', propBarrel: '#5a4a3a',
     grain: '#1a1714', grainAlpha: 0.18, void: '#08080a',
     rows: ['##############################',

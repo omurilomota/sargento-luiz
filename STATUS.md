@@ -216,6 +216,32 @@ commitados; esta entrega o fecha com efeito REAL e prova em navegador.
   contra explosão, Munição Incandescente, caçador que responde, e a
   ponte que cai.
 
+## Entrega: F-C — o tint, a mão e as casas (os SPRITES, 2026-10-17 00:50, `develop`)
+
+A resposta à pergunta principal do playtest ("cadê os sprites?"):
+
+- **TINT POR TIPO DE INIMIGO** (`getTintedSprite`, cache por pose+cor):
+  o `color` de cada um dos 32 tipos existia no config e só pintava o
+  fallback procedural — com sprite carregado era DADO MORTO. Agora cada
+  corpo acorda com a própria cor, dessaturada por construção (o molde do
+  props.ts): a paleta sóbria não depende da cor do config ser sóbria.
+  Chefe também tinge — a identidade dele é o anel terracota, não a cor.
+  Prova: `npm run tint` (distância RGB entre corpos de fases distintas,
+  mancha 7×7 — o píxel único era flake de roupa escura).
+- **ARMA NA MÃO POR ARMA** (13 sprites autorais top-down,
+  `gen_assets_mao.py`): pistola curta, sniper com luneta, metralhadora
+  com carregador, RPG de tubo largo, Destruidor de boca larga. O Kay
+  Lousberg fica na LOJA (ícone pode ser de perfil) — na mão é mistura de
+  perspectiva (a mesma razão da #91 para o corpo).
+- **A CIDADE VIRA CASAS** (`parede_predio` autoral): laje com janelas
+  quebradas e vidro estilhaçado no lugar do concreto de dungeon —
+  "casas não parecem ser casas" era do playtest. O `DUNGEON_COUNT.parede`
+  virou Record (o autoral tem 3 variações) e os tiles passam no portão
+  de cobertura do `tiles.test` (166 verdes).
+- **Gates**: tsc, **1418 testes**, visual sem 404, campanha 16/16,
+  carros/tint/bullet-family verdes. PNGs `tint-rodada.png` + o shot da
+  Cidade na fila de leitura.
+
 ## Entrega: F-B — o rapidinho do playtest, nove itens (2026-10-16 23:50, `develop`)
 
 - **TORRE da Refinaria deixa de ser zumbi** ("PORQUE A TORRE É A MERDA

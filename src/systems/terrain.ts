@@ -369,8 +369,9 @@ function drawWall(
   // A parede vem exclusivamente do pack Top Down Dungeon (tijolo/rejunte de
   // verdade). Sem textura procedural por bioma: se o tile não carregou, fica
   // a cor base já pintada acima + o contorno que diz "isto bloqueia".
-  const variante = (col * 7 + row * 13 + ((col * row) % 5)) % DUNGEON_COUNT.parede;
-  const dngeonWall = tintTile(`dngeon_${biome.dungeonWall}_${variante}`, biome.wall);
+  const varianteDeParede = (col * 7 + row * 13 + ((col * row) % 5))
+    % (DUNGEON_COUNT.parede[biome.dungeonWall] ?? 16);
+  const dngeonWall = tintTile(`dngeon_${biome.dungeonWall}_${varianteDeParede}`, biome.wall);
   if (dngeonWall) {
     c.drawImage(dngeonWall, px, py, CELL_SIZE, CELL_SIZE);
   }

@@ -101,6 +101,8 @@ export const DUNGEON_FLOORS = [
 export const DUNGEON_WALLS = [
   'parede_pedra', 'parede_tijolo', 'parede_concreto',
   'parede_metal', 'parede_terra', 'parede_areia',
+  // casas da Cidade (F-C): prédio autoral com janelas quebradas
+  'parede_predio',
 ] as const;
 
 /**
@@ -117,7 +119,7 @@ export const DUNGEON_WALLS = [
  */
 export const DUNGEON_COUNT: {
   piso: Record<string, number>;
-  parede: number;
+  parede: Record<string, number>;
 } = {
   piso: {
     // Contagem no disco, conferida pelo gate de contagem em tiles.test.ts. O
@@ -129,7 +131,13 @@ export const DUNGEON_COUNT: {
     // autorais (gerados): asfalto liso 3 variantes + rachado, faixa e bordas
     piso_asfalto: 4, piso_faixa: 1, piso_borda: 2,
   },
-  parede: 16,
+  // parede por material: o predio autoral (F-C, casas da Cidade) tem 3
+  // variantes; os do pack, 16
+  parede: {
+    parede_pedra: 16, parede_tijolo: 16, parede_concreto: 16,
+    parede_metal: 16, parede_terra: 16, parede_areia: 16,
+    parede_predio: 3,
+  },
 };
 
 /**
@@ -156,6 +164,8 @@ export const PARTICLE_SPRITES = [
  * trava que todo arquivo existe, mas o resto é conferido em jogo.
  */
 const WEAPON_BASE = 'assets/sprites/weapons';
+/** Arma na mão por NOME de arma (F-C): vista de cima, autoral CC0. */
+const HAND_BASE = 'assets/sprites/hand';
 
 /**
  * Projétil por arma.
@@ -244,6 +254,25 @@ export const BULLET_SPRITES = ['small_bullet', 'medium_bullet', 'large_bullet'] 
 export const WEAPON_SPRITES = [
   'pistol', 'revolver', 'shotgun', 'sniper', 'smg', 'assaultrifle', 'grenade',
 ] as const;
+
+/** A arma-na-mão por nome de arma (F-C): vista de cima, autoral CC0 —
+ *  ver tools/gen_assets_mao.py pelo porquê (o pack é perfil, o jogo é
+ *  top-down; a DECISIONS #91 rejeitou o perfil para o corpo). */
+export const HAND_SPRITES: Record<string, string> = {
+  Pistola: 'mao_pistola',
+  Shotgun: 'mao_shotgun',
+  Metralhadora: 'mao_metralhadora',
+  Sniper: 'mao_sniper',
+  Laser: 'mao_laser',
+  RPG: 'mao_rpg',
+  Raios: 'mao_raios',
+  Gel: 'mao_gel',
+  Granada: 'mao_granada',
+  Mina: 'mao_mina',
+  BFG: 'mao_bfg',
+  'M. Quebrada': 'mao_quebrada',
+  Destruidor: 'mao_destruidor',
+};
 
 /**
  * Os 9 personagens do pack, em nome curto.
@@ -518,6 +547,9 @@ function buildSpriteList(): [string, string][] {
   for (const w of WEAPON_SPRITES) {
     out.push([`gun_${w}`, `${WEAPON_BASE}/${w}.png`]);
   }
+  for (const mao of Object.values(HAND_SPRITES)) {
+    out.push([`mao_${mao}`, `${HAND_BASE}/${mao}.png`]);
+  }
   for (const n of TILE_NUMBERS) {
     out.push([`tile_${n}`, `${BASE}/Tiles/${tileFileName(n)}`]);
   }
@@ -527,7 +559,7 @@ function buildSpriteList(): [string, string][] {
     }
   }
   for (const grupo of DUNGEON_WALLS) {
-    for (let i = 0; i < DUNGEON_COUNT.parede; i++) {
+    for (let i = 0; i < DUNGEON_COUNT.parede[grupo]; i++) {
       out.push([`dngeon_${grupo}_${i}`, `${DUNGEON_BASE}/${grupo}_${String(i).padStart(2, '0')}.png`]);
     }
   }
@@ -572,6 +604,47 @@ export async function loadAllSprites(): Promise<void> {
 
 export function getSprite(key: string): HTMLImageElement | null {
   return spriteCache.get(key) || null;
+}
+
+/**
+ * O CACHE DE TINT — cada tipo de inimigo com a própria cor (M6/F-C).
+ *
+ * A pergunta do dono era "cadê os sprites?": o pack tem 9 personagens
+ * para 32 tipos, e a variedade vinha só da silhueta por bioma. O `color`
+ * de cada tipo existia no config e só pintava o FALLBACK procedural —
+ * com sprite carregado a cor era morta. Aqui ela acorda: o corpo é
+ * tintado UMA vez com a cor do tipo (dessaturada a #808080 antes do
+ * multiply, o mesmo molde do props.ts — a paleta sóbria entra por
+ * construção) e o resultado fica em cache por (chave, cor).
+ *
+ * Cache por (personagem+pose, cor): no pior caso ~32 tipos × 6 poses —
+ * cada entrada é um canvas do tamanho do sprite, trivial em memória.
+ */
+const tintCache = new Map<string, HTMLCanvasElement>();
+
+export function getTintedSprite(key: string, color: string): HTMLCanvasElement | null {
+  const base = spriteCache.get(key);
+  if (!base) return null;
+  const cacheKey = `${key}#${color}`;
+  const jaTem = tintCache.get(cacheKey);
+  if (jaTem) return jaTem;
+  const w = base.naturalWidth || base.width;
+  const h = base.naturalHeight || base.height;
+  const off = document.createElement('canvas');
+  off.width = w;
+  off.height = h;
+  const c = off.getContext('2d')!;
+  c.drawImage(base, 0, 0);
+  // dessatura primeiro: a cor do config pode ser viva, o jogo é pós-apocalíptico
+  c.globalCompositeOperation = 'saturation';
+  c.fillStyle = '#808080';
+  c.fillRect(0, 0, w, h);
+  c.globalCompositeOperation = 'multiply';
+  c.fillStyle = color;
+  c.fillRect(0, 0, w, h);
+  c.globalCompositeOperation = 'source-over';
+  tintCache.set(cacheKey, off);
+  return off;
 }
 
 /** Lista os caminhos de personagem referenciados pelo jogo (para teste de asset). */
