@@ -77,6 +77,17 @@ export const PERIGO_NAVE_SEGUNDOS = 5;
  * atiradores não fazem sentido aproximar se já sabem onde estou"). Acima do
  * alcance ele chega; abaixo do recuo ele afasta; entre os dois, fica.
  */
+/**
+ * O chefe aguenta explosão melhor que o inimigo comum (M3, relato
+ * 2026-10-14): corpo grande é placa. Sem isto o RPG, a BFG (100 × 5) e as
+ * cadeias de barril resolviam o chefe da fase por um caminho que não
+ * pede a build — o pico da fase era atalho. 0.75 = 25% a menos, medido
+ * para o Destruidor do NÚCLEO não virar punitivo.
+ */
+export const RESISTENCIA_EXPLOSIVA_DO_BOSS = 0.75;
+
+/** Distância em que o caçador do protect troca o alvo para o jogador (M3). */
+export const RAIO_TROCA_DE_ALVO = 90;
 export const ALCANCE_DO_ATIRADOR = 300;
 export const RECUO_DO_ATIRADOR = 200;
 /** Fator de escala de stats dos inimigos por onda */

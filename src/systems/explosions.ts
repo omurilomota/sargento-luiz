@@ -4,7 +4,9 @@
  */
 
 import { Enemy } from '../types';
+import { ENEMY_TYPES } from '../config';
 import { dist } from '../utils';
+import { RESISTENCIA_EXPLOSIVA_DO_BOSS } from '../core/constants';
 import { spawnParticles } from './particles';
 import { PALETTE } from '../core/palette';
 
@@ -81,13 +83,16 @@ export function createExplosion(
   x: number, y: number, radius: number, damage: number,
   enemies: Enemy[], color: string = PALETTE.terracotta
 ): void {
-  // Dano em área
+  // Dano em área — chefe tem placa contra explosão (M3): mesmo no centro
+  // do raio, ele paga 75% do dano. Vale para arma explosiva, barril e
+  // granada: um caminho só de explosão não resolve o pico da fase.
   for (const e of enemies) {
     const d = dist({ x, y }, e);
     if (d < radius) {
       // Dano diminui com a distância
       const falloff = 1 - (d / radius);
-      e.health -= Math.floor(damage * (0.5 + falloff * 0.5));
+      const resist = ENEMY_TYPES[e.type]?.isBoss ? RESISTENCIA_EXPLOSIVA_DO_BOSS : 1;
+      e.health -= Math.floor(damage * (0.5 + falloff * 0.5) * resist);
       e.hitFlash = 0.15;
     }
   }

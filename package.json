@@ -32,6 +32,7 @@
     "m2fluxo": "npm run build && node tools/m2-fluxo-proof.mjs",
     "voo": "npm run build && node tools/m4-voo-proof.mjs",
     "m5": "npm run build && node tools/m5-emocao-proof.mjs",
+    "m3economia": "npm run build && node tools/m3-economia-proof.mjs",
     "itch": "node tools/itch-fullscreen-proof.mjs"
   },
   "devDependencies": {

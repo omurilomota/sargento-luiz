@@ -82,3 +82,22 @@ describe('explosivos: detonação em qualquer fim, mina com fuse, pavio', () => 
     expect(fora.health).toBe(20);
   });
 });
+
+describe('explosivos: o chefe tem placa contra explosão (M3)', () => {
+  beforeEach(() => { clearBullets(); clearExplosions(); });
+
+  it('no centro do raio o chefe paga 75% do que o comum paga', () => {
+    const comum = inimigo(100, 100);
+    const chefe = { x: 100, y: 100, radius: 42, health: 1000, spawnDelay: 0, type: 'vigia' } as Enemy;
+    createExplosion(100, 100, 140, 100, [comum, chefe]);
+    // falloff máximo nos dois: 100 brutos. O comum toma 100; o chefe, 75.
+    expect(20 - comum.health).toBe(100);
+    expect(1000 - chefe.health).toBe(75);
+  });
+
+  it('o inimigo SEM tipo (fallback do teste) segue tomando dano cheio', () => {
+    const semTipo = inimigo(100, 100);
+    createExplosion(100, 100, 140, 100, [semTipo]);
+    expect(20 - semTipo.health).toBe(100);
+  });
+});

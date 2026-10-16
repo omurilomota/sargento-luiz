@@ -1781,20 +1781,34 @@
 //     "F" não dropa (comum NEM chefe) e não entra no estoque da loja
 //     enquanto a Fábrica não abrir a tecla E — gateFuria.test (5).
 //     Prova: npm run m2fluxo (3 contratos verdes) + npm run blur.
-// [ ] M3 — DINHEIRO E DESAFIO: economia medida contra o modelo do
-//     árbitro (achar a torneira), resistência a explosão nos chefes,
-//     rework da Pistola Incandescente (o efeito vale em qualquer arma),
-//     archers do Castelo alternam alvo (encostou, vira alvo), Ponte com
-//     multi-spawn + timer de quebra, [x] loja nova: sobrevivente
-//     contratado (segue e atira), torreta na entrada (fixa, atira com
-//     linha de visão, sprite Kenney TD 277 CC0) e consumível Botas de
-//     Campo (+30% velocidade na fase, o efeito do power-up `botas`) —
-//     entregues na F0 2026-10-15 com efeito real (servicos.test.ts 10 +
-//     npm run servicos). O CACHORRO ficou FORA até existir arte top-down
-//     CC0: os candidatos são de perfil (perspectiva mista, DECISIONS
-//     #91/#214) — volta em ~20 linhas quando o asset aparecer.
-//     NOTA: quem reinicia a fase (protect) perde o aliado pago — o
-//     consumo é único no load (DECISIONS #215).
+// [ ] M3 — DINHEIRO E DESAFIO: [x] economia medida contra o modelo do
+//     árbitro (2026-10-16, F7/H): o modelo ganhou FONTE ÚNICA
+//     (`src/systems/economia.ts`) e enxergou as duas TORNEIRAS — os TITÃS
+//     (3× moedas) e a COLETA da Fábrica, que entraram no jogo depois dele.
+//     Renda verdadeira: 2.896 (não 2.492); a razão tinha caído a 2,25 e a
+//     escada foi REPOSTA (t4 320, t5 450, especiais 900 → 8.400, razão
+//     2,90× no meio da banda; t1 60 segue — toda fase paga o 1º degrau).
+//     A medição em navegador (`npm run m3economia`) lê o lado do SPAWN
+//     (gerado/abate vs modelo) com as folgas medidas documentadas (floor
+//     da moeda pequena, stomp sem prêmio). [x] resistência a explosão nos
+//     chefes: 0,75 (placa — vale arma explosiva, barril e granada; o
+//     Destruidor segue sendo a fantasia da fase final), explosivos.test
+//     +2. [x] rework da Pistola Incandescente: o efeito SEMPRE valeu pra
+//     qualquer arma (o mecanismo conta cada tiro) — agora o nome diz:
+//     "Munição Incandescente", "a cada 5 tiros, um incendeia — vale para
+//     qualquer arma" (id preservado: é a chave do save). [x] archers do
+//     Castelo alternam alvo: "encostou, vira alvo" — caçador a 90px arma
+//     o mesmo aggro de 4s (cacador re-medido: sem regressão, a variância
+//     documentada domina). [ ] Ponte com multi-spawn + timer de quebra —
+//     o único resto do M3 (design de um dia: o timer muda o grid em
+//     runtime, mexe no prerender do terreno e no flow field junto).
+//     Histórico da loja nova (entregue na F0, 2026-10-15): contratado
+//     (segue e atira), torreta na entrada (fixa, atira com linha de
+//     visão, sprite Kenney TD 277 CC0) e consumível Botas de Campo
+//     (+30% velocidade na fase) — efeito real (servicos.test 10 + npm run
+//     servicos). O CACHORRO ficou FORA até existir arte top-down CC0
+//     (candidatos são de perfil — perspectiva mista, DECISIONS #91/#214);
+//     quem reinicia a fase (protect) perde o aliado pago (#215).
 // [x] M4 — A ORDEM E O VOO (2026-10-16, F4): Pântano 8 → Refinaria 9 →
 //     Subestação 10 → Vulcão 11 → Porto 12 → Castelo 13 → Espaço 14 →
 //     NÚCLEO 15 — o foguete enche TANQUE no Porto antes de ser CONCERTADO

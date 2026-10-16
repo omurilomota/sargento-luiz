@@ -40,7 +40,17 @@ export function resetPermanentMagnet(): void { permanentMagnet = false; }
  * Cria moedas em uma posição com velocidades aleatórias.
  * Usado quando um inimigo é derrotado.
  */
+/**
+ * Moedas GERADAS desde o load da fase (M3): a medição da economia compara
+ * o que o jogo CRIA por abate contra o que o modelo promete — coletar é
+ * comportamento do jogador, não torneira. Zerado junto com o campo.
+ */
+let moedasGeradas = 0;
+export function getMoedasGeradas(): number { return moedasGeradas; }
+export function zeraMoedasGeradas(): void { moedasGeradas = 0; }
+
 export function spawnCoins(x: number, y: number, count: number): void {
+  moedasGeradas += count;
   for (let i = 0; i < count; i++) {
     const angle = rand(0, Math.PI * 2);
     const spd = rand(50, 150);

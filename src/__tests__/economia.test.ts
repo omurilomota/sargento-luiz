@@ -19,20 +19,10 @@ import { PERK_LADDER } from '../systems/perks';
 import { getNextAdReward } from '../systems/ads';
 import { Phase } from '../types';
 
-/** Renda esperada de abate de uma fase (valor médio, determinístico). */
-function rendaDeAbate(phase: Phase): number {
-  const naoMutantes = phase.enemyTypes.filter(t => !ENEMY_TYPES[t]?.isMutant);
-  const mediaTipos = naoMutantes.reduce((s, t) => s + (ENEMY_TYPES[t]?.coinDrop ?? 0), 0) / naoMutantes.length;
-  const dropMutante = ENEMY_TYPES['mutante']?.coinDrop ?? 0;
-  let total = 0;
-  for (let wave = 0; wave < phase.waves; wave++) {
-    const comuns = WAVE_BASE_ENEMIES + wave * WAVE_ENEMIES_PER_LEVEL;
-    const mutantes = Math.min(phase.mutantsPerWave ?? 0, Math.floor(comuns / 2));
-    total += comuns * mediaTipos + mutantes * dropMutante;
-  }
-  total += ENEMY_TYPES[phase.boss ?? '']?.coinDrop ?? 0;
-  return Math.floor(total * 0.6);
-}
+// A fórmula mora em src/systems/economia.ts — a fonte única: este teste,
+// o bridge da medição em navegador e qualquer decisão futura leem daqui.
+// Duplicar a fórmula aqui seria o drift de getShopLayout ao contrário.
+import { rendaDeAbate } from '../systems/economia';
 
 const FASES_COM_LOJA = PHASES.slice(0, PHASES.length - 1);
 const rendaTotal = FASES_COM_LOJA.reduce((s, f) => s + rendaDeAbate(f), 0);
@@ -57,9 +47,12 @@ describe('economia: o árbitro da loja × progressão', () => {
     // fases dobrava a renda — os degraus altos subiram para a escada
     // continuar custando várias campanhas (2026-10-14).
     //
-    // ÁRBITRO MEDIDO em 2026-10-14: custoEscada 6.510 / rendaTotal 2.492
-    // = 2,61× — dentro da banda. Toda mudança de preço/renda (T4b, fases
-    // novas) tem que manter este teste verde.
+    // ÁRBITRO MEDIDO em 2026-10-16 (M3, o modelo enxergou as torneiras):
+    // o modelo antigo não contava os TITÃS (3× moedas, T1) nem a COLETA da
+    // Fábrica — a renda verdadeira é 2.896, não 2.492, e a razão tinha
+    // caído a 2,25. Os degraus altos foram repostos (t4 320, t5 450,
+    // especiais 900): custoEscada 8.400 / rendaTotal 2.896 = 2,90× — no
+    // meio da banda. Toda mudança de preço/renda mantém este teste verde.
     const razao = custoEscada / rendaTotal;
     expect(razao).toBeGreaterThan(2.5);
     expect(razao).toBeLessThan(4.5);

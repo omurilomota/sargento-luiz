@@ -20,8 +20,8 @@ import * as player from './entities/player';
 import { applyRegen, resetRegen } from './entities/player';
 import { getBullets, spawnBullet, updateBullets, updateMines, clearBullets } from './entities/bullet';
 import { getSprite, BULLET_FAMILY, getEnemyCharacter } from './systems/sprites';
-import { getCoins, spawnCoins, updateCoins, clearCoins, setMagnetActive, resetPermanentMagnet } from './entities/coin';
-import { PHASE_END_PAUSE, PLAYER_BASE_HEALTH, PERIGO_NAVE_SEGUNDOS, ALCANCE_DO_ATIRADOR, RECUO_DO_ATIRADOR } from './core/constants';
+import { getCoins, spawnCoins, updateCoins, clearCoins, setMagnetActive, resetPermanentMagnet , getMoedasGeradas, zeraMoedasGeradas } from './entities/coin';
+import { PHASE_END_PAUSE, PLAYER_BASE_HEALTH, PERIGO_NAVE_SEGUNDOS, ALCANCE_DO_ATIRADOR, RECUO_DO_ATIRADOR, RAIO_TROCA_DE_ALVO } from './core/constants';
 import type { Toast, ToastKind, WeaponSheet } from './ui/hud';
 import { updateSupportUrl, drawSupportFallback, hideSupportUrl } from './systems/support';
 
@@ -57,6 +57,7 @@ import {
 
 // UI
 import { initHud, drawHud, drawTabScreen, medirHud, HudData } from './ui/hud';
+import { rendaDeAbate } from './systems/economia';
 import { drawShop, handleShopClick, setShopCoins, getShopCoins, addShopCoins, resetShop, updateShopAds, getPurchasedUpgrades, getPurchasedWeapons, getPurchasedWeaponPairs, attachShopWheelListener, addPurchasedWeapon, pushPendingReveal, consumeShopPowerups, consumeShopServices, restoreUpgrades, applySavedTalentos, buyPerk, buyService, getStockPerks, getShopStock, getShopLayout, medirTextosDaLoja, setShopScroll } from './ui/shop';
 
 // Modules
@@ -749,6 +750,7 @@ function loadPhaseEnvironment(): void {
   bossGritoTexto = '';
   bossGritoTimer = 0;
   checkAchievements('phase_start');
+  zeraMoedasGeradas();
   for (const svc of consumeShopServices()) {
     // os dois aliados nascem colados no jogador: ±40px às cegas podia pôr o
     // corpo DENTRO da parede (spawn de borda) — o mesmo resgate do loot
@@ -2915,13 +2917,22 @@ for (const e of enemies) {
     // ressentimento (relato do Murilo: caçador "me ignorando inclusive nas
     // balas"): enquanto o aggro dura, o caçador persegue QUEM ATIROU nele.
     if (e.aggroTimer !== undefined && e.aggroTimer > 0) e.aggroTimer -= dt;
+    const flow = sampleFlowDir(e.x, e.y);
+    // perto do jogador o flow field é ruidoso: aí vai o seek direto
+    const distToPlayer = Math.hypot(p.x - e.x, p.y - e.y);
+    // M3 ("encostou, vira alvo", relato 2026-10-14): o caçador que chega
+    // no jogador troca o alvo por uns segundos — ficar na frente dele é a
+    // defesa do protect, e o caçador que ignora a ameaça a pé lê como
+    // burro. O mesmo aggro de quem leva tiro, agora por proximidade: enquanto
+    // está perto, o jogador é o alvo; 4s depois de sair, volta ao foguete.
+    if ((fogueteNoMapa ?? ((def?.huntsNpc || phase.objective === 'protect') ? getNPCs().find(n => n.alive) : undefined))
+      && distToPlayer < RAIO_TROCA_DE_ALVO) {
+      e.aggroTimer = 4;
+    }
     const comAggro = (e.aggroTimer ?? 0) > 0;
     const prey = !comAggro
       ? (fogueteNoMapa ?? ((def?.huntsNpc || phase.objective === 'protect') ? getNPCs().find(n => n.alive) : undefined))
       : undefined;
-    const flow = sampleFlowDir(e.x, e.y);
-    // perto do jogador o flow field é ruidoso: aí vai o seek direto
-    const distToPlayer = Math.hypot(p.x - e.x, p.y - e.y);
     // atirador comum: sabe onde o jogador está, não faz sentido encostar
     const atiradorComum = def?.canShoot === true && !def?.isBoss;
     let seekX: number;
@@ -3384,6 +3395,10 @@ window.__ashfall = {
     // a fila do rush vem daqui: o `rush-proof.mjs` compara com o que entrou
     // em tela e não repete a fonte de verdade em outro arquivo.
     nucleoRush: NUCLEO_RUSH,
+    // M3: a renda esperada de cada fase pela FONTE ÚNICA do árbitro — a
+    // medição em navegador (m3-economia-proof) compara o que o bot GANHOU
+    // contra o que o modelo PROMETE, por fase
+    rendaDeAbate: PHASES.map(f => rendaDeAbate(f)),
     vidaBase: PLAYER_BASE_HEALTH,
   }),
   fase: () => {
@@ -3620,6 +3635,9 @@ window.__ashfall = {
   // da onda que fecha junto — o contrato é "chegou ao jogador", não "foi a última"
   toasts: () => achievementNotifications.map(t => t.name),
   temConquista: (id: string) => getAllAchievements().some(a => a.id === id && a.unlocked),
+  // M3: a moeda GERADA desde o load da fase — o lado do spawn que a
+  // medição da economia compara contra o modelo (coletar é do jogador)
+  moedasGeradas: () => getMoedasGeradas(),
   // devolve o estado da run nova depois do `resetGame`: o `perks-proof` compara
   // com a run anterior para provar que perks e stats não sobreviveram.
   resetarPartida: () => { resetGame(); return true; },

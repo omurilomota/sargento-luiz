@@ -185,6 +185,40 @@ commitados; esta entrega o fecha com efeito REAL e prova em navegador.
   verde nos 3 contratos, visual sem 404. PNG `m5-grito-maquinista.png` com
   pendência de leitura (regra 16).
 
+## Entrega: H — M3, o dinheiro e o desafio (2026-10-16 15:10, `develop`)
+
+A economia medida **achou as torneiras de verdade** — e o árbitro mandou
+repor a escada:
+
+- **O modelo ganhou fonte única** (`src/systems/economia.ts`): o teste e o
+  bridge leem da mesma fórmula (o molde do getShopLayout contra o drift).
+  Ele enxergou as duas torneiras que entraram no jogo DEPOIS dele — os
+  TITÃS (3× moedas) e a COLETA da Fábrica: **renda verdadeira 2.896, não
+  2.492**. A razão tinha caído a 2,25, ABAIXO do piso do árbitro.
+- **Escada repostada**: t2 140 · t3 230 · t4 320 · t5 450 · especiais 900
+  (t1 60 segue — toda fase paga o 1º degrau). 8.400/2.896 = **2,90×**,
+  meio da banda. Resgates: 20,7% da média (guarda de 25% ok).
+- **A medição em navegador** (`npm run m3economia`): a 1ª versão media a
+  carteira do bot — e o bot de dodge nunca volta pela moeda (0 em 45s:
+  instrumento, não jogo). A v2 lê o lado do SPAWN (gerado/abate vs
+  modelo) e documentou as folgas reais: o `floor()` da moeda pequena
+  (coinDrop 3 paga 1, não 1,8) e o stomp sem prêmio — 0,3-0,5× é folga,
+  não vazamento (DECISIONS #236).
+- **Chefe tem placa contra explosão** (0,75): RPG, BFG e cadeia de barril
+  não resolvem mais o pico da fase por atalho — o Destruidor segue
+  sendo a fantasia do NÚCLEO (medido).
+- **Munição Incandescente**: o efeito sempre valeu para qualquer arma —
+  agora o nome e a desc dizem (id preservado pela chave do save).
+- **"Encostou, vira alvo"**: caçador a 90px arma o mesmo aggro de 4s de
+  quem leva tiro. Cacador re-medido: 9/12 pré vs 8/12 pós — a variância
+  de spawn documentada (6-34s) domina, sem regressão.
+- **Ponte (multi-spawn + timer de quebra)**: o único resto do M3 — fica
+  para a próxima sessão com o porquê no TODO (mexer grid em runtime
+  puxa prerender do terreno e flow field juntos).
+- **Gates**: tsc, 1390 testes (economia no módulo, explosivos +2),
+  `m3economia` verde com as folgas documentadas, loja-proof verde,
+  cacador sem regressão. CI do Actions verde a cada push.
+
 ## Entrega: G — GitHub decorado + Actions (2026-10-16 14:20, `9a73d4f`)
 
 - **Repo renomeado**: `BubbleGame` → [`github.com/omurilomota/sargento-luiz`](https://github.com/omurilomota/sargento-luiz) — description e 7 topics (jogo, canvas, roguelite, top-down-shooter, typescript, vite, cc0-assets); remote local atualizado; GitHub redireciona as URLs antigas.
