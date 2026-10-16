@@ -1,6 +1,6 @@
 # SARGENTO LUIZ — Status Geral do Projeto
 
-> Atualizado: 2026-10-14 · branch `develop` · 1167 testes em 58 arquivos ·
+> Atualizado: 2026-10-15 · branch `develop` · 1376 testes em 62 arquivos ·
 > `tsc` limpo · build ok.
 > (antes: SARGENTO RIOS, e antes disso ASHFALL — o jogo trocou de nome duas
 > vezes e o save migra as duas gerações de prefixo)
@@ -13,6 +13,8 @@ npx tsc --noEmit   # 0 erros
 npm run build      # ok
 npm run visual     # 8 screenshots, sem 404/pageerror
 npm run servicos   # os 3 serviços da loja: aliado/torreta nascem, botas 1.3, tiro em campo
+npm run blur       # o input sobrevive ao blur (veredito: não reproduz no HEAD)
+npm run m2fluxo    # M2: anúncio diferido, martelo forçado no NÚCLEO, tela de vitória
 npm run perks      # 13/13 — escada de perks na loja
 npm run hud        # 4 resoluções, texto cabe na caixa
 npm run loja       # 3 scrolls, texto e seções sem sobreposição
@@ -163,6 +165,57 @@ commitados; esta entrega o fecha com efeito REAL e prova em navegador.
   por aqui. O enquadramento da torreta em jogo é o primeiro a conferir.
 
 ---
+
+## Entrega: F1 — os bugs de fluxo do M2 (2026-10-15 23:25, `9df5f18`)
+
+O relato de 2026-10-14 virou cinco vereditos, cada um com prova:
+
+- **Anúncio de onda sob a caixa de diálogo**: nos encontros da Fábrica/
+  Hospital/Castelo a onda 2 nascia na mesma frame da caixa e o som tocava
+  debaixo do mundo congelado. Agora arma PENDENTE e toca quando a caixa
+  fecha — `m2fluxo-proof` testemunha o flag armar na abertura e consumir no
+  fechamento.
+- **Tela de vitória "MUITO BEM, SOLDADO!"**: `markGameCompleted` entra no
+  caminho natural de encerramento — antes só o FINAL SECRETO "PERFEIÇÃO"
+  marcava, e quem zerou morrendo no caminho via GAME OVER no fim vencido.
+  O subtítulo mantém o fato ("O NÚCLEO CAIU — A CAMPANHA ACABOU").
+- **Martelo forçado no NÚCLEO**: o Destruidor vem NA MÃO e 1-9/Q respondem
+  com aviso, não trocam — a fase final é o desfile dele. Prova: arma
+  "Destruidor" na entrada (pela loja do Espaço, o caminho do jogador) e a
+  tecla 2 não troca.
+- **Gate da fúria no powerup**: a gema "F" não dropa de comum, nem de
+  chefe, e não entra no estoque da loja enquanto a Fábrica não abriu a
+  tecla E — o segredo da H2 não vaza pelo chão. `gateFuria.test` (5).
+- **Input morto no blur: NÃO REPRODUZ no HEAD** (`blur-proof`: 256px de
+  movimento pós-blur+ESC nas duas variantes). O relato é do build
+  publicado, anterior ao fix de 2026-10-13; ação = republicar o zip.
+
+Gates: tsc limpo, 1376 testes, `m2fluxo` 3/3, build ok.
+
+## Entrega: a frente visual resgatada (2026-10-15 23:20, `8ff3ac5`)
+
+A IA multimodal foi removida pelo Murilo em 2026-10-15 ("bugou") com a
+frente em voo. O trabalho era real e foi commitado com crédito — árvores
+autorais CC0 (nenhum pack do projeto tem vegetação — medido), asfalto e
+faixas para a Rodovia, piso de vidro, curadoria de parede por bioma
+(Pântano em terra, Castelo em arenito), contagens re-mediadas, o T8 (tiles
+órfãos de `sprites/tiles/` removidos) e o T2 (a parede com altura
+duplicada — `drawWallEdges` agora é só contorno).
+
+Três consertos para fechar (DECISIONS #222–224): o erro de tipo do
+`initProps` (1 linha), **o flow field cego às árvores** (célula com tronco
+é parede para a IA — sem isto o inimigo esbarrava no bosque e a onda
+empacava) e **o relógio fictício do arvore-onda-proof** (as amostras
+rodavam back-to-back: ~0,3s de jogo lidos como "40s"; a armadilha que o
+próprio cabeçalho da prova documentava). Com tempo real e fps checado
+(QUADROS_MINIMOS aplicado), **a onda encosta nas duas fases** (hp 100→82
+Floresta, 100→84 Pântano em <10s).
+
+**O canal AIchat.md** fica no repositório como protocolo para as próximas
+IAs que dividirem a árvore (DECISIONS #220/#221).
+
+**Merge**: a `feature/tilesets-curadoria-visual` foi integrada ao develop
+(fast-forward, `9df5f18`) — 69 arquivos, +4.557/−504.
 
 ## Entrega: 16 fases, SARGENTO LUIZ, e os encontros em jogo (2026-10-14 15:13, `ab4c7b0`)
 
