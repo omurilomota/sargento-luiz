@@ -1795,12 +1795,27 @@
 //     #91/#214) — volta em ~20 linhas quando o asset aparecer.
 //     NOTA: quem reinicia a fase (protect) perde o aliado pago — o
 //     consumo é único no load (DECISIONS #215).
-// [ ] M4 — A ORDEM E O VOO: Pântano 8 → Refinaria 9 → Subestação 10 →
-//     Vulcão 11 → Porto 12 → Castelo 13 → Espaço 14 → NÚCLEO 15 (o
-//     foguete enche tanque antes de ser consertado); sequência de voo
-//     no lugar do countdown de 5s (céu azul, vista de baixo, azul e
-//     preto, chegada na estação); falas: clima na Cidade (setup do
-//     tornado) + Caverna nova (hospital + o Grr).
+// [x] M4 — A ORDEM E O VOO (2026-10-16, F4): Pântano 8 → Refinaria 9 →
+//     Subestação 10 → Vulcão 11 → Porto 12 → Castelo 13 → Espaço 14 →
+//     NÚCLEO 15 — o foguete enche TANQUE no Porto antes de ser CONCERTADO
+//     no Castelo e voar. Prova: campanha-proof 16/16 na ordem nova, TODA
+//     fase começando na onda 1. [x] sequência de voo no lugar do
+//     countdown: `drawVoo` — 3 bandas de céu chapadas (azul → azul e
+//     preto → chegada), o foguete subindo e encolhendo (vista de baixo),
+//     "APROXIMANDO DA ESTAÇÃO" no fim; arma no respiro do Castelo pelos
+//     DOIS caminhos (onda e morte do chefe, `armarRespiro`) e conta os
+//     mesmos 5s — `npm run voo` (arma, conta, entrega a loja; na Cidade
+//     não arma). semDesenho teto 72→75 com porquê no diff.
+//     [x] falas: clima na Cidade (o céu fecha do lado do mar — setup do
+//     tornado do M1), Caverna citando o hospital que agora a precede, e
+//     as verbatim duplicadas do Pântano dedupadas (bug de costura do H3).
+//     Consequências cuidadas: save resolve fase por NOME (reordenar não
+//     puxa o jogador para outra fase); BIOMAS/FASE_PARA_CUTSCENE/
+//     provas re-indexadas; balance ganhou o formato M4 (subida em todo
+//     passo MENOS o respiro declarado do Castelo — o custo cai −43% e a
+//     cauda RECUPOA acima do pré-dip: 5091→2864→5306→6447, medido);
+//     variedade ganhou a guarda BIOMAS[i]==PHASES[i].map; ondas idem
+//     (respiro declarado). PNGs do voo com pendência de leitura (regra 16).
 // [ ] M5 — EMOÇÃO E CONQUISTAS: "YOU SHALL NOT PASS!" do MAQUINISTA na
 //     entrada, abates de chefe com slow-mo + fala de morte, conquistas
 //     (10/50 com arma, fase sem dano, graze, barril, o traje).

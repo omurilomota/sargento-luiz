@@ -73,10 +73,12 @@ checar('o prólogo fecha ao pular', st?.ativa === false);
 // dezesseis. A última pulada sai da última fase e o hook do jogo quebra (bug do
 // `pularParaProximaFase` fora de faixa), por isso a lista termina no Bunker, que
 // o EPÍLOGO fechar.
+// M4 (2026-10-15): ordem nova — o Castelo vem DEPOIS do Porto (o foguete
+// enche tanque antes do conserto). A prova anda por NOME na ordem de PHASES.
 const fases = [
   'Rodovia', 'Floresta', 'Hospital de Campanha', 'Caverna', 'Fábrica',
-  'Pátio de Trens', 'Ponte', 'Pântano', 'Refinaria', 'Castelo',
-  'Subestação', 'Vulcão', 'Porto', 'Espaço', 'NÚCLEO-CENTRAL',
+  'Pátio de Trens', 'Ponte', 'Pântano', 'Refinaria', 'Subestação',
+  'Vulcão', 'Porto', 'Castelo', 'Espaço', 'NÚCLEO-CENTRAL',
 ];
 let indice = 0;
 // Espera a CAIXA abrir matando a onda como um jogador faria. O gatilho do

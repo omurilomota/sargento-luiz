@@ -88,11 +88,6 @@ export const PHASES: Phase[] = [
     difficulty: 0.78, objective: 'clear', objectiveTarget: 0, boss: 'torre',
   },
   {
-    name: 'Castelo', bg: '#2e2e1a', bgColor2: '#1a1a0d', gridColor: 'rgba(150,150,100,0.1)',
-    enemyTypes: ['knight', 'archer', 'mage'], waves: 6, map: 'castelo', hazard: 'spikes',
-    difficulty: 0.95, objective: 'protect', objectiveTarget: 0, boss: 'reiMutante', // +0.05: a coleta da Fábrica cobra aqui
-  },
-  {
     // A rede que alimenta o NÚCLEO. Cortar aqui enfraquece o coração
     // da máquina — e desperta tudo que se alimenta da corrente.
     name: 'Subestação', bg: '#1a1e2e', bgColor2: '#0d0f15', gridColor: 'rgba(100,120,180,0.08)',
@@ -110,6 +105,15 @@ export const PHASES: Phase[] = [
     name: 'Porto', bg: '#1a1e22', bgColor2: '#0d0f11', gridColor: 'rgba(100,130,150,0.07)',
     enemyTypes: ['slime', 'ufo', 'fireElemental', 'tank'], waves: 7, map: 'porto', hazard: 'fog',
     difficulty: 0.92, objective: 'destroy', objectiveTarget: 3, boss: 'capitao',
+  },
+  {
+    // M4 (relato 2026-10-14): o Castelo vem DEPOIS do Porto — o foguete
+    // enche TANQUE no Porto antes de ser CONCERTADO aqui e voar. O respiro
+    // na curva de custo é de projeto: protect é a fase-âncora da história
+    // e a cauda (Espaço, NÚCLEO) volta a subir acima do pré-respiro.
+    name: 'Castelo', bg: '#2e2e1a', bgColor2: '#1a1a0d', gridColor: 'rgba(150,150,100,0.1)',
+    enemyTypes: ['knight', 'archer', 'mage'], waves: 6, map: 'castelo', hazard: 'spikes',
+    difficulty: 0.95, objective: 'protect', objectiveTarget: 0, boss: 'reiMutante', // +0.05: a coleta da Fábrica cobra aqui
   },
   {
     name: 'Espaço', bg: '#05050d', bgColor2: '#020208', gridColor: 'rgba(100,100,200,0.05)',

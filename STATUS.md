@@ -166,6 +166,39 @@ commitados; esta entrega o fecha com efeito REAL e prova em navegador.
 
 ---
 
+## Entrega: F4 — M4, a ordem e o voo (2026-10-16 00:50, `develop`)
+
+A campanha reordenada pela narrativa e a decolagem visível:
+
+- **A ordem nova (M4)**: Pântano 8 → Refinaria 9 → Subestação 10 → Vulcão
+  11 → Porto 12 → **Castelo 13** → Espaço 14 → NÚCLEO 15 — o foguete enche
+  TANQUE no Porto antes de ser CONCERTADO no Castelo. Prova: campanha-proof
+  **16/16 na ordem nova, toda fase começando na onda 1**.
+- **O respiro do Castelo é o VOO**: `drawVoo` — céu em 3 bandas chapadas
+  (azul → azul e preto → chegada), o foguete subindo e encolhendo (vista de
+  baixo), "APROXIMANDO DA ESTAÇÃO" no fim. Arma pelos DOIS caminhos de
+  respiro (`armarRespiro`) e conta os mesmos 5s — `npm run voo` verde:
+  arma, conta, entrega a loja; fora do Castelo, respiro comum. semDesenho
+  teto 72→75 com porquê no diff.
+- **Falas**: o PRÓLOGO ganha o setup de clima (o céu fecha do lado do mar —
+  o tornado do M1 nasce anunciado); a Caverna lembra o hospital que agora
+  a precede; as verbatim duplicadas do Pântano saíram (bug de costura do
+  H3). semIA + cutscene + story-proof **37/37** verdes.
+- **Consequências cuidadas**: o save resolve fase por NOME (reordenar não
+  puxa o jogador para outra fase — DECISIONS #226); BIOMAS,
+  FASE_PARA_CUTSCENE e as provas re-indexadas; o balance ganhou o FORMATO
+  M4 (subida em todo passo MENOS o respiro declarado do Castelo — o custo
+  dele cai −43% e a cauda RECUPOA acima do pré-dip: 5091→2864→5306→6447,
+  medido antes de mover); variedade ganhou a guarda `BIOMAS[i] ==
+  PHASES[i].map` (a divergência quase passou — foi o fireElemental que
+  delatou).
+- **Gates**: tsc limpo, 1379 testes, campanha 16/16, story 37/37, protect
+  2/2, foguete-shot verde (índice 13), cacador 3/3 (com a variância de
+  spawn conhecida: chegadas históricas de 6s a 34s), voo verde.
+- **Pendências**: os PNGs do voo (`voo-inicio/fim.png`) e os shots das
+  fases reordenadas seguem com a leitura pendente (regra 16) — sem leitor
+  de imagem nesta sessão, é fila do Murilo.
+
 ## Entrega: F1 — os bugs de fluxo do M2 (2026-10-15 23:25, `9df5f18`)
 
 O relato de 2026-10-14 virou cinco vereditos, cada um com prova:

@@ -30,6 +30,7 @@
     "servicos": "npm run build && node tools/servicos-proof.mjs",
     "blur": "npm run build && node tools/blur-proof.mjs",
     "m2fluxo": "npm run build && node tools/m2-fluxo-proof.mjs",
+    "voo": "npm run build && node tools/m4-voo-proof.mjs",
     "itch": "node tools/itch-fullscreen-proof.mjs"
   },
   "devDependencies": {

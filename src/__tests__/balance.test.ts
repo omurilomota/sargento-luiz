@@ -184,13 +184,29 @@ describe('balanceamento: o começo é jogável com a pistola e só a pistola', (
   });
 });
 
-describe('balanceamento: a dificuldade cresce ao longo das 9 fases', () => {
-  it('cada fase é mais cara que a anterior', () => {
+describe('balanceamento: a dificuldade cresce ao longo da campanha', () => {
+  it('cada fase é mais cara que a anterior — MENOS o respiro do Castelo (M4)', () => {
+    // M4 (2026-10-15): o Castelo vem depois do Porto por NARRATIVA — o
+    // foguete enche tanque no Porto antes do conserto. O protect é a
+    // fase-âncora da história e NÃO foi recalibrado às cegas (0.95 medido em
+    // 3/3 sessões de 45s+); o custo dele é o RESPIRO de projeto antes da
+    // cauda final. O contrato veda a cauda invertida (o defeito original:
+    // finais progressivamente mais baratos), não um respiro declarado.
+    const RESPIRO = PHASES.findIndex(p => p.name === 'Castelo');
     for (let i = 1; i < PHASES.length; i++) {
+      if (i === RESPIRO) continue;
       expect(
         CUSTO[i], `${PHASES[i].name} (${CUSTO[i].toFixed(0)}) não é mais cara que ${PHASES[i - 1].name} (${CUSTO[i - 1].toFixed(0)})`,
       ).toBeGreaterThan(CUSTO[i - 1]);
     }
+  });
+
+  it('depois do respiro a curva RECUPOU: o Espaço supera o Porto pré-respiro', () => {
+    const idxCastelo = PHASES.findIndex(p => p.name === 'Castelo');
+    const idxPorto = PHASES.findIndex(p => p.name === 'Porto');
+    const idxEspaco = PHASES.findIndex(p => p.name === 'Espaço');
+    expect(CUSTO[idxEspaco]).toBeGreaterThan(CUSTO[idxPorto]);
+    expect(CUSTO[CUSTO.length - 1]).toBe(Math.max(...CUSTO));
   });
 
   it('a última fase é a mais cara de todas', () => {
@@ -201,8 +217,10 @@ describe('balanceamento: a dificuldade cresce ao longo das 9 fases', () => {
     expect(CUSTO[0]).toBe(Math.min(...CUSTO));
   });
 
-  it('a rampa não tem salto absurdo entre fases vizinhas', () => {
+  it('a rampa não tem salto absurdo entre fases vizinhas — o respiro não conta', () => {
+    const RESPIRO = PHASES.findIndex(p => p.name === 'Castelo');
     for (let i = 1; i < PHASES.length; i++) {
+      if (i === RESPIRO) continue;
       const salto = CUSTO[i] / CUSTO[i - 1] - 1;
       expect(salto, `${PHASES[i - 1].name} -> ${PHASES[i].name} salta ${(salto * 100).toFixed(0)}%`)
         .toBeLessThan(1.1);
@@ -211,8 +229,13 @@ describe('balanceamento: a dificuldade cresce ao longo das 9 fases', () => {
 });
 
 describe('balanceamento: a rampa é feita de ondas, não de multiplicador', () => {
-  it('o número de ondas não diminui ao longo do jogo', () => {
+  it('o número de ondas não diminui ao longo do jogo — o respiro do Castelo não conta', () => {
+    // M4: o Castelo (6 ondas, o protect calibrado) vem depois do Porto (7)
+    // por narrativa. O contrato veda a cauda esvaziando, não o respiro
+    // declarado — depois dele, Espaço (7) e NÚCLEO (8) seguram a subida.
+    const RESPIRO = PHASES.findIndex(p => p.name === 'Castelo');
     for (let i = 1; i < PHASES.length; i++) {
+      if (i === RESPIRO) continue;
       expect(PHASES[i].waves, `${PHASES[i].name} tem menos ondas que ${PHASES[i - 1].name}`)
         .toBeGreaterThanOrEqual(PHASES[i - 1].waves);
     }

@@ -70,6 +70,8 @@ export const CUTSCENES: Cutscene[] = [
       { speaker: 'narrador', text: 'Ele cobre o rosto do mais novo com a própria farda antes de sair. A farda fica pesada de terra.' },
       { speaker: 'rios', text: 'Nunca mais vai ser a mesma coisa. Cidade que sempre amei.' },
       { speaker: 'rios', text: 'Isso aqui parece uma série cara. Não é possível que eu tenho de passar por isso.' },
+      { speaker: 'narrador', text: 'No horizonte, o céu fecha pesado do lado do mar. Um vento quente empurra a poeira contra as pernas dele.' },
+      { speaker: 'rios', text: 'Esse vento não promete nada. Melhor andar logo.' },
     ],
   },
   {
@@ -118,6 +120,7 @@ export const CUTSCENES: Cutscene[] = [
     color: '#608090',
     lines: [
       { speaker: 'rios', text: 'Finalmente saí da floresta. Os zumbis estão evoluindo rapidamente.' },
+      { speaker: 'rios', text: 'No hospital, os médicos ainda tentavam entender isso. Não entenderam a tempo.' },
       { speaker: 'rios', text: 'Pelo menos aqui na caverna não deve ter nenhum!' },
       { speaker: 'narrador', text: 'A lanterna dele está no chão, virada pra parede. A luz morreu faz tempo.' },
       { speaker: 'narrador', text: 'Arthur está sentado de costas pra saída, como quem esperava alguém descer pelo túnel.' },
@@ -158,16 +161,14 @@ export const CUTSCENES: Cutscene[] = [
     lines: [
       { speaker: 'narrador', text: 'Névoa baixa, amarela, com cheiro de PVC. A bússola gira sem parar.' },
       { speaker: 'rios', text: 'Aqui eu não conheço nada. Nem o nome do lugar.' },
-      { speaker: 'rios', text: 'Nada mais me surpreende. Daqui a pouco eles tão saindo do chão.' },
+      { speaker: 'rios', text: 'Nada mais me surpreende. Daqui a pouco estão saindo do chão.' },
       { speaker: 'narrador', text: 'A lama borbulha perto da bota dele. Um som grosso, devagar, como quem engole.' },
-      { speaker: 'rios', text: '...Tenho que tomar cuidado com o que falo.' },
+      { speaker: 'rios', text: '...Tenho que tomar cuidado com o que falo nesse lugar.' },
       { speaker: 'narrador', text: 'A lama sobe até o joelho depois de vinte metros. E gruda.' },
       { speaker: 'narrador', text: 'Um corpo boia de bruços, de uniforme. O distintivo foi polido até sumir.' },
       { speaker: 'rios', text: '...Não é do meu batalhão. Não reconheço. Isso é pior.' },
-      { speaker: 'rios', text: 'Nada mais me surpreende. Daqui a pouco estão saindo do chão.' },
       { speaker: 'narrador', text: 'A lama estala e cede meio palmo sob a bota. O barulho vem antes do tombo.' },
       { speaker: 'rios', text: 'Ohoa…! Quase engoliu a bota junto.' },
-      { speaker: 'rios', text: 'Tenho que tomar cuidado com o que falo nesse lugar.' },
       { speaker: 'narrador', text: 'A água sobe mais um palmo sem que tenha chovido.' },
       { speaker: 'rios', text: 'Esse lugar tá engolindo gente. E eu tô no meio.' },
     ],
@@ -398,6 +399,9 @@ export function showCutscene(): void {
  * Com as 7 fases novas (2026-10-14), a campanha tem 16 entradas e a lista
  * tem 15 cenas grandes + o epílogo (a Fábrica é a única sem cena).
  */
+// M4 (2026-10-15): a ORDEM das fases mudou (Castelo depois do Porto — o
+// foguete enche tanque antes do conserto); a chave continua sendo o ÍNDICE
+// da fase e o valor o índice da CENA, que não se mexeu.
 const FASE_PARA_CUTSCENE: Record<number, number> = {
   0: 0,   // Cidade -> PRÓLOGO
   1: 1,   // Rodovia -> RODOVIA
@@ -409,10 +413,10 @@ const FASE_PARA_CUTSCENE: Record<number, number> = {
   7: 6,   // Ponte -> PONTE
   8: 7,   // Pântano -> PÂNTANO
   9: 8,   // Refinaria -> REFINARIA
-  10: 9,  // Castelo -> CASTELO
-  11: 10, // Subestação -> SUBESTAÇÃO
-  12: 11, // Vulcão -> VULCÃO
-  13: 12, // Porto -> PORTO
+  10: 10, // Subestação -> SUBESTAÇÃO
+  11: 11, // Vulcão -> VULCÃO
+  12: 12, // Porto -> PORTO
+  13: 9,  // Castelo -> CASTELO (M4: agora depois do Porto)
   14: 13, // Espaço -> ESPAÇO
   15: 14, // Bunker -> NÚCLEO-CENTRAL (o EPÍLOGO fecha depois do chefe final)
 };

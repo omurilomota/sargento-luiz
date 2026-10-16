@@ -754,6 +754,48 @@ export function drawCredits(): void {
 /**
  * Desenha a transição visual entre ondas.
  */
+/**
+ * A SEQUÊNCIA DE VOO do Castelo (M4, relato 2026-10-14): no respiro depois
+ * do rei mutante, o jogador vê o foguete subir — céu azul embaixo, azul e
+ * preto no meio, a estação chegando. O foguete é o SPRITE do Castelo (o
+ * mesmo `prop_foguete`, placeholder que o dono vai trocar); as bandas de
+ * céu são chapadas de propósito: gradiente aqui leria como template, e a
+ * paleta pede céu desbotado, não cartão-postal.
+ *
+ * `progresso` é 1→0 (o mesmo relógio do respiro): 0 é o chão, 1 é a janela
+ * da estação.
+ */
+export function drawVoo(progresso: number, W: number, H: number): void {
+  const t = 1 - progresso; // 0 no chão → 1 chegando
+
+  // céu em 3 bandas chapadas que escurecem com a altura da subida
+  const cor = (a: number, b: number) => {
+    const mix = (x: number, y: number) => Math.round(x + (y - x) * Math.min(1, t * 1.4));
+    return `rgb(${mix(74, 8)},${mix(122, 10)},${mix(146, 24)})`;
+  };
+  ctx.fillStyle = cor(0, 0);
+  ctx.fillRect(0, 0, W, H * 0.5);
+  ctx.fillStyle = `rgb(${Math.round(64 - 52 * t)},${Math.round(118 - 104 * t)},${Math.round(148 - 130 * t)})`;
+  ctx.fillRect(0, H * 0.5, W, H * 0.35);
+  ctx.fillStyle = `rgb(${Math.round(120 - 110 * t)},${Math.round(168 - 156 * t)},${Math.round(190 - 178 * t)})`;
+  ctx.fillRect(0, H * 0.85, W, H * 0.15);
+
+  // o foguete sobe e AFASTA (vista de baixo): encolhe conforme ganha altura
+  const foguete = getSprite('prop_foguete');
+  if (foguete) {
+    const tamanho = H * (0.85 - 0.68 * t);
+    const y = H * (1.05 - 1.15 * t);
+    ctx.drawImage(foguete, W / 2 - tamanho * 0.27, y - tamanho / 2, tamanho * 0.54, tamanho);
+  }
+
+  // o que a janela diz, no compasso da subida
+  ctx.fillStyle = 'rgba(200,184,144,0.9)';
+  ctx.font = 'bold 18px monospace';
+  ctx.textAlign = 'center';
+  if (t < 0.55) ctx.fillText('DECOLAGEM', W / 2, H * 0.16);
+  else ctx.fillText('APROXIMANDO DA ESTAÇÃO', W / 2, H * 0.16);
+}
+
 export function drawPhaseTransition(phaseTransition: number, currentWave: number, phaseName: string | undefined): void {
   if (phaseTransition <= 0) return;
   const alpha = Math.min(1, phaseTransition / 1.5);

@@ -27,7 +27,7 @@ const ok = (cond, msg) => {
 
 for (let a = 1; a <= AMOSTRAS; a++) {
   const { page, erros, fechar } = await abrirJogo({ chromium });
-  await irParaFase(page, 10);
+  await irParaFase(page, 13); // M4: Castelo agora é a fase 14 (índice 13)
   // afasta o jogador do funil da porta: 1,2s de D ≈ 6 células a leste
   await page.keyboard.down('KeyD');
   await page.waitForTimeout(1200);

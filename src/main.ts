@@ -46,7 +46,7 @@ import { initObjective, updateObjective, peekObjective, vipDown, markVipDown, re
 import { updateBoss, isBossTelegraphing, getBossTelegraphLabel, clearBossState } from './systems/boss';
 
 import {
-  initRenderer, drawMenu, drawCutscene, drawDialogo, drawGameOver, drawVictory, drawFimLocal, drawCredits, drawCoins as renderCoins,
+  initRenderer, drawMenu, drawCutscene, drawDialogo, drawGameOver, drawVictory, drawFimLocal, drawCredits, drawCoins as renderCoins, drawVoo,
   drawPlayer2 as renderPlayer2,
   drawPowerUps as renderPowerUps, drawParticles as renderParticles, drawBullets as renderBullets, drawFires as drawFiresWorld,
   drawEnemies as renderEnemies, drawPlayer as renderPlayer, drawDamageNumbers, drawPhaseTransition,
@@ -508,6 +508,21 @@ let marteloForcado = false;
 // tocava debaixo do mundo congelado e o jogador nunca ouvia — a onda
 // já estava em andamento quando a caixa fechava.
 let anuncioDeOndaPendente = false;
+// O VOO (M4): a sequência de decolagem no respiro do Castelo — o mesmo
+// relógio do respiro de 5s, no lugar de um countdown nu. Zerado no load.
+let vooAtivo = 0;
+
+/**
+ * Arma o respiro de fim de fase — os DOIS caminhos passam daqui: o abate
+ * comum que fecha a última onda e a morte do chefe (que não conta na
+ * cota). No Castelo o respiro É o voo (M4): o foguete decola no lugar do
+ * countdown parado.
+ */
+function armarRespiro(): void {
+  phaseEnding = true;
+  phaseEndPause = PHASE_END_PAUSE;
+  if (getCurrentPhase()?.name === 'Castelo' && getCurrentMode() === 'campaign') vooAtivo = PHASE_END_PAUSE;
+}
 // pilha de velocidade do último frame (telemetria da prova de serviços)
 let ultimoStackVelocidade = 1;
 let currentBossZoom = 1;
@@ -719,6 +734,7 @@ function loadPhaseEnvironment(): void {
   botasDeCampo = false;
   marteloForcado = false;
   anuncioDeOndaPendente = false;
+  vooAtivo = 0;
   for (const svc of consumeShopServices()) {
     // os dois aliados nascem colados no jogador: ±40px às cegas podia pôr o
     // corpo DENTRO da parede (spawn de borda) — o mesmo resgate do loot
@@ -826,7 +842,12 @@ function startFromSave() {
   resetGame();
   loadClass();
   setGameMode('campaign');
-  for (let i = 0; i < save.phase; i++) nextPhase();
+  // M4: o save resolve a fase por NOME — reordenar a campanha não pode
+  // puxar o jogador para outra fase (o índice gravado envelhece a cada
+  // reordenação; o nome não). Save antigo sem o nome cai no índice.
+  const idxPorNome = PHASES.findIndex(ph => ph.name === save.phaseName);
+  const faseAlvo = save.phaseName && idxPorNome >= 0 ? idxPorNome : save.phase;
+  for (let i = 0; i < faseAlvo; i++) nextPhase();
   loadPhaseEnvironment();
   setShopCoins(save.coins);
   addScoreFlat(save.score);
@@ -990,6 +1011,7 @@ function update(dt: number) {
 
   if (phaseTransitionTimer > 0) phaseTransitionTimer -= dt;
   if (phaseEndPause > 0) phaseEndPause = Math.max(0, phaseEndPause - dt);
+  if (vooAtivo > 0) vooAtivo = Math.max(0, vooAtivo - dt);
   if (perigoNave > 0) perigoNave = Math.max(0, perigoNave - dt);
   phaseElapsed += dt;
   setPhaseTime(phaseElapsed);
@@ -1245,8 +1267,7 @@ function update(dt: number) {
     // vacuidade, porque o chefe só nasce no bloco abaixo do fechamento — e
     // a loja vinha sem a luta que o mapa promete.
     if (fechaFase && !phaseEnding && !rushPorAndar && objetivoLiberouChefe) {
-      phaseEnding = true;
-      phaseEndPause = PHASE_END_PAUSE;
+      armarRespiro();
       ganhaXp(XP_BONUS_FASE);
     }
   }
@@ -1940,8 +1961,7 @@ function killEnemy(e: Enemy, award: boolean): void {
     // foi o que o `rush-proof.mjs` pegou ao rodar sem `pularParaUltimaOnda`.
     const ultimaOnda = ehNucleoRush || getCurrentWave() + 1 >= getCurrentPhase().waves;
     if (ultimaOnda) {
-      phaseEnding = true;
-      phaseEndPause = PHASE_END_PAUSE;
+      armarRespiro();
     }
     // O FERNANDO (H2) não cai como chefe padrão: a caixa e o power-up são
     // o vocabulário do chefe de fase — o fim dele é o diálogo, a FÚRIA e o
@@ -2533,6 +2553,7 @@ function draw() {
   drawHud(hudData);
   if (tabAberto) drawTabScreen(hudData, canvas.width, canvas.height);
   if (estaEmTelaCheia()) drawFullscreenHint(canvas.width, canvas.height);
+  if (vooAtivo > 0) drawVoo(vooAtivo / PHASE_END_PAUSE, canvas.width, canvas.height);
 }
 
 /**
@@ -3517,6 +3538,8 @@ window.__ashfall = {
   armaAtual: () => WEAPONS[getCurrentWeaponIndex()]?.name ?? '',
   // prova M2 #3: qual tela de fim o jogo desenhou (vitoria | gameover | local)
   telaDeFim: () => (fimLocal() ? 'local' : isGameCompleted() ? 'vitoria' : 'gameover'),
+  // prova M4: o relógio do voo (segundos restantes de decolagem no Castelo)
+  voo: () => vooAtivo,
   // devolve o estado da run nova depois do `resetGame`: o `perks-proof` compara
   // com a run anterior para provar que perks e stats não sobreviveram.
   resetarPartida: () => { resetGame(); return true; },

@@ -10,7 +10,7 @@ import { fileURLToPath } from 'url';
 
 const SHOTS = join(dirname(fileURLToPath(import.meta.url)), 'shots');
 const { page, fechar } = await abrirJogo({ chromium });
-await irParaFase(page, 10);
+await irParaFase(page, 13); // M4: Castelo agora é a fase 14 (índice 13)
 await page.keyboard.down('KeyW');
 await page.waitForTimeout(1200);
 await page.keyboard.up('KeyW');

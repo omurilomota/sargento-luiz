@@ -43,7 +43,7 @@ const atravessarCaixaSeAberta = async () => {
 };
 
 // ─── Cenário A ───────────────────────────────────────────────
-const cfg = await irParaFase(page, 10);
+const cfg = await irParaFase(page, 13); // M4: Castelo agora é a fase 14 (índice 13)
 console.log(`\n── Cenário A: chefe morto, sobrevivente cai no respiro (${cfg.fase}) ──`);
 await page.evaluate(() => {
   window.__ashfall.cumprirObjetivo();
@@ -80,7 +80,7 @@ ok(!ondaPosBoss, 'nenhuma onda renasceu depois do chefe morto');
 
 // ─── Cenário B ───────────────────────────────────────────────
 console.log('\n── Cenário B: chefe vivo, sobrevivente cai na luta ──');
-await irParaFase(page, 10);
+await irParaFase(page, 13); // M4: Castelo agora é a fase 14 (índice 13)
 await page.evaluate(() => {
   window.__ashfall.cumprirObjetivo();
   window.__ashfall.matarTodos();

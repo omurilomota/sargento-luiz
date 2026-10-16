@@ -102,6 +102,13 @@ describe('variedade: a variação realmente varia', () => {
     expect(razao, `só ${(razao * 100).toFixed(0)}% dos inimigos mudam de silhueta entre fases`).toBeGreaterThan(0.45);
   });
 
+  it('o array BIOMAS acompanha a ordem de PHASES (M4: reordenar uma só das duas veste o inimigo errado)', () => {
+    for (let i = 0; i < PHASES.length; i++) {
+      expect(BIOMAS[i], `fase ${i} (${PHASES[i].name}) aponta para o bioma '${BIOMAS[i]}', mas o mapa da fase é '${PHASES[i].map}'`)
+        .toBe(PHASES[i].map);
+    }
+  });
+
   it('nenhum tipo fica preso na mesma silhueta nas fases onde ele aparece', () => {
     // O outro extremo: um tipo pode repetir, mas não pode ser UM só corpo em
     // todas as fases onde existe (era o `zombie` atendendo 9 tipos).

@@ -56,6 +56,7 @@ const PERMITIDAS: Record<string, string> = {
   drawFimLocal: 'chrome da tela de fim do versus: fundo e as duas barras de vida, lado a lado. É UI de comparação — a mesma categoria das barras de drawEnemies/drawNPCs, não arte do mundo',
   drawCredits: 'chrome dos créditos',
   drawPhaseTransition: 'véu da transição de fase',
+  drawVoo: 'céu da sequência de voo (M4): 3 bandas chapadas de fundo — o foguete é sprite, o texto é UI. Teto +3 (75), decisão no diff da porta',
   drawParticles: 'fallback de sprite (o visual é o Kenney Particle Pack)',
   drawBullets: 'rastro na cor da arma e fallback de sprite (comentado)',
   drawEnemyShape: 'função de fallback declarada para sprite ausente',
@@ -94,7 +95,7 @@ const DEBITO: Record<string, { teto: number; motivo: string }> = {
  * faixa na base da tela (fundo + moldura) — UI de diálogo, a mesma
  * categoria dos painéis da cutscene. O retrato é o mesmo sprite das cenas.
  */
-const TOTAL_ATUAL = 72;
+const TOTAL_ATUAL = 75;
 
 const METODOS = 'arc|ellipse|fillRect|strokeRect|roundRect|createRadialGradient|createLinearGradient';
 const CHAMADA = new RegExp(`\\.(?:${METODOS})\\(`);

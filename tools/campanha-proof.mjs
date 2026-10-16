@@ -71,8 +71,8 @@ const cena = () => page.evaluate(() => window.__ashfall.cena());
 
 const ORDEM_ESPERADA = [
   'Cidade em Ruínas', 'Rodovia', 'Floresta', 'Hospital de Campanha', 'Caverna',
-  'Fábrica', 'Pátio de Trens', 'Ponte', 'Pântano', 'Refinaria', 'Castelo',
-  'Subestação', 'Vulcão', 'Porto', 'Espaço', 'NÚCLEO-CENTRAL',
+  'Fábrica', 'Pátio de Trens', 'Ponte', 'Pântano', 'Refinaria',
+  'Subestação', 'Vulcão', 'Porto', 'Castelo', 'Espaço', 'NÚCLEO-CENTRAL',
 ];
 
 const relatorio = [];

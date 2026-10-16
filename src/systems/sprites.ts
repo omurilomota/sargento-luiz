@@ -337,10 +337,14 @@ export const ENEMY_CHARACTER: Record<string, string> = {
 };
 
 /** Os 9 biomas, na ordem das fases. */
+// M4 (2026-10-15): a ordem ACOMPANHA a de PHASES — Castelo depois do Porto
+// (o foguete enche tanque antes do conserto). Este array é indexado por
+// FASE: se divergir de config, o inimigo errado veste a roupa do bioma
+// errado e o variedade.test acusa.
 export const BIOMAS = [
   'cidade', 'rodovia', 'floresta', 'hospital', 'caverna', 'fabrica',
-  'trens', 'ponte', 'pantano', 'refinaria', 'castelo', 'subestacao',
-  'vulcao', 'porto', 'espaco', 'bunker',
+  'trens', 'ponte', 'pantano', 'refinaria', 'subestacao',
+  'vulcao', 'porto', 'castelo', 'espaco', 'bunker',
 ] as const;
 export type Bioma = typeof BIOMAS[number];
 
