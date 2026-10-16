@@ -20,6 +20,10 @@ export interface NPC {
   vip: boolean;
   /** Comportamento de aliado pago na loja. Sem isto é um sobrevivente comum. */
   aliado?: Aliado;
+  /** Pose do corpo (armado ou não) — o contratado pega 'gun' (playtest:
+   *  "o contratado nem parece estar segurando arma": a pose 'hold' é de
+   *  mãos vazias). */
+  pose?: string;
 }
 
 /**
@@ -58,6 +62,7 @@ import { spawnBullet } from '../entities/bullet';
 import { Bullet } from '../types';
 
 let npcMorreuNoFrame = false;
+let aliadoMorreuNoFrame = false;
 
 /** O NPC que caiu é o ALVO da fase, ou só um acompanhante (Castelo: Júlio)? */
 function morteDeAlvo(npc: NPC): void {
@@ -65,6 +70,7 @@ function morteDeAlvo(npc: NPC): void {
   // numa fase qualquer acionava o latch do `protect` e a fase REINICIAVA —
   // comprar um reforço virava a forma de perder a fase.
   npcMorreuNoFrame = npcMorreuNoFrame || npc.vip;
+  if (npc.aliado) aliadoMorreuNoFrame = true;
   if (!npc.vip) return;
   // Com foguete em campo o alvo do `protect` é ele (decisão 2026-10-12); o
   // NPC é bônus — a morte dele custa a recompensa (sala 4B, diário), não a
@@ -82,6 +88,14 @@ function morteDeAlvo(npc: NPC): void {
 export function consumeNpcDeath(): boolean {
   const morreu = npcMorreuNoFrame;
   npcMorreuNoFrame = false;
+  return morreu;
+}
+
+/** Consome a morte do ALIADO PAGO deste frame — o aviso pesado do main
+ *  (playtest 2026-10-16: "quando ele morrer, dar maior atenção + aviso"). */
+export function consumeAliadoMorte(): boolean {
+  const morreu = aliadoMorreuNoFrame;
+  aliadoMorreuNoFrame = false;
   return morreu;
 }
 
@@ -143,7 +157,7 @@ export function npcBark(): void {
   npc.messageTimer = 3;
 }
 
-export function spawnNPC(x: number, y: number, defIndex: number, character?: string, aliado?: Aliado): void {
+export function spawnNPC(x: number, y: number, defIndex: number, character?: string, aliado?: Aliado, pose?: string): void {
   const def = NPC_DEFS[defIndex % NPC_DEFS.length];
   npcs.push({
     x, y,
@@ -163,6 +177,7 @@ export function spawnNPC(x: number, y: number, defIndex: number, character?: str
     // sempre. Aliado é reforço pago: morre sem consequência de fase.
     vip: !aliado,
     aliado,
+    pose,
   });
 }
 
@@ -355,6 +370,7 @@ export function getNPCs(): NPC[] {
 
 export function resetNPCs(): void {
   npcs = [];
+  aliadoMorreuNoFrame = false;
   // o contador é "tiros nesta fase": o reset de fase passa por aqui
   zeraTirosDeAliado();
 }

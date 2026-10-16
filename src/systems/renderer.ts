@@ -1820,6 +1820,8 @@ interface NPCData {
   character: string;
   /** Aliado de loja (contratado/torreta): sprite próprio e rotação do cano. */
   aliado?: { sprite?: string; angulo: number; modo: string };
+  /** Pose armada ('gun') para combatentes — default 'hold' é mãos vazias. */
+  pose?: string;
 }
 
 export function drawNPCs(npcs: NPCData[]): void {
@@ -1836,13 +1838,12 @@ export function drawNPCs(npcs: NPCData[]): void {
     // e os três amigos da campanha eram a mesma pessoa na tela (relato do
     // Murilo: "os dois outros personagens amigos com a mesma skin").
     // Aliado com sprite próprio (torreta) não tem pose: a chave é a do prop.
-    // O PNG já nasce com o cano apontando para LESTE (ângulo 0 do mundo) e o
-    // montante no pixel (17,21) — o pivô que o drawSpriteFit usa — então a
-    // rotação aqui é o ângulo puro, sem compensação.
+    // O contratado pega a pose 'gun' (mãos vazias de 'hold' era o "nem
+    // parece estar segurando arma" do playtest).
     const img = isSpritesEnabled()
       ? npc.aliado?.sprite
         ? getSprite(npc.aliado.sprite)
-        : getSprite(poseKey(npc.character || 'manOld', 'hold'))
+        : getSprite(poseKey(npc.character || 'manOld', (npc.pose as Pose) || 'hold'))
       : null;
     if (img) {
       drawSpriteFit(ctx, img, npc.x, npc.y, npc.radius * 2.4, npc.aliado ? npc.aliado.angulo : 0);

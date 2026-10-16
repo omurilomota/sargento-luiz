@@ -42,11 +42,12 @@ describe('serviços da loja: quem paga, recebe', () => {
     getShopStock();
   });
 
-  it('o cachorro de guarda NÃO está à venda: sem arte top-down não há serviço', () => {
+  it('o cachorro de guarda e as BOTAS não estão à venda', () => {
     expect(IDS()).not.toContain('pardal');
+    // botas fora (playtest 2026-10-16): a velocidade default é a ideal
+    expect(IDS()).not.toContain('boot');
     expect(IDS()).toContain('hire');
     expect(IDS()).toContain('turret');
-    expect(IDS()).toContain('boot');
   });
 
   it('comprar a torreta entrega o serviço para a fase (consume)', () => {
@@ -55,10 +56,10 @@ describe('serviços da loja: quem paga, recebe', () => {
     expect(consumeShopServices()).toEqual([]);
   });
 
-  it('contratado e botas no mesmo pacote: os três viajam juntos, na ordem', () => {
-    buyService('boot');
+  it('contratado e torreta no mesmo pacote: viajam juntos, na ordem', () => {
+    buyService('turret');
     buyService('hire');
-    expect(consumeShopServices()).toEqual(['boot', 'hire']);
+    expect(consumeShopServices()).toEqual(['turret', 'hire']);
   });
 
   it('1× por visita: a segunda compra na mesma loja é recusada e devolve as moedas', () => {

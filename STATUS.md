@@ -216,6 +216,33 @@ commitados; esta entrega o fecha com efeito REAL e prova em navegador.
   contra explosão, Munição Incandescente, caçador que responde, e a
   ponte que cai.
 
+## Entrega: F-B — o rapidinho do playtest, nove itens (2026-10-16 23:50, `develop`)
+
+- **TORRE da Refinaria deixa de ser zumbi** ("PORQUE A TORRE É A MERDA
+  DE UM ZUMBI?") → corpo **robot**, o vocabulário industrial da Fábrica.
+- **Contratado armado**: pose `gun` em vez de `hold` ("nem parece estar
+  segurando arma" — hold É mãos vazias) + **aviso de peso na morte**
+  (flash + toast + sfx, "quando ele morrer, dar maior atenção").
+- **BOTAS DE CAMPO REMOVIDAS** do jogo inteiro (decisão sua: a
+  velocidade default é a ideal) — loja, consumo, prova e testes.
+- **Continue (C) consertado**: toca a música de combate (ficava a do
+  menu) e equipa a arma com a **qualidade do par salvo** — a "pistola
+  sobrescrita" era `setWeapon(índice)` sem qualidade.
+- **Amigo/doutor/Júlio nascem com `pushOutOfWalls`** — o bug do amigo
+  nascendo dentro da parede na Fábrica (o mesmo resgate do contratado).
+- **A faixa branca não cobre mais as mensagens**: flash e véu desenham
+  ANTES da caixa de diálogo (o flash do chefe morria em cima do texto).
+- **"COLETANDO O QUE SOBROU" no momento certo**: o respiro da Fábrica
+  espera o FERNANDO (o sentinel ABRE a virada, não fecha a fase) e o
+  rótulo fala da fase ("FASE LIMPA" nas outras).
+- **A risada na hora certa**: `efeito` por linha na cutscene (o molde da
+  caixa pequena) — o riso sai junto do "HAHAHAHA!", não três linhas
+  antes (DECISIONS #258).
+- **Hint honesto**: `1-4: trocar arma` quando são 4 ("1-9? Só tenho 4 no
+  máximo").
+- **Gates**: tsc, 1414 testes, loja/servicos/m2fluxo/story 37/37/campanha
+  16/16 verdes.
+
 ## Entrega: F-A — os quatro que quebram o jogo + o recarregamento (2026-10-16 22:30, `develop`)
 
 A triagem do playtest virou fixes com repro:

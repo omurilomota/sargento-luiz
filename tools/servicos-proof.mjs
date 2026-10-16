@@ -50,7 +50,6 @@ await page.evaluate(() => window.__ashfall.__setShopCoins(1000));
 await page.evaluate(() => {
   window.__ashfall.comprarServico('turret');
   window.__ashfall.comprarServico('hire');
-  window.__ashfall.comprarServico('boot');
 });
 await page.waitForTimeout(300);
 await page.screenshot({ path: SHOT('loja') });
@@ -75,8 +74,8 @@ if (!modos.includes('torreta')) nota('a torreta paga não nasceu na fase');
 if (aliados.some(a => !a.vivo)) nota('aliado nasceu morto');
 
 const tel = await page.evaluate(() => window.__ashfall.telemetria());
-console.log(`  velocidade na entrada: ${tel.velocidade} (botas = 1.3)`);
-if (tel.velocidade < 1.29 || tel.velocidade > 1.31) nota(`botas não carregaram na pilha de velocidade: ${tel.velocidade}`);
+console.log(`  velocidade na entrada: ${tel.velocidade} (padrão — as botas saíram, playtest 2026-10-16)`);
+if (tel.velocidade > 1.05) nota(`velocidade fora do padrão sem power-up: ${tel.velocidade}`);
 
 await page.screenshot({ path: SHOT('entrada') });
 
@@ -96,7 +95,7 @@ await page.screenshot({ path: SHOT('combate') });
 if (erros.length) nota(`erros de página: ${[...new Set(erros)].join('; ')}`);
 
 console.log(problemas.length === 0
-  ? '\nOK — quem paga recebe: contratado e torreta nascem, botas carregam e os aliados atiram'
+  ? '\nOK — quem paga recebe: contratado e torreta nascem e atiram; a velocidade segue o padrão'
   : `\nFALHA — ${problemas.length} problema(s)`);
 await fechar();
 process.exit(problemas.length === 0 ? 0 : 1);

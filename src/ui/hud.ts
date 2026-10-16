@@ -77,6 +77,9 @@ export interface HudData {
   quedaPonte: number;
   enemies: number;
   weapon: string;
+  /** Quantas armas o jogador TEM (playtest: "1-9? Só tenho 4 no máximo") —
+   *  o hint promete o que existe, não o teto da tabela. */
+  slotsDeArma: number;
   /** Adjetivo da condição da arma, ex.: 'CORROÍDA'. Vazio se estiver boa. */
   weaponCondition: string;
   /** Cor do rótulo da condição. */
@@ -429,7 +432,7 @@ export function medirHud(d: HudData): HudMedida[] {
   push(`${Math.ceil(d.health)}/${Math.round(d.maxHealth)}`, 'bold 13px monospace', col, 'coluna esquerda', 'vidaFim', 12, 12 + 12);
   push(`NV ${d.nivel}`, 'bold 11px monospace', 34, 'antes da barra de XP', 'xpRotuloY', L.xpLabelY - 9, L.xpLabelY + 2);
   push(d.skills.map(s => s.name.toUpperCase()).join(' '), '11px monospace', SIDE_W, 'coluna esquerda', 'skillRotuloY', L.skillLabelY - 9, L.skillLabelY + 2);
-  push('1-9: trocar arma · TAB: ficha', '11px monospace', SIDE_W, 'coluna esquerda', 'hintsY', L.hintsY - 9, L.hintsY + 2);
+  push(`1-${Math.max(1, d.slotsDeArma)}: trocar arma · TAB: ficha`, '11px monospace', SIDE_W, 'coluna esquerda', 'hintsY', L.hintsY - 9, L.hintsY + 2);
 
   // ficha mini (canto inferior direito) e painel de combos do TAB: as caixas
   // vêm da metade direita da tela na resolução atual (o vizinho mais próximo
@@ -834,7 +837,11 @@ function drawPhaseEndCountdown(d: HudData, W: number, H: number): void {
   ctx!.shadowBlur = 0;
   ctx!.font = '13px monospace';
   ctx!.fillStyle = PALETTE.textDim;
-  ctx!.fillText('COLETANDO O QUE SOBROU', W / 2, H * 0.42 + 24);
+  // o rótulo fala da FASE (playtest: "coletando apareceu depois de matar o
+  // amigo — tem que ser só depois do sentinel"): a Fábrica É a coleta; as
+  // outras estão fechando. O banner mora no respiro (pós-chefe), nunca no
+  // meio da luta — o timing que o relato corrigiu.
+  ctx!.fillText(d.phase === 'Fábrica' ? 'COLETANDO O QUE SOBROU' : 'FASE LIMPA', W / 2, H * 0.42 + 24);
   ctx!.restore();
   ctx!.globalAlpha = 1;
   ctx!.textAlign = 'left';

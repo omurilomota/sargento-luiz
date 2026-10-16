@@ -98,10 +98,10 @@ import { registrarTiroPerks, tickPerks, acenderInimigo, danoPassoFantasma, checa
 import { resetDanoTelemetria, danoPorFonte } from './systems/danoTelemetria';
 import { startTutorial, isTutorialActive, getCurrentHint, updateTutorial, advanceHint, endTutorial } from './systems/tutorial';
 import { updateBehavior, registerShot, registerHit, getPlayerTendency, resetBehavior } from './systems/dynamicDifficulty';
-import { spawnNPC, updateNPCs, getNPCs, resetNPCs, npcBark, isNpcFollowing, consumeNpcDeath, getTirosDeAliado } from './systems/npcs';
+import { spawnNPC, updateNPCs, getNPCs, resetNPCs, npcBark, isNpcFollowing, consumeNpcDeath, consumeAliadoMorte, getTirosDeAliado } from './systems/npcs';
 import { getBots, createBot, updateBots, removeDeadBots, resetBots, addBot, BotDifficulty } from './systems/bots';
 import { isEnabled as isLocalEnabled, initLocalMultiplayer, movePlayer2, shootPlayer2, getPlayer2, resetLocalMultiplayer, checkPlayer2EnemyCollision, damagePlayer2, resetPlayer2, getWinner, getPlacarLocal, matarPlayer2 } from './systems/localMultiplayer';
-import { showCutscene, showCutsceneAt, cutsceneForPhase, advanceCutscene, skipCutscene, isShowingCutscene, updateCutscene, resetStory, isEpilogueScene, EPILOGUE_CUTSCENE, getCurrentCutscene, getCurrentLine } from './systems/story';
+import { showCutscene, showCutsceneAt, cutsceneForPhase, advanceCutscene, setEfeitoDeLinha, skipCutscene, isShowingCutscene, updateCutscene, resetStory, isEpilogueScene, EPILOGUE_CUTSCENE, getCurrentCutscene, getCurrentLine } from './systems/story';
 import { dialogoAtivo, avancarDialogo, abrirDialogo, setEfeitoDialogo, resetDialogo, EntradaDialogo } from './systems/dialogo';
 import { getCurrentMode, setGameMode, GameMode, GAME_MODES } from './systems/gameModes';
 import { BIOMES, CELL_SIZE } from './maps';
@@ -503,7 +503,6 @@ let bossZoomTriggered = false;
 // Botas de Campo (serviço M3): +30% na pilha de velocidade da fase em que
 // foram compradas — zerado no load de cada fase e rearmado só quando o
 // serviço foi pago na loja anterior.
-let botasDeCampo = false;
 // O Destruidor forçado na fase do NÚCLEO: as teclas de troca de arma ficam
 // caladas (M2). Zerado no load de toda fase — só o leaveShop do NÚCLEO arma.
 let marteloForcado = false;
@@ -757,7 +756,6 @@ function loadPhaseEnvironment(): void {
   // Serviços comprados na loja ANTERIOR aplicam na entrada desta fase. O
   // consumo é o único caminho: quem paga em 'shop' recebe aqui, na ordem
   // natural (leaveShop → loadPhaseEnvironment).
-  botasDeCampo = false;
   marteloForcado = false;
   anuncioDeOndaPendente = false;
   vooAtivo = 0;
@@ -781,7 +779,7 @@ function loadPhaseEnvironment(): void {
         modo: 'contratado', nome: 'Contratado',
         postX: postContratado.x, postY: postContratado.y,
         alcance: 280, dano: 6, intervalo: 0.55, tiroTimer: 0, angulo: 0,
-      });
+      }, 'gun'); // pose armada (playtest: 'hold' é mãos vazias)
     } else if (svc === 'turret') {
       // torreta de entrada: fixa no posto, atira sozinha com linha de visão
       spawnNPC(postTorreta.x, postTorreta.y, 1, 'soldier', {
@@ -789,9 +787,6 @@ function loadPhaseEnvironment(): void {
         postX: postTorreta.x, postY: postTorreta.y,
         alcance: 320, dano: 5, intervalo: 0.45, tiroTimer: 0, angulo: 0,
       });
-    } else if (svc === 'boot') {
-      // Botas de Campo: +30% na pilha de velocidade da fase (M3)
-      botasDeCampo = true;
     }
   }
   player.placePlayer(pos.x, pos.y);
@@ -890,7 +885,11 @@ function startFromSave() {
   // continue caía em resetShop() e o jogador voltava só com a pistola
   restoreSavedWeapons(save.weapons);
   if (save.weapons.length > 0) {
-    setWeapon(save.weaponIndex);
+    // a QUALIDADE viaja junto (playtest: "sobreescreveção de uma pistola
+    // após continuar"): o save guarda o PAR {index, quality} — equipar
+    // só pelo índice devolvia a arma com a qualidade errada
+    const par = save.weapons.find(w => w.index === save.weaponIndex);
+    setWeapon(save.weaponIndex, par?.quality);
     announceWeapon(save.weaponIndex);
   }
   restoreUpgrades(save.upgrades);
@@ -905,6 +904,9 @@ function startFromSave() {
   // decisão do Murilo: o gate é a história, vale igual para novos e antigos.
   restoreFuria(save.furia === true);
   setGameState('playing');
+  // playtest: "quando clico em C, continua a música do menu" — o continue
+  // entrava em playing sem trocar a faixa; a música de combate é a do jogo
+  void playMusic('combat');
   loadAchievements();
   loadDiary();
   resetRunCounters();
@@ -1068,7 +1070,7 @@ function update(dt: number) {
   // As Botas de Campo da loja (M3) são o MESMO efeito do power-up `botas`,
   // pagas antecipadamente e válidas só na fase em que foram compradas — o
   // flag é zerado no load de cada fase e rearmado pelo consumeShopServices.
-  const speedMult = hasPowerUp('speed') ? 1.5 : (hasPowerUp('botas') || botasDeCampo) ? 1.3 : hasPowerUp('trajeNucleo') ? 1.3 : 1;
+  const speedMult = hasPowerUp('speed') ? 1.5 : hasPowerUp('botas') ? 1.3 : hasPowerUp('trajeNucleo') ? 1.3 : 1;
   const classSpeedMult = getClassSpeedMult();
   // lama deixa o jogador lento — é o efeito mecânico do bioma Pântano
   const onMud = phase.hazard === 'mud' && charAt(colAt(p.x), rowAt(p.y)) === '^';
@@ -2079,7 +2081,11 @@ function killEnemy(e: Enemy, award: boolean): void {
     // armava e a fase ficava em `playing` para sempre depois do NÚCLEO cair:
     // foi o que o `rush-proof.mjs` pegou ao rodar sem `pularParaUltimaOnda`.
     const ultimaOnda = ehNucleoRush || getCurrentWave() + 1 >= getCurrentPhase().waves;
-    if (ultimaOnda) {
+    // O respiro da Fábrica espera o FERNANDO (playtest: "coletando aparece
+    // depois do sentinel E depois de matar o amigo — tem que ser só depois
+    // do sentinel" — o relato apontava o BANNER: o sentinel não fecha a
+    // Fábrica, ele ABRE a virada; o respiro dele é o da luta do amigo)
+    if (ultimaOnda && !(getCurrentPhase().name === 'Fábrica' && getCurrentMode() === 'campaign' && !fernandoVirou)) {
       armarRespiro();
     }
     // O FERNANDO (H2) não cai como chefe padrão: a caixa e o power-up são
@@ -2427,7 +2433,6 @@ function leaveShop(): void {
       // (risada.ogg, H5) entra junto com a música: é o grito de quem
       // terminou a primeira parte.
       void playMusic('epilogo');
-      sfxRisada();
     }
     return;
   }
@@ -2659,12 +2664,10 @@ function draw() {
     ctx.fillRect(0, 0, W, H);
   }
 
-  // A caixa pequena da Fábrica por cima do mundo congelado (H2)
-  drawDialogo();
-
-  if (phaseTransitionTimer > 0) {
-    drawPhaseTransition(phaseTransitionTimer, getCurrentWave(), getCurrentPhase()?.name);
-  }
+  // O flash/véu ANTES da caixa (playtest: "a explosão causa uma faixa
+  // branca... nas fases que tem amigo, fica zuado de ler as mensagens"):
+  // o pós-morte abre caixa no mesmo frame do flash do chefe — com o flash
+  // por cima, o texto morria. Agora o feedback cobre o mundo, nunca a fala.
   if (currentVeil) {
     ctx.fillStyle = currentVeil;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -2672,6 +2675,13 @@ function draw() {
   if (currentFlash) {
     ctx.fillStyle = currentFlash;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
+  // A caixa pequena da Fábrica por cima do mundo congelado (H2)
+  drawDialogo();
+
+  if (phaseTransitionTimer > 0) {
+    drawPhaseTransition(phaseTransitionTimer, getCurrentWave(), getCurrentPhase()?.name);
   }
   const hudData = buildHudData();
   drawHud(hudData);
@@ -2807,6 +2817,7 @@ function buildHudData(): HudData {
     quedaPonte: quedaAtiva() ? estadoDaQueda().proximoPasso : 0,
     enemies: enemies.length,
     weapon: weapon.name,
+    slotsDeArma: getPurchasedWeaponPairs().length,
     // A condição é do PAR equipado, e o adjetivo é o da arma: "Corroída" numa
     // Metralhadora, "Fosca" numa Sniper. Toda qualidade EXCETO normal aparece
     // — a LENDÁRIA jogava invisível: só as negativas tinham adjetivo, e o
@@ -2885,6 +2896,9 @@ function loop(time: number) {
 // H2: o efeito da cápsula (a explosão da radiação no diálogo do amigo) liga
 // aqui — os sistemas de mundo moram no main, o dialogo só conta as linhas.
 setEfeitoDialogo(efeitoDaCapsula);
+// A risada do epílogo dispara NA LINHA do riso (story.ts conta as linhas —
+// playtest: "risada na hora errada", duas vezes)
+setEfeitoDeLinha((efeito) => { if (efeito === 'risada') sfxRisada(); });
 
 async function init() {
   // o jogo foi publicado como ASHFALL e as 12 chaves de localStorage mudaram
@@ -3332,6 +3346,12 @@ updateNPCs(dt, p.x, p.y, enemies, getBullets());
 // A fase continua sem ele: o custo é a recompensa (sala 4B + diário). O
 // consume é por frame — o corpo sai da lista 3s depois da mensagem, então
 // polling do array perderia a morte.
+// O ALIADO PAGO CAIU (playtest: "maior atenção + aviso")
+if (consumeAliadoMorte()) {
+  pushToast('O CONTRATADO CAIU', 3.5, 'aviso');
+  triggerDamageFlash();
+  sfxError();
+}
 if (consumeNpcDeath()) {
   if (getCurrentPhase().name === 'Castelo' && getCurrentMode() === 'campaign'
       && julioApareceu && !julioMorteAnunciada && getGameState() === 'playing') {

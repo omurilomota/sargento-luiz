@@ -1943,8 +1943,22 @@
 // [ ] A5 player para de se mover em certos mapas — SUSPEITO: o
 //     empurrão (tornado/ponte) prendendo contra parede + input = net
 //     zero. Repro: bot andando nas 16 fases + instrumento de stall.
-// [ ] o restante da F-B (torre=zumbi, contratado armado/morte, botas
-//     FORA, continue do save, amigo na parede, faixa branca sobre a
-//     caixa, risada, 1-9 hints, U do pântano, coletando) e as frentes
-//     F-C (SPRITES: tint por inimigo, arma na mão, casas, hospital) e
+// [x] F-B (2026-10-16, noite): [x] TORRE=zumbi → robot; [x] contratado
+//     com pose 'gun' + aviso de peso na morte (flash+toast+sfx);
+//     [x] BOTAS FORA (decisão sua: a velocidade default é a ideal) —
+//     serviço, consumo, prova e testes atualizados; [x] continue do save:
+//     música de combate + a QUALIDADE do par na arma (a "pistola
+//     sobrescrita" era equipar por índice sem qualidade); [x] amigo/
+//     doutor/Júlio nascem com pushOutOfWalls (o bug da parede); [x]
+//     flash/véu desenha ANTES da caixa (a faixa branca sobre as
+//     mensagens); [x] respiro da Fábrica espera o FERNANDO (o
+//     "COLETANDO" não arma mais no sentinel); [x] risada do epílogo na
+//     LINHA do riso (efeito por linha, o molde da caixa — DECISIONS #258);
+//     [x] hint fala o número real de armas ("1-4: trocar arma" quando
+//     são 4).
+// [ ] F-B RESTA: o "U" do Pântano (o mapa tem um bolsão que lê como
+//     letra — precisa do seu olho pra apontar qual), a onda 1 do Vulcão
+//     (medição), SFX timing (auditoria por gatilho) e A5 (player para
+//     de se mover — repro com bot).
+// [ ] F-C (SPRITES: tint por inimigo, arma na mão, casas, hospital) e
 //     F-D (refinaria=combustível, subestação opcional, melee, moral)

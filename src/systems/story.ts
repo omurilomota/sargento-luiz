@@ -14,6 +14,10 @@ export interface DialogueLine {
   speaker: Character;
   /** Texto da fala */
   text: string;
+  /** Efeito que dispara quando ESTA linha aparece (o molde da caixa
+   *  pequena): a risada do epílogo tem que sair NA LINHA do riso, não na
+   *  abertura da cena — "risada na hora errada", duas vezes no playtest. */
+  efeito?: 'risada';
 }
 
 /** Uma cutscene completa */
@@ -278,7 +282,7 @@ export const CUTSCENES: Cutscene[] = [
     lines: [
       { speaker: 'narrador', text: 'O NÚCLEO para de pulsar. O metal esfria de fora pra dentro e leva quatro minutos.' },
       { speaker: 'mensagem', text: '[ INSTABILIDADE REGISTRADA… MODO CRÍ-CRÍ-CRÍ-TICOOOOO ]' },
-      { speaker: 'rios', text: 'HAHAHAHA! Acabei com você, maldição! Mas ainda não acabou!' },
+      { speaker: 'rios', text: 'HAHAHAHA! Acabei com você, maldição! Mas ainda não acabou!', efeito: 'risada' },
       { speaker: 'rios', text: 'Os responsáveis ainda precisam ter uma conversa comigo.' },
       { speaker: 'narrador', text: 'O MOTHERSHIP cai a três quilômetros dali. A luz do rompimento desce por quarenta minutos e depois some.' },
       { speaker: 'narrador', text: 'O céu fica quieto. É a primeira noite limpa desde que o quartel caiu.' },
@@ -363,6 +367,7 @@ export function showCutscene(): void {
   showingCutscene = true;
   cutsceneTimer = 0;
   currentLineIndex = 0;
+  dispararEfeitoDaLinha(getCurrentCutscene().lines[0]);
   textProgress = 0;
   lineComplete = false;
   fadeAlpha = 0;
@@ -463,6 +468,7 @@ export function advanceCutscene(): boolean {
     currentLineIndex++;
     textProgress = 0;
     lineComplete = false;
+    dispararEfeitoDaLinha(scene.lines[currentLineIndex]);
     return false;
   }
 
@@ -470,6 +476,16 @@ export function advanceCutscene(): boolean {
   currentCutsceneIndex++;
   currentLineIndex = 0;
   return true;
+}
+
+/** Efeito da linha (injetável — o molde do dialogo.ts: quem tem os
+ *  sistemas de mundo é o main, a cena só conta as linhas). */
+let aoEfeitoDeLinha: ((efeito: 'risada') => void) | null = null;
+export function setEfeitoDeLinha(cb: (efeito: 'risada') => void): void {
+  aoEfeitoDeLinha = cb;
+}
+function dispararEfeitoDaLinha(linha: DialogueLine | undefined): void {
+  if (linha?.efeito && aoEfeitoDeLinha) aoEfeitoDeLinha(linha.efeito);
 }
 
 /** Completa a linha atual sem avançar. */

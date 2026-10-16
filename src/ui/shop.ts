@@ -311,12 +311,6 @@ export const SHOP_SERVICES = [
   { id: 'repair',       name: 'Reparar Arma',             price: 50, desc: 'conserta arma quebrada/encasquilhada' },
   { id: 'hire',        name: 'Sobrevivente Contratado',  price: 140, desc: 'soldado te cobre: segue e atira (1× por visita)' },
   { id: 'turret',      name: 'Torreta Automática',       price: 240, desc: 'torreta na entrada atira sozinha (1× por visita)' },
-  // Botas de Campo: o efeito é o do power-up `botas` (+30% velocidade),
-  // aplicado direto na fase seguinte — consumível de fase única, não peça
-  // (peça mexe em arma; isto mexe no pé). O cachorro de guarda previsto no
-  // M3 ficou FORA: sem arte top-down CC0 o sprite seria perspectiva mista
-  // (DECISIONS #214) — volta quando existir asset.
-  { id: 'boot',        name: 'Botas de Campo',           price: 120, desc: '+30% velocidade na próxima fase (1× por visita)' },
 ];
 
 /**
@@ -332,7 +326,7 @@ export function isServiceAvailable(id: string): boolean {
   if (id === 'reroll') return !rerolledThisVisit;
   if (id === 'discount') return !nextDiscount;
   if (id === 'hire') return !hiredThisVisit;
-  if (id === 'turret' || id === 'boot') return !serviceUsedThisVisit.has(id);
+  if (id === 'turret') return !serviceUsedThisVisit.has(id);
   return true;
 }
 
@@ -387,9 +381,6 @@ export function buyService(id: string): void {
   } else if (id === 'turret') {
     boughtServices.push('turret');
     flashNotice('TORRETA MONTADA NA ENTRADA', PALETTE.moss);
-  } else if (id === 'boot') {
-    boughtServices.push('boot');
-    flashNotice('BOTAS — +30% VELOCIDADE NA PRÓXIMA FASE', PALETTE.moss);
   }
   sfxBuy();
 }

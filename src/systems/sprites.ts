@@ -334,7 +334,9 @@ export const ENEMY_CHARACTER: Record<string, string> = {
   cirurgiao: 'manOld',
   maquinista: 'zombie',
   gargula: 'robot',
-  torre: 'zombie',
+  // TORRE da Refinária (playtest: "PORQUE A TORRE É A MERDA DE UM
+  // ZUMBI?"): corpo industrial — robot é o vocabulário da Fábrica/Refinaria
+  torre: 'robot',
   transformador: 'robot',
   capitao: 'soldier',
 };
