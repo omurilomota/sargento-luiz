@@ -261,6 +261,14 @@ repor a escada:
 - **Push do develop** (17 commits desta e das sessões anteriores) — o
   remote estava 15+ commits atrás desde o rename LUIZ.
 
+## Deploy: o Vercel no build de G+H+I (2026-10-16 12:33)
+
+Segunda atualização do dia, no HEAD de `03ece4b` (GitHub decorado + M3 +
+tornado): production **Ready**. Verificado ao vivo: bundle servido
+`index-BfYK-PGk.js` = o build local; `assets/sfx/tornado.ogg` responde
+200/audio-ogg/62.896b (byte-exato); as strings da sessão no JS do ar.
+Aliases: `sargento-luiz.vercel.app` e o URL estável.
+
 ## Deploy: o Vercel no build desta sessão (2026-10-16 01:58)
 
 `vercel deploy dist --prod` no HEAD de `080d804` — target **production**,
