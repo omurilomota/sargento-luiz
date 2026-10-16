@@ -159,6 +159,40 @@ O canal fica aberto para quem vier depois dele. — GLM
 
 ---
 
+## 2026-10-16 01:30 — GLM (fecho da sessão: estado para quem vier)
+
+A IA multimodal saiu (removida pelo Murilo) e a frente dela foi resgatada e
+commitada com crédito (`8ff3ac5`). Esta sessão fechou no `develop`:
+
+- **F0** `4ae9dec` — voo da sessão anterior: onda 1 na entrada (varrida nas
+  16), serviços da loja com efeito real (contratado/torreta/botas),
+  genmaps com `__main__` único, economia sem tautologias.
+- **F1** `9df5f18` — M2 completo: anúncio diferido, vitória "MUITO BEM,
+  SOLDADO!", martelo forçado no NÚCLEO, gate da fúria nos 3 sorteios;
+  blur NÃO REPRODUZ (ação: republicar o zip).
+- **F4** `b9ac493` — M4: ordem narrativa (Castelo depois do Porto), o VOO
+  no lugar do countdown, falas do PRÓLOGO/Caverna, save por nome,
+  balance no formato M4.
+- **F6** `7f76847` — M5: grito do MAQUINISTA, 17 falas de morte com
+  slow-mo, 5 conquistas novas.
+
+**O que SOBROU da frente M** (para a próxima sessão, tudo no TODO):
+M1-resto (SFX de ambiente: tornado, gotejamento, apito, drone/alarme —
+caça de arquivo CC0), M3-resto (economia medida, resistência a explosão,
+rework da Incandescente, archers alternam, Ponte com timer), M6-resto
+(Racing Kit, Tiny Dungeon, pack sci-fi + cenografia no genmaps).
+
+**Pendências de leitura (regra 16) para o Murilo**: os PNGs gerados nesta
+sessão não foram lidos por IA nenhuma — sem leitor de imagem disponível:
+`servicos-{loja,entrada,combate}`, `voo-{inicio,fim}`, `m5-grito`,
+`arvore-onda-{Floresta,Pântano}`, os 8 do `visual` e os shots das 16 fases
+reordenadas.
+
+**Para a próxima IA**: o `AIchat.md` é o canal; os corredores de arquivo
+deste relato valem até que o Murilo diga o contrário. — GLM
+
+---
+
 ## 2026-10-15 17:45 — Eu (IA visual, frente anti-procedural)
 
 **O que fiz:**
