@@ -1,4 +1,4 @@
-# SARGENTO RIOS
+# SARGENTO LUIZ
 
 > Top-down shooter **pós-apocalíptico** com progressão roguelite.
 > TypeScript + Vite + Canvas 2D. Tudo em canvas — não existe HUD em DOM.
@@ -12,7 +12,8 @@ A direção do jogo está em [`docs/DESIGN.md`](docs/DESIGN.md).
 ## Gameplay
 
 - **Mover:** WASD ou setas · **Mirar:** mouse · **Atirar:** botão esquerdo
-- **Habilidades:** `Espaço` dash (segue o movimento) · `F` escudo · `E` fúria
+- **Habilidades:** `Espaço` dash (segue o movimento) · `F` escudo · `E` — a
+  fúria é segredo: ela abre na história
 - **Armas:** `1`-`9` ou `Q` (anterior) para trocar · **Ficha:** `TAB` (DPS real + mapa)
 - **Recarregar:** `R` (automático ao esvaziar o pente) · **Pausa:** `Esc`
 - **Som:** `M` música · `S` efeitos (toggle persistente)
@@ -25,14 +26,25 @@ A direção do jogo está em [`docs/DESIGN.md`](docs/DESIGN.md).
 | # | Fase | Hazard | Objetivo | Boss |
 |---|---|---|---|---|
 | 1 | Cidade em Ruínas | detritos | limpar a área | VIGIA |
-| 2 | Floresta | névoa | limpar a área | ALPHA WOLF |
-| 3 | Caverna | escuridão | destruir 3 ninhos | CRYSTAL QUEEN |
-| 4 | Fábrica | eletricidade | sobreviver 45s | SENTINEL |
-| 5 | Pântano | lama | limpar a área | LEVIATHAN |
-| 6 | Castelo | espinhos | proteger o sobrevivente | REI MUTANTE |
-| 7 | Vulcão | lava | chegar à zona | INFERNO PRIME |
-| 8 | Espaço | baixa gravidade | limpar a área | MOTHERSHIP |
-| 9 | Bunker Central | — | limpar a área | NÚCLEO (desfile: INFERNO PRIME → REI MUTANTE → MOTHERSHIP) |
+| 2 | Rodovia | — | sobreviver 30s | PEDAGIÁRIO |
+| 3 | Floresta | névoa | limpar a área | ALPHA WOLF |
+| 4 | Hospital de Campanha | névoa | limpar a área | FERNANDO INFECTADO |
+| 5 | Caverna | escuridão | destruir 3 ninhos | CRYSTAL QUEEN |
+| 6 | Fábrica | eletricidade | sobreviver 45s | SENTINEL |
+| 7 | Pátio de Trens | eletricidade | destruir 3 ninhos | MAQUINISTA |
+| 8 | Ponte | baixa gravidade | chegar à zona | GÁRGULA |
+| 9 | Pântano | lama | limpar a área | LEVIATHAN |
+| 10 | Refinaria | lava | limpar a área | TORRE |
+| 11 | Subestação | eletricidade | sobreviver 35s | TRANSFORMADOR |
+| 12 | Vulcão | lava | chegar à zona | INFERNO PRIME |
+| 13 | Porto | névoa | destruir 3 ninhos | CAPITÃO |
+| 14 | Castelo | espinhos | proteger o foguete | REI MUTANTE |
+| 15 | Espaço | baixa gravidade | limpar a área | MOTHERSHIP |
+| 16 | NÚCLEO-CENTRAL | — | limpar a área | NÚCLEO (desfile: INFERNO PRIME → REI MUTANTE → MOTHERSHIP → NÚCLEO) |
+
+O foguete enche **tanque** no Porto, é **consertado** no Castelo e voa —
+o respiro do Castelo é a sequência de decolagem (céu azul → azul e preto →
+a estação chegando).
 
 ## Modos
 
@@ -47,7 +59,7 @@ lendária) muda dano, dispersão, som e preço.
 
 | Arma | Dano | Cadência | Pente | Projéteis | Preço | Especial |
 |---|---|---|---|---|---|---|
-| Pistola | 12 | 0.35s | 10 | 1 | — | inicial |
+| Pistola | 12 | 0.35s | 10 | 1 | 30 | inicial |
 | Shotgun | 9 | 0.6s | 8 | 3 | 80 | leque |
 | Gel | 8 | 0.28s | 20 | 2 | 180 | leque |
 | Mina | 50 | 2.8s | 2 | 1 | 200 | explosivo, raio 140 |
@@ -93,15 +105,22 @@ npm run hud         # texto do HUD cabe na caixa (4 resoluções)
 npm run loja        # texto e seções da loja (3 scrolls)
 npm run local2p     # tela de fim do versus: revanche e vencedor nos 2 sentidos
 npm run variedade   # personagem de inimigo muda por fase
-npm run fases       # mede as 9 fases: sobrevivência, onda e dano por fonte
+npm run fases       # mede as 16 fases: sobrevivência, onda e dano por fonte
 npm run espaco      # reproduz o Game Over do Espaço (só vs. jogador sem desvio)
 npm run sessao      # sessão longa com telemetria de dano por fonte
+npm run servicos    # os 3 serviços da loja entregam o que vendem
+npm run m2fluxo     # anúncio de onda sob a caixa, martelo forçado, vitória
+npm run voo         # a decolagem do Castelo conta 5s e entrega a loja
+npm run m5          # o grito do Maquinista, a fala de morte, o traje
 ```
+
+O CI do GitHub Actions roda `tsc --noEmit` + a suíte inteira + o build a
+cada push (ver `.github/workflows/ci.yml`).
 
 Os mapas são validados por script — para regenerar:
 
 ```bash
-python3 tools/genmaps.py    # 9 mapas: largura, borda fechada, BFS
+python3 tools/genmaps.py    # 16 mapas: largura, borda fechada, BFS
 python3 tools/genmusic.py   # 4 faixas OGG (precisa de ffmpeg)
 ```
 
@@ -110,7 +129,7 @@ python3 tools/genmusic.py   # 4 faixas OGG (precisa de ffmpeg)
 ```
 src/
 ├── main.ts        orquestrador: loop, input, update/draw
-├── maps.ts        dados dos 9 mapas + paletas de bioma
+├── maps.ts        dados dos 16 mapas + paletas de bioma
 ├── config.ts      fases, inimigos, armas, peças, power-ups
 ├── core/          constantes de balanceamento e paleta
 ├── entities/      player, bullet, coin
