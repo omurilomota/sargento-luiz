@@ -11,6 +11,23 @@
   vento no Reino Unido, colhida pelo autor em risco de perder a janela e o
   gravador). Trecho t=88-95, fade de 0,6s entrando, normalizado ao banco.
 
+**A ambiência dos biomas (M1)** — one-shots periódicos por fase, todos de
+gravação real:
+
+| som | fase | autor · licença |
+|---|---|---|
+| `vento.ogg` | Cidade em Ruínas | Tsorthan Grove · CC-BY 4.0 (mesma fonte do tornado — outro trecho da cena) |
+| `gaivota.ogg` | Porto | Rango Mango · CC0 ("Solo Seagull Sound Effects") |
+| `agua_cais.ogg` | Porto | qubodup · CC0 ("Water Waves"; gravação original de TransitKING) |
+| `gotejamento.ogg` | Caverna | qubodup · CC0 ("Dripping Water Loop" — um ping cortado da gravação) |
+| `apito.ogg` | Pátio de Trens | bart · CC0 ("Steam Whistle") |
+| `maquinario.ogg` | Fábrica, Pátio de Trens | bart · CC-BY 3.0 ("Ambient Machinery 1" — o ruído elétrico) |
+| `drone_vazio.ogg` | Espaço, NÚCLEO | jdagenet · CC-BY 3.0 ("Sci-Fi Drone Loop") |
+| `alarme_estacao.ogg` | Espaço | ezduzziteh · CC0 ("Alarm 1") |
+
+Todos mono OGG, cortados com fade e normalizados ao banco; o volume final
+por contexto vem do `vol` em `SFX_FILES`.
+
 ## Sprites
 
 **Screaming Brain Studios — Top Down Dungeon Pack** ·

@@ -58,6 +58,7 @@ import {
 // UI
 import { initHud, drawHud, drawTabScreen, medirHud, HudData } from './ui/hud';
 import { rendaDeAbate } from './systems/economia';
+import { resetAmbiente, updateAmbiente, agendaAmbiente } from './systems/ambiente';
 import { drawShop, handleShopClick, setShopCoins, getShopCoins, addShopCoins, resetShop, updateShopAds, getPurchasedUpgrades, getPurchasedWeapons, getPurchasedWeaponPairs, attachShopWheelListener, addPurchasedWeapon, pushPendingReveal, consumeShopPowerups, consumeShopServices, restoreUpgrades, applySavedTalentos, buyPerk, buyService, getStockPerks, getShopStock, getShopLayout, medirTextosDaLoja, setShopScroll } from './ui/shop';
 
 // Modules
@@ -68,7 +69,7 @@ import { addPieceToInventory, getPieceType, resetPieces, getInventorySnapshot, r
 import { powerups, spawnPowerUp, spawnPowerUpDeChefe, spawnPowerUpDeTipo, updatePowerUps, hasPowerUp, activePowerups } from './powerups';
 
 import {
-  initAudio, sfxExplosion, sfxBossDeath, sfxPlayerHit, sfxCoin, sfxPowerup, sfxWaveStart, sfxLevelUp,
+  initAudio, sfxAmbiente, sfxExplosion, sfxBossDeath, sfxPlayerHit, sfxCoin, sfxPowerup, sfxWaveStart, sfxLevelUp,
   sfxGameOver, sfxEnemyShoot, sfxDash, sfxShield, sfxFury, sfxMenuMove, sfxMenuSelect, sfxError, sfxJammed, sfxPiece,
   startMusic, playMusic, setMusicEnabled, setSfxEnabled, isMusicEnabled, isSfxEnabled, unlockAudio,
   getMasterVolume, getMusicVolume, getSfxVolume, WEAPON_SOUNDS,
@@ -751,6 +752,7 @@ function loadPhaseEnvironment(): void {
   bossGritoTimer = 0;
   checkAchievements('phase_start');
   zeraMoedasGeradas();
+  resetAmbiente(phase.name);
   for (const svc of consumeShopServices()) {
     // os dois aliados nascem colados no jogador: ±40px às cegas podia pôr o
     // corpo DENTRO da parede (spawn de borda) — o mesmo resgate do loot
@@ -1133,6 +1135,9 @@ function update(dt: number) {
 
   // ── eventos ambientais (agora com dimensões do mundo) ──
   const envResult = updateEnvironmentEvents(dt, enemies, p.x, p.y, worldW, worldH, phase.hazard);
+  // A AMBIÊNCIA do lugar (M1): one-shots periódicos — gaivota no cais,
+  // gotejamento na caverna, apito no pátio, drone no vácuo
+  for (const chave of updateAmbiente(dt)) sfxAmbiente(chave);
   // O EMPURRÃO do tornado no jogador (M1): moveCircleBy para não furar
   // parede — ser empurrado PARA DENTRO de um muro não é física de vento.
   if (envResult.playerPush.x !== 0 || envResult.playerPush.y !== 0) {
@@ -3650,6 +3655,8 @@ window.__ashfall = {
   // lê se o tornado está na tela
   forcarEvento: (type: EnvironmentEvent, x?: number, y?: number) => forcarEventoAmbiente(type, x, y),
   tornadoAtivo: () => tornadoNoAr(),
+  // prova M1: a agenda da ambiência da fase atual (chave + quanto falta)
+  ambiente: () => agendaAmbiente(),
   // devolve o estado da run nova depois do `resetGame`: o `perks-proof` compara
   // com a run anterior para provar que perks e stats não sobreviveram.
   resetarPartida: () => { resetGame(); return true; },

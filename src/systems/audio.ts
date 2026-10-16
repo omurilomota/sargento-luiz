@@ -246,6 +246,16 @@ export const SFX_FILES: Record<string, SfxDef> = {
   // — o pós-missão do Castelo.
   risada:              { file: 'assets/sfx/risada.ogg' },
   tornado:             { file: 'assets/sfx/tornado.ogg' },
+  // AMBIÊNCIA (M1): one-shots periódicos em volume baixo — ver
+  // systems/ambiente.ts pelas janelas de cada fase
+  vento:               { file: 'assets/sfx/vento.ogg', vol: 0.5 },
+  gaivota:             { file: 'assets/sfx/gaivota.ogg', vol: 0.4, vary: 0.08 },
+  agua_cais:           { file: 'assets/sfx/agua_cais.ogg', vol: 0.35, vary: 0.12 },
+  gotejamento:         { file: 'assets/sfx/gotejamento.ogg', vol: 0.45, vary: 0.15 },
+  apito:               { file: 'assets/sfx/apito.ogg', vol: 0.4 },
+  maquinario:          { file: 'assets/sfx/maquinario.ogg', vol: 0.35, vary: 0.1 },
+  drone_vazio:         { file: 'assets/sfx/drone_vazio.ogg', vol: 0.4 },
+  alarme_estacao:      { file: 'assets/sfx/alarme_estacao.ogg', vol: 0.5, vary: 0.06 },
   ferramenta:          { file: 'assets/sfx/ferramenta.ogg' },
   foguete_lancamento:  { file: 'assets/sfx/foguete_lancamento.ogg' },
 };
@@ -608,6 +618,15 @@ export function sfxPiece(): void {
 export function sfxRisada(): void {
   if (playSfxFile('risada')) return;
   playTone(220, 0.15, 'square', 0.1);
+}
+
+/**
+ * A porta da AMBIÊNCIA: dispara o one-shot da chave dada. Sem fallback —
+ * som de ambiente que não carregou é silêncio (o lugar continua lá), não
+ * síntese tentando imitar gaivota.
+ */
+export function sfxAmbiente(chave: string): void {
+  playSfxFile(chave);
 }
 
 /**

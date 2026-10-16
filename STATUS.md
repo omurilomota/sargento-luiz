@@ -185,6 +185,28 @@ commitados; esta entrega o fecha com efeito REAL e prova em navegador.
   verde nos 3 contratos, visual sem 404. PNG `m5-grito-maquinista.png` com
   pendência de leitura (regra 16).
 
+## Entrega: J1 — a ambiência sonora dos biomas (2026-10-16 17:20, `develop`)
+
+O M1 fecha completo: **o lugar soa como o lugar.**
+
+- **Agendador de ambiência** (`systems/ambiente.ts`): one-shots periódicos
+  por FASE, janelas irregulares (gaivota 7-20s, apito 25-55s, alarme
+  35-70s) — o primeiro disparo vem na janela curta, a ambiência é a
+  primeira impressão. Sem cama de loop: a irregularidade é o que lê como
+  mundo.
+- **8 arquivos de gravação real** (SFX_FILES 42→50): vento na Cidade (a
+  promessa do prólogo, do dia a dia — o tornado é o evento raro),
+  gaivota (Rango Mango, CC0) + água do cais (qubodup, CC0) no Porto,
+  gotejamento na Caverna (qubodup, CC0), apito de vapor (bart, CC0) +
+  maquinário elétrico (bart, CC-BY 3.0) no Pátio de Trens, maquinário na
+  Fábrica, drone (jdagenet, CC-BY 3.0) + alarme (ezduzziteh, CC0) no
+  Espaço, drone no NÚCLEO. O Hospital silencia — sem mar, caverna nem
+  estação, o silêncio é de projeto.
+- **sfxAmbiente sem fallback**: som de ambiente que faltou é silêncio, não
+  síntese imitando gaivota (DECISIONS #241).
+- **Gates**: tsc, **1403 testes** (ambiente 7), `npm run ambiente` verde
+  nas 6 fases com seus contratos, sfxAssets 50 chaves.
+
 ## Entrega: I — o tornado da Cidade (M1, 2026-10-16 16:40, `develop`)
 
 O evento que o PRÓLOGO promete ("o céu fecha pesado do lado do mar") existe

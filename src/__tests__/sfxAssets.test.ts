@@ -17,9 +17,9 @@ import { SFX_FILES } from '../systems/audio';
 const SFX_DIR = 'public/assets/sfx';
 
 describe('sfx: toda chave de SFX_FILES tem arquivo no disco', () => {
-  it('as 42 chaves declaram arquivo em assets/sfx/ (42ª: tornado, M1)', () => {
+  it('as 50 chaves declaram arquivo em assets/sfx/ (43-50ª: a ambiência M1)', () => {
     const chaves = Object.keys(SFX_FILES);
-    expect(chaves).toHaveLength(42);
+    expect(chaves).toHaveLength(50);
     for (const chave of chaves) {
       const arquivo = SFX_FILES[chave].file;
       expect(arquivo, `${chave} declara caminho fora de assets/sfx/`).toBe(`assets/sfx/${chave}.ogg`);

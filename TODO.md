@@ -1767,10 +1767,17 @@
 //     "TORNADO" no HUD, permissão SÓ no bioma da Cidade (o prólogo fecha
 //     o céu "do lado do mar"). Trava: tornado.test (6) + npm run tornado
 //     (174px de empurrão no jogador; no Espaço a permissão mata o
-//     evento no 1º update). RESTA a ambiência sonora dos biomas:
-//     Porto (gaivota, água no cais), Caverna (gotejamento, eco),
-//     Fábrica/Trens (maquinário, apito), Espaço (drone, alarme) — caça
-//     CC0/CC-BY, um a um, com CREDITS.md.
+//     evento no 1º update). [x] AMBIÊNCIA SONORA (2026-10-16, J1): o
+//     agendador `systems/ambiente.ts` arma one-shots por FASE — vento na
+//     Cidade (o prólogo cumpre), gaivota e água no Porto, gotejamento na
+//     Caverna, apito e maquinário no Pátio de Trens, maquinário na
+//     Fábrica, drone e alarme no Espaço, drone no NÚCLEO; o Hospital
+//     silencia de projeto. 8 arquivos novos (Rango Mango/qubodup/bart/
+//     ezduzziteh CC0 · jdagenet CC-BY 3.0 · Tsorthan Grove CC-BY 4.0),
+//     SFX_FILES 42→50, sfxAmbiente SEM fallback (silêncio, não síntese).
+//     Trava: ambiente.test (7 — nomes de fase e chaves batem, janelas
+//     honradas) + npm run ambiente (as 6 fases com seus contratos).
+//     → O M1 ESTÁ COMPLETO: piso, parede, tornado e ambiência.
 // [x] M2 — BUGS DE FLUXO (2026-10-15, F1): [x] resetSpawner no load de
 //     fase ("onda 2 na entrada") — F0; [x] anúncio de onda cala sob a caixa
 //     de diálogo (Hospital): o som agora arma PENDENTE na abertura do
