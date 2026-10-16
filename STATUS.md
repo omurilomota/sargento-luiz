@@ -185,6 +185,19 @@ commitados; esta entrega o fecha com efeito REAL e prova em navegador.
   verde nos 3 contratos, visual sem 404. PNG `m5-grito-maquinista.png` com
   pendência de leitura (regra 16).
 
+## Deploy: o Vercel no build desta sessão (2026-10-16 01:58)
+
+`vercel deploy dist --prod` no HEAD de `080d804` — target **production**,
+status **Ready**, 21s. Aliases: `sargento-luiz.vercel.app` e o URL estável
+`sargento-luiz-murilohenriquemota935-1958s-projects.vercel.app`
+(título ao vivo: "SARGENTO LUIZ — Pós-Apocalíptico").
+
+Verificação ao vivo (não o afirmo pelo exit do CLI): o bundle servido é
+o `index-D-LzR4pc.js` recém-buildado; `assets/sprites/props/torreta.png`
+responde 200/PNG/398b; as strings desta sessão ("MUITO BEM, SOLDADO",
+"YOU SHALL NOT PASS", "APROXIMANDO DA ESTAÇÃO") estão no JS do ar. O item
+FINAL do plano M está pago — o zip do itch segue sendo ação do Murilo.
+
 ## Entrega: F4 — M4, a ordem e o voo (2026-10-16 00:50, `develop`)
 
 A campanha reordenada pela narrativa e a decolagem visível:

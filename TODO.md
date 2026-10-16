@@ -1848,3 +1848,9 @@
 //     Rodovia pede piso por char (asfalto na pista, acostamento fora).
 // [ ] FINAL: redeploy no Vercel com o build de tudo (npm run build &&
 //     vercel deploy dist --prod --yes --name sargento-luiz).
+//     [x] FEITO 2026-10-16 01:58, build `index-D-LzR4pc.js` (M4+M5+frente
+//     visual+F0/F1): target PRODUCTION Ready, aliases
+//     `sargento-luiz.vercel.app` e o URL estável do TODO. Verificado ao
+//     vivo: bundle novo servido, `torreta.png` 200/PNG/398b, e as strings
+//     desta sessão ("MUITO BEM, SOLDADO", "YOU SHALL NOT PASS",
+//     "APROXIMANDO DA ESTAÇÃO") no JS do ar.
