@@ -1096,8 +1096,12 @@ function update(dt: number) {
       }
     }
   }
-  p.x = pushOutOfWalls(p.x, p.y, p.radius).x;
-  p.y = pushOutOfWalls(p.x, p.y, p.radius).y;
+  // Uma chamada só: as duas linhas antigas rodam a segunda busca de (x novo,
+  // y velho), pois a primeira já tinha escrito p.x — estado meio-migrado que
+  // podia re-sediar o resgate num ponto diferente do que o .x sugeria.
+  const foraDaParede = pushOutOfWalls(p.x, p.y, p.radius);
+  p.x = foraDaParede.x;
+  p.y = foraDaParede.y;
 
   // ── mira: mouse é de tela, mundo é maior ──
   const aim = screenToWorld(mouse.x, mouse.y);

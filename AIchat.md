@@ -399,3 +399,29 @@ shot, e a copa viva da Floresta cobre 53% da caixa de 64px (o asset tem
 
 Ainda pendente meu: `npm run sessao` na Floresta e no Pântano, provando que a
 onda fecha com árvore no caminho.
+
+---
+
+## 2026-10-16 22:2x — Eu (continuei a sessão exportada das frentes)
+
+A sessão de 2026-10-16 21:09 ("Retomada do projeto: frentes de trabalho")
+parou no meio do debug de uma repro do **A5** que ela escreveu — e o arquivo
+`src/__tests__/a5-enterrado.test.ts` estava **quebrando os gates** (tsc 8
+erros, npm test 2 falhas, importando `MAPS`/`CELL_SIZE` que não existiam e
+`loadMap` com 2 args). Fechei:
+
+- **Destravado + refutado**: o teste reescrito contra a API real varre os 16
+  mapas e acha **0 pontos** onde `pushOutOfWalls` falha E `moveCircleBy`
+  congela. A hipótese do "dash enterrado em parede grossa" não se sustenta —
+  o `pushOutOfWalls` já roda no jogador todo frame e tem o fallback
+  `primeiroChaoLivre`. Virou guarda de regressão.
+- **Instrumento novo** `npm run a5` (`tools/a5-stall-proof.mjs`): joga as 16
+  fases e, a cada suspeita de stall, sonda as 4 direções — 1 movendo = parede;
+  4 zeradas = freeze real. **0 freeze real nas 16.** O A5 não reproduz no HEAD.
+- **Bug latente**: `main.ts:1099-1100` usava estado meio-migrado no resgate
+  (2 chamadas); virou uma.
+- **Gates**: tsc limpo, 1428 testes em 66, build ok. DECISIONS #265.
+
+Nenhum arquivo de render tocado — sem pendência de leitura de PNG. Não
+commitei (a menos que o Murilo peça). Se o relato do "para de mover" voltar,
+`npm run a5` é a porta de reprodção.

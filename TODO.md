@@ -1940,9 +1940,20 @@
 // [x] recarga "só um ruidinho": o progresso VIAJA com a arma (trocar
 //     pausa, voltar retoma — antes trocar CANCELAVA) e arma emperrada
 //     não começa recarga. weaponAmmo.test +2 (DECISIONS #252).
-// [ ] A5 player para de se mover em certos mapas — SUSPEITO: o
-//     empurrão (tornado/ponte) prendendo contra parede + input = net
-//     zero. Repro: bot andando nas 16 fases + instrumento de stall.
+// [x] A5 player para de se mover em certos mapas — RESOLVIDO como NÃO
+//     REPRODUZ (2026-10-16). Duas camadas de prova: (1) a repro em Node
+//     (a5-enterrado.test.ts) varre os 16 mapas e acha 0 pontos onde o
+//     `pushOutOfWalls` falha E o `moveCircleBy` congela — a hipótese do
+//     "dash enterrado em parede grossa" é REFUTADA (o `pushOutOfWalls`
+//     já roda no jogador todo frame e tem o fallback `primeiroChaoLivre`,
+//     que sempre acha chão livre). (2) o instrumento de stall em
+//     navegador (`npm run a5`, tools/a5-stall-proof.mjs) joga as 16 fases
+//     e, a cada suspeita, sonda as 4 direções: 0 freeze real; o único
+//     suspeito (Refinaria) moveu 3/4 no probe = encostar em parede, não
+//     trava. Bug latente corrigido no caminho: main.ts:1099 usava estado
+//     meio-migrado (2ª chamada de pushOutOfWalls lia x novo + y velho).
+//     A "família enterrado" está fechada; se voltar o relato, o
+//     instrumento `npm run a5` é a porta.
 // [x] F-B (2026-10-16, noite): [x] TORRE=zumbi → robot; [x] contratado
 //     com pose 'gun' + aviso de peso na morte (flash+toast+sfx);
 //     [x] BOTAS FORA (decisão sua: a velocidade default é a ideal) —
@@ -1958,8 +1969,7 @@
 //     são 4).
 // [ ] F-B RESTA: o "U" do Pântano (o mapa tem um bolsão que lê como
 //     letra — precisa do seu olho pra apontar qual), a onda 1 do Vulcão
-//     (medição), SFX timing (auditoria por gatilho) e A5 (player para
-//     de se mover — repro com bot).
+//     (medição) e SFX timing (auditoria por gatilho).
 // [x] F-C (2026-10-16, madrugada): [x] TINT POR TIPO — cada inimigo
 //     com a própria cor em cache (`getTintedSprite`, dessaturado por
 //     construção; o `color` do config era DADO MORTO com sprite

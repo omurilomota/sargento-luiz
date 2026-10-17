@@ -1,6 +1,6 @@
 # SARGENTO LUIZ — Status Geral do Projeto
 
-> Atualizado: 2026-10-16 · branch `develop` · 1409 testes em 62 arquivos ·
+> Atualizado: 2026-10-16 · branch `develop` · 1428 testes em 66 arquivos ·
 > `tsc` limpo · build ok.
 > (antes: SARGENTO RIOS, e antes disso ASHFALL — o jogo trocou de nome duas
 > vezes e o save migra as duas gerações de prefixo)
@@ -8,9 +8,10 @@
 ## Verificação atual
 
 ```
-npm test           # 1307 passando em 61 arquivos
+npm test           # 1428 passando em 66 arquivos
 npx tsc --noEmit   # 0 erros
 npm run build      # ok
+npm run a5         # o A5 (player para de mover): 0 freeze real nas 16 fases (não reproduz)
 npm run visual     # 8 screenshots, sem 404/pageerror
 npm run servicos   # os 3 serviços da loja: aliado/torreta nascem, botas 1.3, tiro em campo
 npm run blur       # o input sobrevive ao blur (veredito: não reproduz no HEAD)
@@ -122,6 +123,39 @@ decisões autônomas: [`docs/DECISIONS.md`](docs/DECISIONS.md) ·
 ordem das frentes: [`ROADMAP.md`](ROADMAP.md)
 
 ---
+
+## Entrega: A5 — o "player para de mover" fechado como não-reproduz (2026-10-16 22:2x, `develop`)
+
+A última sessão exportada parou no meio do debug de uma repro do A5 que ela
+mesma escreveu — e que estava **quebrando os gates** (`tsc` 8 erros,
+`npm test` 2 falhas, um arquivo untracked contra uma API fantasma). Esta
+entrega destrava, refuta a hipótese e fecha o bug com prova em duas camadas:
+
+- **Destravado**: o `a5-enterrado.test.ts` importava `MAPS`/`CELL_SIZE` que
+  não existiam e chamava `loadMap` com 2 args (a real é 1). Reescrito contra
+  a API real (`BIOMES[chave].rows`, `CELL_SIZE` de `maps.ts`,
+  `PLAYER_RADIUS=18`).
+- **Hipótese do dash REFUTADA em Node**: a repro varre os 16 mapas e acha
+  **0 pontos** onde o `pushOutOfWalls` falha E o `moveCircleBy` congela as 4
+  direções. O "dash entra em parede grossa e enterra" não se sustenta: o
+  `pushOutOfWalls` roda no jogador **todo frame** (`main.ts:1099`) e tem o
+  fallback `primeiroChaoLivre` (commit `a33ca39`), que sempre acha chão
+  livre. O teste virou guarda de regressão desse contrato.
+- **Bug latente corrigido**: `main.ts:1099-1100` rodava o resgate em duas
+  chamadas com estado meio-migrado (a segunda lia o `p.x` já trocado + o
+  `p.y` velho). Virou uma chamada só.
+- **Instrumento de stall novo** (`npm run a5`, `tools/a5-stall-proof.mjs`):
+  joga as 16 fases, anda num ciclo de direções amostrando posição a cada
+  150ms, e a cada suspeita (>1,2s parado com tecla premida) **sonda as 4
+  direções**. Se uma move = encostar em parede (falso-positivo); se as 4
+  zeram = freeze real. Resultado: **0 freeze real nas 16**; o único suspeito
+  (Refinaria) moveu 3/4 no probe. Como o teste Node prova que nenhuma
+  geometria bloqueia as 4, um freeze real seria lógica — e não houve nenhum.
+- **Veredito**: o A5 **não se reproduz no HEAD**. Toda família "enterrado em
+  parede" está fechada; se o relato voltar, `npm run a5` é a porta de
+  reprodção.
+- **Gates**: `tsc` limpo, **1428 testes em 66 arquivos**, build ok, prova
+  `a5` verde nas 16.
 
 ## Entrega: F0 — o voo da sessão anterior fechado (2026-10-15 20:0x, `develop`)
 
@@ -323,8 +357,8 @@ A triagem do playtest virou fixes com repro:
   O progresso agora VIAJA com a arma (troca pausa, volta retoma), e
   arma emperrada não começa recarga: o encasquilamento É o estado
   (DECISIONS #252). weaponAmmo.test +2.
-- **Gates**: tsc, 1414 testes, build ok. Restam na F-A: A5 (player para
-  de mover — repro com bot nas 16 fases pendente).
+- **Gates**: tsc, 1414 testes, build ok. O A5 (player para de mover) fechou
+  em 2026-10-16 como NÃO REPRODUZ — ver a entrega A5-logo-abaixo.
 
 ## Entrega: J3-final — tochas, painel e berço: a cenografia fecha (M6 completo, 2026-10-16 20:55, `develop`)
 

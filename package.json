@@ -13,6 +13,7 @@
     "visual": "npm run build && node tools/visual.mjs",
     "sessao": "npm run build && node tools/session.mjs",
     "fases": "npm run build && node tools/fases-todas.mjs",
+    "a5": "npm run build && node tools/a5-stall-proof.mjs",
     "diagnostico": "npm run build && node tools/sessao-diagnostico.mjs",
     "provas": "npm run build && node tools/visual.mjs && node tools/bullet-proof.mjs && node tools/tilemap-proof.mjs",
     "onda": "npm run build && node tools/onda-proof.mjs",
