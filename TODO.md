@@ -1967,14 +1967,20 @@
 //     LINHA do riso (efeito por linha, o molde da caixa — DECISIONS #258);
 //     [x] hint fala o número real de armas ("1-4: trocar arma" quando
 //     são 4).
-// [~] F-B RESTA (2026-10-17): o "U" do Pântano — IDENTIFICADO, falta
-//     DECIDIR. O "marronzinho" são as 6 faixas de LAMA (^) declaradas em
-//     tools/genmaps.py:501 — (5,8-14) (5,18-23) (9,10-16) (13,6-12)
-//     (13,18-22) (17,12-18): duas pernas afastadas nas linhas 5 e 13,
-//     fechadas no fundo pela faixa única da linha 17. É o U (a região do
-//     relato, linhas 5-20 x cols 5-20, contém as 6). O conserto, se
-//     aprovado, é no GERADOR (genmaps.py), não no maps.ts — o gerador
-//     imprime os blocos para colar. Aguarda escolha do Murilo.
+// [x] F-B RESTA (2026-10-17, fechado): o "U" do Pântano — as 6 faixas
+//     de LAMA (^), não parede: a varredura célula-a-célula achou ZERO ∪
+//     em parede. Duas pernas afastadas nas linhas 5 e 13, fechadas pela
+//     faixa única da linha 17. CONSERTADO (variante "V1 fundo torto",
+//     escolha do Murilo entre 4): a faixa da linha 17 andou de cols
+//     12-18 para cols 6-12, no GERADOR (genmaps.py). Prova antes/depois
+//     com a câmera lida no MESMO instante do screenshot: a assinatura do
+//     tile de lama (51,8) saiu de cols 12-17 e caiu em cols 6-12.
+//     RESSALVA (dívida aberta): genmaps.py NÃO reproduz maps.ts — os 18
+//     marcadores `D` do Pântano (decor aplicado à mão por 3d5904b) não
+//     saem do gerador. Por isso o conserto foi mudança MÍNIMA de uma
+//     linha no maps.ts, NÃO a colagem do bloco regerado, que teria
+//     apagado os 18 decores. Quem regerasse hoje perdia esse decor em
+//     silêncio.
 //     [x] a onda 1 do Vulcão (medição): 5 amostras em dificuldade 0,74 —
 //     3 MORTES em 5, onda máx 1 em todas, 100% `projetil` do `inferno`
 //     (105/110/116 de dano, mortes a 32-40s; as 2 que passaram levaram

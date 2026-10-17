@@ -1,6 +1,6 @@
 # SARGENTO LUIZ — Status Geral do Projeto
 
-> Atualizado: 2026-10-16 · branch `develop` · 1428 testes em 66 arquivos ·
+> Atualizado: 2026-10-17 · branch `develop` · 1428 testes em 66 arquivos ·
 > `tsc` limpo · build ok.
 > (antes: SARGENTO RIOS, e antes disso ASHFALL — o jogo trocou de nome duas
 > vezes e o save migra as duas gerações de prefixo)
@@ -124,10 +124,11 @@ ordem das frentes: [`ROADMAP.md`](ROADMAP.md)
 
 ---
 
-## Entrega: as pendências da F-B — A5 no ar, Vulcão medido, som de moeda consertado (2026-10-17, `develop`)
+## Entrega: as pendências da F-B — A5 no ar, Vulcão medido, som de moeda consertado, U do Pântano corrigido (2026-10-17, `develop`)
 
-Saída das quatro pendências em aberto. Duas fecharam, uma foi entregue como
-medição e uma está identificada aguardando decisão.
+Saída das quatro pendências em aberto. Nenhuma fechou pela metade: duas são
+entrega, uma é medição que contrariou uma premissa do projeto, e a quarta foi
+identificada e consertada.
 
 - **A5 em produção, com um bug de infra no caminho.** O domínio
   `sargento-luiz.vercel.app` estava preso por um ALIAS EXPLÍCITO num build de
@@ -151,12 +152,23 @@ medição e uma está identificada aguardando decisão.
   toca 5x). O defeito: `coin.ts` chama o callback POR MOEDA e o ímã entrega um
   cacho no mesmo frame — N `sfxCoin` empilhados. Consertado com piso de 50ms
   no `sfxCoin` (DECISIONS #266), a primeira contenção de taxa do `audio.ts`.
-- **O "U" do Pântano: identificado, aguardando decisão.** O "marronzinho" são
-  as 6 faixas de LAMA (`^`) declaradas em `tools/genmaps.py:501` — duas pernas
-  afastadas nas linhas 5 e 13, fechadas pela faixa única da linha 17. A
-  varredura célula-a-célula NÃO achou nenhum ∪ em parede (0 células): o U é
-  das lagoas. Conserto, se aprovado, é no GERADOR (ele imprime os blocos para
-  colar no `maps.ts`), com regravação e revalidação do mapa.
+- **O "U" do Pântano: identificado e consertado (variante "V1 fundo torto",
+  escolha do Murilo entre 4).** O "marronzinho" não era parede: a varredura
+  célula-a-célula achou ZERO ∪ em parede (0 células). Eram as 6 faixas de LAMA
+  (`^`) de `tools/genmaps.py:501` — duas pernas afastadas nas linhas 5 e 13,
+  fechadas pela faixa única da linha 17, e o miolo do mapa lia como letra. A
+  faixa da linha 17 andou de cols 12-18 para cols 6-12. Prova antes/depois
+  (regra 16) com a CÂMERA LIDA NO MESMO INSTANTE do screenshot — sem enquadrar
+  por palpite — e por assinatura de pixel: a lama mede 51,8 de brilho nas
+  células que ocupa, e essa assinatura saiu de cols 12-17 e caiu em cols 6-12.
+  `npm run visual` verde (8 telas, 0 pageerror, 0 404) e o BFS do mapa
+  revalidado (P alcança os 7 marcadores, borda fechada, largura 30).
+  **Ressalva que vira dívida:** `genmaps.py` NÃO reproduz o `maps.ts` — os 18
+  marcadores `D` do Pântano (decor aplicado à mão por `3d5904b`) não saem do
+  gerador, e 8 outras linhas diferem no scatter de caixote/barril. Por isso o
+  conserto foi mudança MÍNIMA de uma linha, não a colagem do bloco regerado,
+  que teria apagado os 18 decores sem ninguém ver (DECISIONS #267 e #268).
+  Quem regerasse hoje perdia esse decor em silêncio.
 - **Gates**: `tsc` limpo, 1428 testes, build ok. Ferramentas novas:
   `tools/pantano-u-proof.mjs` (fotografa a fase) e o `npm run a5` da entrega
   anterior.

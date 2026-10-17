@@ -501,7 +501,13 @@ def pantano():
                       (8, 13, 2), (8, 22, 2), (12, 4, 2), (12, 17, 2), (12, 24, 2),
                       (16, 8, 2), (16, 20, 2)):
         blob(g, cr, cc, r)
-    for r, c0, c1 in ((5, 8, 14), (5, 18, 23), (9, 10, 16), (13, 6, 12), (13, 18, 22), (17, 12, 18)):
+    # O "U" (F-B, relato do playtest 2026-10-17): as lagoas saíam em duas
+    # pernas afastadas nas linhas 5 e 13, fechadas pela faixa CENTRADA da
+    # linha 17 — e o miolo do mapa lia como a letra U. A faixa de baixo
+    # andou pra esquerda (cols 6-12), sob a perna esquerda: agora é escada,
+    # não letra. Escolha do Murilo entre 4 variantes (tools/shots/
+    # pantano-variantes.png); esta foi a V1.
+    for r, c0, c1 in ((5, 8, 14), (5, 18, 23), (9, 10, 16), (13, 6, 12), (13, 18, 22), (17, 6, 12)):
         for c in range(c0, c1 + 1):
             g[r][c] = HAZARD
     scatter(g, CRATE, 7, 51)
