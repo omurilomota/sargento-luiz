@@ -430,7 +430,26 @@ export function sfxPlayerHit(): void {
   playTone(150, 0.15, 'square', 0.15);
 }
 
+/**
+ * Piso de intervalo do som de moeda.
+ *
+ * `coin.ts` chama o callback de coleta UMA VEZ POR MOEDA dentro do laço, e o
+ * ímã (raio 120, velocidade 400) entrega um cacho inteiro no MESMO frame: cada
+ * chamada abria 2 osciladores novos, e N moedas soavam empilhadas — filtro de
+ * combiné e clump de amplitude no lugar de toques distintos.
+ *
+ * 50ms fica abaixo da distância em que dois toques se ouvem separados, e acima
+ * da entrega de um cacho. O `audio.ts` não tinha throttle nenhum antes daqui:
+ * esta é a primeira contenção de taxa do arquivo, e fica no `sfxCoin` — não no
+ * `updateCoins` — porque o defeito é do SOM, não da coleta.
+ */
+let ultimaMoedaEm = -1;
+const INTERVALO_MOEDA = 0.05;
+
 export function sfxCoin(): void {
+  const ac = ensureCtx();
+  if (ac.currentTime - ultimaMoedaEm < INTERVALO_MOEDA) return;
+  ultimaMoedaEm = ac.currentTime;
   if (playSfxFile('coin')) return;
   playTone(1200, 0.05, 'sine', 0.15);
   playTone(1600, 0.05, 'sine', 0.1);

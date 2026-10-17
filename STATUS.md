@@ -124,6 +124,43 @@ ordem das frentes: [`ROADMAP.md`](ROADMAP.md)
 
 ---
 
+## Entrega: as pendências da F-B — A5 no ar, Vulcão medido, som de moeda consertado (2026-10-17, `develop`)
+
+Saída das quatro pendências em aberto. Duas fecharam, uma foi entregue como
+medição e uma está identificada aguardando decisão.
+
+- **A5 em produção, com um bug de infra no caminho.** O domínio
+  `sargento-luiz.vercel.app` estava preso por um ALIAS EXPLÍCITO num build de
+  16h atrás, anterior ao trabalho do A5. `vercel deploy dist --prod` subiu o
+  deploy mas NÃO tomou o domínio, e `vercel promote` respondeu 409 ("já é o de
+  produção"). Quem moveu foi `vercel alias set`. Verificado: bundle remoto com
+  MD5 idêntico ao local, música e sprite em 200. A sessão anterior já havia
+  corrigido os settings de build do projeto (`Other`/output `public` →
+  `vite`/`dist`), sem o que o build do Git serviria os assets crus.
+- **Onda 1 do Vulcão: medido em 5 amostras, e a premissa de `config.ts` não se
+  sustenta.** 3 mortes em 5, `onda máx` 1 em todas, 100% `projetil` do
+  `inferno` (105/110/116 de dano, mortes a 32-40s; as 2 que passaram levaram
+  28-34). O comentário de `config.ts:100` registra que 0,79 deu "3 mortes em 5
+  amostras" e por isso voltou ao 0,74 "medido" — **mas 0,74 dá as mesmas 3 em
+  5**. A margem do dodge do bot já estava cruzada antes do +0,05, e a morte é
+  cara-ou-coroa na primeira rajada, não rampa de dificuldade.
+- **SFX timing auditado por gatilho: 7 corretos, 1 defeito consertado.** O
+  `sfxPlayerHit` (8 call sites) é gateado pela invencibilidade (0,5s/0,3s) e
+  não dispara por frame; a recarga toca no INÍCIO via `reloadHook` injetado; o
+  tiro de arma toca UMA vez por rajada (fora do laço de balas — shotgun não
+  toca 5x). O defeito: `coin.ts` chama o callback POR MOEDA e o ímã entrega um
+  cacho no mesmo frame — N `sfxCoin` empilhados. Consertado com piso de 50ms
+  no `sfxCoin` (DECISIONS #266), a primeira contenção de taxa do `audio.ts`.
+- **O "U" do Pântano: identificado, aguardando decisão.** O "marronzinho" são
+  as 6 faixas de LAMA (`^`) declaradas em `tools/genmaps.py:501` — duas pernas
+  afastadas nas linhas 5 e 13, fechadas pela faixa única da linha 17. A
+  varredura célula-a-célula NÃO achou nenhum ∪ em parede (0 células): o U é
+  das lagoas. Conserto, se aprovado, é no GERADOR (ele imprime os blocos para
+  colar no `maps.ts`), com regravação e revalidação do mapa.
+- **Gates**: `tsc` limpo, 1428 testes, build ok. Ferramentas novas:
+  `tools/pantano-u-proof.mjs` (fotografa a fase) e o `npm run a5` da entrega
+  anterior.
+
 ## Entrega: A5 — o "player para de mover" fechado como não-reproduz (2026-10-16 22:2x, `develop`)
 
 A última sessão exportada parou no meio do debug de uma repro do A5 que ela

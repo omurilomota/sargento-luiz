@@ -1967,9 +1967,32 @@
 //     LINHA do riso (efeito por linha, o molde da caixa — DECISIONS #258);
 //     [x] hint fala o número real de armas ("1-4: trocar arma" quando
 //     são 4).
-// [ ] F-B RESTA: o "U" do Pântano (o mapa tem um bolsão que lê como
-//     letra — precisa do seu olho pra apontar qual), a onda 1 do Vulcão
-//     (medição) e SFX timing (auditoria por gatilho).
+// [~] F-B RESTA (2026-10-17): o "U" do Pântano — IDENTIFICADO, falta
+//     DECIDIR. O "marronzinho" são as 6 faixas de LAMA (^) declaradas em
+//     tools/genmaps.py:501 — (5,8-14) (5,18-23) (9,10-16) (13,6-12)
+//     (13,18-22) (17,12-18): duas pernas afastadas nas linhas 5 e 13,
+//     fechadas no fundo pela faixa única da linha 17. É o U (a região do
+//     relato, linhas 5-20 x cols 5-20, contém as 6). O conserto, se
+//     aprovado, é no GERADOR (genmaps.py), não no maps.ts — o gerador
+//     imprime os blocos para colar. Aguarda escolha do Murilo.
+//     [x] a onda 1 do Vulcão (medição): 5 amostras em dificuldade 0,74 —
+//     3 MORTES em 5, onda máx 1 em todas, 100% `projetil` do `inferno`
+//     (105/110/116 de dano, mortes a 32-40s; as 2 que passaram levaram
+//     28-34). Isto CONTRARIA a premissa do comentário de config.ts:100 ("o
+//     0,79 mediu 3 mortes em 5... voltou ao 0,74 medido") — 0,74 dá as
+//     mesmas 3/5. A margem do dodge do bot já estava cruzada antes do
+//     +0,05, e a morte é cara-ou-coroa na primeira rajada do inferno.
+//     [x] SFX timing (auditoria por gatilho): 7 gatilhos conferidos e
+//     CORRETOS — sfxPlayerHit (8 call sites, todos gateados por
+//     `invincible`, que vale 0,5s/0,3s: no máximo ~2-3 sons de acerto por
+//     segundo, não por frame); dano de fogo (fireTick 0,5); recarga (som no
+//     INÍCIO via reloadHook injetado, com o motivo no comentário); tiro de
+//     arma (uma vez POR RAJADA, fora do laço de balas — shotgun não toca
+//     5x); sfxEnemyShoot (uma vez mesmo no split-bullet de 4 balas);
+//     ambiente (por evento). 1 DEFEITO: coin.ts chama o callback POR MOEDA
+//     no laço e o ímã entrega um cacho no mesmo frame — N sfxCoin
+//     empilhados (filtro de combiné + clump de amplitude). CONSERTADO com
+//     piso de 50ms no sfxCoin (DECISIONS #266).
 // [x] F-C (2026-10-16, madrugada): [x] TINT POR TIPO — cada inimigo
 //     com a própria cor em cache (`getTintedSprite`, dessaturado por
 //     construção; o `color` do config era DADO MORTO com sprite

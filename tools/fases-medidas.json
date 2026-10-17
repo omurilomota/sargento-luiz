@@ -1,21 +1,21 @@
 {
-  "quando": "2026-10-14T18:43:29.644Z",
-  "segundosPorFase": 45,
+  "quando": "2026-10-17T16:00:46.165Z",
+  "segundosPorFase": 50,
   "linhas": [
     {
-      "i": 9,
-      "fase": "Refinaria",
-      "hazard": 0.78,
-      "hp0": 100,
-      "hpFim": 73,
-      "danoTotal": 27,
+      "i": 11,
+      "fase": "Vulcão",
+      "hazard": 0.74,
+      "hp0": 92,
+      "hpFim": 66,
+      "danoTotal": 34,
       "ondaMax": 1,
       "morreu": false,
-      "segundosSobrevividos": 45,
-      "fontePrincipal": "evento",
-      "danoDaFontePrincipal": 15,
-      "inimigoPrincipal": "—",
-      "danoDoInimigoPrincipal": 0,
+      "segundosSobrevividos": 50,
+      "fontePrincipal": "projetil",
+      "danoDaFontePrincipal": 24,
+      "inimigoPrincipal": "fireElemental",
+      "danoDoInimigoPrincipal": 24,
       "kills": 2
     }
   ]
