@@ -1914,6 +1914,12 @@
 //     vivo: bundle novo servido, `torreta.png` 200/PNG/398b, e as strings
 //     desta sessão ("MUITO BEM, SOLDADO", "YOU SHALL NOT PASS",
 //     "APROXIMANDO DA ESTAÇÃO") no JS do ar.
+//     [x] FEITO 2026-10-17 16:31, `a796069`, build `index-BaZ4dg7R.js`
+//     (todo o playtest: F-A, F-B, F-C, hospital, A5 e o U do Pântano).
+//     Prova de produção: MD5 local == remoto (c9b367d1…), `/` 200, música
+//     e sprite 200, e a LINHA 17 NOVA do Pântano dentro do JS do ar (1
+//     ocorrência) enquanto a antiga dá 0 — ela existia no commit anterior
+//     (git grep: 1). CI verde no push (run 39062733123).
 
 // ═══════════════════════════════════════════════════════════════
 // PLAYTEST 2026-10-16 (Fase III) — triagem da frente F-A/F-B

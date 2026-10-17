@@ -172,6 +172,13 @@ identificada e consertada.
 - **Gates**: `tsc` limpo, 1428 testes, build ok. Ferramentas novas:
   `tools/pantano-u-proof.mjs` (fotografa a fase) e o `npm run a5` da entrega
   anterior.
+- **Em produção (2026-10-17 16:31, `a796069`, `index-BaZ4dg7R.js`)**: o push
+  que a sessão anterior deixou pela metade saiu, o deploy tomou o domínio via
+  `vercel alias set`, e a prova foi o CONTEÚDO, não o hash — a linha 17 nova
+  do Pântano está dentro do JS servido (1 ocorrência) e a antiga dá 0, ela
+  que existia no commit anterior (`git grep`: 1). MD5 local == remoto
+  (`c9b367d1…`), `/` 200, música e sprite 200, CI verde no push (run
+  39062733123).
 
 ## Entrega: A5 — o "player para de mover" fechado como não-reproduz (2026-10-16 22:2x, `develop`)
 
