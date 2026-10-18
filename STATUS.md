@@ -1,6 +1,6 @@
 # SARGENTO LUIZ — Status Geral do Projeto
 
-> Atualizado: 2026-10-17 18:36 · branch `develop` · 1435 testes em 66 arquivos ·
+> Atualizado: 2026-10-18 00:19 · branch `develop` · 1435 testes em 66 arquivos ·
 > `tsc` limpo · build ok.
 > (antes: SARGENTO RIOS, e antes disso ASHFALL — o jogo trocou de nome duas
 > vezes e o save migra as duas gerações de prefixo)
@@ -125,7 +125,7 @@ ordem das frentes: [`ROADMAP.md`](ROADMAP.md)
 
 ---
 
-## Entrega: a Refinaria que prometia gasolina e entregava um `clear` (2026-10-17 18:36, NÃO COMMITADO)
+## Entrega: a Refinaria que prometia gasolina e entregava um `clear` (2026-10-18 00:19, `4e65fee`)
 
 A frente F-D do playtest. O relato original se perdeu — só sobrou a sigla no
 TODO —, então os quatro itens foram medidos contra `PREMISSA-V2` e contra o
