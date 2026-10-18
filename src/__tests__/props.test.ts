@@ -3,7 +3,7 @@ import { TILE_NUMBERS } from '../systems/sprites';
 import {
   initProps, clearProps, getProps, getNests, getBlockingProps, getBlast,
   damageProp, igniteBarrel, detonateProp, updateProps, collapsesOnHit, PROP_SPRITES,
-  getRocket, getAnyRocket,
+  getRocket, getAnyRocket, collectFuelAt,
 } from '../systems/props';
 import { CELL_SIZE, BIOMES } from '../maps';
 import { PHASES } from '../config';
@@ -336,5 +336,56 @@ describe('props: sprites de caixote e ninho', () => {
     for (const n of PROP_SPRITES.barrel) {
       expect(TILE_NUMBERS, `tile_${n} do barril não está em TILE_NUMBERS`).toContain(n);
     }
+  });
+});
+
+describe('props: o tambo de combustível da Refinaria (G)', () => {
+  it('G nasce como combustivel, com raio próprio e vida alta', () => {
+    initProps(mapa({ G: [3, 3] }));
+    const [tambo] = getProps();
+    expect(tambo.kind).toBe('combustivel');
+    // a vida alta é o que impede tiro de tirar do mapa a condição de vitória
+    expect(tambo.health).toBeGreaterThan(1000);
+    expect(tambo.radius).toBeGreaterThan(0);
+  });
+
+  it('não morre para dano: o tambor não sai no tiro', () => {
+    initProps(mapa({ G: [3, 3] }));
+    const tambo = getProps()[0];
+    expect(damageProp(tambo, 99999)).toBe(false);
+    expect(tambo.health).toBe(tambo.maxHealth);
+    expect(tambo.health).toBeGreaterThan(0);
+  });
+
+  it('não entra na reação em cadeia de um barril vizinho', () => {
+    // barril e tambor na CÉLULA VIZINHA (64px, dentro do blast de 96px): sem
+    // o guarda em detonateProp, o pátio da Refinaria ficava uma mina que podia
+    // apagar o objetivo e travar a fase para sempre
+    initProps(mapa({ b: [5, 3], G: [6, 3] }));
+    const barril = getProps().find(p => p.kind === 'barrel')!;
+    const tambo = getProps().find(p => p.kind === 'combustivel')!;
+    expect(Math.hypot(barril.x - tambo.x, barril.y - tambo.y)).toBeLessThan(96);
+
+    const destruidos = detonateProp(barril);
+    expect(destruidos).not.toContain(tambo);
+    expect(tambo.health).toBeGreaterThan(0);
+    expect(getProps()).toContain(tambo);
+  });
+
+  it('não bloqueia passagem: é piso, o jogador tem que pisar em cima', () => {
+    initProps(mapa({ G: [3, 3] }));
+    expect(getBlockingProps()).toHaveLength(0);
+  });
+
+  it('collectFuelAt só coleta quando encosta, e remove o tambor do mapa', () => {
+    initProps(mapa({ G: [3, 3] }));
+    const tambo = getProps()[0];
+    // longe: nada muda
+    expect(collectFuelAt(0, 0, 10)).toBeUndefined();
+    expect(getProps()).toHaveLength(1);
+    // em cima (raio do jogador + raio do tambor cobre a célula): coleta
+    const pego = collectFuelAt(tambo.x, tambo.y, 20);
+    expect(pego).toBe(tambo);
+    expect(getProps()).toHaveLength(0);
   });
 });

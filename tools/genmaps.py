@@ -17,6 +17,9 @@ FLOOR, DECOR, HAZARD, CRATE, BARREL = '.', ',', '^', 'c', 'b'
 PLAYER, SPAWN, BOSS, NEST = 'P', 'E', 'B', 'N'
 CAR = 'A'
 REACH = 'R'
+# tambo de combustível da Refinaria: destino do JOGADOR (objetivo `collect`),
+# não alvo de IA. Um tambor inalcançável deixa a fase impossível de fechar.
+FUEL = 'G'
 WALL = '#'
 
 
@@ -166,7 +169,7 @@ def validate(name, g, need_boss, nest_target):
 
     start = next((r, c) for r in range(H) for c in range(W) if g[r][c] == PLAYER)
     seen = reachable_from(g, start)
-    for target in (SPAWN, BOSS, NEST):
+    for target in (SPAWN, BOSS, NEST, FUEL):
         for r in range(H):
             for c in range(W):
                 if g[r][c] == target and (r, c) not in seen:
@@ -178,10 +181,10 @@ def validate(name, g, need_boss, nest_target):
     assert orphan == 0, f'{name}: {orphan} células órfãs'
 
 
-def finish(g, name, player_target, spawns, boss=None, nests=(), reach=None):
+def finish(g, name, player_target, spawns, boss=None, nests=(), reach=None, fuels=()):
     pr, pc = nearest_floor(g, player_target)
     targets = ([(pr, pc)] + list(spawns) + ([boss] if boss else [])
-               + list(nests) + ([reach] if reach else []))
+               + list(nests) + ([reach] if reach else []) + list(fuels))
     ensure_connected(g, (pr, pc), targets)
     pr, pc = nearest_floor(g, (pr, pc))
     for (r, c) in spawns:
@@ -196,6 +199,11 @@ def finish(g, name, player_target, spawns, boss=None, nests=(), reach=None):
     if reach:
         rr, cc = nearest_floor(g, reach)
         g[rr][cc] = REACH
+    # tambor entra DEPOIS do ensure_connected, como os outros destinos: o
+    # cavar de caminho precisa já tê-lo contado, senão validate() reprova
+    for (r, c) in fuels:
+        rr, cc = nearest_floor(g, (r, c))
+        g[rr][cc] = FUEL
     g[pr][pc] = PLAYER
     validate(name, g, bool(boss), len(nests))
     return g
@@ -362,8 +370,12 @@ def refinaria():
     scatter(g, CRATE, 5, 61)
     scatter(g, BARREL, 4, 62)
     scatter(g, DECOR, 5, 63)
+    # 4 tambores nos quatro quadrantes: o objetivo `collect` obriga a
+    # atravessar o pátio, não a pegar o de lado. (maps.ts é editado à mão e
+    # não reproduz este layout — DECISIONS #268 —, então as posições são as
+    # da mesma intenção, não as mesmas coordenadas.)
     return finish(g, 'refinaria', (18, 15), [(2, 5), (2, 15), (2, 25), (18, 5)],
-                  boss=(8, 15))
+                  boss=(8, 15), fuels=[(4, 5), (6, 25), (12, 3), (16, 23)])
 
 def subestacao():
     """A subestação — transformadores em grade com trilhos energizados."""

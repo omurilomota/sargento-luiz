@@ -10,7 +10,7 @@ import { ObjectiveKind } from '../types';
 // AudioContext no node — o mock cobre o contrato sem trazer som para o teste.
 vi.mock('../systems/audio', () => ({ sfxAchievement: () => {} }));
 
-const TIPOS: ObjectiveKind[] = ['clear', 'survive', 'destroy', 'protect', 'reach'];
+const TIPOS: ObjectiveKind[] = ['clear', 'survive', 'destroy', 'protect', 'reach', 'collect'];
 
 // O teste escreve em localStorage; em node isso não existe, e o achievements.ts
 // já embrulha tudo em try/catch — o mesmo caminho que o navegador percorre em
@@ -34,9 +34,9 @@ describe('achievements: a lista é consistente', () => {
     }
   });
 
-  it('tem conquerable para cada um dos 5 tipos de objetivo', () => {
+  it('tem conquerable para cada um dos 6 tipos de objetivo', () => {
     const tipos = new Set(PHASES.map(p => p.objective));
-    expect(tipos.size).toBe(5);
+    expect(tipos.size).toBe(6);
     expect(ACHIEVEMENTS.some(a => a.id === 'vip_saved')).toBe(true);
     expect(ACHIEVEMENTS.some(a => a.id === 'all_objectives')).toBe(true);
   });
@@ -95,11 +95,13 @@ describe('achievements: os gatilhos desbloqueiam o que prometem', () => {
     expect(checkAchievements('vip_lost')).toBeNull();
   });
 
-  it('os 5 tipos de objetivo juntos destravam o lote', () => {
+  it('os 6 tipos de objetivo juntos destravam o lote', () => {
     // 'protect' destrava vip_saved no caminho, então os 4 primeiros não são null
     const primeiros = TIPOS.slice(0, 4).map(t => checkObjectiveAchievement(t)?.id ?? null);
     expect(primeiros.filter(Boolean)).toEqual(['vip_saved']);
-    expect(checkObjectiveAchievement(TIPOS[4])?.id).toBe('all_objectives');
+    // o 5º ainda não fecha: o lote é de 6 (ver achievements.ts `>= 6`)
+    expect(checkObjectiveAchievement(TIPOS[4])).toBeNull();
+    expect(checkObjectiveAchievement(TIPOS[5])?.id).toBe('all_objectives');
   });
 
   it('a pontuação destrava as faixas', () => {

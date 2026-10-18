@@ -77,6 +77,11 @@ export const PHASES: Phase[] = [
   {
     // O foguete do Castelo precisa de combustível. Esta refinaria tem.
     // O fogo aqui é de trabalho: elementais, infernos e a lama que queima.
+    // O objetivo é COLETAR, não limpar: a cutscene da fase já anunciava
+    // "Objetivo simples: pegar gasolina" (story.ts) e o gameplay era um
+    // 'clear' qualquer — o jogo não entregava o que a própria história
+    // prometia. Os 4 tambores (char G) espalhados pelo pátio são a condição
+    // de vitória, e o último deles libera o chefe (objectives.ts `collect`).
     name: 'Refinaria', bg: '#2a1e14', bgColor2: '#150f08', gridColor: 'rgba(180,100,60,0.08)',
     enemyTypes: ['runner', 'lavaSlime', 'robot'], waves: 6, map: 'refinaria', hazard: 'lava',
     // (runner, lavaSlime, robot) a 0.78 (2026-10-14): medido — o inferno
@@ -85,7 +90,9 @@ export const PHASES: Phase[] = [
     // poça) — a Refinaria virava um mini-Vulcão no meio da campanha. Sem os
     // dois, o enxame de runner ainda prendia no bot às 24-32s a 0.86: 0.78
     // deixa o pátio respirável e o custo na janela (2197 < 2472 < 2864).
-    difficulty: 0.78, objective: 'clear', objectiveTarget: 0, boss: 'torre',
+    // A coleta não mexe na dificuldade: ela ADICIONA travessia ao mesmo
+    // campo, então o bot continua medido no 0.78.
+    difficulty: 0.78, objective: 'collect', objectiveTarget: 4, boss: 'torre',
   },
   {
     // A rede que alimenta o NÚCLEO. Cortar aqui enfraquece o coração

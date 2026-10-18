@@ -139,7 +139,7 @@ describe('terrain: o contrato do tilemap', () => {
     // de chão sem querer. Os quatro da estrada da Rodovia ('=', ':', '-', '_')
     // têm tratamento próprio em buildTerrain: asfalto autoral, não o chão do
     // bioma.
-    const CONHECIDOS = ['#', ',', '^', '.', 'c', 'b', 'N', 'P', 'E', 'B', 'R', 'F', '=', ':', '-', '_', 'T', 'D', 'A'];
+    const CONHECIDOS = ['#', ',', '^', '.', 'c', 'b', 'N', 'P', 'E', 'B', 'R', 'F', '=', ':', '-', '_', 'T', 'D', 'A', 'G'];
     for (const row of BIOMES[key].rows) {
       for (const ch of row) {
         expect(CONHECIDOS, `caractere '${ch}' sem tratamento`).toContain(ch);

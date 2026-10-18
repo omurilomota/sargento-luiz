@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   initObjective, updateObjective, peekObjective, registerObjectiveDestroyed,
-  markVipDown, cellCenter, ReachZone,
+  registerFuelCollected, markVipDown, cellCenter, ReachZone,
 } from '../systems/objectives';
 import { resetNPCs, spawnNPC, getNPCs, updateNPCs } from '../systems/npcs';
 import { initProps, clearProps, getProps, damageProp } from '../systems/props';
@@ -67,6 +67,38 @@ describe('objectives: cada tipo sabe quando termina', () => {
     const r = updateObjective(0.016, 0, 0, 3, ZONA);
     expect(r.done).toBe(true);
     expect(r.detail).toBe('2/2');
+  });
+
+  it('collect conclui quando todos os tambores são enchidos', () => {
+    initObjective('collect', 4);
+    expect(updateObjective(0.016, 0, 0, 3, ZONA).done).toBe(false);
+    registerFuelCollected();
+    registerFuelCollected();
+    const meio = updateObjective(0.016, 0, 0, 3, ZONA);
+    expect(meio.done).toBe(false);
+    expect(meio.detail).toBe('2/4');
+    expect(meio.label).toBe('ENCHER OS TAMBORES');
+    registerFuelCollected();
+    registerFuelCollected();
+    const r = updateObjective(0.016, 0, 0, 3, ZONA);
+    expect(r.done).toBe(true);
+    expect(r.detail).toBe('4/4');
+  });
+
+  it('collect é leitura pura e zera entre fases', () => {
+    // sem o reset no init, os tambores da Refinaria vazariam para a fase
+    // seguinte e o chefe nasceria com o contador de uma fase já vencida
+    initObjective('collect', 2);
+    registerFuelCollected();
+    expect(peekObjective(0, 0, 0, ZONA).done).toBe(false);   // 1 de 2
+    registerFuelCollected();
+    expect(peekObjective(0, 0, 0, ZONA).done).toBe(true);
+    initObjective('collect', 2);
+    expect(peekObjective(0, 0, 0, ZONA).detail).toBe('0/2');
+    expect(peekObjective(0, 0, 0, ZONA).done).toBe(false);
+    // e o peek não grava nada (contrato do módulo)
+    peekObjective(0, 0, 0, ZONA);
+    expect(peekObjective(0, 0, 0, ZONA).detail).toBe('0/2');
   });
 
   it('reach conclui ao entrar na zona e só uma vez', () => {
@@ -246,18 +278,20 @@ describe('objectives: o objetivo não encerra mais a fase, ele libera o chefe', 
     }
   });
 
-  it('as fases que seguram o campo usam só os 3 tipos que não chegam na zona', () => {
-    // Com a campanha de 16 fases oito fases seguram (destroy/survive/protect
-    // — Rodovia, Caverna, Fábrica, Trens, Pântano?, Castelo, Subestação,
-    // Porto). O contrato é sobre os TIPOS usados, não a contagem: quem não
-    // vai a uma zona só segura o campo de três jeitos.
+  it('as fases que seguram o campo usam só os tipos que não chegam na zona', () => {
+    // destroy/survive/protect/collect são o campo: a condição vira dentro do
+    // pátio (ninhos, tempo, sobrevivente, tambores) e nenhuma consulta
+    // `reachZones` — só `reach` tem zona de extração, e `clear` nem checa
+    // objetivo (main.ts filtra a parte). `collect` entra aqui pela mesma
+    // razão técnica: os tambores são objetos espalhados no mapa, não uma
+    // zona de saída. O contrato é sobre os TIPOS usados, não a contagem.
     const tiposUsados = [...new Set(
       PHASES.filter(f => f.objective !== 'clear' && f.objective !== 'reach')
         .map(f => f.objective),
     )].sort();
-    expect(tiposUsados).toEqual(['destroy', 'protect', 'survive']);
+    expect(tiposUsados).toEqual(['collect', 'destroy', 'protect', 'survive']);
     // e nenhum outro tipo inventado existe no jogo
-    const tiposValidos = new Set(['clear', 'reach', 'destroy', 'protect', 'survive']);
+    const tiposValidos = new Set(['clear', 'reach', 'destroy', 'protect', 'survive', 'collect']);
     for (const f of PHASES) expect(tiposValidos.has(f.objective)).toBe(true);
   });
 });

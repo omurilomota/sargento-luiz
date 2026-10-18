@@ -26,6 +26,7 @@
     "protect": "npm run build && node tools/castelo-wave-proof.mjs",
     "foguete": "npm run build && node tools/castelo-foguete-shot.mjs",
     "vulcao": "npm run build && node tools/vulcao-proof.mjs",
+    "refinaria": "npm run build && node tools/refinaria-combustivel-proof.mjs",
     "cacador": "npm run build && node tools/cacador-proof.mjs",
     "bunker": "npm run build && node tools/bunker-entry-proof.mjs",
     "servicos": "npm run build && node tools/servicos-proof.mjs",

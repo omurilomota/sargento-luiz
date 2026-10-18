@@ -128,13 +128,17 @@ describe('assets: caminhos de arquivo', () => {
 });
 
 describe('mapas: conectividade', () => {
-  it.each(KEYS)('%s: existe caminho de P até todo E, B e N', (key) => {
+  it.each(KEYS)('%s: existe caminho de P até todo E, B, N, R e G', (key) => {
     const biome = BIOMES[key];
     const map = loadMap(biome.rows);
     const spawn = findAll('P')[0];
     expect(spawn).toBeDefined();
 
-    for (const target of ['E', 'B', 'N', 'R']) {
+    // 'G' (tambores da Refinaria) entra porque é DESTINO DO JOGADOR: um tambor
+    // fora de alcance torna o objetivo `collect` impossível de fechar, e a fase
+    // nunca libera o chefe. 'B' segue sendo chefe e 'E' spawn — 'G' não é alvo
+    // de IA, por isso não aparece no gate de flow field lá embaixo.
+    for (const target of ['E', 'B', 'N', 'R', 'G']) {
       for (const cell of findAll(target)) {
         expect(isWall(cell.col, cell.row)).toBe(false);
         expect(hasPath(spawn.col, spawn.row, cell.col, cell.row)).toBe(true);

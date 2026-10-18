@@ -51,7 +51,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'chain_5', name: 'Cascata', desc: 'Derrube 5 caixotes e barris numa explosão só', unlocked: false },
   { id: 'vip_saved', name: 'Escolta', desc: 'Conclua uma fase de proteção com o alvo de pé', unlocked: false },
   { id: 'vip_lost', name: 'Escolta Perdida', desc: 'Deixe cair o alvo numa fase de proteção', unlocked: false },
-  { id: 'all_objectives', name: 'Cinco Jeitos', desc: 'Conclua uma fase de cada objetivo: limpar, destruir, sobreviver, proteger e chegar', unlocked: false },
+  { id: 'all_objectives', name: 'Seis Jeitos', desc: 'Conclua uma fase de cada objetivo: limpar, destruir, sobreviver, proteger, chegar e coletar', unlocked: false },
   { id: 'medkit_5', name: 'Primeiros Socorros', desc: 'Use 5 medkits no total', unlocked: false },
   { id: 'medkit_20', name: 'Posto Avançado', desc: 'Use 20 medkits no total', unlocked: false },
   { id: 'chacina', name: 'Chacina', desc: 'Dispare a câmera lenta com 3 ou mais abates em 2 segundos', unlocked: false },
@@ -210,7 +210,10 @@ export function checkAchievements(event: string, value?: number): { id: string; 
  */
 export function checkObjectiveAchievement(kind: ObjectiveKind): { id: string; name: string } | null {
   objetivosVistos.add(kind);
-  if (objetivosVistos.size >= 5) return unlockById('all_objectives');
+  // 6, não 5: com a Refinaria em `collect` a campanha tem 6 tipos, e a
+  // descrição da conquista promete "uma fase de CADA objetivo" — destravar
+  // vendo 5 dos 6 seria mentira para quem nunca encheu um tambor.
+  if (objetivosVistos.size >= 6) return unlockById('all_objectives');
   if (kind === 'protect') return unlockById('vip_saved');
   return null;
 }

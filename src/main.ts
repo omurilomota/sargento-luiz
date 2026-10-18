@@ -40,9 +40,9 @@ import { checkBulletEnemyCollisions, checkEnemyPlayerCollision, checkEnemyBullet
 import { createExplosion, updateExplosions, clearExplosions, spawnFire, updateFires, clearFires, pisaEmFogo, getFires, FOGO_DPS, FOGO_RAIO } from './systems/explosions';
 import { loadMap, colAt, rowAt, charAt, isWall, hasPath, moveCircleBy, rebuildFlowField, rebuildFlowFieldAlvo, sampleFlowDir, sampleFlowDirAlvo, pushOutOfWalls, findAll, segmentHitsWall, findFreeSpotNear, setCellChar, getMap } from './systems/tilemap';
 import { initCamera, setViewportSize, setWorldSize, updateCamera, snapCamera, getCamX, getCamY, screenToWorld, drawVoid, isVisible, setShake } from './systems/camera';
-import { initProps, getProps, updateProps, damageProp, detonateProp, getBlast, drawProps, clearProps, collapsesOnHit, getRocket, getAnyRocket, igniteBarrel, ROCKET_CONTACT_DPS, Prop, spawnCapsula, consumirCapsula } from './systems/props';
+import { initProps, getProps, updateProps, damageProp, detonateProp, getBlast, drawProps, clearProps, collapsesOnHit, getRocket, getAnyRocket, igniteBarrel, ROCKET_CONTACT_DPS, Prop, spawnCapsula, consumirCapsula, collectFuelAt } from './systems/props';
 import { buildTerrain, drawTerrain, clearTerrain } from './systems/terrain';
-import { initObjective, updateObjective, peekObjective, vipDown, markVipDown, registerObjectiveDestroyed, cellCenter, ReachZone, forceObjectiveDone } from './systems/objectives';
+import { initObjective, updateObjective, peekObjective, vipDown, markVipDown, registerObjectiveDestroyed, cellCenter, ReachZone, forceObjectiveDone, registerFuelCollected } from './systems/objectives';
 import { updateBoss, isBossTelegraphing, getBossTelegraphLabel, clearBossState } from './systems/boss';
 
 import {
@@ -1866,6 +1866,15 @@ function updateBulletProps(bullets: ReturnType<typeof getBullets>): void {
         if (!b.pierce) b.life = 0;
         break;
       }
+      // O tambo de combustível cobre tiro como caixote mas não quebra: ele é
+      // a condição de vitória do `collect`, e um RPG errado nele tornaria a
+      // fase impossível de fechar. Só sai do mapa pelo contato do jogador.
+      if (prop.kind === 'combustivel') {
+        spawnParticles(b.x, b.y, PALETTE.mustard, 3, 120);
+        if (b.explosive && b.explosionRadius) detonateBullet(b);
+        if (!b.pierce) b.life = 0;
+        break;
+      }
       let destroyed: boolean;
       if (collapsing) {
         detonateProp(prop);
@@ -2854,7 +2863,7 @@ function buildHudData(): HudData {
     minimap: { walls: wallRects, density: mapDensity },
     player: { x: p.x, y: p.y },
     enemyDots: enemies.map(e => ({ x: e.x, y: e.y, boss: !!ENEMY_TYPES[e.type]?.isBoss })),
-    propDots: getProps().filter(pr => pr.health > 0).map(pr => ({ x: pr.x, y: pr.y, barrel: pr.kind === 'barrel' })),
+    propDots: getProps().filter(pr => pr.health > 0).map(pr => ({ x: pr.x, y: pr.y, barrel: pr.kind === 'barrel', fuel: pr.kind === 'combustivel' })),
     boss: boss && ENEMY_TYPES[boss.type]?.bossName
       ? {
         name: ENEMY_TYPES[boss.type]!.bossName!,
@@ -3344,6 +3353,22 @@ updatePowerUps(dt, p.x, p.y, p.radius, (type) => {
   sfxPowerup();
 });
 
+// ── encher os tambores da Refinaria (objetivo `collect`) ──
+// Coleta por PROXIMIDADE, como a moeda: o beat da fase é "Rios enche
+// tambores de combustível" (PREMISSA-V2), e encher não é destruir — o tiro
+// só cobre o tambor sem tirá-lo do mapa. O último tambor é o que libera o
+// chefe (`objetivoLiberouChefe` em `peekObjective().done`).
+for (let tambo = collectFuelAt(p.x, p.y, p.radius); tambo; tambo = collectFuelAt(p.x, p.y, p.radius)) {
+  registerFuelCollected();
+  spawnParticles(tambo.x, tambo.y, PALETTE.mustard, 12, 160, 'muzzle');
+  damageNumbers.push({
+    x: tambo.x, y: tambo.y - 26,
+    text: 'COMBUSTÍVEL', color: PALETTE.mustard, life: 1.4, vy: -46,
+  });
+  sfxFerramenta();
+  triggerScreenShake(2, 0.1);
+}
+
 updateNPCs(dt, p.x, p.y, enemies, getBullets());
 
 // ── a morte do Júlio em jogo (Castelo, 2026-10-14) ──
@@ -3662,6 +3687,24 @@ window.__ashfall = {
     p.x = z.x;
     p.y = z.y;
     return true;
+  },
+  /**
+   * Teleporta para perto de um tambo de combustível: é o `irParaZona` do
+   * objetivo `collect`. `distancia` em px é a folga até o tambor — 0 encosta
+   * (coleta no frame seguinte), 90 deixa o tambor ao lado do jogador para a
+   * prova fotografá-lo antes de sumir do mapa.
+   *
+   * Devolve a posição MUNDO do tambor (ou null): a câmera trava no clamp da
+   * borda do mapa, então perto da parede o jogador não fica centrado e a
+   * prova não pode supor o centro da tela para enquadrar o objeto.
+   */
+  irParaTambo: (distancia = 0) => {
+    const tambo = getProps().find(pr => pr.kind === 'combustivel');
+    if (!tambo) return null;
+    const p = player.getPlayer();
+    p.x = tambo.x + distancia;
+    p.y = tambo.y;
+    return { x: tambo.x, y: tambo.y };
   },
   /** Cumpre o objetivo da fase sem jogá-lo (harness: o fim exige objetivo). */
   cumprirObjetivo: () => { forceObjectiveDone(); },

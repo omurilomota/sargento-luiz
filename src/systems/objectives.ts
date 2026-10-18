@@ -28,6 +28,7 @@ let timer = 0;
 let destroyed = 0;
 let deadNpc = false;
 let reached = false;
+let coletados = 0;
 /** O objetivo `protect` latcheia isto: sem ele, a fase termina no 1o frame. */
 let sawEnemies = false;
 
@@ -41,12 +42,18 @@ export function initObjective(objective: ObjectiveKind, objectiveTarget: number)
   destroyed = 0;
   deadNpc = false;
   reached = false;
+  coletados = 0;
   sawEnemies = false;
 }
 
 /** Registra a destruição de um ninho/objetivo do mapa. */
 export function registerObjectiveDestroyed(): void {
   destroyed++;
+}
+
+/** Registra a coleta de um tambo de combustível (objetivo `collect`). */
+export function registerFuelCollected(): void {
+  coletados++;
 }
 
 /** Uma zona de extração em pixels. */
@@ -114,6 +121,15 @@ export function peekObjective(
         done: reached || dentro,
       };
     }
+    case 'collect': {
+      const pct = target > 0 ? coletados / target : 1;
+      return {
+        label: 'ENCHER OS TAMBORES',
+        progress: Math.min(1, pct),
+        detail: `${coletados}/${target}`,
+        done: coletados >= target,
+      };
+    }
     default:
       return {
         label: 'LIMPAR A ÁREA',
@@ -164,6 +180,7 @@ export function forceObjectiveDone(): void {
   if (kind === 'survive') timer = target;
   if (kind === 'destroy') destroyed = target;
   if (kind === 'reach') reached = true;
+  if (kind === 'collect') coletados = target;
   sawEnemies = true;
 }
 

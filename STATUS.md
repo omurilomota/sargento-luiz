@@ -1,6 +1,6 @@
 # SARGENTO LUIZ — Status Geral do Projeto
 
-> Atualizado: 2026-10-17 · branch `develop` · 1428 testes em 66 arquivos ·
+> Atualizado: 2026-10-17 18:36 · branch `develop` · 1435 testes em 66 arquivos ·
 > `tsc` limpo · build ok.
 > (antes: SARGENTO RIOS, e antes disso ASHFALL — o jogo trocou de nome duas
 > vezes e o save migra as duas gerações de prefixo)
@@ -29,6 +29,7 @@ npm run diagnostico# nenhum inimigo dentro de parede, dodge afasta em 360°
 npm run espaco     # reproduz, MAS só contra jogador que não desvia (ver §1.4)
 npm run sessao     # sessão longa com telemetria de dano por fonte
 npm run campanha   # (node tools/campanha-proof.mjs) 16/16 — TODA fase começa na onda 1
+npm run refinaria  # (node tools/refinaria-combustivel-proof.mjs) o `collect`: 4 tambores, sprite do pack, chefe liberado
 npm run cenografia # tocha/painel/berço renderizam nas fases (pixel medido)
 npm run carros    # as carcaças na Rodovia e na Cidade (pixel)
 npm run asfalto   # a pista da Rodovia (faixa 124 × corpo 25 × ombro 0)
@@ -121,6 +122,60 @@ Direção do jogo: [`docs/DESIGN.md`](docs/DESIGN.md) ·
 pendências: [`TODO.md`](TODO.md) ·
 decisões autônomas: [`docs/DECISIONS.md`](docs/DECISIONS.md) ·
 ordem das frentes: [`ROADMAP.md`](ROADMAP.md)
+
+---
+
+## Entrega: a Refinaria que prometia gasolina e entregava um `clear` (2026-10-17 18:36, NÃO COMMITADO)
+
+A frente F-D do playtest. O relato original se perdeu — só sobrou a sigla no
+TODO —, então os quatro itens foram medidos contra `PREMISSA-V2` e contra o
+código antes de mexer em qualquer coisa. Só um tinha âncora: o combustível.
+
+**A contradição.** A cutscene da fase anunciava "Objetivo simples: pegar
+gasolina" (`story.ts`) enquanto `config.ts` mandava um `clear` qualquer. O
+jogador chegava à Refinaria, matava tudo e saía sem nunca ter visto gasolina.
+A história prometia uma coisa, o jogo entregava outra — e era o ÚNICO ponto
+da campanha em que isso acontecia.
+
+**O que virou.** Um `ObjectiveKind 'collect'` novo, com contador próprio e
+rótulo `ENCHER OS TAMBORES 0/4`. Quatro tambores (char `G`) nos quadrantes do
+pátio, coletados por proximidade — não por tiro, que seria contornável
+atirando de longe. O tambor usa o **MESMO tile do barril do pack (505-510)**
+com tint de mostarda: a cor é o que o lê como combustível em vez de barril
+explosivo do bioma (regra 15 — o asset é o visual).
+
+**A parte que quase virou bug de fase impossível.** O tambor é a condição de
+vitória. Um RPG nele, ou um barril estourando ao lado, apagaria o objetivo e
+a fase ficaria **inganhável para sempre** — o chefe só nasce depois do
+objetivo (`main.ts` `horaDoChefe`), então sem tambores não há chefe, e sem
+chefe não há saída. Fechei a porta no lugar certo: `damageProp` recusa dano
+para `combustivel`, e `detonateProp` o pula da reação em cadeia. A regra
+vive no **tipo**, não em cada chamador — aparecer um caminho novo de dano
+amanhã não destrói a fase.
+
+**Conquista arrastada.** Com um 6º tipo de objetivo, "Cinco Jeitos" com a
+descrição "uma fase de **cada** objetivo" viraria mentira para quem nunca
+encheu um tambor. Virou "Seis Jeitos", limiar `>= 6`, id `all_objectives`
+inalterado (saves seguros).
+
+**Prova** (`node tools/refinaria-combustivel-proof.mjs`, 6 execuções seguidas
+verdes): a fase nasce como `collect`, os 6 tiles do barril carregam, cada
+coleta avança o contador, o quarto cumpre o objetivo e o objetivo libera o
+chefe. `npm run visual` lido: 8 screenshots sem 404/pageerror. O close-up do
+tambor está em `tools/shots/refinaria-combustivel-4-closeup.png`.
+
+**Duas correções de instrumento durante a prova** (registradas porque as duas
+custaram ciclos e as duas são a mesma classe de erro — afirmar sem medir):
+o enquadramento supunha o jogador centrado, mas perto da borda do mapa a
+câmera trava no clamp e ele sai de quadro (agora a prova lê a câmera e recorta
+onde o objeto está); e esperar o chefe nascer passivo era flaky por
+construção, porque o spawn exige campo vazio e o spawner reabre a última onda
+(agora a prova limpa o campo a cada amostra, como o jogador faz).
+
+**Ficou para decisão** (sem relato original, implementar seria palpite):
+subestação opcional, melee e moral. O melee em particular mudaria a arma da
+fase final — o Destruidor é lançador explosivo mas o código o chama de "o
+martelo".
 
 ---
 

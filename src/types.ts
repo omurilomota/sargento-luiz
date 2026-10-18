@@ -229,7 +229,7 @@ export type HazardKind =
   | 'lowGravity';
 
 /** Tipos de objetivo por fase */
-export type ObjectiveKind = 'clear' | 'survive' | 'destroy' | 'protect' | 'reach';
+export type ObjectiveKind = 'clear' | 'survive' | 'destroy' | 'protect' | 'reach' | 'collect';
 
 /** Uma zona de objetivo posicionada no mapa (ninho, ponto de extração, NPC) */
 export interface ObjectiveZone {

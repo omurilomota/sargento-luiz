@@ -2026,4 +2026,19 @@
 //     npm run hospital (mediana do anel ao redor do jogador + desvio
 //     máximo do rejunte). DECISIONS #263/#264; a linha de erro nova no
 //     AGENTS (índice de fase se conta no config, não no resumo).
-// [ ] F-D (refinaria=combustível, subestação opcional, melee, moral)
+// [x] F-D refinaria=combustível — a cutscene prometia "pegar gasolina"
+//     (story.ts) e o config mandava um `clear`. Virou ObjectiveKind
+//     'collect': 4 tambores ('G'), coleta por PROXIMIDADE (não por tiro,
+//     que seria contornável de longe), contador ENCHER OS TAMBORES 0/4, e o
+//     quarto é o que libera o chefe (main.ts `horaDoChefe`). O tambor não
+//     morre: `damageProp` recusa dano para `combustivel` e `detonateProp` o
+//     pula da cadeia — sem isso, um barril estourando ao lado apagava a
+//     condição de vitória e a fase ficava INGANHÁVEL (sem tambores não há
+//     chefe, sem chefe não há saída). A regra mora no TIPO, não no chamador.
+//     É o MESMO tile do barril do pack (505-510) com tint mostarda.
+//     Prova: node tools/refinaria-combustivel-proof.mjs. Conquista "Cinco
+//     Jeitos" virou "Seis Jeitos" (>= 6, id igual, save seguro).
+// [ ] F-D restante (subestação opcional, melee, moral) — SEM relato original:
+//     só sobrou a sigla aqui. Precisa do playtest, senão vira palpite. O
+//     melee mexeria na arma da fase final (o Destruidor é lançador
+//     explosivo mas o código o chama de "o martelo").

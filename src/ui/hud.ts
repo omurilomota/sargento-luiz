@@ -102,7 +102,7 @@ export interface HudData {
   minimap: HudMinimap;
   player: { x: number; y: number };
   enemyDots: { x: number; y: number; boss: boolean }[];
-  propDots: { x: number; y: number; barrel: boolean }[];
+  propDots: { x: number; y: number; barrel: boolean; fuel?: boolean }[];
   boss?: HudBoss | null;
   objective: ObjectiveProgress;
   warnings: EnvironmentWarning[];
@@ -470,8 +470,12 @@ export function drawMinimap(d: HudData, x: number, y: number, w: number, h: numb
     ctx!.fillRect(x + wall.x * sx, y + wall.y * sy, Math.max(1, wall.w * sx), Math.max(1, wall.h * sy));
   }
   for (const p of d.propDots) {
-    ctx!.fillStyle = p.barrel ? PALETTE.terracotta : PALETTE.mustard;
-    ctx!.fillRect(x + p.x * sx - 0.5, y + p.y * sy - 0.5, 1.5, 1.5);
+    // o tambor de combustível é o OBJETIVO da Refinaria: areia velha (mais
+    // clara que a mostarda dos caixotes) e um degrau maior, senão ele some
+    // no meio dos outros pontos do pátio
+    ctx!.fillStyle = p.fuel ? PALETTE.title : p.barrel ? PALETTE.terracotta : PALETTE.mustard;
+    const lado = p.fuel ? 2.5 : 1.5;
+    ctx!.fillRect(x + p.x * sx - lado / 2, y + p.y * sy - lado / 2, lado, lado);
   }
   for (const e of d.enemyDots) {
     ctx!.fillStyle = e.boss ? PALETTE.crit : PALETTE.danger;

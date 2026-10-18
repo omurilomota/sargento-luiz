@@ -58,8 +58,11 @@ export interface Prop {
    * "poderia ter a cápsula desde o início da fase");
    * `tree` é a árvore da Floresta e do Pântano: o ÚNICO prop que bloqueia
    * passagem (copa de 27px de raio, colisão de 20) e não morre — é a
-   * identidade do bioma, não cobertura perecível. */
-  kind: 'crate' | 'barrel' | 'nest' | 'rocket' | 'capsula' | 'tree' | 'carro';
+   * identidade do bioma, não cobertura perecível;
+   * `combustivel` é o tambo cheio da Refinaria (char `G`): cobre tiro como
+   * caixote mas não quebra nem pega fogo — ele é o objetivo do `collect`,
+   * e um barril estourando do lado não pode apagar a condição de vitória. */
+  kind: 'crate' | 'barrel' | 'nest' | 'rocket' | 'capsula' | 'tree' | 'carro' | 'combustivel';
   health: number;
   maxHealth: number;
   hitFlash: number;
@@ -131,6 +134,16 @@ const ROCKET_RADIUS = 30;
 /** Dano por segundo de CADA inimigo encostado no foguete. */
 export const ROCKET_CONTACT_DPS = 12;
 
+/**
+ * O tambo cheio da Refinaria. Ele é a condição de vitória do `collect`, e um
+ * RPG ou um barril estourando ao lado viraria a fase em impossível — por isso
+ * `damageProp` recusa dano para `combustivel` de vez. O número existe porque
+ * todo Prop carrega vida e os filtros (`health > 0`) leem: ele nunca desce.
+ */
+const FUEL_HEALTH = 9999;
+/** Raio do tambo: um degrau acima do caixote, para ler como "coleta". */
+const FUEL_RADIUS = CELL_SIZE * 0.44;
+
 let props: Prop[] = [];
 
 /**
@@ -142,22 +155,23 @@ export function initProps(cells: string[][]): void {
   for (let row = 0; row < cells.length; row++) {
     for (let col = 0; col < cells[row].length; col++) {
       const ch = cells[row][col];
-      if (ch !== 'c' && ch !== 'b' && ch !== 'N' && ch !== 'F' && ch !== 'T' && ch !== 'D' && ch !== 'A') continue;
+      if (ch !== 'c' && ch !== 'b' && ch !== 'N' && ch !== 'F' && ch !== 'T' && ch !== 'D' && ch !== 'A' && ch !== 'G') continue;
       const isBarrel = ch === 'b';
       const isNest = ch === 'N';
       const isRocket = ch === 'F';
       const isTree = ch === 'T' || ch === 'D';
       const isCarro = ch === 'A';
+      const isFuel = ch === 'G';
       const hp = isRocket ? ROCKET_HEALTH : isNest ? NEST_HEALTH : isBarrel ? BARREL_HEALTH
-        : isTree ? TREE_HEALTH : isCarro ? CARRO_HEALTH : CRATE_HEALTH;
+        : isTree ? TREE_HEALTH : isCarro ? CARRO_HEALTH : isFuel ? FUEL_HEALTH : CRATE_HEALTH;
       props.push({
         col, row,
         x: col * CELL_SIZE + CELL_SIZE / 2,
         y: row * CELL_SIZE + CELL_SIZE / 2,
         radius: isRocket ? ROCKET_RADIUS : isNest ? CELL_SIZE * 0.46 : isBarrel ? BARREL_RADIUS
-          : isTree ? TREE_RADIUS : isCarro ? CARRO_RADIUS : CELL_SIZE * 0.38,
+          : isTree ? TREE_RADIUS : isCarro ? CARRO_RADIUS : isFuel ? FUEL_RADIUS : CELL_SIZE * 0.38,
         kind: isRocket ? 'rocket' : isNest ? 'nest' : isBarrel ? 'barrel'
-          : isTree ? 'tree' : isCarro ? 'carro' : 'crate',
+          : isTree ? 'tree' : isCarro ? 'carro' : isFuel ? 'combustivel' : 'crate',
         health: hp,
         maxHealth: hp,
         hitFlash: 0,
@@ -197,6 +211,23 @@ export function consumirCapsula(): Prop | undefined {
 
 /** Lista os ninhos (objetivos destrutíveis) ainda de pé. */
 export function getNests(): Prop[] {  return props.filter(p => p.kind === 'nest' && p.health > 0);
+}
+
+/**
+ * Enche o tambor mais próximo do jogador, se ele estiver em cima.
+ * Retorna o tambor enchido (para creditar o objetivo) ou `undefined`.
+ *
+ * A coleta é por proximidade e não por tiro: o beat é "Rios enche tambores"
+ * (PREMISSA-V2), e atirar no combustível seria o contrário do que a fase pede.
+ */
+export function collectFuelAt(px: number, py: number, playerRadius: number): Prop | undefined {
+  for (const p of props) {
+    if (p.kind !== 'combustivel') continue;
+    if (Math.hypot(p.x - px, p.y - py) > playerRadius + p.radius) continue;
+    props.splice(props.indexOf(p), 1);
+    return p;
+  }
+  return undefined;
 }
 
 /** O foguete do Castelo ainda de pé, se o mapa trouxe um (char `F`). */
@@ -246,6 +277,12 @@ export function collapsesOnHit(hazard: HazardKind): boolean {
 
 /** Faz o prop receber dano. Retorna true se foi destruído. */
 export function damageProp(p: Prop, amount: number): boolean {
+  // O tambo de combustível não tem estado de dano: ele é a condição de vitória
+  // do `collect`, e o desenho dele nem pinta hitFlash. Recusar AQUI, e não em
+  // cada chamador, é o que mantém a fase ganhável se um caminho novo de dano
+  // aparecer — a regra pertence ao tipo, não ao ponto de chamada. (As balas já
+  // têm branch próprio em updateBulletProps; isto fecha a porta de vez.)
+  if (p.kind === 'combustivel') return false;
   p.health -= amount;
   p.hitFlash = 0.12;
   if (p.health <= 0) {
@@ -287,6 +324,10 @@ export function detonateProp(p: Prop): Prop[] {
 
     for (const other of props) {
       if (visitados.has(other) || other.health <= 0) continue;
+      // O tambo de combustível não entra na reação em cadeia: ele é a
+      // condição de vitória do `collect`, e um barril estourando ao lado
+      // apagaria o objetivo sem o jogador ter feito nada de errado.
+      if (other.kind === 'combustivel') continue;
       if (Math.hypot(other.x - atual.x, other.y - atual.y) <= blastRadius) {
         visitados.add(other);
         fila.push(other);
@@ -532,6 +573,27 @@ export function drawProps(
         ctx.beginPath();
         ctx.arc(p.x, p.y - p.radius * 0.7, 4 + Math.sin(p.fuse * 40) * 1.5, 0, Math.PI * 2);
         ctx.fill();
+      }
+    } else if (p.kind === 'combustivel') {
+      // tambor de combustível: o MESMO tile do barril (pack, tiles 505-510)
+      // com tint de gasolina — o asset é o visual, o que muda é a cor que o
+      // lê como "combustível" e não como barril explosivo do bioma (regra 15).
+      // Sem pavio e sem flash de dano: ele não quebra nem pega fogo.
+      const fuelTiles = PROP_SPRITES.barrel;
+      const fuelImg = getSprite(`tile_${fuelTiles[(p.col + p.row) % fuelTiles.length]}`);
+      if (fuelImg) {
+        const s = p.radius * 2.1;
+        const body = tintSprite(fuelImg, PALETTE.mustard, Math.ceil(s));
+        ctx.drawImage(body, p.x - s / 2, p.y - s / 2, s, s);
+      } else {
+        // fallback se o asset não carregar (regra 15)
+        ctx.fillStyle = PALETTE.mustard;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius * 0.7, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = shadeCor(PALETTE.mustard, -0.3);
+        ctx.lineWidth = 3;
+        ctx.stroke();
       }
     } else {
       // caixote: caixa do pack na cor do bioma. O resto — barra de vida,
