@@ -1,6 +1,6 @@
 # SARGENTO LUIZ — Status Geral do Projeto
 
-> Atualizado: 2026-11-07 14:11 · branch `feature/game-feel-e-assets` · HEAD `6971442` (worktree) ·
+> Atualizado: 2026-11-07 14:12 · branch `develop` · merge `8da044c` · código `6971442` ·
 > 16 fases · 13 armas · 16 chefes de fase · 1439 testes em 66 arquivos ·
 > `tsc` limpo · build ok.
 > A lista viva de pendências é [`docs/PENDENCIAS.md`](docs/PENDENCIAS.md);

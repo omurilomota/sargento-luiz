@@ -1,6 +1,6 @@
 # PENDÊNCIAS — lista viva
 
-> Atualizado: 2026-11-07 14:11 · branch `feature/game-feel-e-assets` · HEAD `6971442` (worktree)
+> Atualizado: 2026-11-07 14:12 · branch `develop` · merge `8da044c` · código `6971442` · docs `7f9a328`
 >
 > Este é o lugar de consultar o que está aberto. `TODO.md` guarda o histórico
 > das sessões (muitos itens `[ ]` de lá já foram entregues e ficaram como
