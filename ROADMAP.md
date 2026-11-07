@@ -1,8 +1,9 @@
 # SARGENTO RIOS — Roadmap
 
-> Atualizado: 2026-10-12 · direção em [`docs/DESIGN.md`](docs/DESIGN.md) ·
-> estado concreto em [`STATUS.md`](STATUS.md) · pendências em [`TODO.md`](TODO.md) ·
-> cardápio não-decidido em [`docs/FUTURO.md`](docs/FUTURO.md)
+> Atualizado: 2026-11-07 12:47 · HEAD `883740b` · direção em [`docs/DESIGN.md`](docs/DESIGN.md) ·
+> estado concreto em [`STATUS.md`](STATUS.md) · **lista viva** em
+> [`docs/PENDENCIAS.md`](docs/PENDENCIAS.md) · ideias em
+> [`docs/IDEIAS.md`](docs/IDEIAS.md) · cardápio antigo em [`docs/FUTURO.md`](docs/FUTURO.md)
 
 A ordem não é por "o que é mais legal", é por **o que destrava o resto**.
 
@@ -104,13 +105,12 @@ A régua por entrega: `tsc` limpo + `npm test` + build; render mudou →
 
 | Métrica | Valor |
 |---|---|
-| Arquivos TypeScript (fora de teste) | 55 |
-| Testes | 894 em 49 arquivos |
-| Mapas / fases | 9 |
-| Tipos de inimigo | 32 (22 comuns + 9 chefes + biomaquina) |
-| Bosses | 9, mais a fila `NUCLEO_RUSH` na fase final |
+| Testes | 1435 em 66 arquivos |
+| Mapas / fases | 16 |
+| Tipos de inimigo | 40 (inclui 17 chefes e a biomaquina) |
+| Bosses | 16 de fase, mais o Rogério da Fábrica e a fila `NUCLEO_RUSH` na final |
 | Armas | 13 |
 | Perks | 24 degraus + 4 especiais |
-| Combos | 6 |
+| Combos | 7 |
 | Conquistas | 21 |
 | Modos de jogo | 4 |

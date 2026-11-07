@@ -1,5 +1,15 @@
 // Sempre leia antes de marcar X
 // Status detalhado: ver STATUS.md
+//
+// ═══════════════════════════════════════════════════════════════
+// ESTADO REAL — 2026-11-07 12:47 · 883740b
+// 16 fases · 13 armas · 16 chefes de fase · 40 tipos de inimigo · 7 combos
+// 1435 testes · tsc limpo · build ok
+//
+// A LISTA VIVA é docs/PENDENCIAS.md. As seções abaixo são histórico: vários
+// [ ] já foram entregues e ficaram aqui como registro da sessão. Ideias e
+// continuações: docs/IDEIAS.md.
+// ═══════════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════════
 // CONCLUÍDO

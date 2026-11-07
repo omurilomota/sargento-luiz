@@ -425,3 +425,51 @@ erros, npm test 2 falhas, importando `MAPS`/`CELL_SIZE` que não existiam e
 Nenhum arquivo de render tocado — sem pendência de leitura de PNG. Não
 commitei (a menos que o Murilo peça). Se o relato do "para de mover" voltar,
 `npm run a5` é a porta de reprodção.
+
+---
+
+## 2026-10-17 17:1x — GLM (nova sessão, frente autônoma: CAÇA A BUGS + detalhes de bioma)
+
+O Murilo pediu caça a bugs no repo inteiro em modo autônomo, mais: o modo de
+construção dos mapas em discussão e uma caça/geração de assets para os
+detalhes característicos de cada bioma. Plano montado a partir de 4 frentes
+de exploração paralelas (42 achados, 0 portão vermelho: tsc limpo, 1428
+testes no HEAD limpo).
+
+**Meu corredor** (arquivos que eu edito nesta sessão):
+- Lógicos: `skills.ts` (power-up `damage` sem leitor — achado alto),
+  `weapons.ts` (mina nunca plantada — piso de velocidade; spread em arma de
+  1 projétil), `boss.ts` (ring 8/12 = setor cego de 120°), `audio.ts`
+  (`stopMusic` vaza GainNode; religar não retoma), `environment.ts`
+  (reset não zera o timer do tornado), `localMultiplayer.ts` (ramo `'p2'`
+  de `getWinner` inalcançável), `leaderboard.ts`, `classes.ts`
+  (`resetClass` persiste por cima da preferência), `phases.ts`
+  (`comboTimer` hardcoded; fechamento do NÚCLEO roda 8 frames), `bots.ts`
+  (`dodgeTimer` tica 2×), `loot.ts` (2 caixas no mesmo frame = 1 perda),
+  `spawner.ts` (fallback prometido p/ pool vazio não existe),
+  `explosions.ts` (lista write-only).
+- Compartilhados com a sua frente, MAS em regiões que não são a do
+  `collect`/combustível (aviso por si só): `main.ts` (gameover→vitória
+  usando flag persistente; ESC/settings soft-lock em tela cheia; resume
+  devolvendo a `playing` fixo; startFromSave sem reset do multiplayer
+  local e com classe resetada; trajeNucleo da loja sem o +3 escudo;
+  `objectiveCounted` nunca limpo; `resetPowerUps` chamado; guarda de
+  `deathTimer`), `config.ts` (textos de power-up: reflexos +50%→+100%,
+  símbolo x3→x2), `props.ts` (detonateProp: guard de `combustivel`
+  estendido a `tree`/`carro` — mesmo contrato que você já abriu; cache do
+  tintSprite), `hud.ts` (barra de munição `round`→`ceil`; hint TAB), 
+  `achievements.ts` (`Array.isArray` no load, igual aos irmãos),
+  `shop.ts` (aviso duplo do equiparSeMelhor).
+- Assets: PNGs autorais novos em `public/assets/sprites/dungeon/`
+  (precedente gen_assets_*.py), `CREDITS.md`, `TILE_NUMBERS` em
+  `sprites.ts`, tabelas de decor em `terrain.ts`.
+
+**NÃO toco (seu, em voo):** `maps.ts`, `genmaps.py`, `objectives.ts`,
+`types.ts`, `mapValidation.test.ts`, `terrain.test.ts`, `props.test.ts`,
+`achievements.test.ts`, `objectives.test.ts`, `package.json`, os seus
+testes de comportamento novos e o `refinaria-combustivel-proof.mjs`.
+
+Se alguma região acima colidir com o que você está fazendo AGORA, recado
+aqui que eu reordeno. Gates que rodo a cada unidade: `tsc --noEmit`,
+`npm test`, `npm run build`; render muda → `npm run visual` com leitura
+das folhas (eu leio imagem). Não commitei nada — decisão do Murilo.
