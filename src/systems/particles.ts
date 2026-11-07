@@ -79,6 +79,23 @@ export function spawnParticles(
 }
 
 /**
+ * Clarão único no ponto do acerto. Usa o `flare_01` do Kenney Particle Pack
+ * (o mesmo das poças de fogo) em vez de mais faíscas aleatórias: o olho lê
+ * "acertou aqui" antes de ler o número de dano.
+ */
+export function spawnImpact(x: number, y: number, color: string, radius = 10): void {
+  if (particles.length >= MAX_PARTICLES) return;
+  particles.push({
+    x, y, vx: 0, vy: 0,
+    life: 0.16,
+    maxLife: 0.16,
+    radius,
+    color,
+    sprite: 'flare_01',
+  });
+}
+
+/**
  * Atualiza posição e vida de todas as partículas.
  * Remove partículas cuja vida expirou.
  */

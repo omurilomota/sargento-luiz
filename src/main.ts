@@ -26,7 +26,7 @@ import type { Toast, ToastKind, WeaponSheet } from './ui/hud';
 import { updateSupportUrl, drawSupportFallback, hideSupportUrl } from './systems/support';
 
 // Systems
-import { spawnParticles, updateParticles, clearParticles, getParticles } from './systems/particles';
+import { spawnParticles, spawnImpact, updateParticles, clearParticles, getParticles } from './systems/particles';
 import { spawnWaveEnemies, resetSpawner, spawnEnemy, setPhaseDifficulty, setPhaseTime } from './systems/spawner';
 
 /** Tempo decorrido na fase atual (para a escalada de dificuldade temporal) */
@@ -70,7 +70,7 @@ import { addPieceToInventory, getPieceType, resetPieces, getInventorySnapshot, r
 import { powerups, spawnPowerUp, spawnPowerUpDeChefe, spawnPowerUpDeTipo, updatePowerUps, hasPowerUp, activePowerups } from './powerups';
 
 import {
-  initAudio, sfxAmbiente, sfxExplosion, sfxBossDeath, sfxPlayerHit, sfxCoin, sfxPowerup, sfxWaveStart, sfxLevelUp,
+  initAudio, sfxAmbiente, sfxExplosion, sfxBossDeath, sfxPlayerHit, sfxImpact, sfxKill, sfxCoin, sfxPowerup, sfxWaveStart, sfxLevelUp,
   sfxGameOver, sfxEnemyShoot, sfxDash, sfxShield, sfxFury, sfxMenuMove, sfxMenuSelect, sfxError, sfxJammed, sfxPiece,
   startMusic, playMusic, setMusicEnabled, setSfxEnabled, isMusicEnabled, isSfxEnabled, unlockAudio,
   getMasterVolume, getMusicVolume, getSfxVolume, WEAPON_SOUNDS,
@@ -296,7 +296,15 @@ document.addEventListener('keydown', e => {
 
   keys[k] = true;
 
-  if (key === ' ') { if (useSkill('dash')) { limparDashFantasma(); sfxDash(); } }
+  if (key === ' ') {
+    if (useSkill('dash')) {
+      limparDashFantasma();
+      sfxDash();
+      const p = player.getPlayer();
+      spawnParticles(p.x, p.y, '#8a7a60', 10, 150, 'smoke');
+      triggerScreenShake(1.2, 0.08);
+    }
+  }
   if (k === 'f') { if (useSkill('shield')) sfxShield(); }
   if (k === 'e') {
     // H2: a fúria começa travada — o gate é a história da Fábrica do
@@ -497,6 +505,12 @@ let enemies: Enemy[] = [];
 let damageNumbers: { x: number; y: number; text: string; color: string; life: number; vy: number }[] = [];
 let lastTime = 0;
 let phaseTransitionTimer = 0;
+// Poeira do passo: a cada 260ms, uma única partícula no pé. Não é rastro de
+// dash (esse é o sprite fantasma do renderer) — é a leitura de que o corpo
+// tem peso no chão, mesmo com o pack sem frame de caminhada.
+let poeiraTimer = 0;
+let ultimoPassoX = Number.NaN;
+let ultimoPassoY = Number.NaN;
 let achievementNotifications: Toast[] = [];
 let playerDied = false;
 let bossZoomTriggered = false;
@@ -1061,10 +1075,14 @@ function update(dt: number) {
   // ── movimento ──
   let mx = 0;
   let my = 0;
-  if (keys['w'] || keys['arrowup']) my -= 1;
-  if (keys['s'] || keys['arrowdown']) my += 1;
-  if (keys['a'] || keys['arrowleft']) mx -= 1;
-  if (keys['d'] || keys['arrowright']) mx += 1;
+  // No versus local as setas são do P2. Deixá-las também no P1 movia os dois
+  // corpos com a mesma tecla (playtest: "as setinhas movem os DOIS jogadores").
+  // Em 1P elas continuam valendo como alternativa ao WASD.
+  const setasDoP2 = isLocalEnabled();
+  if (keys['w'] || (!setasDoP2 && keys['arrowup'])) my -= 1;
+  if (keys['s'] || (!setasDoP2 && keys['arrowdown'])) my += 1;
+  if (keys['a'] || (!setasDoP2 && keys['arrowleft'])) mx -= 1;
+  if (keys['d'] || (!setasDoP2 && keys['arrowright'])) mx += 1;
   setMoveDirection(mx, my);
 
   // As Botas de Campo da loja (M3) são o MESMO efeito do power-up `botas`,
@@ -1081,6 +1099,18 @@ function update(dt: number) {
   ultimoStackVelocidade = stackDeVelocidade;
   player.movePlayer(keys, dt, { w: worldW, h: worldH }, stackDeVelocidade);
 
+  // Poeira do passo: `movePlayer` não devolve distância, então o delta de
+  // posição é a leitura mais barata e não depende da direção das teclas.
+  const moveuAPe = !Number.isNaN(ultimoPassoX)
+    && Math.hypot(p.x - ultimoPassoX, p.y - ultimoPassoY) > 0.6;
+  poeiraTimer -= dt;
+  if (moveuAPe && !isSkillActive('dash') && poeiraTimer <= 0) {
+    poeiraTimer = 0.26;
+    spawnParticles(p.x, p.y + p.radius * 0.7, '#8a7a60', 1, 35, 'smoke');
+  }
+  ultimoPassoX = p.x;
+  ultimoPassoY = p.y;
+
   updateSkills(dt, p, { w: worldW, h: worldH });
   // PASSO FANTASMA: o dash fere quem atravessa (25, uma vez por dash).
   if (isSkillActive('dash')) {
@@ -1092,6 +1122,8 @@ function update(dt: number) {
           e.health -= dano;
           e.hitFlash = 0.2;
           spawnParticles(e.x, e.y, '#c8b890', 8, 200);
+          spawnImpact(e.x, e.y, '#c8b890', 10);
+          sfxImpact();
         }
       }
     }
@@ -1176,8 +1208,7 @@ function update(dt: number) {
     if (dmg > 0) {
       checkAchievements('damage_taken');
       player.enemyCollisionDamage(dmg, { fonte: 'evento' });
-      sfxPlayerHit();
-      triggerDamageFlash();
+      feedbackDanoNoJogador();
     }
   }
 
@@ -1195,8 +1226,7 @@ function update(dt: number) {
       const total = damageTaken(4);
       if (total > 0) {
         player.enemyCollisionDamage(total, { fonte: 'bioma' });
-        sfxPlayerHit();
-        triggerDamageFlash();
+        feedbackDanoNoJogador();
       }
     }
   }
@@ -1223,7 +1253,22 @@ function update(dt: number) {
     for (const b of fired) {
       spawnBullet(b.x, b.y, b.vx, b.vy, b.damage, false, b.color, b.pierce, b.explosive, b.explosionRadius, b.isCrit, b.bulletSprite);
     }
-    spawnParticles(muzzleX, muzzleY, weapon.color, 4, 120, 'muzzle');
+    // O flash acompanha o peso da arma: pistola cospe 4, shotgun 7 e
+    // lançador 8 + fumaça + um tranco curto de câmera. O `getWeaponFamily`
+    // é a mesma curadoria do som e da pose, então não há tabela nova.
+    const familia = getWeaponFamily();
+    spawnParticles(
+      muzzleX, muzzleY, weapon.color,
+      familia === 'launcher' ? 8 : familia === 'shotgun' ? 7 : 4,
+      familia === 'launcher' ? 170 : 120, 'muzzle',
+    );
+    if (familia === 'pistol' || familia === 'machine') {
+      spawnParticles(muzzleX, muzzleY, PALETTE.mustard, 2, 65, 'spark');
+    }
+    if (familia === 'launcher' || familia === 'shotgun') {
+      spawnParticles(muzzleX, muzzleY, '#8a7a60', familia === 'launcher' ? 8 : 4, 80, 'smoke');
+      triggerScreenShake(familia === 'launcher' ? 2.6 : 1.4, 0.1);
+    }
     playWeaponSound(weapon.name);
     registerShot();
     // PISTOLA INCANDESCENTE: cada 5º tiro acende o inimigo mais próximo do
@@ -1248,6 +1293,7 @@ function update(dt: number) {
   }
 
   if (p.invincible > 0) p.invincible -= dt;
+  if (p.hitFlash > 0) p.hitFlash = Math.max(0, p.hitFlash - dt);
 
   // SEGUNDO FÔLEGO: abaixo de 30% da vida máxima, 1,5s invencível (uma vez).
   const folego = checarSegundoFolego(p.health, p.maxHealth);
@@ -1323,8 +1369,7 @@ function update(dt: number) {
     if (dmg > 0) {
       checkAchievements('damage_taken');
       player.enemyCollisionDamage(dmg, { fonte: 'evento' });
-      sfxPlayerHit();
-      triggerDamageFlash();
+      feedbackDanoNoJogador();
     }
   }
   if (waveComplete) {
@@ -1395,7 +1440,11 @@ function update(dt: number) {
     if (phase.name === 'Fábrica' && getCurrentWave() === 1 && getCurrentMode() === 'campaign' && !amigoApareceu) {
       amigoApareceu = true;
       caixaAbriuNestaOnda = true;
-      spawnNPC(p.x + 60, p.y, 0, 'manBrown');
+      // o NPC nasce AO LADO, mas o offset cru podia cair na parede quando o
+      // jogador estava encostado nela (playtest: "o amigo nasce e buga com a
+      // parede" na Fábrica). Mesmo resgate dos serviços da loja.
+      const postoAmigo = pushOutOfWalls(p.x + 60, p.y, 16);
+      spawnNPC(postoAmigo.x, postoAmigo.y, 0, 'manBrown');
       abrirDialogo(SEQUENCIA_AMIGO);
     }
     // O HOSPITAL (2026-10-14): o doutor Fernando chega em jogo, na primeira
@@ -1405,7 +1454,8 @@ function update(dt: number) {
     if (phase.name === 'Hospital de Campanha' && getCurrentWave() === 1 && getCurrentMode() === 'campaign' && !doutorApareceu) {
       doutorApareceu = true;
       caixaAbriuNestaOnda = true;
-      spawnNPC(p.x + 60, p.y, 0, 'hitman');
+      const postoDoutor = pushOutOfWalls(p.x + 60, p.y, 16);
+      spawnNPC(postoDoutor.x, postoDoutor.y, 0, 'hitman');
       abrirDialogo(SEQUENCIA_MEDICO);
     }
     // O CASTELO (textos, 2026-10-14): o encontro do JÚLIO é em jogo, na
@@ -1414,7 +1464,8 @@ function update(dt: number) {
     if (phase.name === 'Castelo' && getCurrentWave() === 1 && getCurrentMode() === 'campaign' && !julioApareceu) {
       julioApareceu = true;
       caixaAbriuNestaOnda = true;
-      spawnNPC(p.x + 60, p.y, 0, 'manBlue');
+      const postoJulio = pushOutOfWalls(p.x + 60, p.y, 16);
+      spawnNPC(postoJulio.x, postoJulio.y, 0, 'manBlue');
       abrirDialogo(SEQUENCIA_JULIO);
     }
     if (caixaAbriuNestaOnda) anuncioDeOndaPendente = true;
@@ -1714,8 +1765,7 @@ function updateBiomeHazard(dt: number, p: ReturnType<typeof player.getPlayer>): 
     const total = damageTaken(dmg);
     if (total > 0) {
       player.enemyCollisionDamage(total, { fonte: 'bioma' });
-      sfxPlayerHit();
-      triggerDamageFlash();
+      feedbackDanoNoJogador();
     }
   }
   if (phase.hazard === 'mud') {
@@ -1774,8 +1824,7 @@ function explodeProp(prop: Prop): void {
   const p = player.getPlayer();
   if (Math.hypot(p.x - prop.x, p.y - prop.y) < radius && p.invincible <= 0) {
     player.enemyCollisionDamage(damageTaken(damage), { fonte: 'barril' });
-    sfxPlayerHit();
-    triggerDamageFlash();
+    feedbackDanoNoJogador();
   }
   const destruidos = detonateProp(prop);
   if (destruidos.length > 1) {
@@ -1956,6 +2005,13 @@ function ganhaXp(amount: number): void {
   }
 }
 
+/** Um só caminho de feedback para qualquer dano que chega ao jogador. */
+function feedbackDanoNoJogador(): void {
+  sfxPlayerHit();
+  triggerDamageFlash();
+  triggerScreenShake(2.4, 0.14);
+}
+
 /** Aplica dano/morte a um inimigo e credita score, moedas e conquistas. */
 function killEnemy(e: Enemy, award: boolean): void {
   const def = ENEMY_TYPES[e.type];
@@ -1985,7 +2041,11 @@ function killEnemy(e: Enemy, award: boolean): void {
       spawnCoins(e.x, e.y, Math.max(1, Math.floor(def.coinDrop * multMoedas * 0.6)));
     }
     spawnParticles(e.x, e.y, e.color, 20, 300);
-    sfxExplosion();
+    if (!def?.isBoss) {
+      spawnImpact(e.x, e.y, '#c8b890', 18);
+      sfxKill();
+      if (e.isElite) triggerScreenShake(3, 0.16);
+    }
     const killAch = checkAchievements('kill');
     if (killAch) pushToast(killAch.name, 3);
     const scoreAch = checkAchievements('score', getScore());
@@ -2157,8 +2217,7 @@ function updateBotsAndCompetitors(p: ReturnType<typeof player.getPlayer>): void 
       const dmg = damageTaken(bot.damage);
       if (dmg > 0) {
         player.enemyCollisionDamage(dmg, { fonte: 'bot' });
-        sfxPlayerHit();
-        triggerDamageFlash();
+        feedbackDanoNoJogador();
       }
       bot.health = 0;
       spawnParticles(bot.x, bot.y, bot.color, 12, 200);
@@ -2498,7 +2557,11 @@ function leaveShop(): void {
     // A Fábrica do Rogério (H2): a chegada corre na CAIXA PEQUENA, não na
     // cutscene — pedido do Murilo. As próximas sequências (o amigo na onda
     // 2, a virada pós-sentinel) disparam pelos gatilhos da fase.
-    else if (fase === 3) abrirDialogo(SEQUENCIA_CHEGADA);
+    //
+    // Índice 5, não 3: o 3 é o HOSPITAL (que já tem cutscene e cai no ramo de
+    // cima). Com o número antigo, a chegada da Fábrica nunca abria e a caixa
+    // pequena ficava inalcançável.
+    else if (fase === 5) abrirDialogo(SEQUENCIA_CHEGADA);
   }
 }
 
@@ -2878,7 +2941,10 @@ function buildHudData(): HudData {
     objective: peekObjective(p.x, p.y, enemies.length, reachZones),
     warnings: getEnvironmentWarnings(),
     combos: getActiveCombos().map(c => ({ name: c.name, description: c.description, color: c.color })),
-    hint: isTutorialActive() ? getCurrentHint() : null,
+    // A caixa de diálogo é modal: a dica do tutorial desenhada no mesmo
+    // rodapé cobria o "ENTER OU CLIQUE PARA CONTINUAR". Some enquanto ela
+    // está aberta; volta na primeira linha depois que a caixa fecha.
+    hint: isTutorialActive() && !dialogoAtivo() ? getCurrentHint() : null,
     toasts: achievementNotifications,
     phaseEndSeconds: phaseEndPause,
     medkits: player.getMedkits(),
@@ -3172,8 +3238,7 @@ checkEnemyPlayerCollision(activeEnemies, p.x, p.y, p.radius, p.invincible, (e) =
       fonte: ENEMY_TYPES[e.type]?.isBoss ? 'boss' : 'contato',
       tipo: e.type,
     });
-    sfxPlayerHit();
-    triggerDamageFlash();
+    feedbackDanoNoJogador();
   }
   // Encostar NÃO mata melee: quem não atira briga de perto. Inimigos de curto
   // alcance apanham o mesmo dano que dão e continuam de pé — investing num
@@ -3209,8 +3274,7 @@ checkEnemyBulletPlayerCollision(bullets, p.x, p.y, p.radius, p.invincible, (b) =
   if (dmg > 0) {
     checkAchievements('damage_taken');
     player.damagePlayer(dmg, { tipo: b.orcador });
-    sfxPlayerHit();
-    triggerDamageFlash();
+    feedbackDanoNoJogador();
   }
   b.life = 0;
   spawnParticles(b.x, b.y, b.color, 3, 100);
@@ -3247,6 +3311,9 @@ checkBulletEnemyCollisions(bullets, enemies, (b, e) => {
   }
   if (!b.pierce) b.life = 0;
   spawnParticles(b.x, b.y, b.color, 3, 150);
+  spawnImpact(b.x, b.y, isCrit ? PALETTE.crit : '#e8dcc0', isCrit ? 16 : 10);
+  sfxImpact();
+  if (isCrit) triggerScreenShake(1.4, 0.08);
   triggerHitStop(0.015);
 });
 

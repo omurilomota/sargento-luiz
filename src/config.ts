@@ -433,19 +433,26 @@ export const WEAPONS: Weapon[] = [
   { name: 'Metralhadora', damage: 6, shootRate: 0.14, bulletSpeed: 700, bulletCount: 1, spread: 0.1, color: '#a05a4a', price: 150, pierce: false, magazineSize: 25, reloadTime: 2.0 },
   { name: 'Sniper', damage: 50, shootRate: 1.2, bulletSpeed: 1000, bulletCount: 1, spread: 0, color: PALETTE.stone, price: 200, pierce: true, magazineSize: 4, reloadTime: 2.5 },
   { name: 'Laser', damage: 2, shootRate: 0.06, bulletSpeed: 1200, bulletCount: 1, spread: 0, color: PALETTE.mustard, price: 250, pierce: true, magazineSize: 40, reloadTime: 1.5 },
-  { name: 'RPG', damage: 81, shootRate: 1.8, bulletSpeed: 400, bulletCount: 1, spread: 0, color: PALETTE.terracotta, price: 350, pierce: false, explosive: true, explosionRadius: 140, magazineSize: 2, reloadTime: 2.5 },
+  // Explosivos: o dano é POR projétil e empilha quando os projéteis caem no
+  // mesmo alvo. A BFG a 100 × 5 apagava o VIGIA (290 HP) numa descarga; os
+  // valores abaixo mantêm a limpeza de multidão sem transformar chefe em alvo
+  // de um botão. O dano antigo também deixava RPG/Granada/Mina acima do que
+  // um tiro comum deve valer.
+  { name: 'RPG', damage: 70, shootRate: 1.8, bulletSpeed: 400, bulletCount: 1, spread: 0, color: PALETTE.terracotta, price: 350, pierce: false, explosive: true, explosionRadius: 140, magazineSize: 2, reloadTime: 2.5 },
   { name: 'Raios', damage: 4, shootRate: 0.25, bulletSpeed: 800, bulletCount: 2, spread: 0.2, color: PALETTE.stone, price: 300, pierce: true, magazineSize: 15, reloadTime: 2.0 },
   { name: 'Gel', damage: 8, shootRate: 0.28, bulletSpeed: 550, bulletCount: 2, spread: 0.2, color: '#7a9aa8', price: 180, pierce: false, magazineSize: 20, reloadTime: 1.5 },
-  { name: 'Granada', damage: 50, shootRate: 1.4, bulletSpeed: 350, bulletCount: 1, spread: 0, color: '#a05a4a', price: 250, pierce: false, explosive: true, explosionRadius: 110, magazineSize: 3, reloadTime: 2.5 },
-  { name: 'Mina', damage: 50, shootRate: 2.8, bulletSpeed: 0, bulletCount: 1, spread: 0, color: PALETTE.mustard, price: 200, pierce: false, explosive: true, explosionRadius: 140, magazineSize: 2, reloadTime: 2.5 },
-  { name: 'BFG', damage: 100, shootRate: 2.0, bulletSpeed: 500, bulletCount: 5, spread: 0.4, color: PALETTE.title, price: 999, pierce: true, explosive: true, explosionRadius: 120, magazineSize: 1, reloadTime: 3.5, secret: true },
+  { name: 'Granada', damage: 42, shootRate: 1.4, bulletSpeed: 350, bulletCount: 1, spread: 0, color: '#a05a4a', price: 250, pierce: false, explosive: true, explosionRadius: 110, magazineSize: 3, reloadTime: 2.5 },
+  { name: 'Mina', damage: 44, shootRate: 2.8, bulletSpeed: 0, bulletCount: 1, spread: 0, color: PALETTE.mustard, price: 200, pierce: false, explosive: true, explosionRadius: 140, magazineSize: 2, reloadTime: 2.5 },
+  // 5 projéteis × 38 = 190 no centro; com a resistência de chefe (0,75),
+  // 142,5 — o VIGIA sobrevive a uma descarga e a BFG continua limpando trash.
+  { name: 'BFG', damage: 38, shootRate: 2.0, bulletSpeed: 500, bulletCount: 5, spread: 0.4, color: PALETTE.title, price: 999, pierce: true, explosive: true, explosionRadius: 120, magazineSize: 1, reloadTime: 3.5, secret: true },
   // índice 11 — só vem da caixa especial do boss
   { name: 'M. Quebrada', damage: 5, shootRate: 0.3, bulletSpeed: 650, bulletCount: 1, spread: 0.18, color: '#a08050', price: 0, pierce: false, magazineSize: 30, reloadTime: 1.6, broken: true },
   // índice 12 — o martelo do Sargento Luiz. Destruidor de mundos: tiro único,
   // explosão enorme, cadência lenta de propósito (o peso do golpe). Não é
-  // comprável: só aparece na caixa especial do boss NÚCLEO. O dano baixo por
-  // tiro engana — a explosão em área de 260px é o que limpa a fase apelona.
-  { name: 'Destruidor', damage: 120, shootRate: 1.6, bulletSpeed: 460, bulletCount: 1, spread: 0, color: PALETTE.terracotta, price: 0, pierce: false, explosive: true, explosionRadius: 260, magazineSize: 3, reloadTime: 3.0, secret: true },
+  // comprável: só aparece na caixa especial do boss NÚCLEO. O dano por tiro
+  // engana — a explosão em área de 260px é o que limpa a fase apelona.
+  { name: 'Destruidor', damage: 110, shootRate: 1.6, bulletSpeed: 460, bulletCount: 1, spread: 0, color: PALETTE.terracotta, price: 0, pierce: false, explosive: true, explosionRadius: 260, magazineSize: 3, reloadTime: 3.0, secret: true },
 ];
 
 /** Qualidades sorteáveis de armas: modificam dano, cadência, spread, crítico e pierce. */
@@ -553,7 +560,7 @@ export const POWERUP_TYPES: Record<string, { color: string; symbol: string; dura
   damage: { color: '#b07050', symbol: '!', duration: 5 },
   shield: { color: '#608090', symbol: 'O', duration: 0 },
   magnet: { color: '#8a8a9a', symbol: 'M', duration: 8 },
-  multiShot: { color: '#a08050', symbol: 'x3', duration: 6 },
+  multiShot: { color: '#a08050', symbol: 'x2', duration: 6 },
   invincible: { color: '#c8b890', symbol: '*', duration: 4 },
   furia: { color: '#b07050', symbol: 'F', duration: 8 },
   peleDePedra: { color: '#608090', symbol: 'P', duration: 8 },
@@ -597,7 +604,7 @@ export const POWERUP_DESC: Record<string, string> = {
   'peleDePedra': 'Reduz dano recebido em 50% por 8s',
   'botas': '+30% velocidade por 8s',
   'municaoInfinita': 'Munição infinita por 8s',
-  'reflexos': '+50% cadência por 8s',
+  'reflexos': '+100% cadência por 8s',
   'trajeNucleo': 'Traje de contenção: +100% dano, +30% velocidade, +3 escudo e metade do dano recebido por 20s',
 };
 

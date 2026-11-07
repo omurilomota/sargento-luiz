@@ -45,6 +45,11 @@ const CROSSFADE = 0.8;
  */
 export function unlockAudio(): void {
   if (ctx && ctx.state === 'suspended') void ctx.resume();
+  // Se o contexto já está rodando mas a faixa não chegou (decode/fetch que
+  // falhou, aba oculta ou troca de tela antes do load), o próximo gesto tenta
+  // de novo. Antes, `currentTrack` ficava preenchido e `currentSource` nulo:
+  // a música sumia até o jogador abrir outra tela.
+  if (musicEnabled && !currentSource) void playMusic(currentTrack ?? 'menu');
 }
 
 /** Inicializa o sistema de áudio (deve ser chamado após interação do usuário) */
@@ -239,6 +244,13 @@ export const SFX_FILES: Record<string, SfxDef> = {
   jammed:      { file: 'assets/sfx/jammed.ogg',      vary: 0.1 },
   gameOver:    { file: 'assets/sfx/gameOver.ogg' },
   hitStop:     { file: 'assets/sfx/hitStop.ogg' },
+  // Impacto e abate derivados de dois CC0 que já estavam no projeto. São
+  // arquivos próprios (não síntese em runtime) e dão dois eventos que o
+  // combate não tinha: acerto de bala e queda de inimigo comum. O abate
+  // substitui o `explosion.ogg` que tocava em TODO grunt — explosão para
+  // cada zumbi mascarava o tiro e o som de morte do chefe.
+  impacto:     { file: 'assets/sfx/impacto.ogg',     vary: 0.16, vol: 0.55 },
+  abate:       { file: 'assets/sfx/abate.ogg',       vary: 0.12, vol: 0.65 },
   dash:        { file: 'assets/sfx/dash.ogg' },
   shield:      { file: 'assets/sfx/shield.ogg' },
   fury:        { file: 'assets/sfx/fury.ogg' },
@@ -415,6 +427,38 @@ export function sfxExplosion(): void {
   playNoise(0.15, 0.25);
   playTone(150, 0.1, 'sine', 0.15);
   playTone(80, 0.15, 'sine', 0.1);
+}
+
+/**
+ * Acerto de bala: tick curto por cima do som da arma.
+ *
+ * A metralhadora acerta 10 corpos por segundo; sem o piso de 45ms o arquivo
+ * vira um chiado contínuo. O volume baixo deixa o tiro na frente e o impacto
+ * como confirmação.
+ */
+let ultimoImpactoEm = -1;
+const INTERVALO_IMPACTO = 0.045;
+
+export function sfxImpact(): void {
+  const ac = ensureCtx();
+  if (ac.currentTime - ultimoImpactoEm < INTERVALO_IMPACTO) return;
+  ultimoImpactoEm = ac.currentTime;
+  if (playSfxFile('impacto')) return;
+  playBurst(0.03, 0.12, 'highpass', 2200, 1.6);
+  playTone(160, 0.04, 'triangle', 0.06);
+}
+
+/** Queda de inimigo comum: baque curto, distinto da explosão de barril/chefe. */
+let ultimoAbateEm = -1;
+const INTERVALO_ABATE = 0.06;
+
+export function sfxKill(): void {
+  const ac = ensureCtx();
+  if (ac.currentTime - ultimoAbateEm < INTERVALO_ABATE) return;
+  ultimoAbateEm = ac.currentTime;
+  if (playSfxFile('abate')) return;
+  playBurst(0.05, 0.15, 'lowpass', 700, 0.9);
+  playTone(90, 0.08, 'sine', 0.1);
 }
 
 export function sfxBossDeath(): void {
@@ -863,9 +907,20 @@ export function stopMusic(): void {
       /* já parado */
     }
   }
+  // 6º caminho de vazamento do grafo: o source parado aqui não tinha
+  // onended nenhum (só o oldSource do crossfade tinha) — o GainNode
+  // ficava conectado para sempre, 1 nó por ciclo liga/desliga a música
+  if (currentGain) {
+    try { currentGain.disconnect(); } catch { /* já desconectado */ }
+  }
+  if (currentSource) {
+    try { currentSource.disconnect(); } catch { /* já desconectado */ }
+  }
   currentSource = null;
   currentGain = null;
-  currentTrack = null;
+  // currentTrack PERMANECE: é o que o religar retoma — o ramo do
+  // setMusicEnabled(true) já tentava `playMusic(currentTrack)`, mas o
+  // stop apagava o estado que o ramo lia e o toggle virava mudo
 }
 
 export function getMasterVolume(): number { return masterVolume; }

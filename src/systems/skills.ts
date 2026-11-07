@@ -131,6 +131,9 @@ export function getDamageMultiplier(): number {
   let mult = skills.fury.active ? FURY_DAMAGE_MULT : 1;
   if (hasPowerUp('furia')) mult *= 1.3;
   if (hasPowerUp('trajeNucleo')) mult *= 2;
+  // o power-up 'damage' era vendido, dropado e exibido no HUD sem leitor
+  // nenhum: coletava "DANO +50%" e o multiplicador real não mudava
+  if (hasPowerUp('damage')) mult *= 1.5;
   return mult;
 }
 

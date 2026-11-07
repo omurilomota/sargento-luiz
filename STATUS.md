@@ -1,14 +1,17 @@
 # SARGENTO LUIZ — Status Geral do Projeto
 
-> Atualizado: 2026-10-18 00:19 · branch `develop` · 1435 testes em 66 arquivos ·
+> Atualizado: 2026-11-07 14:11 · branch `feature/game-feel-e-assets` · HEAD `6971442` (worktree) ·
+> 16 fases · 13 armas · 16 chefes de fase · 1439 testes em 66 arquivos ·
 > `tsc` limpo · build ok.
+> A lista viva de pendências é [`docs/PENDENCIAS.md`](docs/PENDENCIAS.md);
+> ideias e continuações em [`docs/IDEIAS.md`](docs/IDEIAS.md).
 > (antes: SARGENTO RIOS, e antes disso ASHFALL — o jogo trocou de nome duas
 > vezes e o save migra as duas gerações de prefixo)
 
 ## Verificação atual
 
 ```
-npm test           # 1428 passando em 66 arquivos
+npm test           # 1439 passando em 66 arquivos
 npx tsc --noEmit   # 0 erros
 npm run build      # ok
 npm run a5         # o A5 (player para de mover): 0 freeze real nas 16 fases (não reproduz)
@@ -39,6 +42,10 @@ npm run asfalto   # a pista da Rodovia (faixa 124 × corpo 25 × ombro 0)
 
 O bot desvia de inimigo e de barril, atira, e não usa dash, escudo nem fúria.
 É o **piso**: fase onde ele morre é fase onde jogador casual também morre.
+
+> A tabela abaixo é a medição das 9 fases da v1.4. As 7 fases novas (Rodovia,
+> Hospital, Pátio de Trens, Ponte, Refinaria, Subestação e Porto) ainda não
+> têm linha aqui; o `npm run fases` já as percorre e o JSON é a fonte.
 
 | fase | sobrevive | onda | principal dano |
 |---|---|---|---|
@@ -124,6 +131,72 @@ decisões autônomas: [`docs/DECISIONS.md`](docs/DECISIONS.md) ·
 ordem das frentes: [`ROADMAP.md`](ROADMAP.md)
 
 ---
+
+## Entrega: o playtest de 2026-11-07 (13:12, `883740b` + worktree)
+
+Seis correções do relato, todas com prova:
+
+- **Música:** o diagnóstico em Chrome limpo mostrou menu e combate iniciando com
+  `AudioContext` `running`, então o asset não sumiu. O gesto agora tenta retomar
+  a faixa quando o contexto já está rodando mas a fonte não chegou, e o rodapé
+  do menu mostra `M: Musica LIGADA/DESLIGADA` — se a preferência estiver
+  desligada, o jogador vê o motivo em vez de procurar arquivo.
+- **Explosivos:** o dano é POR projétil e empilhava no centro. BFG 100→38,
+  RPG 81→70, Granada 50→42, Mina 50→44, Destruidor 120→110; teste novo exige
+  que 5 projéteis de BFG com resistência de chefe não apaguem o VIGIA (290 HP).
+- **Floresta:** `detonateProp` não zera mais tree/carro. A árvore que caía
+  deixava o blocker sem sprite; agora os dois são cobertura permanente e a
+  cadeia de barris os ignora.
+- **Letras/prompt:** cutscene com corpo 18px e prompt 15px em mostarda; caixa
+  pequena de 132px, corpo 16px, retrato 64px e `ENTER OU CLIQUE PARA CONTINUAR`
+  central. A dica do tutorial é suprimida enquanto a caixa está aberta — na
+  prova visual ela cobria o prompt.
+- **Fábrica:** a chegada testava `fase === 3` (Hospital); agora é `fase === 5`,
+  a única fase sem cutscene grande. O Hospital continua abrindo a cena dele.
+- **Game feel:** recuo de tiro no eixo da mira, balanço de passo (1,2px andando,
+  0,35px parado) e squash de 16% no `hitFlash` do inimigo. Nada inventa frame:
+  as 6 poses do Kenney continuam sendo o corpo.
+
+Verificação: `npx tsc --noEmit` limpo, `npm test` 1437/1437 em 66 arquivos,
+`npm run build` ok, `npm run visual` 8 shots sem 404/pageerror. A caixa da
+Fábrica foi forçada pela progressão real e lida em
+`tools/shots/10-dialogo-fabrica.png`; o menu, a cutscene e o jogo também foram
+abertos.
+
+## Entrega: game feel, o Pátio com trilho/trem e o combustível legível (2026-11-07 14:11, `6971442`)
+
+A rodada que respondeu ao playtest ao vivo: “foque no game feel”, “Pátio de
+Trens sem trilho e sem trens”, “na Refinaria, quando é que o cara vai saber
+que caixas são combustíveis?” e “mais assets para inimigos”.
+
+- **Combate com peso:** `impacto` e `abate` como arquivos OGG próprios (52
+  chaves em `SFX_FILES`), com fallback procedural; `sfxImpact` tem piso de
+  45ms para a metralhadora não virar chiado, e `sfxKill` substitui a explosão
+  em todo grunt. O jogador ganha poeira de passo, rastro de dash com sprites
+  do pack, recuo de 90ms no eixo da mira e estalo de 10% no dano; o muzzle
+  acompanha a família (pistola 4, shotgun 7, lançador 8 + fumaça + shake).
+- **Pátio de Trens:** 2 trilhos camináveis (`r`), locomotiva e vagão (4
+  células cada) sobre células `#`, sem mudar colisão/BFS. A primeira versão
+  saiu quase preta porque o trem era desenhado ANTES do `applyTint` do bioma;
+  agora trilho e trem entram depois da tinta e o aço/ferrugem aparecem.
+- **Inimigos:** 3 corpos externos (SpriteAttack FreeArt Topdown Zombies, CC0)
+  em 51×43, ligados à variação por bioma da Cidade, Floresta, Hospital,
+  Caverna, Fábrica, Pátio, Ponte, Pântano, Refinaria, Castelo, Subestação,
+  Vulcão, Porto e Bunker. O corpo deles é 34px dentro do quadro, então o
+  render aplica 1.3× e o offset de 90° (a arte olha para cima; o Kenney para
+  a direita).
+- **Combustível:** o tambor `G` ganhou clarão do pack, galão autoral e rótulo
+  `COMBUSTÍVEL`. A coleta continua por proximidade e o dano segue recusado —
+  o objetivo não pode ser destruído por tiro ou cadeia de barril.
+
+**Verificação:** `npx tsc --noEmit` limpo, `npm test` **1439/1439 em 66
+arquivos**, `npm run build` ok, `npm run visual` 8 shots sem 404/pageerror,
+`node tools/trens-assets-proof.mjs` **PROVA VERDE** (assets carregam, Pátio
+entra, free1/free2/free3 desenham por fase, tambor fotografado). As imagens
+foram abertas: trilho/trem legíveis depois do conserto de ordem, zumbis
+externos no tamanho do Kenney e rótulo do combustível legível. O que fica
+declarado: o trem é cenário estático, não veículo; a auditoria de lacunas por
+fase está em `docs/PENDENCIAS.md`.
 
 ## Entrega: a Refinaria que prometia gasolina e entregava um `clear` (2026-10-18 00:19, `4e65fee`)
 

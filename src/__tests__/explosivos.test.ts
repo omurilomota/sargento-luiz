@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { spawnBullet, getBullets, clearBullets, updateBullets, updateMines } from '../entities/bullet';
 import { createExplosion, clearExplosions } from '../systems/explosions';
-import { BULLET_LIFE, MINE_LIFE, MINE_DETECTION_RADIUS } from '../core/constants';
+import { BULLET_LIFE, MINE_LIFE, MINE_DETECTION_RADIUS, RESISTENCIA_EXPLOSIVA_DO_BOSS } from '../core/constants';
+import { WEAPONS, ENEMY_TYPES } from '../config';
 import { Enemy } from '../types';
 
 function inimigo(x: number, y: number): Enemy {
@@ -99,5 +100,15 @@ describe('explosivos: o chefe tem placa contra explosão (M3)', () => {
     const semTipo = inimigo(100, 100);
     createExplosion(100, 100, 140, 100, [semTipo]);
     expect(20 - semTipo.health).toBe(100);
+  });
+});
+
+describe('explosivos: a descarga não apaga um chefe de fase', () => {
+  it('BFG 5 projéteis × dano não mata o VIGIA com uma só carga', () => {
+    // O dano de explosão é POR projétil e empilha no centro. A 100 × 5, a BFG
+    // tirava 375 do VIGIA (290 HP) e a primeira luta do jogo virava um clique.
+    const bfg = WEAPONS.find(w => w.name === 'BFG')!;
+    const danoNoCentro = bfg.damage * bfg.bulletCount * RESISTENCIA_EXPLOSIVA_DO_BOSS;
+    expect(danoNoCentro).toBeLessThan(ENEMY_TYPES.vigia.health);
   });
 });

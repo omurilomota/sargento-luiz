@@ -107,6 +107,19 @@ interface WeaponState {
 
 const estadoPorArma = new Map<number, WeaponState>();
 
+/** Instante do último disparo — alimenta o recuo visual do corpo/arma. */
+let ultimoDisparoEm = Number.NEGATIVE_INFINITY;
+
+/**
+ * Recuo do sprite depois do disparo, de 1 (agora) a 0 (90ms).
+ * O renderer usa para puxar o corpo/arma alguns pixels para trás no eixo da
+ * mira; sem isso o tiro não tem peso nenhum, só o som e a partícula.
+ */
+export function getShotRecoil(): number {
+  const decorrido = performance.now() - ultimoDisparoEm;
+  return Math.max(0, 1 - decorrido / 90);
+}
+
 /** Capacidade do pente, já com o bônus de peça equipada. */
 function capacidadeDe(index: number): number {
   const pieceMods = getPieceModifiers(index);
@@ -438,8 +451,15 @@ export function shoot(x: number, y: number, angle: number, multiShot: boolean, s
   }
   for (let i = 0; i < count; i++) {
     const pieceMods = getPieceModifiers(currentWeaponIndex);
-    const spread = count > 1 ? (i - (count - 1) / 2) * weapon.spread * pieceMods.spreadMult : 0;
-    const a = angle + spread * q.spreadMult;
+    // dispersão: multi-projétil abre em leque ordenado; arma de 1 projétil
+    // treme aleatório dentro do spread — sem isto, a Metralhadora
+    // ("dispersão leve") saía reta e Enferrujada/PRECISÃO não tinham efeito
+    // em metade do arsenal (tudo de 1 projétil)
+    const abertura = weapon.spread * pieceMods.spreadMult * q.spreadMult;
+    const spread = count > 1
+      ? (i - (count - 1) / 2) * abertura
+      : (Math.random() - 0.5) * 2 * abertura;
+    const a = angle + spread;
     const isCrit = Math.random() < Math.min(effCrit, 0.6);
     // `critMult` (e não 1.5 na mão): um combo que mexe no crítico tem de ter
   // efeito. Com o número hardcoded, mexer no stat era inócuo em silêncio.
@@ -453,7 +473,12 @@ export function shoot(x: number, y: number, angle: number, multiShot: boolean, s
     // base chega a 744 px/s — mais rápido que 4 armas. O piso é a
     // velocidade ATUAL do atirador + 160 de margem, então a bala SEMPRE
     // abre distância de quem corre atrás dela.
-    const velocidadeDaBala = Math.max(weapon.bulletSpeed, velocidadeDoAtirador + 160);
+    // Arma imóvel (Mina, bulletSpeed 0) fica FORA do piso: o piso tornava
+    // a mina um foguete de ~480 px/s e o subsistema de mina plantada
+    // (MINE_LIFE/detecção/fuse) nunca rodava em partida real.
+    const velocidadeDaBala = weapon.bulletSpeed > 0
+      ? Math.max(weapon.bulletSpeed, velocidadeDoAtirador + 160)
+      : 0;
     newBullets.push({
       x, y,
       vx: Math.cos(a) * velocidadeDaBala,
@@ -467,6 +492,7 @@ export function shoot(x: number, y: number, angle: number, multiShot: boolean, s
       bulletSprite: BULLET_FAMILY[weapon.name] ?? 'small_bullet',
     });
   }
+  ultimoDisparoEm = performance.now();
   ativa.ammo = Math.max(0, ativa.ammo - (hasPowerUp('municaoInfinita') ? 0 : 1));
   // arma quebrada encasquilha depois de N disparos — o dono precisa consertar
   if (WEAPONS[currentWeaponIndex].broken || qualityKey === 'quebrada') {

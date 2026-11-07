@@ -7,7 +7,8 @@
  *
  * Legenda:
  *   `#` parede · `.` chão · `,` chão decorativo · `^` hazard
- *   `c` caixote (destrutível) · `b` barril (explosivo)
+ *   `c` caixote (destrutível) · `b` barril (explosivo) · `G` tambor de combustível
+ *   `r` trilho caminável (Pátio de Trens)
  *   `P` spawn do jogador · `E` zona de spawn de inimigo
  *   `B` spawn de boss · `N` ninho/objetivo · `R` zona de extração (reach)
  *
@@ -67,6 +68,15 @@ export interface MapDef {
   grainAlpha: number;
   /** Cor de fundo fora dos limites do mapa (o "void") */
   void: string;
+  /** Carros de trem desenhados por cima de células `#` (Pátio de Trens). */
+  train?: TrainCar[];
+}
+
+/** Um carro de 4 células (256×64) desenhado sobre um bloco sólido do mapa. */
+export interface TrainCar {
+  col: number;
+  row: number;
+  sprite: string;
 }
 
 export interface Biome extends MapDef {
@@ -462,8 +472,8 @@ export const BIOMES: Record<string, Biome> = {
       '#..####...####...####...####.#',
       '#b.####...####...####...####.#',
       '#..####...####...####...####.#',
-      '#..............b.............#',
-      '#............................#',
+      '#.........rrrrrrrr########rrr#',
+      '#..rrrrrrrrrrrrrrrrrrrrrrrrr.#',
       '#...........N.........b......#',
       '#..####...####...####...####.#',
       '#..####...####...####...####.#',
@@ -474,6 +484,14 @@ export const BIOMES: Record<string, Biome> = {
       '#..####...####...####...####.#',
       '#......c.......P.............#',
       '##############################',
+    ],
+    // Dois carros de 4 células sobre o bloco `#` da linha 8. O trilho
+    // continua nas células `r` dos dois lados: o trem está SOBRE a via, não
+    // flutuando no pátio. A célula continua parede, então colisão e BFS não
+    // mudam com o desenho.
+    train: [
+      { col: 18, row: 8, sprite: 'trem_locomotiva_00' },
+      { col: 22, row: 8, sprite: 'trem_vagao_00' },
     ],
   },
   ponte: {
@@ -623,6 +641,8 @@ export function tileKindAt(ch: string): TileKind {
     // prop (props.ts) e o jogador tem que pisar nele para encher — é a
     // condição de vitória do `collect`, não obstáculo
     case 'G': return 'floor';
+    // trilho do Pátio: é decalque de piso; a via não bloqueia o jogador
+    case 'r': return 'floor';
     default: return 'floor';
   }
 }

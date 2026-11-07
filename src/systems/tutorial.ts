@@ -24,7 +24,7 @@ const hints: TutorialHint[] = [
   { text: 'F: Escudo (bloqueia dano)', key: 'F', condition: () => true, shown: false },
   { text: 'E: Fúria (dano 2x, cadência +33%)', key: 'E', condition: () => true, shown: false },
   { text: 'H: Medkit (ou 50 moedas por cura)', key: 'H', condition: () => true, shown: false },
-  { text: '1-9: trocar de arma comprada', key: '1', condition: () => true, shown: false },
+  { text: '1-4: trocar de arma comprada', key: '1', condition: () => true, shown: false },
   { text: 'J: o sobrevivente para de seguir', key: 'J', condition: () => true, shown: false },
 ];
 
