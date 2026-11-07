@@ -166,6 +166,19 @@ describe('props: o barril explode em cadeia', () => {
     for (const b of barris) expect(b.health).toBe(0);
   });
 
+  it('um barril não derruba árvore nem carro: eles são cobertura permanente', () => {
+    // Sem a guarda, o barril zerava a vida da árvore; o sprite sumia mas o
+    // blocker continuava, e o jogador batia num tronco invisível.
+    initProps(mapa({ b: [5, 3], T: [6, 3], A: [4, 3] }));
+    const barril = getProps().find(p => p.kind === 'barrel')!;
+    const arvore = getProps().find(p => p.kind === 'tree')!;
+    const carro = getProps().find(p => p.kind === 'carro')!;
+    detonateProp(barril);
+    expect(barril.health).toBe(0);
+    expect(arvore.health).toBe(arvore.maxHealth);
+    expect(carro.health).toBe(carro.maxHealth);
+  });
+
   it('a cadeia não propaga se não encadeia: 3 células de distância não entra', () => {
     // raio de blast é 96px; 3 células = 192px, então o terceiro fica de fora
     const cells = mapa({});

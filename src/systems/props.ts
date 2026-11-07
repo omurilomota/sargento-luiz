@@ -310,6 +310,11 @@ export function igniteBarrel(p: Prop): void {
  * não ia junto. Atirar num basta para a linha inteira subir.
  */
 export function detonateProp(p: Prop): Prop[] {
+  // Árvore e carro são cobertura PERMANENTE. A cadeia de barris passava por
+  // cima disso e zerava a vida dos dois; como `setBlockers` só roda no
+  // `initProps`, o sprite sumia e a célula continuava bloqueando para sempre
+  // (relato do playtest: "quando as árvores caem, fico colidindo com o vazio").
+  if (p.kind === 'tree' || p.kind === 'carro') return [];
   const destroyed: Prop[] = [];
   const fila: Prop[] = [p];
   const visitados = new Set<Prop>([p]);
@@ -328,6 +333,9 @@ export function detonateProp(p: Prop): Prop[] {
       // condição de vitória do `collect`, e um barril estourando ao lado
       // apagaria o objetivo sem o jogador ter feito nada de errado.
       if (other.kind === 'combustivel') continue;
+      // Mesmo motivo do guarda acima: a explosão não pode apagar a cobertura
+      // que o tilemap registrou como blocker no início da fase.
+      if (other.kind === 'tree' || other.kind === 'carro') continue;
       if (Math.hypot(other.x - atual.x, other.y - atual.y) <= blastRadius) {
         visitados.add(other);
         fila.push(other);
@@ -575,10 +583,19 @@ export function drawProps(
         ctx.fill();
       }
     } else if (p.kind === 'combustivel') {
-      // tambor de combustível: o MESMO tile do barril (pack, tiles 505-510)
-      // com tint de gasolina — o asset é o visual, o que muda é a cor que o
-      // lê como "combustível" e não como barril explosivo do bioma (regra 15).
-      // Sem pavio e sem flash de dano: ele não quebra nem pega fogo.
+      // Tambor de combustível: o mesmo barril do pack com tint de gasolina,
+      // mas com TRÊS camadas de leitura que faltavam no playtest de
+      // 2026-11-07 ("quando é que o cara vai saber que caixas são
+      // combustíveis?"): o clarão do pack atrás, o galão autoral em cima e o
+      // rótulo de objetivo. Nada de desenho procedural novo (regra 15).
+      const brilho = getSprite('flare_01');
+      if (brilho) {
+        const pulso = 0.14 + Math.sin(Date.now() / 500 + p.col) * 0.05;
+        ctx.globalAlpha = pulso;
+        const s = p.radius * 3.2;
+        ctx.drawImage(brilho, p.x - s / 2, p.y - s / 2, s, s);
+        ctx.globalAlpha = 1;
+      }
       const fuelTiles = PROP_SPRITES.barrel;
       const fuelImg = getSprite(`tile_${fuelTiles[(p.col + p.row) % fuelTiles.length]}`);
       if (fuelImg) {
@@ -595,6 +612,22 @@ export function drawProps(
         ctx.lineWidth = 3;
         ctx.stroke();
       }
+      // O galão é o ícone que responde "isto é combustível" antes do texto.
+      const icone = getSprite('prop_combustivel_00');
+      if (icone) {
+        const s = p.radius * 1.15;
+        const sobe = Math.sin(Date.now() / 450 + p.col) * 2;
+        ctx.drawImage(icone, p.x - s / 2, p.y - p.radius * 1.55 - s / 2 + sobe, s, s);
+      }
+      ctx.save();
+      ctx.font = 'bold 10px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = 'rgba(0,0,0,0.8)';
+      ctx.fillText('COMBUSTÍVEL', p.x + 1, p.y - p.radius * 2.12 + 1);
+      ctx.fillStyle = PALETTE.title;
+      ctx.fillText('COMBUSTÍVEL', p.x, p.y - p.radius * 2.12);
+      ctx.restore();
     } else {
       // caixote: caixa do pack na cor do bioma. O resto — barra de vida,
       // flash de dano, sombra — é estado que muda por frame, não identidade.

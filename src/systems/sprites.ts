@@ -32,6 +32,22 @@ const CHARACTERS: Record<string, string> = {
 };
 
 /**
+ * Corpos EXTERNOS (SpriteAttack, FreeArt Topdown Zombies, CC0) — 3 zumbis
+ * top-down rasterizados em 51×43, com o mesmo pivô dos personagens Kenney.
+ *
+ * Eles não substituem o pack: entram na variação por bioma onde o corpo
+ * genérico `zombie` já aparecia, para o jogador ver mais de 9 silhuetas no
+ * jogo inteiro. As 6 poses apontam para o mesmo quadro porque o pack é de
+ * corpo parado; `drawSpriteFit` gira o corpo inteiro.
+ */
+const EXTRA_CHARACTERS: Record<string, string> = {
+  free1: 'free1',
+  free2: 'free2',
+  free3: 'free3',
+};
+const EXTRA_CHARACTER_BASE = 'assets/sprites/enemies';
+
+/**
  * Centro do corpo dentro da sprite, em pixels do arquivo.
  * Medido nos arquivos: o corpo ocupa x≈1..32 e o cano vai até x≈49, então
  * pivotar pela imagem inteira faria o personagem girar em volta do cano.
@@ -232,7 +248,7 @@ export const BULLET_EXTRA = ['foguete', 'plasma', 'orbe', 'feixe', 'estilhaco'];
  * árvores autorais da Floresta e do Pântano (o pack não tem vegetação — os
  * 185 tiles-objeto dele são caixa e cilindro).
  */
-export const PROP_EXTRA = ['foguete', 'arvore_00', 'arvore_01', 'arvore_morta_00', 'carro_00', 'carro_01', 'carro_02', 'tocha_00', 'tocha_01', 'painel_00', 'berco_00'];
+export const PROP_EXTRA = ['foguete', 'arvore_00', 'arvore_01', 'arvore_morta_00', 'carro_00', 'carro_01', 'carro_02', 'tocha_00', 'tocha_01', 'painel_00', 'berco_00', 'trilho_h_00', 'trilho_h_01', 'trem_locomotiva_00', 'trem_vagao_00', 'combustivel_00'];
 
 /**
  * Sprite de arma por nome, para a loja e o HUD. 6 famílias para 12 armas: as
@@ -290,7 +306,7 @@ export const HAND_SPRITES: Record<string, string> = {
  * 404 silencioso com o inimigo sumindo da tela (`getSprite` devolve `null` e o
  * `drawEnemyShape` cai no círculo de fallback — some a silhueta, não o corpo).
  */
-export const CHARACTER_NAMES = Object.keys(CHARACTERS);
+export const CHARACTER_NAMES = [...Object.keys(CHARACTERS), ...Object.keys(EXTRA_CHARACTERS)];
 
 /** As 6 poses que o pack tem por personagem */
 export const POSES: Pose[] = ['stand', 'hold', 'gun', 'machine', 'reload', 'silencer'];
@@ -412,7 +428,7 @@ export type Bioma = typeof BIOMAS[number];
 export const VARIACAO_POR_BIOMA: Record<Bioma, Record<string, string>> = {
   // 1 CIDADE — predominantemente `zombie`, com o metal do que restou da cidade
   cidade: {
-    grunt: 'zombie', runner: 'manBrown', bat: 'zombie', slime: 'zombie',
+    grunt: 'free1', runner: 'manBrown', bat: 'free2', slime: 'free3',
     drone: 'robot', mosquito: 'zombie', robot: 'soldier', spitter: 'zombie',
     mutante: 'manBlue', tank: 'manOld', alien: 'zombie', crystal: 'woman',
     frog: 'manBrown',
@@ -424,73 +440,73 @@ export const VARIACAO_POR_BIOMA: Record<Bioma, Record<string, string>> = {
   },
   // 3 FLORESTA — madeira e o corpo de quem trabalhava na roça: `manBrown` domina
   floresta: {
-    grunt: 'manBrown', runner: 'soldier', bat: 'manBrown', slime: 'zombie',
-    mosquito: 'woman', alien: 'manBrown', tank: 'manOld', spitter: 'woman',
+    grunt: 'manBrown', runner: 'soldier', bat: 'manBrown', slime: 'free3',
+    mosquito: 'free2', alien: 'manBrown', tank: 'manOld', spitter: 'woman',
     mutante: 'manOld', crystal: 'manBrown', lavaSlime: 'manBrown', drone: 'robot',
   },
   // 4 HOSPITAL — o que a medicina não curou: `woman` (enfermeira) e `manOld` (paciente)
   hospital: {
-    grunt: 'woman', spitter: 'manOld', tank: 'hitman', slime: 'zombie',
-    bat: 'woman', mutante: 'manBlue',
+    grunt: 'woman', spitter: 'manOld', tank: 'hitman', slime: 'free2',
+    bat: 'free3', mutante: 'manBlue',
   },
   // 5 CAVERNA — pedra e escuro: `manOld` e o que desceu da superfície
   caverna: {
-    grunt: 'manOld', runner: 'zombie', bat: 'zombie', slime: 'woman',
+    grunt: 'manOld', runner: 'zombie', bat: 'free1', slime: 'free3',
     crystal: 'woman', mosquito: 'manOld', drone: 'soldier', robot: 'robot',
     mutante: 'manBlue', tank: 'soldier', spitter: 'zombie', alien: 'manOld',
   },
   // 4 FÁBRICA — a máquina que ainda anda: metal domina
   fabrica: {
     grunt: 'robot', robot: 'manBlue', drone: 'manBlue', tank: 'soldier',
-    spitter: 'manBlue', bat: 'robot', runner: 'robot', slime: 'soldier',
+    spitter: 'manBlue', bat: 'robot', runner: 'robot', slime: 'free3',
     mutante: 'manBlue', alien: 'robot', mosquito: 'robot', crystal: 'woman',
   },
   // 7 PÁTIO DE TRENS — ferrugem e ferro-velho
   trens: {
-    grunt: 'hitman', robot: 'zombie', drone: 'manBlue', mutante: 'soldier',
-    bat: 'robot', tank: 'manOld',
+    grunt: 'free2', robot: 'zombie', drone: 'manBlue', mutante: 'free1',
+    bat: 'free3', tank: 'manOld',
   },
   // 8 PONTE — o que anda no cabo de aço
   ponte: {
     bat: 'hitman', spitter: 'soldier', crystal: 'robot',
-    grunt: 'woman', mutante: 'zombie',
+    grunt: 'free1', mutante: 'free3',
   },
   // 9 PÂNTANO — o que afunde e o que não afunde
   pantano: {
-    grunt: 'zombie', slime: 'zombie', frog: 'manBrown', bat: 'woman',
-    mosquito: 'manOld', tank: 'manBrown', alien: 'manOld', spitter: 'manBrown',
+    grunt: 'zombie', slime: 'free2', frog: 'free1', bat: 'woman',
+    mosquito: 'free3', tank: 'manBrown', alien: 'manOld', spitter: 'manBrown',
     mutante: 'manBrown', drone: 'soldier', robot: 'manBlue', crystal: 'manOld',
   },
   // 10 REFINARIA — fogo industrial
   refinaria: {
     grunt: 'manOld', fireElemental: 'hitman', magmaGolem: 'soldier',
-    runner: 'zombie', tank: 'woman', bat: 'manBrown',
-    lavaSlime: 'manBrown', inferno: 'zombie',
+    runner: 'free2', tank: 'woman', bat: 'manBrown',
+    lavaSlime: 'free1', inferno: 'zombie',
   },
   // 11 CASTELO — guarda de muro: `soldier` e `hitman`
   castelo: {
     grunt: 'soldier', runner: 'hitman', knight: 'soldier', tank: 'manOld',
     archer: 'hitman', bat: 'manBrown', spitter: 'hitman', mosquito: 'zombie',
-    mutante: 'manBlue', slime: 'soldier', alien: 'zombie', drone: 'soldier',
+    mutante: 'manBlue', slime: 'free2', alien: 'free3', drone: 'soldier',
     robot: 'hitman',
   },
   // 12 SUBESTAÇÃO — faísca e metal: `robot` domina
   subestacao: {
     drone: 'manBlue', crystal: 'hitman', ufo: 'zombie',
-    grunt: 'robot', tank: 'soldier', mutante: 'woman',
+    grunt: 'free1', tank: 'soldier', mutante: 'free2',
   },
   // 13 VULCÃO — queimado: o pack não tem vermelho, então quem desceu é
   // `manBrown` (lama) e `manOld` (ressecado)
   vulcao: {
-    grunt: 'manBrown', tank: 'manOld', magmaGolem: 'manOld', alien: 'woman',
-    runner: 'soldier', bat: 'zombie', spitter: 'manBrown', slime: 'manBlue',
+    grunt: 'free1', tank: 'manOld', magmaGolem: 'manOld', alien: 'woman',
+    runner: 'soldier', bat: 'zombie', spitter: 'manBrown', slime: 'free2',
     mutante: 'manOld', fireElemental: 'manBrown', inferno: 'soldier',
     mosquito: 'zombie', drone: 'robot', robot: 'soldier',
   },
   // 14 PORTO — o que desembarcou: `manBlue` (marinheiro) e `soldier` (porto)
   porto: {
     slime: 'manBlue', ufo: 'hitman', fireElemental: 'soldier',
-    grunt: 'zombie', bat: 'manOld', mutante: 'manBrown', tank: 'soldier',
+    grunt: 'free2', bat: 'free1', mutante: 'manBrown', tank: 'soldier',
   },
   // 15 ESPAÇO — nada orgânico: `robot`/`manBlue` (aço frio do vácuo)
   espaco: {
@@ -502,8 +518,8 @@ export const VARIACAO_POR_BIOMA: Record<Bioma, Record<string, string>> = {
   // 16 BUNKER — comando militar cercado
   bunker: {
     grunt: 'soldier', robot: 'robot', drone: 'hitman', tank: 'manOld',
-    runner: 'zombie', bat: 'soldier', spitter: 'soldier', alien: 'woman',
-    mutante: 'manBlue', slime: 'soldier', mosquito: 'soldier', crystal: 'woman',
+    runner: 'free2', bat: 'soldier', spitter: 'soldier', alien: 'woman',
+    mutante: 'manBlue', slime: 'free1', mosquito: 'soldier', crystal: 'woman',
     // A biomaquina é gente costurada com peça: o `robot` do próprio bioma,
     // que já é a silhueta de máquina do Bunker.
     biomaquina: 'robot',
@@ -517,6 +533,10 @@ export const VARIACAO_POR_BIOMA: Record<Bioma, Record<string, string>> = {
  * referência) e, no fim, no `zombie`. `fase` fora de 0..8 cai no mapa de
  * referência — um índice errado não pode apagar a silhueta do inimigo.
  */
+export function isExtraCharacter(char: string): boolean {
+  return char in EXTRA_CHARACTERS;
+}
+
 export function getEnemyCharacter(enemyType: string, fase = -1): string {
   const bioma = BIOMAS[fase];
   if (bioma) {
@@ -538,6 +558,11 @@ function buildSpriteList(): [string, string][] {
   for (const [charKey, prefix] of Object.entries(CHARACTERS)) {
     for (const pose of POSES) {
       out.push([`${charKey}_${pose}`, `${BASE}/${prefix}_${pose}.png`]);
+    }
+  }
+  for (const [charKey, prefix] of Object.entries(EXTRA_CHARACTERS)) {
+    for (const pose of POSES) {
+      out.push([`${charKey}_${pose}`, `${EXTRA_CHARACTER_BASE}/${prefix}_${pose}.png`]);
     }
   }
   for (const w of WEAPON_CLASSES) {
@@ -612,47 +637,6 @@ export async function loadAllSprites(): Promise<void> {
 
 export function getSprite(key: string): HTMLImageElement | null {
   return spriteCache.get(key) || null;
-}
-
-/**
- * O CACHE DE TINT — cada tipo de inimigo com a própria cor (M6/F-C).
- *
- * A pergunta do dono era "cadê os sprites?": o pack tem 9 personagens
- * para 32 tipos, e a variedade vinha só da silhueta por bioma. O `color`
- * de cada tipo existia no config e só pintava o FALLBACK procedural —
- * com sprite carregado a cor era morta. Aqui ela acorda: o corpo é
- * tintado UMA vez com a cor do tipo (dessaturada a #808080 antes do
- * multiply, o mesmo molde do props.ts — a paleta sóbria entra por
- * construção) e o resultado fica em cache por (chave, cor).
- *
- * Cache por (personagem+pose, cor): no pior caso ~32 tipos × 6 poses —
- * cada entrada é um canvas do tamanho do sprite, trivial em memória.
- */
-const tintCache = new Map<string, HTMLCanvasElement>();
-
-export function getTintedSprite(key: string, color: string): HTMLCanvasElement | null {
-  const base = spriteCache.get(key);
-  if (!base) return null;
-  const cacheKey = `${key}#${color}`;
-  const jaTem = tintCache.get(cacheKey);
-  if (jaTem) return jaTem;
-  const w = base.naturalWidth || base.width;
-  const h = base.naturalHeight || base.height;
-  const off = document.createElement('canvas');
-  off.width = w;
-  off.height = h;
-  const c = off.getContext('2d')!;
-  c.drawImage(base, 0, 0);
-  // dessatura primeiro: a cor do config pode ser viva, o jogo é pós-apocalíptico
-  c.globalCompositeOperation = 'saturation';
-  c.fillStyle = '#808080';
-  c.fillRect(0, 0, w, h);
-  c.globalCompositeOperation = 'multiply';
-  c.fillStyle = color;
-  c.fillRect(0, 0, w, h);
-  c.globalCompositeOperation = 'source-over';
-  tintCache.set(cacheKey, off);
-  return off;
 }
 
 /** Lista os caminhos de personagem referenciados pelo jogo (para teste de asset). */

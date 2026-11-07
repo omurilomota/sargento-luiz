@@ -42,6 +42,22 @@ describe('assets: os nomes de arquivo que o jogo pede', () => {
     expect(weaponFileExists().sort()).toEqual(esperado);
   });
 
+  it('os 3 corpos externos de zumbi existem nas 6 poses', () => {
+    for (const nome of ['free1', 'free2', 'free3']) {
+      for (const pose of POSES) {
+        const p = join('public', 'assets', 'sprites', 'enemies', `${nome}_${pose}.png`);
+        expect(existsSync(p), `${p} não existe — o corpo cai no fallback procedural`).toBe(true);
+      }
+    }
+  });
+
+  it('os assets do Pátio e do galão existem no disco', () => {
+    for (const nome of ['trilho_h_00', 'trilho_h_01', 'trem_locomotiva_00', 'trem_vagao_00', 'combustivel_00']) {
+      const p = join('public', 'assets', 'sprites', 'props', `${nome}.png`);
+      expect(existsSync(p), `${p} não existe`).toBe(true);
+    }
+  });
+
   it('os itens (moeda e gemas) existem no disco', () => {
     // A moeda é o objeto mais visto do jogo: se um destes sumir, ela volta ao
     // `arc()` procedural do fallback sem ninguém perceber.

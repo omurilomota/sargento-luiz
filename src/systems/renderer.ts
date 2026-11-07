@@ -15,9 +15,9 @@ import { Player } from '../entities/player';
 import { ENEMY_TYPES, POWERUP_TYPES } from '../config';
 import { hasPowerUp } from '../powerups';
 import { isSkillActive } from './skills';
-import { getSprite, getTintedSprite, getEnemyCharacter, poseKey, drawSpriteFit, Pose, isSpritesEnabled, HAND_SPRITES } from './sprites';
+import { getSprite, getEnemyCharacter, poseKey, drawSpriteFit, Pose, isSpritesEnabled, HAND_SPRITES, isExtraCharacter } from './sprites';
 import { buildCutsceneBackdrop, cutsceneVeil } from './terrain';
-import { getIsReloading, getWeaponFamily, WeaponFamily } from '../weapons';
+import { getIsReloading, getWeaponFamily, getShotRecoil, WeaponFamily } from '../weapons';
 import { getCurrentCutscene, getCurrentLine, isLineComplete, getTextProgress, getPortraitInfo, getBeatRestante } from './story';
 import { getDialogo, retratoDoDialogo } from './dialogo';
 import { estaEmTelaCheia } from './fullscreen';
@@ -30,7 +30,7 @@ import { GAME_MODES } from './gameModes';
 import { CLASSES, ClassId } from './classes';
 import {
   getMasterVolume, getMusicVolume, getSfxVolume,
-  setMasterVolume, setMusicVolume, setSfxVolume,
+  setMasterVolume, setMusicVolume, setSfxVolume, isMusicEnabled,
 } from './audio';
 
 /** Contexto 2D do canvas */
@@ -84,11 +84,11 @@ const RODAPE_ESPACO = [12, 12, 12, 16, 18];
  * cresce para cima, então a distância para o crédito é constante em qualquer
  * altura.
  */
-export function getMenuFooterLayout(h: number, temSave: boolean): MenuFooterLine[] {
+export function getMenuFooterLayout(h: number, temSave: boolean, musicOn = true): MenuFooterLine[] {
   const linhas: { texto: string; cor: string; fonte: string; pulso: boolean }[] = [
     { texto: 'WASD: Mover | Mouse: Mirar | Click: Atirar', cor: PALETTE.textOff, fonte: '11px monospace', pulso: false },
     { texto: 'Espaco: Dash | F: Escudo | E: Furia | R: Recarregar', cor: PALETTE.textOff, fonte: '11px monospace', pulso: false },
-    { texto: 'M: Musica | S: Efeitos | O: Configurações', cor: PALETTE.textOff, fonte: '11px monospace', pulso: false },
+    { texto: `M: Musica ${musicOn ? 'LIGADA' : 'DESLIGADA'} | S: Efeitos | O: Configurações`, cor: PALETTE.textOff, fonte: '11px monospace', pulso: false },
     { texto: 'V: Créditos', cor: PALETTE.textOff, fonte: '11px monospace', pulso: false },
   ];
   if (temSave) {
@@ -386,7 +386,7 @@ export function drawMenu(selectedMode: string = 'campaign', selectedClass: Class
     ctx.fillText('CONFIGURAÇÕES (O)', W / 2, midY);
   }
 
-  for (const linha of getMenuFooterLayout(H, hasSave())) {
+  for (const linha of getMenuFooterLayout(H, hasSave(), isMusicEnabled())) {
     if (linha.pulso) ctx.globalAlpha = 0.3 + Math.sin(Date.now() / 600) * 0.3;
     ctx.fillStyle = linha.cor;
     ctx.font = linha.fonte;
@@ -452,9 +452,9 @@ export function drawCutscene(): void {
   }
 
   ctx.fillStyle = portrait.color;
-  ctx.font = 'bold 12px monospace';
+  ctx.font = 'bold 14px monospace';
   ctx.textAlign = 'left';
-  ctx.fillText(portrait.name, portraitX + portraitR + 16, portraitY - 10);
+  ctx.fillText(portrait.name, portraitX + portraitR + 16, portraitY - 12);
 
   // Beat de silêncio: a linha "---" não desenha texto nenhum, e o retrato
   // some. É o silêncio depois da morte do Fernandes — a tela fica com o
@@ -463,18 +463,20 @@ export function drawCutscene(): void {
   const displayedText = emSilencio ? '' : line.text.substring(0, Math.floor(progress));
   if (!emSilencio) {
     ctx.fillStyle = '#bbb';
-    ctx.font = '16px monospace';
-    wrapText(ctx, displayedText, portraitX + portraitR + 16, portraitY + 10, canvas.width * 0.6, 22);
+    ctx.font = '18px monospace';
+    wrapText(ctx, displayedText, portraitX + portraitR + 16, portraitY + 12, canvas.width * 0.6, 24);
   }
 
   // Sempre visível: antes o prompt só aparecia DEPOIS de a linha terminar,
-  // então quem não sabia o truque ficava preso vendo o texto digitar.
-  ctx.fillStyle = PALETTE.textOff;
-  ctx.font = '12px monospace';
-  ctx.textAlign = 'right';
-  ctx.globalAlpha = complete ? 0.3 + Math.sin(Date.now() / 500) * 0.3 : 0.55;
-  ctx.fillText('ENTER: avançar  ·  BACKSPACE: pular', canvas.width - 30, canvas.height - 30);
+  // então quem não sabia o truque ficava preso vendo o texto digitar. Agora
+  // ele é a única coisa em mostarda no rodapé e diz a ação, não o nome da tecla.
+  ctx.fillStyle = PALETTE.mustard;
+  ctx.font = 'bold 15px monospace';
+  ctx.textAlign = 'center';
+  ctx.globalAlpha = complete ? 0.75 + Math.sin(Date.now() / 500) * 0.25 : 0.6;
+  ctx.fillText('ENTER / ESPAÇO / CLIQUE PARA CONTINUAR', canvas.width / 2, canvas.height - 28);
   ctx.globalAlpha = 1;
+  ctx.textAlign = 'left';
 
   ctx.strokeStyle = 'rgba(255,255,255,0.06)';
   ctx.beginPath();
@@ -495,30 +497,30 @@ export function drawDialogo(): void {
   if (!entrada) return;
   const info = retratoDoDialogo(entrada);
   const W = canvas.width, H = canvas.height;
-  const boxW = Math.min(720, W - 120);
-  const boxH = 96;
+  const boxW = Math.min(760, W - 80);
+  const boxH = 132;
   const x = (W - boxW) / 2;
-  const y = H - boxH - 28;
+  const y = H - boxH - 24;
   ctx.fillStyle = 'rgba(10,10,10,0.92)';
   ctx.fillRect(x, y, boxW, boxH);
   ctx.strokeStyle = 'rgba(160,128,80,0.5)';
   ctx.strokeRect(x + 0.5, y + 0.5, boxW - 1, boxH - 1);
   const img = getSprite(info.sprite);
   if (img && img.complete && img.naturalWidth > 0) {
-    ctx.drawImage(img, x + 12, y + 16, 56, 56);
+    ctx.drawImage(img, x + 16, y + 20, 64, 64);
   }
   ctx.fillStyle = info.color;
-  ctx.font = 'bold 11px monospace';
+  ctx.font = 'bold 14px monospace';
   ctx.textAlign = 'left';
-  ctx.fillText(info.name, x + 82, y + 20);
+  ctx.fillText(info.name, x + 96, y + 26);
   ctx.fillStyle = '#bbb';
-  ctx.font = '13px monospace';
-  wrapText(ctx, entrada.text, x + 82, y + 40, boxW - 104, 17);
-  ctx.fillStyle = PALETTE.textOff;
-  ctx.font = '11px monospace';
-  ctx.textAlign = 'right';
-  ctx.globalAlpha = 0.5 + Math.sin(Date.now() / 400) * 0.3;
-  ctx.fillText('ENTER', x + boxW - 10, y + boxH - 8);
+  ctx.font = '16px monospace';
+  wrapText(ctx, entrada.text, x + 96, y + 48, boxW - 120, 21);
+  ctx.fillStyle = PALETTE.mustard;
+  ctx.font = 'bold 14px monospace';
+  ctx.textAlign = 'center';
+  ctx.globalAlpha = 0.65 + Math.sin(Date.now() / 400) * 0.25;
+  ctx.fillText('ENTER OU CLIQUE PARA CONTINUAR', x + boxW / 2, y + boxH - 14);
   ctx.globalAlpha = 1;
   ctx.textAlign = 'left';
 }
@@ -719,13 +721,15 @@ export function drawCredits(): void {
     { texto: 'Uso gratuito com atribuição — agradecimento a todos os autores', cor: PALETTE.textDim, tamanho: '11px', peso: '' },
     { texto: '', cor: PALETTE.textDim, tamanho: '11px', peso: '' },
     { texto: 'SFX', cor: PALETTE.mustard, tamanho: '13px', peso: 'bold ' },
-    { texto: 'Kenney.nl + OpenGameArt — CC0 e CC-BY (32 efeitos)', cor: PALETTE.text, tamanho: '12px', peso: '' },
+    { texto: 'Kenney.nl + OpenGameArt — CC0 e CC-BY (52 efeitos)', cor: PALETTE.text, tamanho: '12px', peso: '' },
     { texto: 'Tiros: Vincent Sevedge (opengameart.org) — CC-BY 3.0', cor: PALETTE.text, tamanho: '12px', peso: '' },
     { texto: 'Sons gratuitos com crédito; o detalhe completo está no menu de créditos', cor: PALETTE.textDim, tamanho: '11px', peso: '' },
     { texto: 'Recursos e sons narrativos: OpenGameArt (risada, chave de roda, foguete)', cor: PALETTE.textDim, tamanho: '11px', peso: '' },
     { texto: '', cor: PALETTE.textDim, tamanho: '11px', peso: '' },
     { texto: 'SPRITES', cor: PALETTE.mustard, tamanho: '13px', peso: 'bold ' },
     { texto: 'Kenney — Top-down Shooter · kenney.nl · CC0', cor: PALETTE.text, tamanho: '12px', peso: '' },
+    { texto: 'SpriteAttack — FreeArt Topdown Zombies · CC0 (3 corpos)', cor: PALETTE.text, tamanho: '11px', peso: '' },
+    { texto: 'Trilho, trens e galão autorais · CC0 (tools/gen_assets_*)', cor: PALETTE.textDim, tamanho: '11px', peso: '' },
     { texto: 'Personagens, armas e tiles (PNG/Tiles)', cor: PALETTE.textDim, tamanho: '11px', peso: '' },
     { texto: 'Screaming Brain — Top Down Dungeon · CC0 (chão e paredes)', cor: PALETTE.text, tamanho: '11px', peso: '' },
     { texto: 'Kay Lousberg — 2D Guns · CC0 (armas e projéteis)', cor: PALETTE.text, tamanho: '11px', peso: '' },
@@ -1110,15 +1114,25 @@ export function drawEnemies(
     // Sem o índice da fase, a variação existia na tabela e nunca chegava na tela.
     const char = getEnemyCharacter(e.type, faseIndex);
     const pose = enemyPose(e);
-    // F-C: o corpo vem TINTADO com a cor do tipo (o `color` do config era
-    // morto com sprite carregado — só pintava o fallback). O tint é
-    // dessaturado por construção (getTintedSprite), então a paleta sóbria
-    // se mantém. Chefe também tinge: a identidade dele é o ANEL terracota,
-    // não a cor crua.
-    const img = spritesOn ? getTintedSprite(poseKey(char, pose), def?.color ?? '#888') : null;
+    // O corpo é o sprite do pack, SEM tint por tipo. O tint multiplicava o
+    // PNG inteiro pela cor do config e o personagem virava uma silhueta
+    // chapada verde/roxa/amarela — o dono leu como "aura feia" no playtest
+    // de 2026-11. A cor do tipo continua no fallback procedural e nos
+    // projéteis; o corpo na tela é a arte do pack.
+    const img = spritesOn ? getSprite(poseKey(char, pose)) : null;
 
     if (img) {
-      drawSpriteFit(ctx, img, e.x, e.y, e.radius * 2.4, facing(e));
+      // "squash" de dano: o corpo encolhe/estica 16% no flash em vez de só
+      // piscar. É leitura de impacto, não uma animação de morte inventada.
+      const squash = 1 + Math.min(0.16, Math.max(0, e.hitFlash) * 1.1);
+      // Os zumbis externos foram desenhados de frente para CIMA (cabeça no
+      // topo, pés embaixo); o Kenney aponta para a direita. O offset alinha o
+      // corpo à direção de perseguição sem mudar a arte de cada um. O corpo
+      // deles ocupa 34px dentro do quadro 51×43, então precisa de 1.3× para
+      // ler no mesmo tamanho do Kenney.
+      const extra = isExtraCharacter(char);
+      const angulo = extra ? facing(e) + Math.PI / 2 : facing(e);
+      drawSpriteFit(ctx, img, e.x, e.y, e.radius * 2.4 * squash * (extra ? 1.3 : 1), angulo);
       if (e.hitFlash > 0) {
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
@@ -1260,10 +1274,40 @@ function playerPose(): Pose {
 }
 
 /**
+ * O pacote não tem frames de caminhada: as 6 poses são de arma, não de passo.
+ * O corpo ganha vida com um balanço curto (e para quando o jogador para) — é
+ * o que tira a leitura de "peça deslizando" sem inventar frame que o asset
+ * não tem.
+ */
+let ultimoPlayerX = Number.NaN;
+let ultimoPlayerY = Number.NaN;
+let ultimoPlayerAngle = 0;
+let faseDoPasso = 0;
+
+/** Fantasmas do dash: sprites do pack, não um rastro desenhado em código. */
+interface RastroDash {
+  x: number;
+  y: number;
+  angle: number;
+  criadoEm: number;
+}
+const rastroDash: RastroDash[] = [];
+const RASTRO_DASH_MS = 220;
+
+/**
  * Desenha o jogador com pose do pacote Kenney, arma na mão e auras
  * de escudo/fúria.
  */
 export function drawPlayer(player: Player): void {
+  const dx = Number.isNaN(ultimoPlayerX) ? 0 : player.x - ultimoPlayerX;
+  const dy = Number.isNaN(ultimoPlayerY) ? 0 : player.y - ultimoPlayerY;
+  const andou = Math.hypot(dx, dy) > 0.35;
+  faseDoPasso += andou ? 0.3 : 0.06;
+  const balanco = andou ? Math.sin(faseDoPasso) * 1.2 : Math.sin(Date.now() / 520) * 0.35;
+  ultimoPlayerX = player.x;
+  ultimoPlayerY = player.y;
+  ultimoPlayerAngle = player.angle;
+
   if (player.deathTimer > 0) {
     const progress = 1 - player.deathTimer / 1.5;
     ctx.save();
@@ -1288,13 +1332,42 @@ export function drawPlayer(player: Player): void {
   const skin = getEquippedSkin();
   const hasSprite = isSpritesEnabled() && !!getSprite('survivor_stand');
 
+  // O dash ganha um rastro de corpos do próprio pack. Antes o dash era só o
+  // deslocamento e um whoosh: a velocidade não deixava marca no mundo.
+  const agora = performance.now();
+  while (rastroDash.length && agora - rastroDash[0].criadoEm > RASTRO_DASH_MS) {
+    rastroDash.shift();
+  }
+  if (isSkillActive('dash') && hasSprite && !Number.isNaN(ultimoPlayerX) && rastroDash.length < 9) {
+    rastroDash.push({ x: ultimoPlayerX, y: ultimoPlayerY, angle: ultimoPlayerAngle, criadoEm: agora });
+  }
+  const imgRastro = hasSprite ? getSprite(poseKey('survivor', playerPose())) : null;
+  if (imgRastro && rastroDash.length) {
+    for (const g of rastroDash) {
+      const alpha = 0.26 * (1 - (agora - g.criadoEm) / RASTRO_DASH_MS);
+      if (alpha <= 0) continue;
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.translate(g.x, g.y);
+      ctx.rotate(g.angle);
+      drawSpriteFit(ctx, imgRastro, 0, 0, player.radius * 2.5, 0);
+      ctx.restore();
+    }
+  }
+
   ctx.save();
-  ctx.translate(player.x, player.y);
+  ctx.translate(player.x, player.y + balanco);
   ctx.rotate(player.angle);
+  // recuo no eixo da mira: o corpo/arma volta alguns pixels e decompõe
+  const recuo = getShotRecoil();
+  if (recuo > 0) ctx.translate(-recuo * 3, 0);
 
   if (hasSprite) {
     const img = getSprite(poseKey('survivor', playerPose()))!;
-    drawSpriteFit(ctx, img, 0, 0, player.radius * 2.5, 0);
+    // hitFlash do jogador nunca era lido no desenho: o corpo agora dá um
+    // pequeno estalo de 10% no dano, no mesmo vocabulário do squash inimigo.
+    const corpoDano = player.radius * 2.5 * (1 + Math.min(0.1, player.hitFlash * 0.5));
+    drawSpriteFit(ctx, img, 0, 0, corpoDano, 0);
     // A ARMA NA MÃO POR ARMA (playtest: "para cada arma equipada, um
     // sprite na mão"): autoral top-down (o pack é perfil — DECISIONS #91
     // para o corpo, vale para a mão). Nasce GRIP no ombro (o (0,0) local

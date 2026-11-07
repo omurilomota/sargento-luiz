@@ -119,6 +119,31 @@ flat do jogo.
 - `assets/sprites/topdown-shooter/PNG/Tiles/tile_*.png` — 524 tiles de 64×64
 - `assets/sprites/topdown-shooter/License.txt` — licença original do pack
 
+**SpriteAttack — FreeArt Topdown Zombies** ·
+[opengameart.org/content/freeart-topdown-zombies](https://opengameart.org/content/freeart-topdown-zombies) ·
+**CC0 1.0 Universal**
+
+- `assets/sprites/enemies/free{1,2,3}_*.png` — 3 corpos top-down para os
+  tipos de zumbi que antes caíam todos no mesmo `zombie` do Kenney. Os SVGs
+  originais foram rasterizados com `cairosvg`, recortados fora das molduras
+  de guia, dessaturados a 62% (o pack de 2014 usa vermelho/azul vivos) e
+  normalizados em 51×43 com o pivô (17,21) do `drawSpriteFit`. O `free3` é
+  uma variante verde-musgo do `free2`: o SVG combinado só oferece um corpo
+  rastejante horizontal para o terceiro zumbi, que ficaria baixo demais no
+  `bodySize` de 38px. As 6 poses compartilham o mesmo quadro porque o pack é
+  de corpo parado; o corpo inteiro gira na direção da perseguição.
+
+**SARGENTO LUIZ — trilho, trens e galão (autorais, CC0)**
+
+- `assets/sprites/props/trilho_h_{00,01}.png` — tile de 64px com lastro,
+  dormentes e bitola; desenhado em 4× e reduzido com Lanczos.
+- `assets/sprites/props/trem_locomotiva_00.png` e `trem_vagao_00.png` —
+  256×64, telhado, nervuras, escotilhas, ferrugem, engates e o “7” do
+  manifesto. Gerados por `tools/gen_assets_trens.py`.
+- `assets/sprites/props/combustivel_00.png` — galão 64×64 com alça, bico e
+  gota, o ícone que identifica o tambor do objetivo `collect` da Refinaria.
+  Gerado por `tools/gen_assets_combustivel.py`.
+
 **Kenney — Tower Defense (Top-Down)** ·
 [kenney.nl/assets/tower-defense-top-down](https://kenney.nl/assets/tower-defense-top-down) ·
 **CC0 1.0 Universal** (domínio público, crédito por cortesia)
@@ -237,6 +262,8 @@ entre −0.7 e −7.9 dB, no mesmo degrau do banco (tiro a 0 dB, UI em −8).
 | jammed | `assets/sfx/jammed.ogg` | Kenney Vleugels | kenney.nl/assets/interface-sounds | CC0 |
 | gameOver | `assets/sfx/gameOver.ogg` | Kenney Vleugels | kenney.nl/assets/impact-sounds | CC0 |
 | hitStop | `assets/sfx/hitStop.ogg` | Kenney Vleugels | kenney.nl/assets/impact-sounds | CC0 |
+| impacto | `assets/sfx/impacto.ogg` | Kenney Vleugels — corte e highpass de `hitStop.ogg` | kenney.nl/assets/impact-sounds | CC0 |
+| abate | `assets/sfx/abate.ogg` | Kenney Vleugels + rubberduck (Thomas Deisz) — mix de `hitStop.ogg` e `explosion.ogg` | kenney.nl/assets/impact-sounds · opengameart.org/content/25-cc0-bang-firework-sfx | CC0 |
 | dash | `assets/sfx/dash.ogg` | Kenney Vleugels | kenney.nl/assets/rpg-audio | CC0 |
 | shield | `assets/sfx/shield.ogg` | Kenney Vleugels | kenney.nl/assets/sci-fi-sounds | CC0 |
 | fury | `assets/sfx/fury.ogg` | Kenney Vleugels | kenney.nl/assets/sci-fi-sounds | CC0 |

@@ -50,12 +50,32 @@ export function buildTerrain(biome: Biome, cells: string[][]): HTMLCanvasElement
         case '=': case ':': case '-': case '_':
           drawAsphalt(c, px, py, biome, col, row, ch);
           break;
+        case 'r':
+          drawFloor(c, px, py, biome, col, row);
+          break;
         default: drawFloor(c, px, py, biome, col, row); break;
       }
     }
   }
 
   applyTint(c, off, biome);
+
+  // Trilho e trem são assets de CENÁRIO, não materiais do bioma. Desenhar
+  // depois da tinta preserva o aço e a ferrugem; antes, o multiply do bioma
+  // apagava o trem para quase preto no Pátio. O trilho fica na célula `r`
+  // caminável; o trem cobre as 4 células `#` e continua sólido.
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      if (cells[row][col] === 'r') drawRail(c, col * CELL_SIZE, row * CELL_SIZE, col, row);
+    }
+  }
+  for (const car of biome.train ?? []) {
+    const img = getSprite(`prop_${car.sprite}`);
+    if (img) {
+      c.drawImage(img, car.col * CELL_SIZE, car.row * CELL_SIZE, CELL_SIZE * 4, CELL_SIZE);
+    }
+  }
+
   prerendered = off;
   prerenderedKey = biome.key;
   return off;
@@ -93,6 +113,19 @@ function drawAsphalt(
   const tile = getDungeonTile(material, variant, biome.tint);
   // tile não carregou: fica a cor base pintada em buildTerrain, sem desenho
   if (tile) c.drawImage(tile, px, py, CELL_SIZE, CELL_SIZE);
+}
+
+/**
+ * Trilho do Pátio: asset autoral CC0 (`tools/gen_assets_trens.py`).
+ *
+ * É um tile de 64px repetido em linha, com lastro translúcido para o piso do
+ * bioma aparecer nas beiradas. Sem fallback procedural: se o PNG não carregar,
+ * o chão continua chão — a fase perde a via, não ganha um desenho de código.
+ */
+function drawRail(c: CanvasRenderingContext2D, px: number, py: number, col: number, row: number): void {
+  const chave = (col + row) % 2 === 0 ? 'prop_trilho_h_00' : 'prop_trilho_h_01';
+  const img = getSprite(chave);
+  if (img) c.drawImage(img, px, py, CELL_SIZE, CELL_SIZE);
 }
 
 function drawFloor(c: CanvasRenderingContext2D, px: number, py: number, biome: Biome, col: number, row: number): void {
