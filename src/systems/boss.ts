@@ -190,7 +190,10 @@ export function updateBoss(
       }
       break;
     case 'ring':
-      for (let s = 0; s < 8; s++) {
+      // 8 tiros a cada 30° deixavam um setor cego de 120° fixo (o e.angle só
+      // é definido no spawn e nunca muda): a promessa do NÚCLEO era "nenhuma
+      // diagonal é segura" — 12 tiros fecham o círculo inteiro
+      for (let s = 0; s < 12; s++) {
         const a = (s * Math.PI * 2) / 12 + e.angle;
         spawnBullet(e.x, e.y, Math.cos(a) * speed, Math.sin(a) * speed, dmg * 0.7, true, color, false);
       }

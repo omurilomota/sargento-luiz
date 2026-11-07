@@ -432,7 +432,10 @@ export function medirHud(d: HudData): HudMedida[] {
   push(`${Math.ceil(d.health)}/${Math.round(d.maxHealth)}`, 'bold 13px monospace', col, 'coluna esquerda', 'vidaFim', 12, 12 + 12);
   push(`NV ${d.nivel}`, 'bold 11px monospace', 34, 'antes da barra de XP', 'xpRotuloY', L.xpLabelY - 9, L.xpLabelY + 2);
   push(d.skills.map(s => s.name.toUpperCase()).join(' '), '11px monospace', SIDE_W, 'coluna esquerda', 'skillRotuloY', L.skillLabelY - 9, L.skillLabelY + 2);
-  push(`1-${Math.max(1, d.slotsDeArma)}: trocar arma · TAB: ficha`, '11px monospace', SIDE_W, 'coluna esquerda', 'hintsY', L.hintsY - 9, L.hintsY + 2);
+  // só promete troca quando há mais de uma arma: com a pistola sozinha,
+  // "1-1: trocar arma" é ruído (playtest: "1-9? Só tenho 4 no máximo")
+  const troca = d.slotsDeArma > 1 ? `1-${d.slotsDeArma}: trocar arma · ` : '';
+  push(`${troca}TAB: ficha`, '11px monospace', SIDE_W, 'coluna esquerda', 'hintsY', L.hintsY - 9, L.hintsY + 2);
 
   // ficha mini (canto inferior direito) e painel de combos do TAB: as caixas
   // vêm da metade direita da tela na resolução atual (o vizinho mais próximo
@@ -791,7 +794,9 @@ function drawKeyHints(d: HudData): void {
   const partes: string[] = [];
   if (d.medkits > 0) partes.push(`H: medkit (${d.medkits})`);
   if (d.hasNpc) partes.push(d.npcFollowing ? 'J: seguindo' : 'J: parado');
-  partes.push('1-9: trocar arma');
+  // o hint promete o que existe: o inventário é 4, e a troca só faz
+  // sentido a partir da segunda arma
+  if (d.slotsDeArma > 1) partes.push(`1-${d.slotsDeArma}: trocar arma`);
   partes.push('TAB: ficha');
 
   ctx!.fillStyle = PALETTE.textOff;
