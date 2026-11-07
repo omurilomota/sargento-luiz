@@ -23,6 +23,11 @@ const RAIZ = fileURLToPath(new URL('..', import.meta.url));
 
 const servidor = await createServer({ root: RAIZ, server: { middlewareMode: true }, appType: 'custom', logLevel: 'silent' });
 const cfg = await servidor.ssrLoadModule('/src/config.ts');
+// A escada de perks substituiu os 19 UPGRADES avulsos: `cfg.UPGRADES` não
+// existe mais e o contador do site imprimia "upgrades 0" — o nome antigo
+// continua no rótulo porque é o que o jogador entende, mas o número agora
+// sai da escada (20 degraus + 4 especiais).
+const perks = await servidor.ssrLoadModule('/src/systems/perks.ts');
 await servidor.close();
 
 // Campos lidos do `Weapon` real (types.ts): é `weaponClass` (pistol/machine/
@@ -61,7 +66,7 @@ const dados = {
     armas: armas.length,
     chefes: fases.filter((f) => f.chefe).length,
     inimigos: inimigos.length,
-    upgrades: Object.keys(cfg.UPGRADES ?? {}).length,
+    upgrades: perks.PERK_LADDER.length,
   },
   fases,
   armas,

@@ -4,7 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SARGENTO LUIZ — shooter roguelite de sobrevivência, no navegador</title>
-<meta name="description" content="Top-down survival shooter com progressão roguelite: 9 fases, 12 armas, 9 chefes. Joga no navegador, com teclado e mouse.">
+<link rel="icon" type="image/png" href="imagens/icone.png" />
+<meta name="description" content="Top-down survival shooter com progressão roguelite: 16 fases, 13 armas, 16 chefes. Joga no navegador, com teclado e mouse.">
 <style>
   /* Paleta tirada de src/core/palette.ts sem desvio: fundo #111, título areia
      velha, texto cinza, acentos musgo/terracota/mostarda/azul-pedra. Nada de
@@ -58,7 +59,7 @@
     <div>
       <p class="rotulo">sobrevivência · tiro de cima · roguelite</p>
       <h1>SARGENTO LUIZ</h1>
-      <p class="resumo">Nove fases de um mundo que já acabou. Cada fase tem ondas, um objetivo e um
+      <p class="resumo">Dezesseis fases de um mundo que já acabou. Cada fase tem ondas, um objetivo e um
       chefe que não espera você ficar pronto. Você morre, volta ao menu, compra melhor e repete —
       e o diário anota o que aconteceu do seu jeito.</p>
     </div>
@@ -70,7 +71,7 @@
 
   <section class="capturas">
     <figure><img src="imagens/menu.png" alt="Menu principal do jogo" loading="lazy"><figcaption>Menu — o fundo é o terreno do jogo, não arte de vitrine.</figcaption></figure>
-    <figure><img src="imagens/cutscene-floresta.png" alt="Cutscene da Floresta" loading="lazy"><figcaption>Uma das nove cutscenes. O cenário é montado com os mesmos tiles do jogo.</figcaption></figure>
+    <figure><img src="imagens/cutscene-floresta.png" alt="Cutscene da Floresta" loading="lazy"><figcaption>Uma das cutscenes. O cenário é montado com os mesmos tiles do jogo.</figcaption></figure>
     <figure><img src="imagens/combate.png" alt="Combate na Cidade em Ruínas" loading="lazy"><figcaption>Cidade em Ruínas, onda 1/3. A moeda no chão é sprite, não círculo.</figcaption></figure>
     <figure><img src="imagens/ficha.png" alt="Ficha da arma" loading="lazy"><figcaption>Ficha da arma no TAB: campo e build na mesma tela.</figcaption></figure>
   </section>
@@ -84,7 +85,7 @@
         <dt>clique</dt><dd>atirar (segurar)</dd>
         <dt>ESPAÇO</dt><dd>dash</dd>
         <dt>E / F</dt><dd>escudo / fúria</dd>
-        <dt>1–9</dt><dd>trocar arma</dd>
+        <dt>1–4</dt><dd>trocar arma</dd>
         <dt>TAB</dt><dd>ficha da arma</dd>
         <dt>ESC</dt><dd>pausa</dd>
       </dl>
@@ -98,13 +99,13 @@
   </section>
 
   <section>
-    <h2>As nove fases</h2>
+    <h2>As dezesseis fases</h2>
     <p class="rotulo">objetivo e chefe saem do config — se a fase mudar, isto muda junto</p>
     <table><thead><tr><th>#</th><th>fase</th><th>ondas</th><th>objetivo</th><th>chefe</th></tr></thead><tbody id="t-fases"></tbody></table>
   </section>
 
   <section>
-    <h2>Doze armas</h2>
+    <h2>Treze armas</h2>
     <table><thead><tr><th>arma</th><th>classe</th><th>dano</th><th>s entre tiros</th><th>pente</th><th>o que ela faz</th></tr></thead><tbody id="t-armas"></tbody></table>
   </section>
 
