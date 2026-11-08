@@ -2,9 +2,9 @@
 // Status detalhado: ver STATUS.md
 //
 // ═══════════════════════════════════════════════════════════════
-// ESTADO REAL — 2026-11-07 12:47 · 883740b
+// ESTADO REAL — 2026-11-08 · branch `develop`
 // 16 fases · 13 armas · 16 chefes de fase · 40 tipos de inimigo · 7 combos
-// 1435 testes · tsc limpo · build ok
+// 1460 testes · tsc limpo · build ok
 //
 // A LISTA VIVA é docs/PENDENCIAS.md. As seções abaixo são histórico: vários
 // [ ] já foram entregues e ficaram aqui como registro da sessão. Ideias e
@@ -2052,3 +2052,53 @@
 //     só sobrou a sigla aqui. Precisa do playtest, senão vira palpite. O
 //     melee mexeria na arma da fase final (o Destruidor é lançador
 //     explosivo mas o código o chama de "o martelo").
+
+// ═══════════════════════════════════════════════════════════════
+// RODADA 2026-11-08 — EQUILIBRIO: "DEPOIS DE UPAR TUDO O PERSONAGEM
+// FICA IMBATÍVEL"
+// ═══════════════════════════════════════════════════════════════
+// Relato do dono: "depois de upar tudo, o personagem fica imbatível e mata
+// tudo e todos na sua frente sem nenhuma dificuldade, ruim isso".
+//
+// A causa é aritmética, e foi medida antes de mexer:
+//   - dano do jogador: 12 (pistola) -> 30 por tiro (45 no crítico) na build
+//     máxima (24 perks + 6 talentos + metralhadora lendária + 2 peças de
+//     dano); DPS 25,5 -> 57;
+//   - vida do inimigo: 13 (grunt) -> 32; o NÚCLEO, 1060 de vida;
+//   - um tiro da build máxima (30) APAGAVA um grunt de 32 de vida;
+//   - o NÚCLEO caía em 6,5s de tiro contínuo — antes da luta começar.
+//
+// [x] AMEAÇA (escala do mundo): a vida do inimigo escala com o poder de
+//     FOGO do jogador e o dano dele com a VIDA EFETIVA (2 eixos, porque
+//     "dar mais dano" e "aguentar mais" são problemas diferentes). A escala
+//     é proporcional e MENOR que o ganho (0,5 / 0,8, com teto 4,0 / 2,5):
+//     quem se prepara continua mais forte que o mundo. Sem preparo, escala
+//     1,0 — a curva autorada intacta. `src/systems/ameaca.ts` (novo, puro,
+//     sem importar a loja para não criar ciclo).
+// [x] TETO DE DANO POR ACERTO: 35% da vida máxima do alvo (comum) e 20%
+//     (chefe), com piso absoluto (14 / 24). O piso mantém a pistola
+//     inicial (12 de dano) intacta: a prova é aritmética, não estatística.
+//     A explosão do JOGADOR passa pelo teto; a do MUNDO (barril, raio) não.
+//     O número de dano na tela é o valor APLICADO, não o bruto.
+// [x] A AMEAÇA À VISTA: cabeçalho da loja (valor projetado, recalculado a
+//     cada draw) e abaixo de "PAUSADO" (valor em vigor). A loja é onde a
+//     compra acontece — sem o número, "upar tudo" parece de graça.
+// [x] PROVA DE EQUILIBRIO (`npm run balance`, `tools/balance-proof.mjs`):
+//     9/9. Monta a build máxima pelo SAVE (o caminho real de quem está com a
+//     partida pronta), mede: (1) o inimigo comum sobrevive ao PRIMEIRO
+//     acerto, (2) nenhum acerto passa do teto, (3) o teto não vira
+//     arrastão, (4) o NÚCLEO exige >= 8s de tiro contínuo, (5) o chefe
+//     ameaça o jogador. A prova foi validada no "antes": com o teto e a
+//     escala desligados, ela FALHA (o alvo cai no 1º acerto; TTK 6,5s).
+//     Medido no "depois": ameaça 2,29, NÚCLEO com 2427 de vida, TTK 12,9s.
+// [x] DECISÃO DE PROVA: o `npm run fases` é ESTOCÁSTICO e NÃO pode
+//     certificar "a campanha não mudou" — duas execuções da MESMA build
+//     diferem em 14 das 16 fases (o ruído é do tamanho do sinal). A
+//     garantia de "sem preparo, nada muda" é ARITMÉTICA (escala 1,0 e
+//     pistola nunca cortada), travada em `src/__tests__/ameaca.test.ts`.
+// [ ] P1-12 (PENDENCIAS): a mira do `tools/bot.mjs` está errada (soma
+//     metade da viewport; a câmera é o canto superior esquerdo visível).
+//     Defeito PRÉ-EXISTENTE, deixado de fora de propósito: corrigir muda a
+//     régua de todo `npm run fases`/`npm run sessao`.
+// [ ] P1-13 (PENDENCIAS): a loja pode exibir moedas negativas (evento
+//     `evt_azar` = -10 e `addShopCoins` soma sem piso).

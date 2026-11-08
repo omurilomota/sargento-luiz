@@ -1,7 +1,7 @@
 # SARGENTO LUIZ — Status Geral do Projeto
 
-> Atualizado: 2026-11-07 14:12 · branch `develop` · merge `8da044c` · código `6971442` ·
-> 16 fases · 13 armas · 16 chefes de fase · 1439 testes em 66 arquivos ·
+> Atualizado: 2026-11-08 11:30 · branch `develop` · merge `8da044c` · código `ec97a42` ·
+> 16 fases · 13 armas · 16 chefes de fase · 1460 testes em 67 arquivos ·
 > `tsc` limpo · build ok.
 > A lista viva de pendências é [`docs/PENDENCIAS.md`](docs/PENDENCIAS.md);
 > ideias e continuações em [`docs/IDEIAS.md`](docs/IDEIAS.md).
@@ -11,11 +11,13 @@
 ## Verificação atual
 
 ```
-npm test           # 1439 passando em 66 arquivos
+npm test           # 1460 passando em 67 arquivos
 npx tsc --noEmit   # 0 erros
 npm run build      # ok
+npm run balance    # 9/9 — a build máxima NÃO apaga inimigo comum com um tiro
+                   #         e o NÚCLEO exige 12,9s de tiro contínuo
 npm run a5         # o A5 (player para de mover): 0 freeze real nas 16 fases (não reproduz)
-npm run visual     # 8 screenshots, sem 404/pageerror
+npm run visual     # 9 screenshots (inclui a loja), sem 404/pageerror
 npm run servicos   # os 3 serviços da loja: aliado/torreta nascem, botas 1.3, tiro em campo
 npm run blur       # o input sobrevive ao blur (veredito: não reproduz no HEAD)
 npm run m2fluxo    # M2: anúncio diferido, martelo forçado no NÚCLEO, tela de vitória
@@ -43,20 +45,33 @@ npm run asfalto   # a pista da Rodovia (faixa 124 × corpo 25 × ombro 0)
 O bot desvia de inimigo e de barril, atira, e não usa dash, escudo nem fúria.
 É o **piso**: fase onde ele morre é fase onde jogador casual também morre.
 
-> A tabela abaixo é a medição das 9 fases da v1.4. As 7 fases novas (Rodovia,
-> Hospital, Pátio de Trens, Ponte, Refinaria, Subestação e Porto) ainda não
-> têm linha aqui; o `npm run fases` já as percorre e o JSON é a fonte.
+> Medição de **2026-11-08 11:23** (45s por fase, 1 amostra). As 16 fases
+> têm linha agora — a P0-8 ("7 fases novas fora da régua do bot") fecha com
+> esta tabela. Números crus em `tools/fases-medidas.json`.
+>
+> **O harness é estocástico**: duas execuções da MESMA build diferem em 14
+> das 16 fases (a Ponte e o Pátio de Trens mudam de "morreu" para "45s+"
+> entre execuções). A tabela é fumaça, não régua de igualdade — a prova de
+> que a campanha sem preparo não mudou é aritmética (escala 1,0 e pistola
+> nunca cortada), travada em `src/__tests__/ameaca.test.ts`.
 
 | fase | sobrevive | onda | principal dano |
 |---|---|---|---|
-| Cidade em Ruínas | 45s+ | 2 | contato (grunt) |
-| Floresta | 45s+ | 3 | contato (runner) |
-| Caverna | 45s+ | 1 | contato (crystal) |
-| Fábrica | 45s+ | 1 | bioma (robot) |
-| Pântano | 45s+ | 3 | contato (frog) |
-| Castelo | 45s+ | 1 | bioma |
-| Vulcão | 45s+ | 1 | projetil (inferno) |
-| Espaço | 45s+ | 2 | projetil (ufo) |
+| Cidade em Ruínas | 45s+ | 1 | contato (mutante) |
+| Rodovia | 45s+ | 1 | projetil (spitter) |
+| Floresta | 45s+ | 1 | contato (mutante) |
+| Hospital de Campanha | 45s+ | 1 | projetil (spitter) |
+| Caverna | 32s | 1 | contato (tank) |
+| Fábrica | 45s+ | 1 | contato (tank) |
+| Pátio de Trens | 45s+ | 1 | bioma (robot) |
+| Ponte | 24s | 1 | contato (crystal) |
+| Pântano | 45s+ | 1 | contato (mosquito) |
+| Refinaria | 32s | 1 | bioma |
+| Subestação | 45s+ | 1 | projetil (crystal) |
+| Vulcão | 40s | 1 | bioma (inferno) |
+| Porto | 45s+ | 1 | projetil (fireElemental) |
+| Castelo | 24s | 1 | bioma |
+| Espaço | 45s+ | 1 | projetil (alien) |
 | NÚCLEO-CENTRAL | 45s+ | 1 | — |
 
 Medição pós-`passoDeCelula` (2026-10-13, noite): as ondas avançam mais
@@ -129,6 +144,56 @@ Direção do jogo: [`docs/DESIGN.md`](docs/DESIGN.md) ·
 pendências: [`TODO.md`](TODO.md) ·
 decisões autônomas: [`docs/DECISIONS.md`](docs/DECISIONS.md) ·
 ordem das frentes: [`ROADMAP.md`](ROADMAP.md)
+
+---
+
+## Entrega: o equilíbrio — "depois de upar tudo o personagem fica imbatível" (2026-11-08 11:30)
+
+Relato do dono: *"depois de upar tudo, o personagem fica imbatível e mata tudo
+e todos na sua frente sem nenhuma dificuldade, ruim isso"*.
+
+**A causa, medida antes de mexer** (build máxima: 24 degraus de perk + 6
+talentos + metralhadora lendária + 2 peças de dano):
+
+| número | antes | depois |
+|---|---|---|
+| dano por tiro | 30 (45 no crítico) | 14 (teto) |
+| DPS | 57 | 57 (o teto corta o pico, não a média) |
+| vida do grunt da onda 1 | 32 | 32 (o teto faz o trabalho) |
+| vida do NÚCLEO | 1060 | 2427 (escala 2,29) |
+| tempo para derrubar o NÚCLEO | 6,5s | 12,9s |
+| ameaça (o número que o jogador vê) | — | ×2,3 |
+
+**O que entrou**
+
+1. **A AMEAÇA** (`src/systems/ameaca.ts`, novo): o mundo escala com o preparo
+   do jogador — a vida do inimigo segue o poder de FOGO, o dano dele segue a
+   VIDA EFETIVA. Proporcional e menor que o ganho (0,5 / 0,8, com teto), para
+   devolver tensão sem punir. Sem preparo, escala 1,0: a curva autorada intacta.
+2. **O TETO DE DANO POR ACERTO**: 35% da vida máxima do alvo (comum), 20%
+   (chefe), com piso absoluto (14 / 24) — o piso preserva a pistola inicial
+   (12 de dano), que nunca é cortada. A explosão do JOGADOR passa pelo teto;
+   a do MUNDO (barril, raio) não. O número de dano na tela é o valor aplicado.
+3. **A ameaça à vista**: cabeçalho da loja (projetado) e abaixo de "PAUSADO"
+   (em vigor). A loja é onde a compra acontece — sem o número, "upar tudo"
+   parece de graça.
+
+**A prova** (`npm run balance`, `tools/balance-proof.mjs`, 9/9): a build
+máxima é montada pelo SAVE (o caminho real de quem está com a partida pronta)
+e a prova fecha três contratos — o inimigo comum sobrevive ao PRIMEIRO
+acerto, nenhum acerto passa do teto, o teto não vira arrastão, o NÚCLEO exige
+≥ 8s de tiro contínuo e o chefe ameaça o jogador. **Ela morde no estado
+anterior**: com o teto e a escala desligados, o alvo cai no 1º acerto e o
+TTK do NÚCLEO vai a 6,5s.
+
+**O que NÃO se pode provar com `npm run fases`**: duas execuções da MESMA
+build diferem em 14 das 16 fases — o ruído do harness é do tamanho do
+sinal. A garantia de "sem preparo nada muda" é ARITMÉTICA (escala 1,0 e
+pistola nunca cortada), travada em `src/__tests__/ameaca.test.ts` (21 testes).
+
+Pendências que saíram no caminho: a mira do `tools/bot.mjs` está errada
+(P1-12, pré-existente — deixada de fora porque muda a régua de todo
+`npm run fases`) e a loja pode exibir moedas negativas (P1-13).
 
 ---
 

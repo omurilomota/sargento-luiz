@@ -1,6 +1,6 @@
 # PENDÊNCIAS — lista viva
 
-> Atualizado: 2026-11-07 14:12 · branch `develop` · merge `8da044c` · código `6971442` · docs `7f9a328`
+> Atualizado: 2026-11-08 11:30 · branch `develop` · merge `8da044c` · código `ec97a42` · docs `c3bd198`
 >
 > Este é o lugar de consultar o que está aberto. `TODO.md` guarda o histórico
 > das sessões (muitos itens `[ ]` de lá já foram entregues e ficaram como
@@ -10,7 +10,7 @@
 > sistema/UX; **P2** = conteúdo novo. **Decidido** = não reabrir sem motivo
 > novo.
 
-## Estado do disco (conferido em 2026-11-07)
+## Estado do disco (conferido em 2026-11-08)
 
 | métrica | valor |
 |---|---|
@@ -19,9 +19,10 @@
 | chefes | 16 de fase (17 tipos com o Rogério da Fábrica), mais a fila `NUCLEO_RUSH` na fase final |
 | tipos de inimigo | 40 |
 | combos | 7 |
-| testes | 1439 em 66 arquivos |
+| testes | 1460 em 67 arquivos |
 | `tsc --noEmit` / `npm run build` | limpos |
-| render | `npm run visual` sem 404/pageerror |
+| render | `npm run visual` sem 404/pageerror (9 screenshots, incluindo a loja) |
+| equilíbrio | `npm run balance` 9/9 — a build máxima não apaga inimigo comum com um tiro e o NÚCLEO exige 12,9s de tiro |
 
 ---
 
@@ -35,6 +36,17 @@
 | Setas movendo os dois no 2P | P1 lia as setas mesmo com o P2 ativo | `main.ts` (`setasDoP2`) |
 | Ícone do site/jogo | `favicon` era `data:,` (vazio) | `public/assets/ui/icone.png`, `site/imagens/icone.png` |
 | Números do site | anunciava 9 fases, 12 armas, 9 chefes | `site/index.html` |
+
+## Fechado em 2026-11-08 (equilíbrio)
+
+| item | o que era | onde |
+|---|---|---|
+| **Depois de upar tudo o personagem ficava imbatível** | a build máxima dava 30 de dano por tiro contra um grunt de 32 de vida: UM tiro apagava o alvo, e o NÚCLEO (1060 de vida) caía em 6,5s | `systems/ameaca.ts` (novo), `spawner.ts`, `main.ts`, `explosions.ts` |
+| **A ameaça (escala do mundo)** | o mundo não media o preparo: o dano do jogador crescia ~4-5x e a vida do inimigo ~3x | `systems/ameaca.ts` (novo) |
+| **O teto de dano por acerto** | um acerto podia apagar qualquer alvo, em qualquer arma | `systems/ameaca.ts`, `main.ts`, `explosions.ts` |
+| **A ameaça à vista** | o jogador não tinha como saber que upar tudo endurecia o mundo | `ui/shop.ts`, `systems/renderer.ts` |
+| **Prova de equilíbrio** | nada media a build máxima: 1439 testes cobriam geometria, não o jogo | `tools/balance-proof.mjs` (novo), `__tests__/ameaca.test.ts` |
+| **P0-8: 7 fases fora da régua do bot** | a tabela do `STATUS.md` media 9 fases da v1.4; Rodovia/Hospital/Trens/Ponte/Refinaria/Subestação/Porto não tinham linha | `STATUS.md` (tabela das 16 fases, medição de 2026-11-08) |
 
 ## Fechado em 2026-11-07 (playtest, 13:12 · `883740b` + worktree)
 
@@ -108,7 +120,6 @@ O relato se repetiu em quase toda fase: **o lugar não tem o objeto que o nome p
 | P0-5 | **Diário pouco presente; loja sem dicas; missões fora do TAB** | `diary.ts` tem as entradas e o save; a loja não notifica e o TAB mostra mapa/ficha/combos, não missões | loja: card do diário + inspeção de custo/ganho; TAB: página de missões por fase |
 | P0-6 | **Timing dos SFX** | `initAudio()` já chama `preloadSfx()` para as 52 chaves; não reproduzi atraso depois disso | se voltar, medir a primeira reprodução por chave (prova com `performance.now`) antes de mexer |
 | P0-7 | **Limpeza da raiz** | há `freebuff-chat-*.md`, `sargento-luiz.zip`, arquivo de hash e docs soltos | **precisa de autorização** do dono: apagar arquivo é destrutivo e pode incluir material de sessão |
-| P0-8 | **7 fases novas fora da régua do bot** | a tabela do `STATUS.md` mede as 9 fases da v1.4; Rodovia/Hospital/Trens/Ponte/Refinaria/Subestação/Porto não têm linha | rodar `npm run fases` e anexar o JSON ao STATUS |
 
 ## P1 — dívida de sistema/UX
 
@@ -125,6 +136,8 @@ O relato se repetiu em quase toda fase: **o lugar não tem o objeto que o nome p
 | P1-9 | **Playlist de música** (T2) | 5 faixas OGG com crossfade; falta curadoria por fase/boss |
 | P1-10 | **i18n en-US** | ~1.574 strings sem camada de tradução; decidido depois da publicação em português |
 | P1-11 | **Site: conteúdo e revisão de IA** (T3) | o site é gerado do `config.ts`; falta aprofundar e revisar a parte final |
+| P1-12 | **A mira do `tools/bot.mjs` está errada** | o bot soma `width/2` e `height/2` ao ponto do alvo, mas a câmera do projeto é o canto superior esquerdo visível (`screenToWorld`: mundo = tela + câmera). O bot atira ~640px ao lado do alvo. Defeito PRÉ-EXISTENTE, deixado de fora desta rodada de propósito: corrigir muda a régua de todo `npm run fases` e `npm run sessao` e exige remedir as 16 fases. A prova de equilíbrio tem a convenção certa (`tools/balance-proof.mjs`) |
+| P1-13 | **A loja pode exibir moedas negativas** | o evento aleatório `evt_azar` vale -10 e `addShopCoins` soma sem piso: o cabeçalho da loja mostra "-10 moedas" |
 
 ## P2 — conteúdo novo
 
