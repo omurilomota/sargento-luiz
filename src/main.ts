@@ -66,7 +66,7 @@ import { drawShop, handleShopClick, setShopCoins, getShopCoins, addShopCoins, re
 import { shoot, getCurrentWeapon, resetWeapons, refillAmmo, canShoot, startReload, updateReload, getCurrentAmmo, getIsReloading, getReloadTimer, setWeapon, getEffectiveShootRate, setWeaponQuality, getCurrentWeaponIndex, getWeaponQuality, isJammed, getCurrentCapacity, getReloadTimeOf, getWeaponStats, getWeaponFamily, onReloadStarted } from './weapons';
 import { getCurrentPhase, getCurrentWave, getGameState, setGameState, nextWave, nextPhase, resetPhases, resetWave, setCurrentWave, addScore, addScoreFlat, getScore, getCombo, getComboDecay, updateCombo, resetCombo, getKillStreak, getTotalKills, wasGameCompleted, deveFecharFase, proximoDoRushNasce } from './phases';
 import { rollLootDrop, spawnBossLoot, updateLoot, getLoot, clearLoot, drawLoot, powerupLabel, ELITE_TYPES } from './systems/loot';
-import { addPieceToInventory, getPieceType, resetPieces, getInventorySnapshot, restoreInventory, getEquippedSnapshot, restoreEquipped } from './systems/pieces';
+import { addPieceToInventory, getPieceType, resetPieces, getInventorySnapshot, restoreInventory, getEquippedSnapshot, restoreEquipped, getPieceModifiers } from './systems/pieces';
 import { powerups, spawnPowerUp, spawnPowerUpDeChefe, spawnPowerUpDeTipo, updatePowerUps, hasPowerUp, activePowerups } from './powerups';
 
 import {
@@ -98,6 +98,7 @@ import { registrarTiroPerks, tickPerks, acenderInimigo, danoPassoFantasma, checa
 import { resetDanoTelemetria, danoPorFonte } from './systems/danoTelemetria';
 import { startTutorial, isTutorialActive, getCurrentHint, updateTutorial, advanceHint, endTutorial } from './systems/tutorial';
 import { updateBehavior, registerShot, registerHit, getPlayerTendency, resetBehavior } from './systems/dynamicDifficulty';
+import { getEscalaAmeaca, getPoderDoJogador, setEscalaAmeaca, danoLimitado, getEscalaAmeacaAtual } from './systems/ameaca';
 import { spawnNPC, updateNPCs, getNPCs, resetNPCs, npcBark, isNpcFollowing, consumeNpcDeath, consumeAliadoMorte, getTirosDeAliado } from './systems/npcs';
 import { getBots, createBot, updateBots, removeDeadBots, resetBots, addBot, BotDifficulty } from './systems/bots';
 import { isEnabled as isLocalEnabled, initLocalMultiplayer, movePlayer2, shootPlayer2, getPlayer2, resetLocalMultiplayer, checkPlayer2EnemyCollision, damagePlayer2, resetPlayer2, getWinner, getPlacarLocal, matarPlayer2 } from './systems/localMultiplayer';
@@ -818,6 +819,33 @@ function loadPhaseEnvironment(): void {
   doutorVirou = false;
   perigoNave = phase.name === 'Espaço' ? PERIGO_NAVE_SEGUNDOS : 0;
   clearFires();
+  // A AMEAÇA é medida aqui: a fase carrega com o preparo que o jogador tem
+  // AGORA (a loja já comprou, o save já restaurou). Quem não comprou nada
+  // continua vendo a curva autorada intacta.
+  atualizarAmeaca();
+}
+
+/**
+ * Mede o preparo do jogador e grava a escala que a fase vai usar.
+ *
+ * Fica no main (e não dentro de `ameaca.ts`) porque a lista de armas
+ * compradas mora na loja: o módulo da ameaça só faz a conta, quem junta as
+ * peças é quem conhece o estado do jogo.
+ */
+function atualizarAmeaca(): void {
+  const poder = getPoderDoJogador(getPurchasedWeaponPairs());
+  setEscalaAmeaca(getEscalaAmeaca(poder.poderDano, poder.poderCorpo));
+}
+
+/**
+ * O dano que entra no inimigo depois do teto por acerto.
+ *
+ * Um único acerto não pode apagar o alvo: 35% da vida de um comum, 20% de um
+ * chefe (e o piso que preserva a pistola inicial). É o que impede a build
+ * completa de limpar a onda antes dela aparecer.
+ */
+function danoNoAlvo(dano: number, alvo: Enemy): number {
+  return danoLimitado(dano, alvo.maxHealth, ENEMY_TYPES[alvo.type]?.isBoss === true);
 }
 
 function resetGame() {
@@ -875,6 +903,10 @@ function resetGame() {
   clearFires();
   clearLoot();
   resetInput();
+  // A ameaça é medida DEPOIS dos resets: `loadPhaseEnvironment` (lá em cima)
+  // rodou com o preparo da partida anterior, e a run nova começa com a
+  // escala neutra — a curva autorada, sem preparo nenhum.
+  atualizarAmeaca();
 }
 
 /** Entra no jogo a partir do save (tecla C no menu). */
@@ -917,6 +949,11 @@ function startFromSave() {
   // H2: a fúria viaja no save. Save antigo sem o campo entra TRAVADO — a
   // decisão do Murilo: o gate é a história, vale igual para novos e antigos.
   restoreFuria(save.furia === true);
+  // O preparo volta do save AGORA (perks, talentos, peças, armas): a ameaça
+  // medida no load da fase ainda era a da run nova. Sem esta medida, quem
+  // continuava um save máximo entrava na fase com a curva de quem não se
+  // preparou — e o "depois de upar tudo" voltava.
+  atualizarAmeaca();
   setGameState('playing');
   // playtest: "quando clico em C, continua a música do menu" — o continue
   // entrava em playing sem trocar a faixa; a música de combate é a do jogo
@@ -1119,7 +1156,7 @@ function update(dt: number) {
       if (Math.hypot(e.x - p.x, e.y - p.y) < e.radius + p.radius + 6) {
         const dano = danoPassoFantasma(e, true);
         if (dano > 0) {
-          e.health -= dano;
+          e.health -= danoNoAlvo(dano, e);
           e.hitFlash = 0.2;
           spawnParticles(e.x, e.y, '#c8b890', 8, 200);
           spawnImpact(e.x, e.y, '#c8b890', 10);
@@ -1857,7 +1894,7 @@ function detonateBullet(b: Bullet): void {
   // `createExplosion` itera SÓ os enemies da lista — o jogador nunca toma
   // dano de explosão de arma própria. Barril é exceção proposital em
   // `explodeProp`: é perigo do mundo, não do seu próprio tiro.
-  createExplosion(b.x, b.y, b.explosionRadius ?? 0, b.damage, enemies, b.color);
+  createExplosion(b.x, b.y, b.explosionRadius ?? 0, b.damage, enemies, b.color, true);
   acenderFogoDaFase(b.x, b.y);
   sfxExplosion();
   triggerScreenShake(5, 0.15);
@@ -3296,11 +3333,15 @@ checkBulletEnemyCollisions(bullets, enemies, (b, e) => {
   if (b.explosive && b.explosionRadius) {
     detonateBullet(b);
   } else {
-    e.health -= b.damage;
+    // O TETO POR ACERTO: o dano que entra é o que passou pela régua, e o
+    // número na tela é ESSE valor — mostrar o dano bruto enquanto o alvo
+    // levou menos é a mesma mentira do HP que não cai.
+    const aplicado = danoNoAlvo(b.damage, e);
+    e.health -= aplicado;
     damageNumbers.push({
       x: e.x + (Math.random() - 0.5) * 20,
       y: e.y - 20,
-      text: isCrit ? `${Math.floor(b.damage)}!` : String(Math.floor(b.damage)),
+      text: isCrit ? `${Math.floor(aplicado)}!` : String(Math.floor(aplicado)),
       color: isCrit ? PALETTE.crit : PALETTE.text,
       life: 1,
       vy: -80,
@@ -3525,6 +3566,48 @@ window.__ashfall = {
       }
     }
     return melhor;
+  },
+  /**
+   * A lista INTEIRA de inimigos, com a vida máxima de cada um.
+   *
+   * `inimigoMaisProximo` devolve um só: a prova de equilíbrio precisa seguir
+   * um alvo específico (o NÚCLEO no meio de três chefes do rush) e medir a
+   * vida MÁXIMA — que é a régua do teto de dano por acerto.
+   */
+  inimigos: () => enemies.map(e => ({
+    tipo: e.type,
+    vida: e.health,
+    vidaMax: e.maxHealth,
+    x: e.x,
+    y: e.y,
+    chefe: ENEMY_TYPES[e.type]?.isBoss === true,
+    titã: e.isElite === true,
+  })),
+  /** A AMEAÇA em vigor: o quanto o mundo cresceu com o preparo do jogador. */
+  ameaca: () => getEscalaAmeacaAtual(),
+  /**
+   * A arma na mão com os multiplicadores JÁ aplicados.
+   *
+   * A prova de equilíbrio mede a build máxima: sem esta leitura, um build que
+   * não pegou (qualidade, peça ou perk fora do lugar) se disfarça de
+   * "equilíbrio bom" — o dano medido é o de quem não comprou nada.
+   */
+  arma: () => {
+    const idx = getCurrentWeaponIndex();
+    const stats = getWeaponStats(idx, getWeaponQuality());
+    return {
+      indice: idx,
+      nome: stats.name,
+      qualidade: getWeaponQuality(),
+      dano: stats.damage,
+      dps: stats.dps,
+      statDano: getStat('damageMult'),
+      pecas: getPieceModifiers(idx),
+      municao: getCurrentAmmo(),
+      recarregando: getIsReloading(),
+      timerRecarga: getReloadTimer(),
+      emperrada: isJammed(),
+    };
   },
   /**
    * A ameaça mais próxima que MATA: inimigo ou barril aceso.
@@ -3792,6 +3875,17 @@ window.__ashfall = {
     return getCurrentPhase()?.name ?? 'FIM';
   },
   curar: () => { const p = player.getPlayer(); p.health = p.maxHealth; return p.health; },
+  /**
+   * Muda a VIDA MÁXIMA do jogador — o tanque da prova de equilíbrio.
+   *
+   * A luta contra o NÚCLEO mata o jogador em ~7s (o chefe dispara 12 balas
+   * por anel e a vida máxima não segura), e com a queda o estado vira
+   * `gameover`, o mundo CONGELA e a medição do tempo até a queda mede uma
+   * luta pela metade. Um tanque enorme mantém a luta inteira — e o dano
+   * continua sendo registrado na telemetria, que é o que o contrato C3
+   * mede.
+   */
+  vidaMax: (n: number) => { const p = player.getPlayer(); p.maxHealth = n; return p.maxHealth; },
   // equipa um par com condição específica, para o harness ver o rótulo no HUD
   equiparCondicao: (nome: string, qualidade: string) => {
     const idx = WEAPONS.findIndex(w => w.name === nome);

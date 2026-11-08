@@ -9,6 +9,7 @@ import { dist } from '../utils';
 import { RESISTENCIA_EXPLOSIVA_DO_BOSS } from '../core/constants';
 import { spawnParticles } from './particles';
 import { PALETTE } from '../core/palette';
+import { danoLimitado } from './ameaca';
 
 /** Lista de explosões ativas (para renderização) */
 const explosions: { x: number; y: number; radius: number; maxRadius: number; life: number }[] = [];
@@ -78,10 +79,16 @@ export function clearFires(): void {
 
 /**
  * Causa dano em área e cria efeito visual de explosão.
+ *
+ * `tetoPorAcerto` liga o TETO DE DANO POR ACERTO (systems/ameaca.ts): a
+ * explosão do JOGADOR passa por ele, a do MUNDO (barril, raio) não — o
+ * perigo do cenário não pode ser cortado pelo preparo do jogador, e a
+ * explosão do jogador não pode apagar a onda inteira.
  */
 export function createExplosion(
   x: number, y: number, radius: number, damage: number,
-  enemies: Enemy[], color: string = PALETTE.terracotta
+  enemies: Enemy[], color: string = PALETTE.terracotta,
+  tetoPorAcerto: boolean = false,
 ): void {
   // Dano em área — chefe tem placa contra explosão (M3): mesmo no centro
   // do raio, ele paga 75% do dano. Vale para arma explosiva, barril e
@@ -92,7 +99,11 @@ export function createExplosion(
       // Dano diminui com a distância
       const falloff = 1 - (d / radius);
       const resist = ENEMY_TYPES[e.type]?.isBoss ? RESISTENCIA_EXPLOSIVA_DO_BOSS : 1;
-      e.health -= Math.floor(damage * (0.5 + falloff * 0.5) * resist);
+      let aplicado = Math.floor(damage * (0.5 + falloff * 0.5) * resist);
+      if (tetoPorAcerto) {
+        aplicado = danoLimitado(aplicado, e.maxHealth, ENEMY_TYPES[e.type]?.isBoss === true);
+      }
+      e.health -= aplicado;
       e.hitFlash = 0.15;
     }
   }

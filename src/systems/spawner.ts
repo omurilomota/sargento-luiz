@@ -15,6 +15,7 @@ import { MAX_ENEMIES, WAVE_BASE_ENEMIES, WAVE_ENEMIES_PER_LEVEL, WAVE_BASE_SPAWN
 import { CELL_SIZE } from '../maps';
 import { getMap, isWall } from './tilemap';
 import { getSkillPressure } from './dynamicDifficulty';
+import { getEscalaAmeacaAtual } from './ameaca';
 
 /** Temporizador acumulado desde o último spawn */
 let waveTimer = 0;
@@ -154,14 +155,21 @@ export function spawnEnemy(
 
   const waveScale = (1 + currentWave * WAVE_SCALE_PER_LEVEL) * difficulty;
   const speedScale = (1 + currentWave * WAVE_SPEED_SCALE_PER_LEVEL) * Math.sqrt(difficulty);
+  // A AMEAÇA (o mundo medindo o preparo do jogador) entra aqui, e não em
+  // `difficulty`: a dificuldade da fase é do mapa, a ameaça é de quem joga.
+  // A vida do inimigo segue o poder de FOGO e o dano dele segue o poder de
+  // CORPO — são eixos diferentes (ver systems/ameaca.ts).
+  const escala = getEscalaAmeacaAtual();
+  const hpScale = waveScale * escala.vida;
+  const dmgScale = waveScale * escala.dano;
   // escalada temporal: a cada 90s da fase o inimigo fica ~15% mais forte
   const timeScale = 1 + Math.min(phaseTime / 90, 3) * 0.15;
   const variance = 0.9 + Math.random() * 0.2;
 
   return {
     x: pos.x, y: pos.y, radius: def.radius, speed: Math.floor(def.speed * speedScale * variance * (0.8 + timeScale * 0.2)),
-    health: Math.floor(def.health * waveScale * variance * timeScale), maxHealth: Math.floor(def.health * waveScale * variance * timeScale),
-    damage: Math.floor(def.damage * waveScale * timeScale), color: def.color, scoreValue: def.scoreValue,
+    health: Math.floor(def.health * hpScale * variance * timeScale), maxHealth: Math.floor(def.health * hpScale * variance * timeScale),
+    damage: Math.floor(def.damage * dmgScale * timeScale), color: def.color, scoreValue: def.scoreValue,
     shootTimer: rand(0, def.shootRate || 0), shootRate: def.shootRate || 0,
     canShoot: def.canShoot || false, type, angle: rand(0, Math.PI * 2),
     attackTimer: 0, summonTimer: 0, spawnDelay: 0.5, hitFlash: 0, bossPhase: 0,
