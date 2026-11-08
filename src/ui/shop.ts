@@ -18,6 +18,7 @@ import { enablePermanentMagnet } from '../entities/coin';
 import { getAllSkins, buySkin, equipSkin, Skin } from '../systems/skins';
 import { canWatchAd, startWatchingAd, getIsWatchingAd, getAdProgress, getAdCooldown, getNextAdReward, getAdsWatched, getAdsRemaining, updateAd } from '../systems/ads';
 import { openSupportLink } from '../systems/support';
+import { getEscalaAmeaca, getPoderDoJogador, formatarAmeaca } from '../systems/ameaca';
 import { getGameState, getCurrentPhase } from '../phases';
 import { furiaDesbloqueada } from '../systems/skills';
 import { sfxBuy, sfxError } from '../systems/audio';
@@ -805,6 +806,16 @@ export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: n
   ctx.fillText('MERCADOR', width / 2, 44);
   ctx.font = '15px monospace';
   ctx.fillText(`${shopCoins} moedas`, width / 2, 76);
+  // A AMEAÇA: o quanto o mundo vai endurecer na próxima fase por causa do
+  // preparo que o jogador tem AGORA. É o número que decide a compra — sem
+  // ele, "upar tudo" parece de graça.
+  const poder = getPoderDoJogador(getPurchasedWeaponPairs());
+  const escala = getEscalaAmeaca(poder.poderDano, poder.poderCorpo);
+  ctx.fillStyle = PALETTE.terracotta;
+  ctx.font = 'bold 15px monospace';
+  ctx.textAlign = 'right';
+  ctx.fillText(`AMEAÇA ×${formatarAmeaca(escala.numero)}`, width - 40, 44);
+  ctx.textAlign = 'center';
   ctx.strokeStyle = 'rgba(255,255,255,0.06)';
   ctx.lineWidth = 1;
   ctx.beginPath();

@@ -159,6 +159,16 @@ async function main() {
   await tirar(`${String(n).padStart(2, '0')}-config`);
   n++;
 
+  // A LOJA: é onde a AMEAÇA aparece (e onde o jogador decide a compra).
+  // Sem este print, uma mudança no cabeçalho da loja passava sem ninguém
+  // ver — a regra 16 vale para a loja tanto quanto para o pause.
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(300);
+  await page.evaluate(() => window.__ashfall.entrarLoja());
+  await page.waitForTimeout(600);
+  await tirar(`${String(n).padStart(2, '0')}-loja`);
+  n++;
+
   const estado = await page.evaluate(() => {
     const c = document.querySelector('canvas');
     return { canvas: !!c, w: c?.width, h: c?.height, dpr: window.devicePixelRatio };

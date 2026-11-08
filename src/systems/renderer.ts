@@ -27,6 +27,7 @@ import { hasSave } from './saveSystem';
 import { getLeaderboard } from './leaderboard';
 import { PALETTE } from '../core/palette';
 import { GAME_MODES } from './gameModes';
+import { getAmeacaAtual, formatarAmeaca } from './ameaca';
 import { CLASSES, ClassId } from './classes';
 import {
   getMasterVolume, getMusicVolume, getSfxVolume,
@@ -1631,7 +1632,9 @@ export function drawPause(musicOn: boolean, sfxOn: boolean): void {
 
   const boxW = 280;
   const rowH = 34;
-  const boxH = 90 + PAUSE_OPTIONS.length * rowH + getHintLines(pauseHint()).length * HINT_LINE_H;
+  // A linha da AMEAÇA entra na conta da altura: a caixa tem de caber o que
+  // ela mostra, senão o texto de baixo fica em cima da última opção.
+  const boxH = 108 + PAUSE_OPTIONS.length * rowH + getHintLines(pauseHint()).length * HINT_LINE_H;
   const x = W / 2 - boxW / 2;
   const y = H / 2 - boxH / 2;
 
@@ -1646,8 +1649,13 @@ export function drawPause(musicOn: boolean, sfxOn: boolean): void {
   ctx.textAlign = 'center';
   ctx.fillText('PAUSADO', W / 2, y + 40);
 
+  // A AMEAÇA em vigor: o quanto o mundo cresceu com o preparo do jogador.
+  ctx.fillStyle = PALETTE.terracotta;
+  ctx.font = 'bold 13px monospace';
+  ctx.fillText(`AMEAÇA ×${formatarAmeaca(getAmeacaAtual())}`, W / 2, y + 62);
+
   PAUSE_OPTIONS.forEach((opt, i) => {
-    const oy = y + 70 + i * rowH;
+    const oy = y + 88 + i * rowH;
     const hovered = pauseOptionAt(uiMouse.x, uiMouse.y) === i;
     const selected = i === pauseIndex || hovered;
     if (hovered) { ctx.fillStyle = 'rgba(255,255,255,0.05)'; ctx.fillRect(x+8, oy-16, boxW-16, rowH-6); }
