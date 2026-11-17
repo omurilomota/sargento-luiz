@@ -1,6 +1,6 @@
 # PENDÊNCIAS — lista viva
 
-> Atualizado: 2026-11-08 11:30 · branch `develop` · merge `8da044c` · código `ec97a42` · docs `c3bd198`
+> Atualizado: 2026-11-17 19:05 · branch `feature/correcoes-p0` · código `a83066d` (+ docs)
 >
 > Este é o lugar de consultar o que está aberto. `TODO.md` guarda o histórico
 > das sessões (muitos itens `[ ]` de lá já foram entregues e ficaram como
@@ -19,7 +19,7 @@
 | chefes | 16 de fase (17 tipos com o Rogério da Fábrica), mais a fila `NUCLEO_RUSH` na fase final |
 | tipos de inimigo | 40 |
 | combos | 7 |
-| testes | 1460 em 67 arquivos |
+| testes | 1463 em 68 arquivos |
 | `tsc --noEmit` / `npm run build` | limpos |
 | render | `npm run visual` sem 404/pageerror (9 screenshots, incluindo a loja) |
 | equilíbrio | `npm run balance` 9/9 — a build máxima não apaga inimigo comum com um tiro e o NÚCLEO exige 12,9s de tiro |
@@ -109,17 +109,24 @@ O relato se repetiu em quase toda fase: **o lugar não tem o objeto que o nome p
 - **“Mais assets específicos para cada fase”** — a tabela acima é a resposta; as lacunas P1 são a próxima fila, começando por água no Porto, pedágio na Rodovia e mesa de cirurgia no Hospital.
 - **“Mais assets para inimigos”** — 3 corpos novos entram na variação; a lacuna de fundo é 1 corpo por arquétipo, não mais recolor do mesmo manequim.
 
+## Fechado em 2026-11-17 (correções P0)
+
+| item | o que era | onde |
+|---|---|---|
+| **P0-1: onda 1 do Vulcão demorada** | a onda 0 sorteava qualquer célula fora da tela; num mapa 30×20 podia ser ~1.500 px de caminhada. Agora a PRIMEIRA onda nasce na célula válida fora da tela mais próxima do viewport; da segunda em diante o sorteio continua (distância é pressão) | `systems/spawner.ts` |
+| **P0-2: multi-spawn da Ponte** | o spawner criava um corpo por vez. A Ponte declara `spawnGroup: 2` e a onda entra em bloco na mesma célula; a cota total não muda | `types.ts`, `config.ts`, `systems/spawner.ts` |
+| **P0-3: torreta, aliados e contratado** | a torreta é fixa, mas `T` move o posto para trás do jogador; inimigos a menos de 320px miram o aliado pago (e atiradores atiram nele); o contratado subiu para dano 9 / alcance 330 | `systems/npcs.ts`, `main.ts` |
+| **P0-4: martelo corpo a corpo** | o Destruidor virou `melee`: arco de 2,4 rad e 96px, sem projétil e sem gastar munição; o dano continua passando por `danoNoAlvo` (a régua da ameaça não é furada) | `types.ts`, `config.ts`, `main.ts` |
+| **P0-5: missões no TAB e dica na loja** | o TAB ganhou a página MISSÕES (fase atual e vizinhas, com objetivo e estado); a loja sempre desenha o diário, com estado vazio e a dica dos eventos | `ui/hud.ts`, `main.ts`, `ui/shop.ts` |
+| **P0-6: timing dos SFX** | não reproduzido nesta rodada: o `preloadSfx` continua cobrindo as 52 chaves e nenhuma prova mediu atraso. Fica aberto como instrumento, não como conserto | `systems/audio.ts` |
+| **P1-13: moedas negativas** | `addShopCoins` aplica piso zero; o evento `evt_azar` (-10) não mostra mais "-10 moedas" | `ui/shop.ts` |
+
 ## P0 — aberto
 
 | # | item | evidência | próximo passo |
 |---|---|---|---|
-| P0-1 | **Onda 1 do Vulcão demorada** | onda 0 nasce com 4 inimigos, 1 a cada 1,2s, em célula aleatória fora da tela; os tipos do Vulcão andam a 35–90 px/s. Num mapa 30×20, o spawn pode cair a ~1.500 px | medir `npm run fases` no Vulcão e comparar com as outras fases. Depois escolher: (a) primeira onda nascer na célula válida **mais próxima** fora da tela; (b) `C5` pular onda com recompensa. Não mexer sem a medição |
-| P0-2 | **Multi-spawn na Ponte não existe** | `spawner.ts` cria um inimigo por vez; a Ponte tem 5 ondas como as outras | desenhar onda em grupos (2–3 corpos por célula) e provar no `ponte-proof` |
-| P0-3 | **Torreta não anda, inimigos não a atacam, contratado fraco** | `npcs.ts`: torreta fixa em `postX/postY`; o alvo dos inimigos é o jogador (ou o foguete no `protect`). Contratado: dano 6, alcance 280 | tratar como uma frente só: tecla `T` move a torreta, aggro de inimigo em aliado, números do contratado medidos em `servicos-proof` |
-| P0-4 | **Martelo não é corpo a corpo** | o `Destruidor` é lançador de projétil explosivo (`bulletSpeed 460`) | desenhar família `melee` (arco de golpe, sem munição, alcance curto) e migrar o martelo; exige o sistema de melee, não um número |
-| P0-5 | **Diário pouco presente; loja sem dicas; missões fora do TAB** | `diary.ts` tem as entradas e o save; a loja não notifica e o TAB mostra mapa/ficha/combos, não missões | loja: card do diário + inspeção de custo/ganho; TAB: página de missões por fase |
 | P0-6 | **Timing dos SFX** | `initAudio()` já chama `preloadSfx()` para as 52 chaves; não reproduzi atraso depois disso | se voltar, medir a primeira reprodução por chave (prova com `performance.now`) antes de mexer |
-| P0-7 | **Limpeza da raiz** | há `freebuff-chat-*.md`, `sargento-luiz.zip`, arquivo de hash e docs soltos | **precisa de autorização** do dono: apagar arquivo é destrutivo e pode incluir material de sessão |
+| P0-7 | **Limpeza da raiz** | há `freebuff-chat-*.md`, `sargento-luiz.zip`, arquivo de hash e docs soltos | **precisa de autorização** do dono: apagar arquivo é destrutivo e pode incluir material de sessão. Nada foi apagado nesta rodada |
 
 ## P1 — dívida de sistema/UX
 
@@ -137,7 +144,7 @@ O relato se repetiu em quase toda fase: **o lugar não tem o objeto que o nome p
 | P1-10 | **i18n en-US** | ~1.574 strings sem camada de tradução; decidido depois da publicação em português |
 | P1-11 | **Site: conteúdo e revisão de IA** (T3) | o site é gerado do `config.ts`; falta aprofundar e revisar a parte final |
 | P1-12 | **A mira do `tools/bot.mjs` está errada** | o bot soma `width/2` e `height/2` ao ponto do alvo, mas a câmera do projeto é o canto superior esquerdo visível (`screenToWorld`: mundo = tela + câmera). O bot atira ~640px ao lado do alvo. Defeito PRÉ-EXISTENTE, deixado de fora desta rodada de propósito: corrigir muda a régua de todo `npm run fases` e `npm run sessao` e exige remedir as 16 fases. A prova de equilíbrio tem a convenção certa (`tools/balance-proof.mjs`) |
-| P1-13 | **A loja pode exibir moedas negativas** | o evento aleatório `evt_azar` vale -10 e `addShopCoins` soma sem piso: o cabeçalho da loja mostra "-10 moedas" |
+
 
 ## P2 — conteúdo novo
 

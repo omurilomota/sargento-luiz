@@ -1,7 +1,7 @@
 # SARGENTO LUIZ — Status Geral do Projeto
 
-> Atualizado: 2026-11-08 11:30 · branch `develop` · merge `8da044c` · código `ec97a42` ·
-> 16 fases · 13 armas · 16 chefes de fase · 1460 testes em 67 arquivos ·
+> Atualizado: 2026-11-17 19:05 · branch `develop` (após merge do PR #1) · merge a registrar · código `a83066d`+docs ·
+> 16 fases · 13 armas · 16 chefes de fase · 1463 testes em 68 arquivos ·
 > `tsc` limpo · build ok.
 > A lista viva de pendências é [`docs/PENDENCIAS.md`](docs/PENDENCIAS.md);
 > ideias e continuações em [`docs/IDEIAS.md`](docs/IDEIAS.md).
@@ -11,7 +11,7 @@
 ## Verificação atual
 
 ```
-npm test           # 1460 passando em 67 arquivos
+npm test           # 1463 passando em 68 arquivos
 npx tsc --noEmit   # 0 erros
 npm run build      # ok
 npm run balance    # 9/9 — a build máxima NÃO apaga inimigo comum com um tiro
@@ -45,32 +45,30 @@ npm run asfalto   # a pista da Rodovia (faixa 124 × corpo 25 × ombro 0)
 O bot desvia de inimigo e de barril, atira, e não usa dash, escudo nem fúria.
 É o **piso**: fase onde ele morre é fase onde jogador casual também morre.
 
-> Medição de **2026-11-08 11:23** (45s por fase, 1 amostra). As 16 fases
-> têm linha agora — a P0-8 ("7 fases novas fora da régua do bot") fecha com
-> esta tabela. Números crus em `tools/fases-medidas.json`.
+> Medição de **2026-11-17 18:57** (45s por fase, 1 amostra, build com os P0
+> aplicados, `a83066d`). Números crus em `tools/fases-medidas.json`.
 >
-> **O harness é estocástico**: duas execuções da MESMA build diferem em 14
-> das 16 fases (a Ponte e o Pátio de Trens mudam de "morreu" para "45s+"
-> entre execuções). A tabela é fumaça, não régua de igualdade — a prova de
-> que a campanha sem preparo não mudou é aritmética (escala 1,0 e pistola
-> nunca cortada), travada em `src/__tests__/ameaca.test.ts`.
+> **O harness é estocástico**: execuções da mesma build diferem entre si, então
+> a tabela é fumaça, não régua de igualdade. A prova de que a campanha sem
+> preparo não mudou continua aritmética (escala 1,0 e pistola nunca cortada),
+> travada em `src/__tests__/ameaca.test.ts`.
 
 | fase | sobrevive | onda | principal dano |
 |---|---|---|---|
-| Cidade em Ruínas | 45s+ | 1 | contato (mutante) |
-| Rodovia | 45s+ | 1 | projetil (spitter) |
-| Floresta | 45s+ | 1 | contato (mutante) |
-| Hospital de Campanha | 45s+ | 1 | projetil (spitter) |
-| Caverna | 32s | 1 | contato (tank) |
-| Fábrica | 45s+ | 1 | contato (tank) |
-| Pátio de Trens | 45s+ | 1 | bioma (robot) |
-| Ponte | 24s | 1 | contato (crystal) |
-| Pântano | 45s+ | 1 | contato (mosquito) |
-| Refinaria | 32s | 1 | bioma |
+| Cidade em Ruínas | 45s+ | 2 | contato (grunt) |
+| Rodovia | 45s+ | 1 | contato (runner) |
+| Floresta | 45s+ | 1 | contato (runner) |
+| Hospital de Campanha | 45s+ | 2 | — |
+| Caverna | 45s+ | 1 | contato (tank) |
+| Fábrica | 24s | 1 | projetil (robot) |
+| Pátio de Trens | 32s | 1 | bioma (robot) |
+| Ponte | 40s | 1 | projetil (spitter) |
+| Pântano | 45s+ | 1 | contato (frog) |
+| Refinaria | 45s+ | 1 | bioma (robot) |
 | Subestação | 45s+ | 1 | projetil (crystal) |
-| Vulcão | 40s | 1 | bioma (inferno) |
-| Porto | 45s+ | 1 | projetil (fireElemental) |
-| Castelo | 24s | 1 | bioma |
+| Vulcão | 45s+ | 1 | projetil (fireElemental) |
+| Porto | 40s | 1 | projetil (ufo) |
+| Castelo | 45s+ | 1 | bioma |
 | Espaço | 45s+ | 1 | projetil (alien) |
 | NÚCLEO-CENTRAL | 45s+ | 1 | — |
 
