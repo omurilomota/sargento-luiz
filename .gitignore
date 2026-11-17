@@ -17,3 +17,6 @@ freebuff-chat-*.md
 
 # Screenshots do harness visual
 tools/shots/
+
+# Vercel CLI
+.vercel/
