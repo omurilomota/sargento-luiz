@@ -107,6 +107,8 @@ export interface HudData {
   objective: ObjectiveProgress;
   warnings: EnvironmentWarning[];
   combos: { name: string; description: string; color: string }[];
+  /** Missões por fase para a página do TAB (P0-5). */
+  missoes: { name: string; objetivo: string; estado: 'feita' | 'atual' | 'futura' }[];
   hint: { key: string; text: string } | null;
   toasts: Toast[];
   /** Segundos restantes antes da loja abrir (0 = sem contagem) */
@@ -552,6 +554,29 @@ export function drawTabScreen(d: HudData, W: number, H: number): void {
       ctx!.font = '11px monospace';
       ctx!.fillText(c.description, x2, y + 15);
     });
+  }
+
+  // ── MISSÕES (P0-5): o TAB listava mapa e combos, mas não o que a fase
+  // pede. A janela mostra a fase atual e as vizinhas — as 16 linhas não
+  // cabem ao lado do mapa sem virar parede de texto.
+  const indiceAtual = d.missoes.findIndex(m => m.estado === 'atual');
+  const inicio = Math.max(0, indiceAtual - 2);
+  const janela = d.missoes.slice(inicio, inicio + 5);
+  let yMissao = top + 30 + Math.max(1, d.combos.length) * 34 + 24;
+  ctx!.font = '11px monospace';
+  ctx!.fillStyle = PALETTE.textOff;
+  ctx!.fillText('MISSÕES', x2, yMissao);
+  yMissao += 18;
+  for (const m of janela) {
+    ctx!.fillStyle = m.estado === 'atual' ? PALETTE.mustard : m.estado === 'feita' ? PALETTE.moss : PALETTE.textOff;
+    ctx!.font = m.estado === 'atual' ? 'bold 12px monospace' : '11px monospace';
+    ctx!.fillText(`${m.estado === 'atual' ? '▸ ' : '  '}${m.name}`, x2, yMissao);
+    ctx!.fillStyle = PALETTE.textDim;
+    ctx!.font = '11px monospace';
+    ctx!.textAlign = 'right';
+    ctx!.fillText(m.objetivo, x2 + panelW, yMissao);
+    ctx!.textAlign = 'left';
+    yMissao += 17;
   }
 
   ctx!.textAlign = 'left';

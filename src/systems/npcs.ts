@@ -190,6 +190,25 @@ let tirosDeAliado = 0;
 export function getTirosDeAliado(): number { return tirosDeAliado; }
 export function zeraTirosDeAliado(): void { tirosDeAliado = 0; }
 
+/**
+ * P0-3: reposiciona a torreta para o ponto pedido (tecla T).
+ *
+ * Ela continua FIXA — não vira seguidora —, mas o posto é escolha do
+ * jogador: nascer colada no spawn e nunca poder mover era o que fazia a
+ * compra parecer quebrada. `moveCircleBy` com deslocamento zero resolve
+ * sobreposição de parede sem criar uma regra de posicionamento nova.
+ */
+export function moverTorreta(x: number, y: number): boolean {
+  const torreta = npcs.find(n => n.alive && n.aliado?.modo === 'torreta');
+  if (!torreta) return false;
+  const posto = moveCircleBy(x, y, 0, 0, torreta.radius);
+  torreta.x = posto.x;
+  torreta.y = posto.y;
+  torreta.aliado!.postX = posto.x;
+  torreta.aliado!.postY = posto.y;
+  return true;
+}
+
 /** O inimigo mais próximo dentro do alcance E com linha de visão limpa. */
 function inimigoMaisProximoVisivel(
   npc: NPC,

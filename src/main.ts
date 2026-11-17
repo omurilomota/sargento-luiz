@@ -80,7 +80,7 @@ import { getFuryCooldownMult } from './systems/skills';
 import { triggerScreenShake, triggerDamageFlash, triggerBossKillFlash, triggerLevelUpFlash, updateFlash, updateSlowMotion, triggerSlowMotion, triggerHitStop, updateHitStop, resetEffects, updateScreenShake, triggerBossZoom, updateBossZoom, triggerVeil, updateVeil } from './systems/effects';
 
 import { useSkill, isSkillActive, updateSkills, resetSkills, getDamageMultiplier, getDamageTakenMultiplier, getSkillCooldown, getSkillMaxCooldown, setMoveDirection, furiaDesbloqueada, desbloquearFuria, restoreFuria, resetFuria } from './systems/skills';
-import { toggleNpcFollow } from './systems/npcs';
+import { toggleNpcFollow, moverTorreta } from './systems/npcs';
 import { getCurrentClass, setCurrentClass, getClassDamageMult, getClassSpeedMult, getClassReloadMult, getClassHealthPerSecond, loadClass, saveClass, resetClass, ClassId, CLASSES } from './systems/classes';
 import { updateEnvironmentEvents, resetEnvironmentEvents, getEnvironmentWarnings , forcarEventoAmbiente, tornadoNoAr , EnvironmentEvent } from './systems/environment';
 import { updateCombos, getActiveCombos, getComboDamageBonus, getComboCooldownMult, getComboHealthBonus, resetCombos } from './systems/combos';
@@ -316,6 +316,19 @@ document.addEventListener('keydown', e => {
   }
   if (k === 'r') startReload();
   if (k === 'j') toggleNpcFollow();
+  // P0-3: a torreta é fixa, mas o posto é escolha do jogador. T a move para
+  // trás do corpo (a posição que ele acabou de deixar), sem virar seguidora.
+  if (k === 't') {
+    const p = player.getPlayer();
+    const x = p.x - Math.cos(p.angle) * 56;
+    const y = p.y - Math.sin(p.angle) * 56;
+    if (moverTorreta(x, y)) {
+      pushToast('TORRETA REPOSICIONADA', 1.6);
+      sfxMenuMove();
+    } else {
+      pushToast('SEM TORRETA EM CAMPO', 1.6, 'aviso');
+    }
+  }
   // H usa medkit do inventário. Não existe "curar por 50 moedas durante o
   // combate": esse ramo era compra ilimitada de 25 HP a cada tecla, e com
   // milhares de moedas no fim da campanha tornava o jogador imortal.
@@ -1271,10 +1284,16 @@ function update(dt: number) {
   // ── disparo ──
   p.shootCooldown -= dt;
   updateReload(dt);
-  if (mouse.down && p.shootCooldown <= 0 && canShoot()) {
+  if (mouse.down && p.shootCooldown <= 0 && (getCurrentWeapon().melee || canShoot())) {
     const weapon = getCurrentWeapon();
     p.shootCooldown = getEffectiveShootRate() * getComboCooldownMult() * getFuryCooldownMult();
     const multiShot = hasPowerUp('multiShot');
+    if (weapon.melee) {
+      // P0-4: o martelo não lança projétil — o golpe é um arco curto na
+      // frente do corpo, sem munição e sem recarga. O `shoot()` continua
+      // sendo o caminho de TODA arma de projétil.
+      golpeDeMartelo(p, weapon, multiShot, getDamageMultiplier() * getComboDamageBonus() * phaseDmgMult * getClassDamageMult());
+    } else {
     // A bala nasce no BICO DO CANO, no mesmo ponto do flash — antes saía do
     // centro do peito, 24px atrás do flash, e o relato do Murilo era
     // exato: "as balas não saem certinhas do bico do cano da arma". O cano
@@ -1327,6 +1346,7 @@ function update(dt: number) {
     if (jammedNow && !wasJammed) sfxJammed();
     wasJammed = jammedNow;
     if (getCurrentAmmo() <= 0) startReload();
+    }
   }
 
   if (p.invincible > 0) p.invincible -= dt;
@@ -1360,7 +1380,7 @@ function update(dt: number) {
   // Durante a luta contra o chefe o spawner não corre: a última onda já foi
   // zerada pelo `waveComplete` e, sem isto, ele reabastecia a cota dela e
   // jogava reforço na tela enquanto o chefe morria.
-  const waveComplete = (chefeVivo || ehRushDoNucleo) ? false : spawnWaveEnemies(dt, enemies, getCurrentWave(), phase.enemyTypes, worldW, worldH, rect, phase.mutantsPerWave ?? 0);
+  const waveComplete = (chefeVivo || ehRushDoNucleo) ? false : spawnWaveEnemies(dt, enemies, getCurrentWave(), phase.enemyTypes, worldW, worldH, rect, phase.mutantsPerWave ?? 0, phase.spawnGroup ?? 1);
   // `clear` libera o chefe na largada; os outros, só quando o objetivo é
   // cumprido. Declarado aqui porque o respiro da última onda (logo abaixo)
   // e o `deveFecharFase` precisam dele: sem o termo, o Vulcão fechava a
@@ -2906,6 +2926,18 @@ function buildWeaponSheet(): WeaponSheet | null {
   };
 }
 
+/** Rótulo curto da missão de uma fase para o TAB (P0-5). */
+function rotuloDaMissao(f: typeof PHASES[number]): string {
+  switch (f.objective) {
+    case 'survive': return `SOBREVIVER ${f.objectiveTarget}s`;
+    case 'destroy': return `DESTRUIR ${f.objectiveTarget}`;
+    case 'protect': return 'PROTEGER O ALVO';
+    case 'reach': return 'CHEGAR À EXTRAÇÃO';
+    case 'collect': return `COLETAR ${f.objectiveTarget}`;
+    default: return `LIMPAR ${f.waves} ONDAS`;
+  }
+}
+
 function buildHudData(): HudData {
   const p = player.getPlayer();
   const phase = getCurrentPhase();
@@ -2978,6 +3010,14 @@ function buildHudData(): HudData {
     objective: peekObjective(p.x, p.y, enemies.length, reachZones),
     warnings: getEnvironmentWarnings(),
     combos: getActiveCombos().map(c => ({ name: c.name, description: c.description, color: c.color })),
+    // P0-5: as missões por fase moravam só nos dados — o TAB mostrava mapa
+    // e combos e nunca o que cada fase pede. A página usa a fase atual como
+    // âncora e deixa o passado como registro.
+    missoes: PHASES.map((f, i) => ({
+      name: f.name,
+      objetivo: rotuloDaMissao(f),
+      estado: i < PHASES.indexOf(phase) ? 'feita' as const : i === PHASES.indexOf(phase) ? 'atual' as const : 'futura' as const,
+    })),
     // A caixa de diálogo é modal: a dica do tutorial desenhada no mesmo
     // rodapé cobria o "ENTER OU CLIQUE PARA CONTINUAR". Some enquanto ela
     // está aberta; volta na primeira linha depois que a caixa fecha.
@@ -3138,9 +3178,15 @@ for (const e of enemies) {
       && distToPlayer < RAIO_TROCA_DE_ALVO) {
       e.aggroTimer = 4;
     }
+    // P0-3: o aliado pago também é alvo. Antes só o jogador (e o alvo do
+    // protect) existiam para a IA; a torreta atirava sozinha num campo que
+    // nunca revidava e o contratado morria sem prender ninguém. Quem está a
+    // menos de 320px entra na mira — e o jogador ainda puxa o aggro ao
+    // chegar perto (RAIO_TROCA_DE_ALVO).
+    const aliadoPerto = getNPCs().find(n => n.alive && n.aliado && Math.hypot(n.x - e.x, n.y - e.y) < 320);
     const comAggro = (e.aggroTimer ?? 0) > 0;
     const prey = !comAggro
-      ? (fogueteNoMapa ?? ((def?.huntsNpc || phase.objective === 'protect') ? getNPCs().find(n => n.alive) : undefined))
+      ? (fogueteNoMapa ?? ((def?.huntsNpc || phase.objective === 'protect') ? getNPCs().find(n => n.alive) : undefined) ?? aliadoPerto)
       : undefined;
     // atirador comum: sabe onde o jogador está, não faz sentido encostar
     const atiradorComum = def?.canShoot === true && !def?.isBoss;
@@ -3235,7 +3281,9 @@ for (const e of enemies) {
     e.shootTimer -= dt;
     // o caçador atira no alvo do protect (foguete primeiro), não no jogador
     const fogueteAqui = phase.objective === 'protect' ? getRocket() : undefined;
-    const preyAlvo = fogueteAqui ?? ((def?.huntsNpc || phase.objective === 'protect') ? getNPCs().find(n => n.alive) : undefined);
+    const preyAlvo = fogueteAqui
+      ?? ((def?.huntsNpc || phase.objective === 'protect') ? getNPCs().find(n => n.alive) : undefined)
+      ?? getNPCs().find(n => n.alive && n.aliado && Math.hypot(n.x - e.x, n.y - e.y) < 320);
     const alvoX = preyAlvo ? preyAlvo.x : p.x;
     const alvoY = preyAlvo ? preyAlvo.y : p.y;
     // Linha de visão (relato do Murilo, 2026-10-13): "não conta atirar sem me
@@ -3256,6 +3304,64 @@ for (const e of enemies) {
   }
 }
 
+}
+
+/**
+ * O GOLPE DO MARTELO (P0-4): arco curto na frente do corpo, sem munição.
+ *
+ * Recebe o multiplicador de dano já montado pelo chamador para usar
+ * exatamente a mesma pilha do tiro (upgrade, combo, fase e classe). O teto
+ * por acerto continua sendo `danoNoAlvo` — o martelo não fura a régua da
+ * ameaça.
+ */
+function golpeDeMartelo(
+  p: ReturnType<typeof player.getPlayer>,
+  weapon: ReturnType<typeof getCurrentWeapon>,
+  multiShot: boolean,
+  danoMult: number,
+): void {
+  const alcance = weapon.meleeRange ?? 90;
+  const arco = weapon.meleeArc ?? 2.2;
+  const danoBase = weapon.damage * danoMult * (multiShot ? 1.5 : 1);
+  const atingidos: Enemy[] = [];
+  for (const e of enemies) {
+    if (e.health <= 0) continue;
+    const dx = e.x - p.x;
+    const dy = e.y - p.y;
+    const d = Math.hypot(dx, dy);
+    if (d > alcance + e.radius) continue;
+    let diferenca = Math.atan2(dy, dx) - p.angle;
+    while (diferenca > Math.PI) diferenca -= Math.PI * 2;
+    while (diferenca < -Math.PI) diferenca += Math.PI * 2;
+    if (Math.abs(diferenca) > arco / 2) continue;
+    atingidos.push(e);
+  }
+  for (const e of atingidos) {
+    const aplicado = danoNoAlvo(danoBase, e);
+    e.health -= aplicado;
+    e.hitFlash = 0.15;
+    damageNumbers.push({
+      x: e.x + (Math.random() - 0.5) * 20,
+      y: e.y - 20,
+      text: String(Math.floor(aplicado)),
+      color: PALETTE.text,
+      life: 1,
+      vy: -80,
+    });
+    spawnParticles(e.x, e.y, e.color, 8, 160);
+    if (e.health <= 0) killEnemy(e, true);
+  }
+  // rastro do arco: faíscas no caminho do golpe, sem desenhar forma nova
+  const passos = 7;
+  for (let i = 0; i < passos; i++) {
+    const a = p.angle - arco / 2 + (arco * i) / (passos - 1);
+    spawnParticles(p.x + Math.cos(a) * alcance * 0.7, p.y + Math.sin(a) * alcance * 0.7, PALETTE.mustard, 2, 60, 'spark');
+  }
+  triggerScreenShake(5, 0.16);
+  triggerHitStop(0.03);
+  sfxImpact();
+  playWeaponSound(weapon.name);
+  registerShot();
 }
 
 /**
@@ -3933,7 +4039,7 @@ window.__ashfall = {
   // estado dos aliados pagos: quem vive, quantos tiros deu nesta fase
   aliados: () => getNPCs()
     .filter(n => n.aliado)
-    .map(n => ({ modo: n.aliado!.modo, nome: n.name, vivo: n.alive, hp: Math.round(n.health) })),
+    .map(n => ({ modo: n.aliado!.modo, nome: n.name, vivo: n.alive, hp: Math.round(n.health), x: Math.round(n.x), y: Math.round(n.y) })),
   tirosDeAliado: () => getTirosDeAliado(),
   // prova M2 #1: o anúncio de onda diferido (caixa de diálogo do Hospital)
   ondaPendente: () => anuncioDeOndaPendente,

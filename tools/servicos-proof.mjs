@@ -73,6 +73,19 @@ if (!modos.includes('contratado')) nota('o contratado pago não nasceu na fase')
 if (!modos.includes('torreta')) nota('a torreta paga não nasceu na fase');
 if (aliados.some(a => !a.vivo)) nota('aliado nasceu morto');
 
+// ── 4b. P0-3: a tecla T reposiciona a torreta ──
+const torretaAntes = aliados.find(a => a.modo === 'torreta');
+await page.keyboard.press('t');
+await page.waitForTimeout(250);
+const torretaDepois = (await page.evaluate(() => window.__ashfall.aliados())).find(a => a.modo === 'torreta');
+if (!torretaAntes || !torretaDepois) {
+  nota('torreta sumiu ao apertar T');
+} else {
+  const moveu = Math.hypot(torretaDepois.x - torretaAntes.x, torretaDepois.y - torretaAntes.y);
+  console.log(`  torreta: (${torretaAntes.x},${torretaAntes.y}) -> (${torretaDepois.x},${torretaDepois.y}) — ${moveu.toFixed(0)}px`);
+  if (moveu < 10) nota(`a tecla T não reposicionou a torreta (${moveu.toFixed(0)}px)`);
+}
+
 const tel = await page.evaluate(() => window.__ashfall.telemetria());
 console.log(`  velocidade na entrada: ${tel.velocidade} (padrão — as botas saíram, playtest 2026-10-16)`);
 if (tel.velocidade > 1.05) nota(`velocidade fora do padrão sem power-up: ${tel.velocidade}`);

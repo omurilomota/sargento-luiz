@@ -97,7 +97,7 @@ interface SpawnRect {
  * Sem mapa, cai no retângulo da tela (fallback). Com mapa, exige célula de
  * chão fora do viewport e a uma distância mínima do jogador.
  */
-function pickSpawnPosition(rect: SpawnRect): { x: number; y: number } {
+function pickSpawnPosition(rect: SpawnRect, near = false): { x: number; y: number } {
   const map = getMap();
   if (!map) {
     const side = Math.floor(rand(0, 4));
@@ -106,6 +106,34 @@ function pickSpawnPosition(rect: SpawnRect): { x: number; y: number } {
     if (side === 1) return { x: rect.w + d, y: rand(0, rect.h) };
     if (side === 2) return { x: rand(0, rect.w), y: -d };
     return { x: rand(0, rect.w), y: rect.h + d };
+  }
+
+  // P0-1 (Vulcão): a onda 1 nascia numa célula QUALQUER fora da tela — num
+  // mapa 30×20 isso podia ser ~1.500 px de caminhada a 35–90 px/s, e a horda
+  // demorava meio minuto para chegar. A primeira onda agora usa a célula
+  // válida fora da tela MAIS PRÓXIMA do viewport; da segunda em diante o
+  // sorteio continua, porque ali a distância é pressão, não espera.
+  if (near) {
+    let melhor: { x: number; y: number } | null = null;
+    let melhorD = Infinity;
+    for (let row = 1; row < map.rows - 1; row++) {
+      for (let col = 1; col < map.cols - 1; col++) {
+        if (isWall(col, row)) continue;
+        const x = col * CELL_SIZE + CELL_SIZE / 2;
+        const y = row * CELL_SIZE + CELL_SIZE / 2;
+        const onScreen = x > rect.px - 48 && x < rect.px + rect.viewW + 48
+          && y > rect.py - 48 && y < rect.py + rect.viewH + 48;
+        if (onScreen) continue;
+        if (Math.hypot(x - rect.px, y - rect.py) < MIN_SPAWN_DISTANCE) continue;
+        // distância até a BORDA do viewport: a célula mais perto da tela é a
+        // que o jogador encontra primeiro, não a mais perto do canto
+        const dx = Math.max(rect.px - x, 0, x - (rect.px + rect.viewW));
+        const dy = Math.max(rect.py - y, 0, y - (rect.py + rect.viewH));
+        const d = Math.hypot(dx, dy);
+        if (d < melhorD) { melhorD = d; melhor = { x, y }; }
+      }
+    }
+    if (melhor) return melhor;
   }
 
   const cols = map.cols;
@@ -144,14 +172,15 @@ export function spawnEnemy(
   currentWave: number,
   forceX?: number,
   forceY?: number,
-  rect?: SpawnRect
+  rect?: SpawnRect,
+  near = false
 ): Enemy | null {
   const def = ENEMY_TYPES[type];
   if (!def) return null;
 
   const pos = forceX !== undefined && forceY !== undefined
     ? { x: forceX, y: forceY }
-    : pickSpawnPosition(rect ?? { w: worldWidth, h: worldHeight, px: 0, py: 0, viewW: worldWidth, viewH: worldHeight });
+    : pickSpawnPosition(rect ?? { w: worldWidth, h: worldHeight, px: 0, py: 0, viewW: worldWidth, viewH: worldHeight }, near);
 
   const waveScale = (1 + currentWave * WAVE_SCALE_PER_LEVEL) * difficulty;
   const speedScale = (1 + currentWave * WAVE_SPEED_SCALE_PER_LEVEL) * Math.sqrt(difficulty);
@@ -187,7 +216,8 @@ export function spawnWaveEnemies(
   worldWidth: number,
   worldHeight: number,
   rect?: SpawnRect,
-  mutantsPerWave = 0
+  mutantsPerWave = 0,
+  grupo = 1
 ): boolean {
   waveTimer += dt;
   const totalEnemies = WAVE_BASE_ENEMIES + currentWave * WAVE_ENEMIES_PER_LEVEL;
@@ -216,8 +246,27 @@ export function spawnWaveEnemies(
     // senão a onda nunca chega em `totalDaOnda` e a fase trava.
     if (pool.length === 0) return false;
     const type = pool[Math.floor(rand(0, pool.length))];
-    let enemy = spawnEnemy(type, worldWidth, worldHeight, currentWave, undefined, undefined, rect);
-    if (enemy) {
+    // P0-2 (Ponte): o multi-spawn em GRUPO — 2–3 corpos por célula, em vez
+    // de um por vez. A cota da onda não muda; o que muda é o ritmo: eles
+    // entram juntos e o jogador enfrenta um bloco, não uma fila. Mutante
+    // continua sozinho (a cota dele é separada e o corpo é grande demais
+    // para dividir célula).
+    const noGrupo = ENEMY_TYPES[type]?.isMutant ? 1 : Math.max(1, Math.floor(grupo));
+    const cabem = Math.min(noGrupo, totalDaOnda - enemiesSpawnedThisWave, MAX_ENEMIES - enemies.length);
+    let base: Enemy | null = null;
+    for (let g = 0; g < cabem; g++) {
+      let enemy: Enemy | null;
+      if (g === 0) {
+        enemy = spawnEnemy(type, worldWidth, worldHeight, currentWave, undefined, undefined, rect, currentWave === 0);
+      } else {
+        // todos na MESMA célula do primeiro: o grupo entra junto e se
+        // separa depois, sem nascer espalhado pelo mapa
+        const jx = (g % 2 === 1 ? -1 : 1) * CELL_SIZE * 0.18;
+        const jy = (g > 1 ? 1 : 0) * CELL_SIZE * 0.18;
+        enemy = spawnEnemy(type, worldWidth, worldHeight, currentWave, base!.x + jx, base!.y + jy);
+      }
+      if (!enemy) break;
+      if (!base) base = enemy;
       // T1: o titã ABRE a onda a partir da segunda (currentWave >= 1, que é
       // 0-indexado) — primeiro corpo grande a entrar, pressão visível de
       // longe, exatamente um por onda.

@@ -201,6 +201,12 @@ export interface Weapon {
   magazineSize: number;
   /** Tempo de recarga em segundos */
   reloadTime: number;
+  /** Arma de CORPO A CORPO (P0-4): o golpe atinge em arco e não gasta munição. */
+  melee?: boolean;
+  /** Alcance do golpe melee, em pixels. */
+  meleeRange?: number;
+  /** Abertura do arco do golpe melee, em radianos. */
+  meleeArc?: number;
 }
 
 /** Ações possíveis de um boss data-driven */
@@ -264,6 +270,12 @@ export interface Phase {
   mutantsPerWave?: number;
   /** Número total de ondas na fase */
   waves: number;
+  /**
+   * Quantos corpos entram por célula de spawn (P0-2, Ponte). 1 = o spawner
+   * clássico, um por vez; 2–3 = a onda entra em grupo e o jogador enfrenta
+   * um bloco, não uma fila. A cota total da onda NÃO muda.
+   */
+  spawnGroup?: number;
   /** Chave do mapa em `maps.ts` */
   map: string;
   /** Hazard do bioma */

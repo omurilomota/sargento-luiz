@@ -65,7 +65,7 @@ export const PHASES: Phase[] = [
     // A única travessia por quilômetros — metade caiu, a outra metade
     // é território. O vento é tão forte que quase não se anda reto.
     name: 'Ponte', bg: '#2e2e2e', bgColor2: '#161616', gridColor: 'rgba(120,120,120,0.06)',
-    enemyTypes: ['bat', 'spitter', 'crystal'], waves: 5, map: 'ponte', hazard: 'lowGravity',
+    enemyTypes: ['bat', 'spitter', 'crystal'], waves: 5, spawnGroup: 2, map: 'ponte', hazard: 'lowGravity',
     difficulty: 0.94, objective: 'reach', objectiveTarget: 0, boss: 'gargula',
   },
   {
@@ -448,11 +448,11 @@ export const WEAPONS: Weapon[] = [
   { name: 'BFG', damage: 38, shootRate: 2.0, bulletSpeed: 500, bulletCount: 5, spread: 0.4, color: PALETTE.title, price: 999, pierce: true, explosive: true, explosionRadius: 120, magazineSize: 1, reloadTime: 3.5, secret: true },
   // índice 11 — só vem da caixa especial do boss
   { name: 'M. Quebrada', damage: 5, shootRate: 0.3, bulletSpeed: 650, bulletCount: 1, spread: 0.18, color: '#a08050', price: 0, pierce: false, magazineSize: 30, reloadTime: 1.6, broken: true },
-  // índice 12 — o martelo do Sargento Luiz. Destruidor de mundos: tiro único,
-  // explosão enorme, cadência lenta de propósito (o peso do golpe). Não é
-  // comprável: só aparece na caixa especial do boss NÚCLEO. O dano por tiro
-  // engana — a explosão em área de 260px é o que limpa a fase apelona.
-  { name: 'Destruidor', damage: 110, shootRate: 1.6, bulletSpeed: 460, bulletCount: 1, spread: 0, color: PALETTE.terracotta, price: 0, pierce: false, explosive: true, explosionRadius: 260, magazineSize: 3, reloadTime: 3.0, secret: true },
+  // índice 12 — o martelo do Sargento Luiz. Destruidor de mundos: CORPO A
+  // CORPO (P0-4, playtest: "martelo não é melee"). O golpe atinge em arco
+  // curto, não gasta munição e a cadência lenta é o peso. Não é comprável:
+  // só aparece na caixa especial do boss NÚCLEO.
+  { name: 'Destruidor', damage: 110, shootRate: 1.6, bulletSpeed: 0, bulletCount: 1, spread: 0, color: PALETTE.terracotta, price: 0, pierce: false, explosive: true, explosionRadius: 260, magazineSize: 3, reloadTime: 3.0, secret: true, melee: true, meleeRange: 96, meleeArc: 2.4 },
 ];
 
 /** Qualidades sorteáveis de armas: modificam dano, cadência, spread, crítico e pierce. */

@@ -41,7 +41,11 @@ let notice: { text: string; time: number; color: string } | null = null;
 
 export function setShopCoins(amount: number) { shopCoins = amount; }
 export function getShopCoins(): number { return shopCoins; }
-export function addShopCoins(amount: number) { shopCoins += amount; }
+export function addShopCoins(amount: number) {
+  // P1-13: o evento `evt_azar` vale -10 e a loja mostrava "-10 moedas".
+  // Moeda é recurso finito: o piso é zero, como no resto da economia.
+  shopCoins = Math.max(0, shopCoins + amount);
+}
 export function getPurchasedWeapons(): number[] { return purchasedWeapons.map(w => w.index); }
 /** Pares (índice, qualidade) possuídos — a loja distingue arma por qualidade. */
 export function getPurchasedWeaponPairs(): { index: number; quality: string }[] { return purchasedWeapons.slice(); }
@@ -726,7 +730,9 @@ export function getShopLayout(width: number, height: number): ShopLayout {
   const support: Rect = { x: leftX, y: supportY, w: 280, h: 44 };
 
   const diaryY = support.y + support.h + 30;
-  const contentHeight = diaryY + 120 - contentStart;
+  // 150 e não 120: o card ganhou a linha de DICA (P0-5), e sem a folga ela
+  // caía fora da área rolável.
+  const contentHeight = diaryY + 150 - contentStart;
   const maxScroll = Math.max(0, contentHeight - (height - contentStart - 40));
 
   return {
@@ -1289,10 +1295,15 @@ export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: n
 
   // ── DIÁRIO ──
   const diaryEntries = getUnlockedDiary();
-  if (diaryEntries.length > 0) {
-    sectionLabel(ctx, 'DIÁRIO DE BORDO', L.ad.x, L.sections.diary, PALETTE.stone);
-    let entryY = L.sections.diary + 25;
-    ctx.textAlign = 'left';
+  sectionLabel(ctx, 'DIÁRIO DE BORDO', L.ad.x, L.sections.diary, PALETTE.stone);
+  let entryY = L.sections.diary + 25;
+  ctx.textAlign = 'left';
+  if (diaryEntries.length === 0) {
+    ctx.fillStyle = PALETTE.textOff;
+    ctx.font = '11px monospace';
+    ctx.fillText('SEM REGISTROS AINDA — A PRÓXIMA PARADA RENDE UMA PÁGINA.', L.ad.x, entryY);
+    entryY += 18;
+  } else {
     for (const entry of diaryEntries.slice(-3)) {
       ctx.fillStyle = '#888';
       ctx.font = 'bold 11px monospace';
@@ -1303,6 +1314,11 @@ export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: n
       entryY += 32;
     }
   }
+  // P0-5: a loja mostrava o diário, mas não dizia para que ele serve. A
+  // dica cabe em 10px e não invade a coluna direita.
+  ctx.fillStyle = PALETTE.textDim;
+  ctx.font = '10px monospace';
+  ctx.fillText('DICA: EVENTOS DO DIÁRIO MEXEM NO SEU BOLSO.', L.ad.x, entryY);
 
   ctx.restore();
 
