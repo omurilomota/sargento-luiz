@@ -210,7 +210,8 @@ export interface Weapon {
 }
 
 /** Ações possíveis de um boss data-driven */
-export type BossAction = 'spread' | 'ring' | 'charge' | 'summon' | 'mines' | 'split' | 'sweep';
+export type BossAction = 'spread' | 'ring' | 'charge' | 'summon' | 'mines' | 'split' | 'sweep'
+  | 'spray' | 'burst' | 'lob';
 
 /** Uma etapa do padrão de ataque de um boss, ativada quando o HP cruza o limiar */
 export interface BossPatternStep {

@@ -349,12 +349,13 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
   maquinista: {
     radius: 48, speed: 52, health: 560, damage: 30, color: '#5a4a3a', scoreValue: 600, coinDrop: 65,
     canShoot: false, isBoss: true, bossName: 'MAQUINISTA', telegraph: 1.1,
+    projectileKind: 'slime', projectileColor: '#6a8a6a',
     entryShout: 'YOU SHALL NOT PASS!', deathLine: 'O último trem partiu.',
     // O condutor fundido com a locomotiva. O apito de vapor é a
     // telegrafia; a investida é a locomotiva em marcha.
     pattern: [
       { atHp: 1.0, action: 'charge', telegraph: 'APITO' },
-      { atHp: 0.55, action: 'ring', telegraph: 'VAPOR' },
+      { atHp: 0.55, action: 'spray', telegraph: 'VAPOR' },
       { atHp: 0.25, action: 'summon', telegraph: 'VAGÕES' },
     ],
   },
@@ -377,8 +378,8 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
     // A torre de destilação, viva de fogo. Lenta, quase imóvel, mas o
     // chão ao redor dela derrete — cada passo é uma escolha.
     pattern: [
-      { atHp: 1.0, action: 'ring', telegraph: 'DESTILAÇÃO' },
-      { atHp: 0.55, action: 'ring', telegraph: 'PRESSÃO' },
+      { atHp: 1.0, action: 'lob', telegraph: 'DESTILAÇÃO' },
+      { atHp: 0.55, action: 'burst', telegraph: 'PRESSÃO' },
       { atHp: 0.25, action: 'charge', telegraph: 'COLAPSO' },
     ],
   },

@@ -41,11 +41,26 @@ interface BossRuntime {
   timer: number;
   /** Tempo de recarga das minas */
   mineTimer: number;
+  /** Rajada em 3 tempos: quantas ondas faltam e quando dispara a próxima */
+  burstLeft: number;
+  burstTimer: number;
+  burstAngle: number;
   /**true enquanto o boss está em telegrafia */
   flashing: boolean;
 }
 
 const runtimes = new WeakMap<Enemy, BossRuntime>();
+
+/** Velocidade e sprite do projétil conforme o tipo do chefe (mesma regra do
+ *  `shootEnemyAt`: gosma/lasca/brasa não são cartucho). */
+function spriteDe(def: typeof ENEMY_TYPES[string]): string {
+  return def.projectileKind === 'slime' ? 'slime_blob'
+    : def.projectileKind === 'shard' ? 'shard_blob'
+    : def.projectileKind === 'ember' ? 'ember_blob' : 'small_bullet';
+}
+function speedDe(def: typeof ENEMY_TYPES[string]): number {
+  return def.bulletSpeed ?? 300;
+}
 
 /** Aleatoriedade injetável para os testes. */
 let randFn: () => number = Math.random;
@@ -83,6 +98,9 @@ export function updateBoss(
       chargeAngle: 0,
       timer: ACTION_INTERVAL,
       mineTimer: 0,
+      burstLeft: 0,
+      burstTimer: 0,
+      burstAngle: 0,
       flashing: false,
     };
     runtimes.set(e, rt);
@@ -143,6 +161,23 @@ export function updateBoss(
     return spawned;
   }
 
+  // rajada em 3 tempos: dispara uma onda, espera 0.35s, dispara outra. O
+  // ângulo é travado no início para as três ondas formarem um corredor, não
+  // um leque giratório — é isso que a distingue do `spread` de uma vez só.
+  if (rt.burstLeft > 0) {
+    rt.burstTimer -= elapsed;
+    if (rt.burstTimer <= 0) {
+      rt.burstTimer = 0.35;
+      rt.burstLeft--;
+      for (let s = -2; s <= 2; s++) {
+        const a = rt.burstAngle + s * 0.12;
+        spawnBullet(e.x, e.y, Math.cos(a) * speedDe(def), Math.sin(a) * speedDe(def),
+          e.damage * 0.8, true, def.projectileColor ?? PALETTE.terracotta, false, false, 0, false, spriteDe(def));
+      }
+    }
+    return spawned;
+  }
+
   // entre ações o boss persegue o jogador pelo flow field — antes ele ficava
   // estático todo o intervalo do timer, como um espantalho
   const flow = sampleFlowDir(e.x, e.y);
@@ -186,7 +221,7 @@ export function updateBoss(
     case 'spread':
       for (let s = -2; s <= 2; s++) {
         const a = angle + s * 0.14;
-        spawnBullet(e.x, e.y, Math.cos(a) * speed * 1.1, Math.sin(a) * speed * 1.1, dmg, true, color, false);
+        spawnBullet(e.x, e.y, Math.cos(a) * speed * 1.1, Math.sin(a) * speed * 1.1, dmg, true, color, false, false, 0, false, spriteDe(def));
       }
       break;
     case 'ring':
@@ -195,14 +230,40 @@ export function updateBoss(
       // diagonal é segura" — 12 tiros fecham o círculo inteiro
       for (let s = 0; s < 12; s++) {
         const a = (s * Math.PI * 2) / 12 + e.angle;
-        spawnBullet(e.x, e.y, Math.cos(a) * speed, Math.sin(a) * speed, dmg * 0.7, true, color, false);
+        spawnBullet(e.x, e.y, Math.cos(a) * speed, Math.sin(a) * speed, dmg * 0.7, true, color, false, false, 0, false, spriteDe(def));
+      }
+      break;
+    case 'spray':
+      // glândula/respingo: arco curto de 7 gotas, mais aberto que o `spread`
+      // de 5 retas. A gota não gira no render — é respingo, não metralhadora.
+      for (let s = -3; s <= 3; s++) {
+        const a = angle + s * 0.16;
+        spawnBullet(e.x, e.y, Math.cos(a) * speed * 0.85, Math.sin(a) * speed * 0.85,
+          dmg * 0.6, true, color, false, false, 0, false, spriteDe(def));
+      }
+      break;
+    case 'burst':
+      rt.burstLeft = 3;
+      rt.burstTimer = 0;
+      rt.burstAngle = angle;
+      break;
+    case 'lob':
+      // 3 gotas caem perto do jogador, não miram nele: cria uma área que
+      // obriga a sair do lugar em vez de só desviar da linha reta.
+      for (let s = -1; s <= 1; s++) {
+        const a = angle + s * 0.5;
+        const alcance = Math.min(220, distToPlayer || 180);
+        const alvoX = e.x + Math.cos(a) * alcance;
+        const alvoY = e.y + Math.sin(a) * alcance;
+        const livre = pushOutOfWalls(alvoX, alvoY, 12);
+        spawnBullet(livre.x, livre.y, 0, 0, dmg * 0.5, true, color, false, false, 0, false, spriteDe(def));
       }
       break;
     case 'sweep': {
       const dir = randFn() > 0.5 ? 1 : -1;
       for (let s = 0; s < 9; s++) {
         const a = angle + s * 0.09 * dir;
-        spawnBullet(e.x, e.y, Math.cos(a) * speed * 0.9, Math.sin(a) * speed * 0.9, dmg * 0.6, true, color, false);
+        spawnBullet(e.x, e.y, Math.cos(a) * speed * 0.9, Math.sin(a) * speed * 0.9, dmg * 0.6, true, color, false, false, 0, false, spriteDe(def));
       }
       break;
     }
@@ -240,7 +301,7 @@ export function updateBoss(
       for (let i = 0; i < 5; i++) {
         const a = (i * Math.PI * 2) / 5;
         spawnBullet(e.x + Math.cos(a) * 40, e.y + Math.sin(a) * 40,
-          Math.cos(a) * 90, Math.sin(a) * 90, dmg * 0.5, true, color, false);
+          Math.cos(a) * 90, Math.sin(a) * 90, dmg * 0.5, true, color, false, false, 0, false, spriteDe(def));
       }
       for (const p of getProps()) {
         if (p.kind === 'barrel' && p.health > 0) igniteBarrel(p);
@@ -249,7 +310,7 @@ export function updateBoss(
     case 'split':
       for (let i = 0; i < 3; i++) {
         const a = angle + (i * Math.PI) / 2;
-        spawnBullet(e.x, e.y, Math.cos(a) * speed * 0.8, Math.sin(a) * speed * 0.8, dmg * 0.8, true, color, false);
+        spawnBullet(e.x, e.y, Math.cos(a) * speed * 0.8, Math.sin(a) * speed * 0.8, dmg * 0.8, true, color, false, false, 0, false, spriteDe(def));
       }
       break;
   }
