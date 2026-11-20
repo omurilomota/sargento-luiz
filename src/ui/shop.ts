@@ -24,7 +24,7 @@ import { furiaDesbloqueada } from '../systems/skills';
 import { sfxBuy, sfxError } from '../systems/audio';
 import { PALETTE } from '../core/palette';
 import { getSprite, WEAPON_ICON } from '../systems/sprites';
-import { getInventory, getEquipped, equipPiece, unequipPiece, getPieceType, hasPieceSynergy, PIECE_INVENTORY_LIMIT, returnEquippedPieces, sellPieceFromInventory, pieceSellPrice } from '../systems/pieces';
+import { getInventory, getEquipped, equipPiece, unequipPiece, getPieceType, hasPieceSynergy, PIECE_INVENTORY_LIMIT, returnEquippedPieces, sellPieceFromInventory, pieceSellPrice, addPieceToInventory } from '../systems/pieces';
 
 /** Saldo atual de moedas do jogador */
 let shopCoins = 0;
@@ -317,6 +317,9 @@ export const SHOP_SERVICES = [
   { id: 'hire',        name: 'Sobrevivente Contratado',  price: 140, desc: 'soldado te cobre: segue e atira (1× por visita)' },
   { id: 'turret',      name: 'Torreta Automática',       price: 240, desc: 'torreta na entrada atira sozinha (1× por visita)' },
   { id: 'pardal',      name: 'Cachorro de Guarda',        price: 200, desc: 'pardal segue e morde quem encosta (1× por visita)' },
+  { id: 'empunhadura', name: 'Empunhadura',                price: 80, desc: 'peça cadência: -25% recarga (1× por visita)' },
+  { id: 'muzzle',      name: 'Muzzle',                     price: 80, desc: 'peça precisão: -40% dispersão (1× por visita)' },
+  { id: 'carregador',  name: 'Carregador',                 price: 90, desc: 'peça capacidade: +50% pente (1× por visita)' },
 ];
 
 /**
@@ -332,7 +335,9 @@ export function isServiceAvailable(id: string): boolean {
   if (id === 'reroll') return !rerolledThisVisit;
   if (id === 'discount') return !nextDiscount;
   if (id === 'hire') return !hiredThisVisit;
-  if (id === 'turret' || id === 'pardal') return !serviceUsedThisVisit.has(id);
+  if (id === 'turret' || id === 'pardal' || id === 'empunhadura' || id === 'muzzle' || id === 'carregador') {
+    return !serviceUsedThisVisit.has(id);
+  }
   return true;
 }
 
@@ -390,6 +395,15 @@ export function buyService(id: string): void {
   } else if (id === 'pardal') {
     boughtServices.push('pardal');
     flashNotice('PARDAL VAI CONTIGO NA PRÓXIMA FASE', PALETTE.moss);
+  } else if (id === 'empunhadura' || id === 'muzzle' || id === 'carregador') {
+    // Acessórios vão direto para o inventário de peças (a loja não vendia
+    // peças — só caíam em loot). O efeito é o da PIECE_TYPES correspondente.
+    const peca = id === 'empunhadura' ? 'cadencia' : id === 'muzzle' ? 'precisao' : 'capacidade';
+    if (addPieceToInventory(peca)) {
+      flashNotice(`PEÇA ADQUIRIDA — ${def.name.toUpperCase()}`, PALETTE.mustard);
+    } else {
+      flashNotice('MOCHILA DE PEÇAS CHEIA', PALETTE.danger);
+    }
   }
   sfxBuy();
 }
@@ -1341,9 +1355,13 @@ export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: n
 function desenhaIconeArma(ctx: CanvasRenderingContext2D, nome: string, x: number, y: number, cor: string): void {
   const icone = getSprite(`gun_${WEAPON_ICON[nome] ?? 'pistol'}`);
   if (icone && icone.complete && icone.naturalWidth > 0) {
-    const h = 30;
-    const larg = h * (icone.naturalWidth / icone.naturalHeight);
-    ctx.drawImage(icone, x + (30 - larg) / 2, y, larg, h);
+    // FIT dentro do quadrado 30×30: a altura fixa antiga fazia sprite largo
+    // (fuzil, lança) vazar para fora da caixa e pintar por cima do nome/preço.
+    const bid = 30;
+    const escala = Math.min(bid / icone.naturalWidth, bid / icone.naturalHeight);
+    const larg = icone.naturalWidth * escala;
+    const alt = icone.naturalHeight * escala;
+    ctx.drawImage(icone, x + (bid - larg) / 2, y + (bid - alt) / 2, larg, alt);
     return;
   }
   ctx.fillStyle = cor;

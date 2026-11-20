@@ -249,7 +249,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
   sentinel: {
     radius: 48, speed: 38, health: 360, damage: 34, color: '#6a6a6a', scoreValue: 700, coinDrop: 80,
     canShoot: true, shootRate: 1.8, bulletSpeed: 300, isBoss: true, bossName: 'SENTINEL', deathLine: 'Setor encerrado.', telegraph: 0.8,
-    projectileColor: PALETTE.terracotta,
+    projectileColor: PALETTE.terracotta, projectileKind: 'spark',
     pattern: [
       { atHp: 1.0, action: 'spread', telegraph: 'ALVO IDENTIFICADO' },
       { atHp: 0.7, action: 'mines', telegraph: 'DRONES DE PERSEGUIÇÃO' },
@@ -307,7 +307,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
   mothership: {
     radius: 54, speed: 30, health: 980, damage: 44, color: '#7a6a8a', scoreValue: 1200, coinDrop: 140,
     canShoot: true, shootRate: 1.2, bulletSpeed: 300, isBoss: true, bossName: 'MOTHERSHIP', deathLine: 'A estação fica vazia.', telegraph: 0.8,
-    projectileColor: '#7a6a8a',
+    projectileColor: '#7a6a8a', projectileKind: 'spark',
     pattern: [
       { atHp: 1.0, action: 'ring', telegraph: 'ESCUDO EXTERNO' },
       { atHp: 0.7, action: 'summon', telegraph: 'INTERCEPTADORES' },
@@ -322,7 +322,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
   pedagiario: {
     radius: 42, speed: 60, health: 320, damage: 20, color: '#6a5a50', scoreValue: 300, coinDrop: 35,
     canShoot: false, isBoss: true, bossName: 'PEDAGIÁRIO', deathLine: 'O pedágio... ficou barato.', telegraph: 1.0,
-    projectileColor: PALETTE.stone,
+    projectileColor: PALETTE.stone, projectileKind: 'shard',
     // O cobrador que nunca foi embora — o corpo fundiu com a cancela.
     // A investida é a cancela que desce; o ring é a "tarifa" em estilhaços.
     pattern: [
@@ -362,7 +362,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
   gargula: {
     radius: 38, speed: 85, health: 580, damage: 28, color: '#4a4a5a', scoreValue: 650, coinDrop: 70,
     canShoot: true, shootRate: 2.0, bulletSpeed: 360, isBoss: true, bossName: 'GÁRGULA', deathLine: 'A ponte me segurava.', telegraph: 0.8,
-    projectileColor: '#6a6a7a',
+    projectileColor: '#6a6a7a', projectileKind: 'spark',
     // Coisa que aninha nas torres da ponte. Desce em picada (investida
     // rápida) e cospe pedras (ring). O summon são os filhotes do ninho.
     pattern: [
@@ -389,7 +389,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
     // Gerador é ESTRUTURA: parado na subestação, descarrega e chama reforços.
     radius: 44, speed: 1, health: 720, damage: 40, color: '#6a7a8a', scoreValue: 850, coinDrop: 95,
     canShoot: true, shootRate: 1.3, bulletSpeed: 400, isBoss: true, bossName: 'TRANSFORMADOR', deathLine: 'Sem corrente.', telegraph: 0.7,
-    projectileColor: '#8a9aaa',
+    projectileColor: '#8a9aaa', projectileKind: 'spark',
     // Criatura de raio e metal — cada golpe é um trovão. A telegrafia é
     // curta porque o raio não avisa.
     pattern: [
@@ -401,7 +401,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
   capitao: {
     radius: 40, speed: 62, health: 780, damage: 42, color: '#4a5a6a', scoreValue: 950, coinDrop: 110,
     canShoot: true, shootRate: 1.1, bulletSpeed: 380, isBoss: true, bossName: 'CAPITÃO', deathLine: 'O navio afundou antes.', telegraph: 0.8,
-    projectileColor: '#6a8a9a',
+    projectileColor: '#6a8a9a', projectileKind: 'spark',
     // O mestre do porto — a última coisa entre a terra e o espaço.
     // Comanda os navios (summon) e a doca é o campo dele.
     pattern: [
@@ -414,7 +414,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
   nucleo: {
     radius: 46, speed: 34, health: 1060, damage: 46, color: '#7a7a8a', scoreValue: 1500, coinDrop: 180,
     canShoot: true, shootRate: 1.0, bulletSpeed: 340, isBoss: true, bossName: 'NÚCLEO', deathLine: 'INSTABILIDADE REGISTRADA.', telegraph: 0.7,
-    projectileColor: PALETTE.stone, armor: true,
+    projectileColor: PALETTE.stone, projectileKind: 'spark', armor: true,
     // O último chefe tira uma opção por faixa, em vez de somar HP: tiro
     // mirado → o salão vira combustível → nenhuma diagonal é segura → nenhuma
     // posição é segura. Sem investida porque a galeria do Bunker é estreita

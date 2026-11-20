@@ -71,7 +71,7 @@ import { powerups, spawnPowerUp, spawnPowerUpDeChefe, spawnPowerUpDeTipo, update
 
 import {
   initAudio, sfxAmbiente, sfxExplosion, sfxBossDeath, sfxPlayerHit, sfxImpact, sfxKill, sfxCoin, sfxPowerup, sfxWaveStart, sfxLevelUp,
-  sfxGameOver, sfxEnemyShoot, sfxDash, sfxShield, sfxFury, sfxMenuMove, sfxMenuSelect, sfxError, sfxJammed, sfxPiece,
+  sfxGameOver, sfxEnemyShoot, sfxSpit, sfxDash, sfxShield, sfxFury, sfxMenuMove, sfxMenuSelect, sfxError, sfxJammed, sfxPiece,
   startMusic, playMusic, setMusicEnabled, setSfxEnabled, isMusicEnabled, isSfxEnabled, unlockAudio, MusicTrack,
   getMasterVolume, getMusicVolume, getSfxVolume, WEAPON_SOUNDS,
   sfxReload, sfxCondicao, resetFerrugem, sfxRisada, sfxFerramenta, sfxFogueteLancamento,
@@ -2174,7 +2174,8 @@ function shootEnemyAt(e: Enemy, tx: number, ty: number): void {
   // 4 lascas, não 4 balas de metralhadora.
   const sprite = def?.projectileKind === 'slime' ? 'slime_blob'
     : def?.projectileKind === 'shard' ? 'shard_blob'
-    : def?.projectileKind === 'ember' ? 'ember_blob' : 'small_bullet';
+    : def?.projectileKind === 'ember' ? 'ember_blob'
+    : def?.projectileKind === 'spark' ? 'spark_blob' : 'small_bullet';
   e.shootTimer = e.shootRate || 2;
   if (def?.spreadShot) {
     for (let s = -1; s <= 1; s++) {
@@ -2189,7 +2190,9 @@ function shootEnemyAt(e: Enemy, tx: number, ty: number): void {
   } else {
     spawnBullet(e.x, e.y, Math.cos(angle) * speed, Math.sin(angle) * speed, e.damage, true, color, false, false, 0, false, sprite, e.type);
   }
-  sfxEnemyShoot();
+  // Som acompanha o projétil: agente atira cartucho, zumbi cospe gosma.
+  if (sprite === 'small_bullet') sfxEnemyShoot();
+  else sfxSpit();
 }
 
 /**

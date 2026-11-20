@@ -995,7 +995,8 @@ export function drawBullets(bullets: Bullet[]): void {
     // Família da bala: o sprite vem do pack de armas (Kay Lousberg, CC0).
     // `bullet_*` no cache = asset carregou; o `arc` abaixo é o fallback de
     // asset ausente, que é a única função dele.
-    const blob = b.bulletSprite === 'slime_blob' || b.bulletSprite === 'shard_blob' || b.bulletSprite === 'ember_blob';
+    const blob = b.bulletSprite === 'slime_blob' || b.bulletSprite === 'shard_blob'
+    || b.bulletSprite === 'ember_blob' || b.bulletSprite === 'spark_blob';
     const sprite = b.bulletSprite ? getSprite(`bullet_${b.bulletSprite}`) : null;
     if (sprite && sprite.complete && sprite.naturalWidth > 0) {
       // Cartucho tem ponta: gira +90° para a ponta seguir a velocidade.

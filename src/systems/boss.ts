@@ -17,6 +17,7 @@ import { spawnEnemy } from './spawner';
 import { detonateProp, getProps, igniteBarrel } from './props';
 import { moveCircleBy, pushOutOfWalls, isWall, colAt, rowAt, sampleFlowDir } from './tilemap';
 import { triggerScreenShake } from './effects';
+import { sfxEnemyShoot, sfxSpit } from './audio';
 
 /** Intervalo base entre ações do boss (segundos) */
 const ACTION_INTERVAL = 3.4;
@@ -59,7 +60,8 @@ const runtimes = new WeakMap<Enemy, BossRuntime>();
 function spriteDe(def: typeof ENEMY_TYPES[string]): string {
   return def.projectileKind === 'slime' ? 'slime_blob'
     : def.projectileKind === 'shard' ? 'shard_blob'
-    : def.projectileKind === 'ember' ? 'ember_blob' : 'small_bullet';
+    : def.projectileKind === 'ember' ? 'ember_blob'
+    : def.projectileKind === 'spark' ? 'spark_blob' : 'small_bullet';
 }
 function speedDe(def: typeof ENEMY_TYPES[string]): number {
   return def.bulletSpeed ?? 300;
@@ -328,6 +330,13 @@ export function updateBoss(
         spawnBullet(e.x, e.y, Math.cos(a) * speed * 0.8, Math.sin(a) * speed * 0.8, dmg * 0.8, true, color, false, false, 0, false, spriteDe(def));
       }
       break;
+  }
+
+  // Som do disparo segue o projétil: gosma cospe, lasca/faísca estala.
+  if (action === 'spread' || action === 'ring' || action === 'sweep'
+    || action === 'spray' || action === 'lob' || action === 'split' || action === 'mines') {
+    if (def.projectileKind === 'slime' || def.projectileKind === 'ember') sfxSpit();
+    else sfxEnemyShoot();
   }
 
   // 'mines' também funde props próximos ao boss — a arena fica combustível

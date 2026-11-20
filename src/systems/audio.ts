@@ -237,6 +237,7 @@ export const SFX_FILES: Record<string, SfxDef> = {
   granade:     { file: 'assets/sfx/granade.ogg',     vary: 0.1 },
   mina:        { file: 'assets/sfx/mina.ogg' },
   enemyShoot:  { file: 'assets/sfx/enemyShoot.ogg',  vary: 0.08 },
+  spit:        { file: 'assets/sfx/spit.ogg',        vary: 0.1 },
   explosion:   { file: 'assets/sfx/explosion.ogg' },
   bossDeath:   { file: 'assets/sfx/bossDeath.ogg' },
   playerHit:   { file: 'assets/sfx/playerHit.ogg' },
@@ -426,6 +427,12 @@ export function sfxEnemyShoot(): void {
   if (playSfxFile('enemyShoot')) return;
   playTone(vary(260, 0.08), 0.05, 'triangle', 0.06);
   playBurst(0.03, 0.1, 'bandpass', 900, 0.8);
+}
+
+/** Cuspida de gosma/lasca/brasa — zumbi não faz barulho de arma de fogo. */
+export function sfxSpit(): void {
+  if (playSfxFile('spit')) return;
+  playBurst(0.06, 0.11, 'lowpass', 900, 1.2);
 }
 
 export function sfxExplosion(): void {

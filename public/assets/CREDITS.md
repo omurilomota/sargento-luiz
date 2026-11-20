@@ -251,6 +251,11 @@ no histórico do git como fallback.
 Origem: **Kenney.nl** (CC0), **OpenGameArt** (CC0) e
 **OpenGameArt** (CC-BY 3.0 — os 4 tiros reais de
 Vincent Sevedge, única fonte com atribuição obrigatória).
+
+`spit.ogg` — "slime_12" do pacote **40 CC0 water/splash/slime SFX**
+(opengameart.org/content/40-cc0-water-splash-slime-sfx), **CC0**. É o som
+de cuspida dos recusantes — antes eles tocavam `enemyShoot.ogg` (barulho
+de arma de fogo) mesmo cospindo gosma; agora o som segue o projétil.
 Critérios de curadoria: evento único, 0.1–2.0s, sem música,
 tom pós-apocalíptico (sem neon, sem cartoon). Conversão:
 mono, OGG Vorbis (`ffmpeg -i in -ac 1 -c:a libvorbis -q:a 4 out.ogg`),

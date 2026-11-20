@@ -1,4 +1,7 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+// o boss dispara som conforme o projétil; sem AudioContext no node
+vi.mock('../systems/audio', () => ({ sfxEnemyShoot: () => {}, sfxSpit: () => {} }));
 import { updateBoss, clearBossState, isBossTelegraphing, getBossTelegraphLabel, setBossRandom } from '../systems/boss';
 import { spawnEnemy } from '../systems/spawner';
 import { getBullets, clearBullets } from '../entities/bullet';
