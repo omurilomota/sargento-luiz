@@ -15,6 +15,14 @@
 | `boss.ogg` | The-Darkness-Below_Looping.ogg | soundimage.org/looping-music/ | RF com atribuição |
 | `shop.ogg` | Puzzle-Dreams.ogg | soundimage.org/looping-music/ | RF com atribuição |
 | `epilogo.ogg` | Autumn-Changes_Looping.mp3 (transcodado MP3→OGG, libvorbis q5) | soundimage.org/introspective/ | RF com atribuição |
+| `combat_ruinas.ogg` | Dystopic-Mayhem.ogg | soundimage.org/looping-music/ | RF com atribuição |
+| `combat_industrial.ogg` | And-the-Machines-Came-at-Midnight.ogg | soundimage.org/looping-music/ | RF com atribuição |
+| `combat_terminal.ogg` | 80s-Space-Game-Loop_v002.ogg | soundimage.org/looping-music/ | RF com atribuição |
+
+As três novas faixas de combate tocam por FAMÍLIA DE BIOMA, não por fase:
+ruínas (Cidade, Rodovia, Floresta, Hospital, Pântano), indústria (Fábrica,
+Pátio de Trens, Refinaria, Subestação, Porto) e terminal (Vulcão, Castelo,
+Espaço, Bunker). A seleção mora em `MUSICA_POR_BIOMA` no `src/main.ts`.
 
 `menu.ogg` é "Post Apocalyptic Wastelands [Loop Ready]" de
 Juhani Junkala / SubspaceAudio, da página "Horror Atmosphere"
@@ -32,7 +40,7 @@ fallback; o arquivo `genmusic.py` está no histórico do git e pode ser restaura
 ## Como se atribui
 
 - `menu.ogg`: "Juhani Junkala / SubspaceAudio — Post Apocalyptic Wastelands — opengameart.org/content/horror-atmosphere — CC0"
-- As outras três: "Eric Matyas — soundimage.org — https://soundimage.org"
+- As outras (boss, shop, epílogo e as três de bioma): "Eric Matyas — soundimage.org — https://soundimage.org"
 - No game: a tela de créditos (`V` no menu) já lista a origem.
 
 A licença do soundimage.org diz que atribuição *é* a forma correta de usar:

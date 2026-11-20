@@ -17,7 +17,8 @@ let musicGain: GainNode | null = null;
 let sfxGain: GainNode | null = null;
 
 /** Faixas de música disponíveis por contexto de jogo */
-export type MusicTrack = 'menu' | 'combat' | 'boss' | 'shop' | 'epilogo';
+export type MusicTrack = 'menu' | 'combat' | 'boss' | 'shop' | 'epilogo'
+  | 'combat_ruinas' | 'combat_industrial' | 'combat_terminal';
 
 interface TrackDef {
   file: string;
@@ -32,6 +33,11 @@ const TRACKS: Record<MusicTrack, TrackDef> = {
   boss: { file: 'assets/music/boss.ogg', loopStart: 0, loopEnd: 0 },
   shop: { file: 'assets/music/shop.ogg', loopStart: 0, loopEnd: 0 },
   epilogo: { file: 'assets/music/epilogo.ogg', loopStart: 0, loopEnd: 0 },
+  // As 16 fases não tocavam a mesma combat.ogg: três famílias de bioma agora
+  // separam ruínas, indústria e o terminal cósmico (a seleção mora no main).
+  combat_ruinas: { file: 'assets/music/combat_ruinas.ogg', loopStart: 0, loopEnd: 0 },
+  combat_industrial: { file: 'assets/music/combat_industrial.ogg', loopStart: 0, loopEnd: 0 },
+  combat_terminal: { file: 'assets/music/combat_terminal.ogg', loopStart: 0, loopEnd: 0 },
 };
 
 const CROSSFADE = 0.8;
