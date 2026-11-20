@@ -10,6 +10,12 @@ país morto em provações, e descobre que o apocalipse não foi acidente — fo
 **máquina, o Núcleo**, que gera os zumbis até hoje. Matar tudo no caminho é o
 preço para chegar nela.
 
+A mão de obra da MegaCorp não nasceu zumbi: recebeu um implante, com número e
+turno. Quem aceitou virou agente de crachá e ainda obedece ao chefe de fase.
+Quem recusou foi transformado à força e saiu do controle da máquina — é quem
+ataca o Luiz. O Núcleo gera os dois. O registro no fim da Parte I mostra os
+números: 4.112 registrados, 217 recusas, contenção falhada.
+
 ## O arco
 
 Rios não busca cura. Busca **chegar**. Cada bioma é uma provação que arranca um

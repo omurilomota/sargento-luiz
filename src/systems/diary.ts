@@ -88,6 +88,13 @@ const DIARY_ENTRIES: DiaryEntry[] = [
   },
   {
     phase: -1,
+    event: 'implante',
+    title: 'O prontuário',
+    text: 'O prontuário do doutor tem a lista. Nome, número, turno. Quatro mil cento e doze linhas. Duzentas e dezessete riscadas. Perguntei e ele mudou de assunto.',
+    unlocked: false,
+  },
+  {
+    phase: -1,
     event: 'npc_saved',
     title: 'Um a um',
     text: 'Levei o CABO até a zona. Ele não disse obrigado, só respirou fundo quando a seta apareceu. Eram doze anos de equipe e ele perguntou pelo radio se eu estava bem. É assim que se conta.',
