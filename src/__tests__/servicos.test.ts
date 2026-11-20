@@ -4,8 +4,8 @@
  * A rodada de 2026-10-14 vendeu torreta e botas que não faziam NADA no jogo
  * (a porta nº 5 pega export sem chamador; aqui o que se trava é o caminho
  * COMPLETO de compra → consumo → efeito). O cachorro de guarda ficou fora
- * da loja de propósito: sem arte top-down CC0 o sprite seria perspectiva
- * mista (DECISIONS #214).
+ * da loja até DECISIONS #214 ser revertida: com sprite top-down CC-BY do
+ * harrison-lord ele voltou como `pardal` (segue e morde, não atira).
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
@@ -42,8 +42,10 @@ describe('serviços da loja: quem paga, recebe', () => {
     getShopStock();
   });
 
-  it('o cachorro de guarda e as BOTAS não estão à venda', () => {
-    expect(IDS()).not.toContain('pardal');
+  it('o cachorro de guarda voltou à venda; as BOTAS continuam fora', () => {
+    // DECISIONS #214 tirou o pardal por falta de arte top-down. Com o sprite
+    // CC-BY do harrison-lord ele volta: segue e morde, não atira.
+    expect(IDS()).toContain('pardal');
     // botas fora (playtest 2026-10-16): a velocidade default é a ideal
     expect(IDS()).not.toContain('boot');
     expect(IDS()).toContain('hire');
@@ -119,6 +121,17 @@ describe('aliados: nascer, atirar e cair sem reiniciar a fase', () => {
     updateNPCs(0.1, 0, 0, [{ x: 200, y: 100, radius: 16, health: 20 }], []);
     expect(getTirosDeAliado()).toBe(1);
     resetNPCs();
+    expect(getTirosDeAliado()).toBe(0);
+  });
+
+  it('o pardal morde quem encosta e NÃO atira', () => {
+    spawnNPC(100, 100, 1, 'manBrown', {
+      modo: 'pardal', nome: 'Pardal', sprite: 'pardal', vida: 80,
+      postX: 100, postY: 100, alcance: 0, dano: 18, intervalo: 0, tiroTimer: 0, angulo: 0,
+    });
+    const inimigo = [{ x: 110, y: 100, radius: 16, health: 100 }];
+    updateNPCs(1, 100, 100, inimigo, []);
+    expect(inimigo[0].health).toBe(100 - 18);
     expect(getTirosDeAliado()).toBe(0);
   });
 

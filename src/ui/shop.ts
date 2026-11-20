@@ -316,6 +316,7 @@ export const SHOP_SERVICES = [
   { id: 'repair',       name: 'Reparar Arma',             price: 50, desc: 'conserta arma quebrada/encasquilhada' },
   { id: 'hire',        name: 'Sobrevivente Contratado',  price: 140, desc: 'soldado te cobre: segue e atira (1× por visita)' },
   { id: 'turret',      name: 'Torreta Automática',       price: 240, desc: 'torreta na entrada atira sozinha (1× por visita)' },
+  { id: 'pardal',      name: 'Cachorro de Guarda',        price: 200, desc: 'pardal segue e morde quem encosta (1× por visita)' },
 ];
 
 /**
@@ -331,7 +332,7 @@ export function isServiceAvailable(id: string): boolean {
   if (id === 'reroll') return !rerolledThisVisit;
   if (id === 'discount') return !nextDiscount;
   if (id === 'hire') return !hiredThisVisit;
-  if (id === 'turret') return !serviceUsedThisVisit.has(id);
+  if (id === 'turret' || id === 'pardal') return !serviceUsedThisVisit.has(id);
   return true;
 }
 
@@ -386,6 +387,9 @@ export function buyService(id: string): void {
   } else if (id === 'turret') {
     boughtServices.push('turret');
     flashNotice('TORRETA MONTADA NA ENTRADA', PALETTE.moss);
+  } else if (id === 'pardal') {
+    boughtServices.push('pardal');
+    flashNotice('PARDAL VAI CONTIGO NA PRÓXIMA FASE', PALETTE.moss);
   }
   sfxBuy();
 }
