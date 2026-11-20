@@ -58,6 +58,7 @@ const PERMITIDAS: Record<string, string> = {
   drawPhaseTransition: 'véu da transição de fase',
   drawVoo: 'céu da sequência de voo (M4): 3 bandas chapadas de fundo — o foguete é sprite, o texto é UI. Teto +3 (75), decisão no diff da porta',
   drawParticles: 'fallback de sprite (o visual é o Kenney Particle Pack)',
+  drawPuddles: 'água da chuva: mancha translúcida no chão e pegada que seca — é efeito de superfície, não arte de objeto (a poça não tem sprite no pack)',
   drawBullets: 'rastro na cor da arma e fallback de sprite (comentado)',
   drawEnemyShape: 'função de fallback declarada para sprite ausente',
   drawCoins: 'sprite da moeda; o arc de baixo é o fallback (comentado no código)',

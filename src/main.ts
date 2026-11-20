@@ -49,7 +49,7 @@ import {
   initRenderer, drawMenu, drawCutscene, drawDialogo, drawGameOver, drawVictory, drawFimLocal, drawCredits, drawCoins as renderCoins, drawVoo,
   drawPlayer2 as renderPlayer2,
   drawPowerUps as renderPowerUps, drawParticles as renderParticles, drawBullets as renderBullets, drawFires as drawFiresWorld,
-  drawEnemies as renderEnemies, drawPlayer as renderPlayer, drawDamageNumbers, drawPhaseTransition,
+  drawEnemies as renderEnemies, drawPlayer as renderPlayer, drawDamageNumbers, drawPhaseTransition, drawPuddles,
   restoreCanvas, drawNPCs, drawBots, drawPause, menuIndexAt, getPauseIndex, movePause, PAUSE_OPTIONS, setPauseIndex, pauseOptionAt, setUiMouse,
   drawSettings, settingsRowAt, settingsButtonAt, isSettingsOpen, openSettings, closeSettings,
   moveSettings, setSettingsIndex, getSettingsIndex, attachSettingsWheelListener, adjustSettingsVolume, SETTINGS_ROWS,
@@ -82,7 +82,8 @@ import { triggerScreenShake, triggerDamageFlash, triggerBossKillFlash, triggerLe
 import { useSkill, isSkillActive, updateSkills, resetSkills, getDamageMultiplier, getDamageTakenMultiplier, getSkillCooldown, getSkillMaxCooldown, setMoveDirection, furiaDesbloqueada, desbloquearFuria, restoreFuria, resetFuria } from './systems/skills';
 import { toggleNpcFollow, moverTorreta } from './systems/npcs';
 import { getCurrentClass, setCurrentClass, getClassDamageMult, getClassSpeedMult, getClassReloadMult, getClassHealthPerSecond, loadClass, saveClass, resetClass, ClassId, CLASSES } from './systems/classes';
-import { updateEnvironmentEvents, resetEnvironmentEvents, getEnvironmentWarnings , forcarEventoAmbiente, tornadoNoAr , EnvironmentEvent } from './systems/environment';
+import { updateEnvironmentEvents, resetEnvironmentEvents, getEnvironmentWarnings , forcarEventoAmbiente, tornadoNoAr, tempestadeAtiva, EnvironmentEvent } from './systems/environment';
+import { addPuddle, markFootstep, isMolhado, updatePuddles, clearPuddles } from './systems/puddles';
 import { updateCombos, getActiveCombos, getComboDamageBonus, getComboCooldownMult, getComboHealthBonus, resetCombos } from './systems/combos';
 import { setComboHealthMultiplier } from './entities/player';
 import { resetSkins } from './systems/skins';
@@ -921,6 +922,7 @@ function resetGame() {
   resetFuria();
   resetDialogo();
   resetEnvironmentEvents();
+  clearPuddles();
   resetPermanentMagnet();
   resetCombos();
   resetBots();
@@ -1202,8 +1204,18 @@ function update(dt: number) {
   poeiraTimer -= dt;
   if (moveuAPe && !isSkillActive('dash') && poeiraTimer <= 0) {
     poeiraTimer = 0.26;
-    spawnParticles(p.x, p.y + p.radius * 0.7, '#8a7a60', 1, 35, 'smoke');
+    if (tempestadeAtiva()) {
+      // chuva: o chão molha e o passo afunda na poça (som e pegada no renderer)
+      addPuddle(p.x, p.y);
+      if (isMolhado(p.x, p.y)) {
+        markFootstep(p.x, p.y);
+        sfxAmbiente('agua_cais'); // passo molhado — SFX já creditado no game
+      }
+    } else {
+      spawnParticles(p.x, p.y + p.radius * 0.7, '#8a7a60', 1, 35, 'smoke');
+    }
   }
+  updatePuddles(dt);
   ultimoPassoX = p.x;
   ultimoPassoY = p.y;
 
@@ -3016,6 +3028,7 @@ function drawWorld(): void {
 
   drawVoid(ctx);
   drawTerrain(ctx);
+  drawPuddles();
   drawFiresWorld(getFires());
   drawProps(
     ctx,

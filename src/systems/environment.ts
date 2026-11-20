@@ -137,6 +137,10 @@ export function updateEnvironmentEvents(
   warnings = [];
   for (const type of Object.keys(events) as EnvironmentEvent[]) {
     const event = events[type];
+    // chuva traz relâmpago: durante a tempestade o raio cai com mais frequência
+    if (type === 'lightning' && stormActive && !event.active) {
+      event.timer = Math.min(event.timer, 2.5);
+    }
 
     // evento fora da lista do bioma não desperta nem emite aviso
     if (hazard && !permitido.includes(type)) {
@@ -281,6 +285,8 @@ export function getEnvironmentWarnings(): EnvironmentWarning[] {
 }
 
 /** Se o tornado está na tela (a prova lê para saber quando acaba). */
+export function tempestadeAtiva(): boolean { return stormActive; }
+
 export function tornadoNoAr(): boolean {
   return events.tornado.active;
 }

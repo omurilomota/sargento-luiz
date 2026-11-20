@@ -9,6 +9,7 @@ import { getStat, applyStat, resetStat } from '../core/stats';
 import { getHardcore } from '../systems/gameModes';
 import { registrarDano, type FonteDano } from '../systems/danoTelemetria';
 import { moveCircleBy } from '../systems/tilemap';
+import { isMolhado } from '../systems/puddles';
 
 /** Interface que define todas as propriedades do jogador */
 export interface Player {
@@ -25,6 +26,9 @@ export interface Player {
   hitFlash: number;
   deathTimer: number;
   deathAngle: number;
+  /** inércia em água: deslocamento extra que continua depois de soltar a tecla */
+  slideX: number;
+  slideY: number;
 }
 
 /** Instância singleton do jogador */
@@ -40,7 +44,7 @@ export function initPlayer(canvasWidth: number, canvasHeight: number): void {
     radius: PLAYER_RADIUS, speed: PLAYER_BASE_SPEED,
     health: PLAYER_BASE_HEALTH, maxHealth: PLAYER_BASE_HEALTH,
     angle: 0, shootCooldown: 0, invincible: 0, shield: 0, hitFlash: 0,
-    deathTimer: 0, deathAngle: 0,
+    deathTimer: 0, deathAngle: 0, slideX: 0, slideY: 0,
   };
 }
 
@@ -103,6 +107,7 @@ export function movePlayer(
   if (keys['s'] || keys['arrowdown']) dy += 1;
   if (keys['a'] || keys['arrowleft']) dx -= 1;
   if (keys['d'] || keys['arrowright']) dx += 1;
+  const molhado = isMolhado(player.x, player.y);
   if (dx || dy) {
     const len = Math.hypot(dx, dy) || 1;
     dx /= len; dy /= len;
@@ -110,6 +115,22 @@ export function movePlayer(
     const moved = moveCircleBy(player.x, player.y, dx * spd * dt, dy * spd * dt, player.radius);
     player.x = moved.x;
     player.y = moved.y;
+    // na água o corpo continua deslizando: guarda parte do movimento como
+    // inércia e solta quando a tecla é largada (derrapa, não gruda)
+    if (molhado) {
+      player.slideX = dx * spd * 0.7;
+      player.slideY = dy * spd * 0.7;
+    } else {
+      player.slideX = 0;
+      player.slideY = 0;
+    }
+  } else if (player.slideX || player.slideY) {
+    const moved = moveCircleBy(player.x, player.y, player.slideX * dt, player.slideY * dt, player.radius);
+    player.x = moved.x;
+    player.y = moved.y;
+    const atrito = Math.max(0, 1 - dt * 4);
+    player.slideX *= atrito;
+    player.slideY *= atrito;
   }
   player.x = Math.max(player.radius, Math.min(bounds.w - player.radius, player.x));
   player.y = Math.max(player.radius, Math.min(bounds.h - player.radius, player.y));
