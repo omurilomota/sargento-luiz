@@ -56,7 +56,8 @@ describe('dist: build de produção íntegro', () => {
   });
 
   it('a música e os efeitos foram copiados', () => {
-    for (const f of ['menu', 'combat', 'boss', 'shop']) {
+    for (const f of ['menu', 'combat', 'boss', 'shop', 'epilogo',
+      'combat_ruinas', 'combat_industrial', 'combat_terminal']) {
       expect(existsSync(join(DIST, 'assets', 'music', `${f}.ogg`)), `música ${f}`).toBe(true);
     }
     expect(existsSync(join(DIST, 'assets', 'sfx', 'pistol.ogg'))).toBe(true);
@@ -67,6 +68,7 @@ describe('dist: build de produção íntegro', () => {
     expect(
       existsSync(join(DIST, 'assets', 'sprites', 'topdown-shooter', 'PNG', 'Survivor 1', 'survivor1_gun.png')),
     ).toBe(true);
+    expect(existsSync(join(DIST, 'assets', 'sprites', 'enemies', 'pardal.png'))).toBe(true);
   });
 
   it('o crédito de licença dos assets está no build', () => {
