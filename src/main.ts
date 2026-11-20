@@ -43,7 +43,7 @@ import { initCamera, setViewportSize, setWorldSize, updateCamera, snapCamera, ge
 import { initProps, getProps, updateProps, damageProp, detonateProp, getBlast, drawProps, clearProps, collapsesOnHit, getRocket, getAnyRocket, igniteBarrel, ROCKET_CONTACT_DPS, Prop, spawnCapsula, consumirCapsula, pumpFuelAt, fuelProgressAt } from './systems/props';
 import { buildTerrain, drawTerrain, clearTerrain } from './systems/terrain';
 import { initObjective, updateObjective, peekObjective, vipDown, markVipDown, registerObjectiveDestroyed, cellCenter, ReachZone, forceObjectiveDone, registerFuelCollected } from './systems/objectives';
-import { updateBoss, isBossTelegraphing, getBossTelegraphLabel, clearBossState, getBossPull } from './systems/boss';
+import { updateBoss, isBossTelegraphing, getBossTelegraphLabel, clearBossState, getBossPull, tremEmMarcha } from './systems/boss';
 
 import {
   initRenderer, drawMenu, drawCutscene, drawDialogo, drawGameOver, drawVictory, drawFimLocal, drawCredits, drawCoins as renderCoins, drawVoo,
@@ -85,6 +85,7 @@ import { getCurrentClass, setCurrentClass, getClassDamageMult, getClassSpeedMult
 import { updateEnvironmentEvents, resetEnvironmentEvents, getEnvironmentWarnings , forcarEventoAmbiente, tornadoNoAr, tempestadeAtiva, frioAtivo, cinzasAtivas, EnvironmentEvent } from './systems/environment';
 import { addPuddle, markFootstep, isMolhado, updatePuddles, clearPuddles, getPuddles } from './systems/puddles';
 import { initDock, drawDock, clearDock } from './systems/dock';
+import { initTrain, drawTrain, clearTrain } from './systems/train';
 import { updateCombos, getActiveCombos, getComboDamageBonus, getComboCooldownMult, getComboHealthBonus, resetCombos } from './systems/combos';
 import { setComboHealthMultiplier } from './entities/player';
 import { resetSkins } from './systems/skins';
@@ -544,6 +545,7 @@ let enemies: Enemy[] = [];
 let damageNumbers: { x: number; y: number; text: string; color: string; life: number; vy: number }[] = [];
 let lastTime = 0;
 let phaseTransitionTimer = 0;
+let marchaTrem = 0;
 
 // Três faixas cobrem as 16 fases. Antes toda fase tocava a mesma combat.ogg;
 // a família segue o bioma, não a onda — o combate dentro da fase continua
@@ -779,6 +781,9 @@ function loadPhaseEnvironment(): void {
   // Porto: só a fase atual inicializa a camada viva do cais
   clearDock();
   if (phase.map === 'porto') initDock(biome.rows);
+  clearTrain();
+  marchaTrem = 0;
+  if (biome.train) initTrain(biome.train);
 
   // Estado de ONDA é por fase: sem isto, a cota parcial da última onda da
   // fase anterior vinha junto, e o primeiro frame da nova onda 1 lia
@@ -3052,6 +3057,10 @@ function drawWorld(): void {
   drawVoid(ctx);
   drawTerrain(ctx);
   drawDock(ctx);
+  {
+    const maquinista = enemies.find(e => e.type === 'maquinista');
+    drawTrain(ctx, marchaTrem, maquinista ? (maquinista.angle >= -Math.PI / 2 && maquinista.angle <= Math.PI / 2 ? 1 : -1) : 1);
+  }
   drawPuddles();
   drawFiresWorld(getFires());
   drawProps(
@@ -3335,6 +3344,11 @@ for (const e of enemies) {
     for (const minion of updateBoss(e, p.x, p.y, worldW, worldH, dt)) {
       // cap para não afogar a tela com minions quando o boss faz summons
       if (enemies.length < 6) enemies.push(minion);
+    }
+    // MAQUINISTA: o trem desce a via junto com a investida
+    if (e.type === 'maquinista') {
+      if (tremEmMarcha(e)) marchaTrem += 140 * dt;
+      else marchaTrem = Math.max(0, marchaTrem - 30 * dt);
     }
     // LÍNGUA do Pale Crocodile: arrasta o jogador na direção do bicho
     const puxao = getBossPull(e);
@@ -4240,6 +4254,7 @@ window.__ashfall = {
   configAberta: () => isSettingsOpen(),
   // prova do bug "sempre molhado": poças devem zerar ao trocar de fase
   poças: () => getPuddles().length,
+  marchaTrem: () => Math.round(marchaTrem),
   // teleporte para provas visuais e para o modo dev inspecionar o mapa
   teleportar: (x: number, y: number) => {
     const jogador = player.getPlayer();

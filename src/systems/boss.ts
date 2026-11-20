@@ -414,3 +414,9 @@ export function getBossPull(e: Enemy): { forca: number; angle: number } {
   const rt = runtimes.get(e);
   return rt ? { forca: rt.tonguePull, angle: rt.tongueAngle } : { forca: 0, angle: 0 };
 }
+
+/** O maquinista está em investida de trem? (para o trem soltar fumaça/fagulha) */
+export function tremEmMarcha(e: Enemy): boolean {
+  const rt = runtimes.get(e);
+  return !!rt && rt.charge > 0 && ENEMY_TYPES[e.type]?.bossName === 'MAQUINISTA';
+}
