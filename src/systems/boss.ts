@@ -16,6 +16,7 @@ import { PALETTE } from '../core/palette';
 import { spawnEnemy } from './spawner';
 import { detonateProp, getProps, igniteBarrel } from './props';
 import { moveCircleBy, pushOutOfWalls, isWall, colAt, rowAt, sampleFlowDir } from './tilemap';
+import { triggerScreenShake } from './effects';
 
 /** Intervalo base entre ações do boss (segundos) */
 const ACTION_INTERVAL = 3.4;
@@ -37,6 +38,8 @@ interface BossRuntime {
   charge: number;
   /** Direção da investida */
   chargeAngle: number;
+  /** Trem: ângulo travado no eixo da via (0 = para a direita) */
+  railAngle: number;
   /** Cooldown até a próxima ação */
   timer: number;
   /** Tempo de recarga das minas */
@@ -96,6 +99,7 @@ export function updateBoss(
       telegraphLabel: '',
       charge: 0,
       chargeAngle: 0,
+      railAngle: 0,
       timer: ACTION_INTERVAL,
       mineTimer: 0,
       burstLeft: 0,
@@ -270,6 +274,17 @@ export function updateBoss(
     case 'charge':
       rt.charge = CHARGE_TIME;
       rt.chargeAngle = angle;
+      break;
+    case 'rail_charge':
+      // O maquinista É a locomotiva: não carga na direção do jogador, desce
+      // o trilho em linha reta (eixo x do mapa do Pátio). Mais longa e mais
+      // lenta que a investida normal, com tremor continuo — é o trem passando.
+      rt.charge = CHARGE_TIME * 2.4;
+      rt.railAngle = angle >= -Math.PI / 2 && angle <= Math.PI / 2 ? 0 : Math.PI;
+      rt.chargeAngle = rt.railAngle;
+      triggerScreenShake(6, CHARGE_TIME * 2.4);
+      // fumaça de vapor saindo da chaminé
+      spawnParticles(e.x, e.y, '#8a7a60', 14, 200);
       break;
     case 'summon': {
       for (let i = 0; i < 2; i++) {

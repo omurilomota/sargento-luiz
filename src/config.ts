@@ -354,7 +354,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
     // O condutor fundido com a locomotiva. O apito de vapor é a
     // telegrafia; a investida é a locomotiva em marcha.
     pattern: [
-      { atHp: 1.0, action: 'charge', telegraph: 'APITO' },
+      { atHp: 1.0, action: 'rail_charge', telegraph: 'APITO — O TREM DESCE' },
       { atHp: 0.55, action: 'spray', telegraph: 'VAPOR' },
       { atHp: 0.25, action: 'summon', telegraph: 'VAGÕES' },
     ],
