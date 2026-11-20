@@ -210,7 +210,8 @@ export interface Weapon {
 }
 
 /** Ações possíveis de um boss data-driven */
-export type BossAction = 'spread' | 'ring' | 'charge' | 'summon' | 'mines' | 'split' | 'sweep';
+export type BossAction = 'spread' | 'ring' | 'charge' | 'summon' | 'mines' | 'split' | 'sweep'
+  | 'spray' | 'burst' | 'lob';
 
 /** Uma etapa do padrão de ataque de um boss, ativada quando o HP cruza o limiar */
 export interface BossPatternStep {
@@ -350,6 +351,12 @@ export interface EnemyType {
   leavesFire?: boolean;
   /** Cor dos projéteis disparados */
   projectileColor?: string;
+  /**
+   * Forma do projétil: `bullet` (cartucho de agente), `slime` (gosma de
+   * recusante), `shard` (lasca de cristal), `ember` (brasa). Padrão `bullet`.
+   * Um zumbi nunca empunha arma — pose e sprite seguem este campo.
+   */
+  projectileKind?: 'bullet' | 'slime' | 'shard' | 'ember';
   /** Padrão de ataque data-driven (apenas bosses) */
   pattern?: BossPatternStep[];
   /** Nome exibido na barra de boss */

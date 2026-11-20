@@ -26,6 +26,34 @@ function atoDoBoss(e: Enemy, seconds = 6): void {
   for (let i = 0; i < seconds * 60; i++) updateBoss(e, 900, 640, WORLD_W, WORLD_H, 1 / 60);
 }
 
+describe('boss: padrões novos disparam projétil orgânico', () => {
+  beforeEach(() => {
+    clearBossState();
+    clearBullets();
+    setBossRandom(() => 0.5);
+    loadMap(BIOMES[PHASES[6].map].rows);
+  });
+
+  it('o spray do maquinista cospe 7 gotas de uma vez', () => {
+    const e = bossDe(6);
+    (e as unknown as { health: number }).health = e.maxHealth * 0.5;
+    // um tiro por frame até o sprite aparecer (as balas só vivem 2s)
+    let pico = 0;
+    for (let i = 0; i < 8 * 60; i++) {
+      updateBoss(e, 900, 640, WORLD_W, WORLD_H, 1 / 60);
+      pico = Math.max(pico, getBullets().filter(b => b.bulletSprite === 'slime_blob').length);
+    }
+    expect(pico, 'o spray do maquinista deve cuspir 7 gotas de gosma').toBeGreaterThanOrEqual(7);
+  });
+
+  it('a ação burst existe no elenco de padrões', () => {
+    const acoes = new Set(PHASES.flatMap(f => ENEMY_TYPES[f.boss!]?.pattern?.map(p => p.action) ?? []));
+    for (const nova of ['spray', 'burst', 'lob']) {
+      expect(acoes, `${nova} não foi usada por nenhum chefe`).toContain(nova);
+    }
+  });
+});
+
 describe('boss: o padrão really avança por faixa de HP', () => {
   beforeEach(() => {
     clearBullets();

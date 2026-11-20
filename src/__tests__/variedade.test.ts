@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  BIOMAS, ENEMY_CHARACTER, VARIACAO_POR_BIOMA, getEnemyCharacter, CHARACTER_NAMES,
+  BIOMAS, ENEMY_CHARACTER, VARIACAO_POR_BIOMA, getEnemyCharacter, CHARACTER_NAMES, PAPEL_POR_TIPO,
 } from '../systems/sprites';
 import { PHASES, ENEMY_TYPES } from '../config';
 
@@ -148,6 +148,22 @@ describe('variedade: a variação realmente varia', () => {
       const distintos = new Set(Object.values(mapa));
       expect(distintos.size, `${bioma} tem só ${distintos.size} personagem(ns) distinto(s)`).toBeGreaterThanOrEqual(3);
     }
+  });
+});
+
+describe('recusante: cospe gosma, nunca empunha cartucho', () => {
+  it('todo recusante atirador tem projétil orgânico', () => {
+    for (const [tipo] of Object.entries(PAPEL_POR_TIPO).filter(([, papel]) => papel === 'recusante')) {
+      const def = ENEMY_TYPES[tipo];
+      if (!def?.canShoot) continue;
+      expect(def.projectileKind, `${tipo} atira mas não tem projétil orgânico`).toBeTruthy();
+      expect(def.projectileKind).not.toBe('bullet');
+    }
+  });
+
+  it('o x4 do crystal continua existindo (só trocou de sprite)', () => {
+    expect(ENEMY_TYPES.crystal.splitBullet).toBe(true);
+    expect(ENEMY_TYPES.crystal.projectileKind).toBe('shard');
   });
 });
 

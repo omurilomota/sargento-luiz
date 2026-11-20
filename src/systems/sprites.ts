@@ -271,8 +271,12 @@ export const WEAPON_ICON: Record<string, string> = {
   Destruidor: 'assaultrifle',
 };
 
-/** As 3 famílias de projétil que existem no pack. */
-export const BULLET_SPRITES = ['small_bullet', 'medium_bullet', 'large_bullet'] as const;
+/** Cartuchos do pack + 3 projéteis orgânicos recortados de assets do jogo
+ *  (gosma do gemGreen, lasca do tile de cristal, brasa do tile de lava). */
+export const BULLET_SPRITES = [
+  'small_bullet', 'medium_bullet', 'large_bullet',
+  'slime_blob', 'shard_blob', 'ember_blob',
+] as const;
 
 /** As 6 armas do pack, uma por família. `weapon2` é a cor alternativa. */
 export const WEAPON_SPRITES = [
@@ -434,7 +438,7 @@ export type Bioma = typeof BIOMAS[number];
 const AGENTES = ['soldier', 'hitman', 'manBlue', 'robot', 'manOld', 'manBrown', 'woman'];
 const RECUSANTES = ['free1', 'free2', 'free3', 'zombie'];
 
-const PAPEL_POR_TIPO: Record<string, 'agente' | 'recusante'> = {
+export const PAPEL_POR_TIPO: Record<string, 'agente' | 'recusante'> = {
   grunt: 'recusante', runner: 'recusante', bat: 'recusante', slime: 'recusante',
   lavaSlime: 'recusante', mosquito: 'recusante', inferno: 'recusante',
   fireElemental: 'recusante', magmaGolem: 'recusante', alien: 'recusante',

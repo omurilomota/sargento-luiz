@@ -224,10 +224,13 @@ it('nenhuma família aponta para sprite que não existe no pack', () => {
     expect(BULLET_FAMILY['Gel'], 'Gel sem orbe').not.toBe(BULLET_FAMILY['Shotgun']);
   });
 
+  const CARTUCHOS = BULLET_SPRITES.filter(b => !b.endsWith('_blob'));
+
   it('a bala é mais alta que larga (cartucho vertical, ponta em cima)', () => {
     // Se o asset viesse deitado, a rotação de +90° alinharia o lado chato com
-    // a velocidade e a bala entraria de lado no inimigo.
-    for (const b of BULLET_SPRITES) {
+    // a velocidade e a bala entraria de lado no inimigo. Gosma/lasca/brasa
+    // são gotas sem ponta: não giram, então não seguem esta regra.
+    for (const b of CARTUCHOS) {
       const { largura, altura } = lerDimensoes(join(WEAPON_DIR, `${b}.png`));
       expect(altura, `${b} tem ${largura}x${altura}: cartucho tem de ser vertical`)
         .toBeGreaterThan(largura);
@@ -240,7 +243,7 @@ it('nenhuma família aponta para sprite que não existe no pack', () => {
     // -y: as primeiras linhas são estreitas e a base é chata e larga. Medir é
     // a única forma de travar isso, porque o build e o teste unitário passam
     // com a bala deitada.
-    for (const b of BULLET_SPRITES) {
+    for (const b of CARTUCHOS) {
       const p = join(WEAPON_DIR, `${b}.png`);
       const { larguraLinha } = lerLarguraPorLinha(p);
       const topo = larguraLinha.slice(0, 4).reduce((s, v) => s + v, 0) / 4;

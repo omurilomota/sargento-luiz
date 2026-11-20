@@ -15,7 +15,7 @@ import { Player } from '../entities/player';
 import { ENEMY_TYPES, POWERUP_TYPES } from '../config';
 import { hasPowerUp } from '../powerups';
 import { isSkillActive } from './skills';
-import { getSprite, getEnemyCharacter, poseKey, drawSpriteFit, Pose, isSpritesEnabled, HAND_SPRITES, isExtraCharacter } from './sprites';
+import { getSprite, getEnemyCharacter, poseKey, drawSpriteFit, Pose, isSpritesEnabled, HAND_SPRITES, isExtraCharacter, PAPEL_POR_TIPO } from './sprites';
 import { buildCutsceneBackdrop, cutsceneVeil } from './terrain';
 import { getIsReloading, getWeaponFamily, getShotRecoil, WeaponFamily } from '../weapons';
 import { getCurrentCutscene, getCurrentLine, isLineComplete, getTextProgress, getPortraitInfo, getBeatRestante } from './story';
@@ -974,22 +974,17 @@ export function drawBullets(bullets: Bullet[]): void {
     // Família da bala: o sprite vem do pack de armas (Kay Lousberg, CC0).
     // `bullet_*` no cache = asset carregou; o `arc` abaixo é o fallback de
     // asset ausente, que é a única função dele.
+    const blob = b.bulletSprite === 'slime_blob' || b.bulletSprite === 'shard_blob' || b.bulletSprite === 'ember_blob';
     const sprite = b.bulletSprite ? getSprite(`bullet_${b.bulletSprite}`) : null;
     if (sprite && sprite.complete && sprite.naturalWidth > 0) {
-      // A bala do pack é um cartucho vertical: ponta em -y, base chata em +y.
-      // O perfil confirma (small_bullet 16x40): as linhas de y=0 a y=2 têm 6px
-      // de largura e a base chega a 16px.
-      //
-      // `rotate(ang)` alinharia o EIXO do sprite com a velocidade, deixando a
-      // ponta de lado — foi o bug: a bala atravessava o inimigo deitada.
-      // Como o eixo do sprite é +y, precisa de +90° para a ponta ir para frente.
-      const altura = b.isEnemy ? 16 : 20;
-      // aspecto nativo (small 16x40, medium 20x58, large 14x74): forçar uma
-      // proporção fixa deformava o cartucho e o deixava enorme
-      const larg = altura * (sprite.naturalWidth / sprite.naturalHeight);
+      // Cartucho tem ponta: gira +90° para a ponta seguir a velocidade.
+      // Gosma/lasca/brasa são gotas sem "frente": girá-las como cartucho
+      // fazia a gosma de zumbi parecer bala de metralhadora deitada.
+      const altura = blob ? 14 : b.isEnemy ? 16 : 20;
+      const larg = blob ? altura : altura * (sprite.naturalWidth / sprite.naturalHeight);
       ctx.save();
       ctx.translate(b.x, b.y);
-      ctx.rotate(ang + Math.PI / 2);
+      if (!blob) ctx.rotate(ang + Math.PI / 2);
       ctx.drawImage(sprite, -larg / 2, -altura / 2, larg, altura);
       ctx.restore();
       // rastro na cor da arma, saindo da BASE do cartucho
@@ -1041,6 +1036,10 @@ export function drawBullets(bullets: Bullet[]): void {
  */
 function enemyPose(e: Enemy): Pose {
   if (e.hitFlash > 0) return 'reload';
+  // Zumbi/recusante nunca empunha arma: ele cospe gosma, não atira cartucho.
+  // Só o agente (que aceitou o implante) tem pose armada. Era isso que fazia
+  // o free1/free2/free3 aparecer segurando metralhadora — o dono apontou.
+  if (PAPEL_POR_TIPO[e.type] === 'recusante') return 'stand';
   if (e.canShoot) return e.shootTimer > e.shootRate - 0.2 ? 'machine' : 'gun';
   return 'stand';
 }
