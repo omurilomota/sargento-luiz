@@ -145,6 +145,114 @@ ordem das frentes: [`ROADMAP.md`](ROADMAP.md)
 
 ---
 
+## Entrega: deploy das cinco frentes em produção (2026-11-20 11:28, `a59d5e8`)
+
+`vercel deploy --prod --yes` na raiz (projeto linkado `sargento-luiz`), **nunca**
+`vercel deploy dist --prod` — foi esse comando que criou o órfão `dist` e a URL
+`dist-eight-liard-42.vercel.app`. Deploy `sargento-luiz-kv0251gf9-muriloinc`,
+produção em `sargento-luiz.vercel.app`, alias já apontando para ele.
+
+**Prova de conteúdo, não de hash:** MD5 do bundle local (`5d960876…`,
+`index-DIfiOXwE.js`) idêntico ao servido; `<title>SARGENTO LUIZ — Pós-Apocalíptico</title>`;
+os 4 assets novos em 200 (3 OGGs com 3,7/3,0/2,0 MB e `pardal.png` com 6,4 KB),
+além de ambos os `CREDITS.md`. A URL órfã antiga continua 404. Regra 16 segue
+pendente: não há Chrome no ambiente para `npm run visual`.
+
+## Entrega: cinco frentes de gameplay e o diagnóstico do storage Vercel (2026-11-20 11:12, `a59d5e8`)
+
+**1. Diálogo da Fábrica:** o `phaseTransitionTimer` agora decrementa antes do
+`return` da caixa (`main.ts`), então o "Onda N" não fica congelado no centro
+durante as falas. O amigo passou a nascer na onda 2, como o comentário já dizia
+— a onda 1 caiu de 21 para 4 linhas. `anuncioDeOndaPendente` intacto (contrato
+do `m2-fluxo-proof`).
+
+**2. Cientista da Fábrica:** `spawnNPC` ganhou override de vida; o Rogério nasce
+com 90 HP. O DPS de contato do NPC de roteiro caiu de 30 para 15 — com 30, um
+encostão matava em 1s antes da virada. Aliado pago continua imune ao contato
+(ramo `npc.aliado` dá `continue`); só leva tiro.
+
+**3. Sprites agente × recusante:** `VARIACAO_POR_BIOMA` agora é gerada por papel
+e bioma. Agentes (quem obedece) vestem soldier/hitman/manBlue/robot/manOld/
+manBrown/woman; recusantes (transformados à força) usam free1/free2/free3/
+zombie. Os contratos de variedade foram preservados; `assets.test.ts` passou a
+usar `CHARACTER_NAMES` (com os 3 extras) em vez da lista de 9.
+
+**4. Música por família:** 3 OGGs novos da soundimage.org (Dystopic Mayhem,
+And the Machines Came at Midnight, 80s Space Game) cobrem as 16 fases via
+`MUSICA_POR_BIOMA`: ruínas / indústria / terminal. Antes todas tocavam a mesma
+`combat.ogg`. Créditos no `music/CREDITS.md`, tela `V` e `distBuild.test.ts`.
+
+**5. Cachorro de guarda (`pardal`):** DECISIONS #214 revertida (#277). Sprite
+top-down CC-BY 3.0 de harrison-lord (OpenGameArt), recortado para 49×111.
+Serviço de 200 moedas na loja, segue e morde 18 DPS, não atira. **Ressalva:**
+a arte é pixel art cinza, mais escura que o pack Kenney — registrada no
+`CREDITS.md`; foi a única top-down com resolução aceitável.
+
+**Gates:** `tsc` 0 erros, 1467 testes verdes (inclui os 5 portões anti-IA),
+build ok. **Pendência regra 16:** não há Chrome no ambiente, então `npm run
+visual` não rodou para `sprites.ts`, `audio.ts`, `shop.ts` e `renderer.ts`.
+
+**Diagnóstico e limpeza do storage Vercel (pedido do dono):** não há recursos
+de Blob, KV ou Storage gerenciado (`vercel storage list` vazio). Os 6GB+ são
+**Deployment Storage**: 293 deploys em 31 projetos, cada um guardando o output
+— só o `sargento-luiz` tem 24MB por build (16MB de música). O crescimento vem de
+deploys acumulados, não de usuários (não há upload no projeto). Todos os 31
+projetos **já tinham** retenção de 30 dias / 10 deploys, mas ela nunca foi
+aplicada retroativamente: 42 deploys passavam de 30 dias, o mais antigo com
+307. Com autorização do dono, os 42 foram removidos (28 via `vercel remove
+--safe -y`, 14 production sem alias via API, depois de confirmar que nenhum
+tinha alias ativo). Resultado: **293 → 251 deploys, 0 com mais de 30 dias**.
+Sites validados depois: `sargento-luiz`, `mare-podre`, `petshop-chic` e
+`sob-o-sol-muriloinc` respondem 200. Com mais usuários o risco é **bandwidth**
+(limite do Hobby), não storage.
+
+## Entrega: a lore dos agentes — implante, recusa e perda de controle (2026-11-20 10:38, `a59d5e8`)
+
+Relato do dono: os inimigos devem ser **agentes** que estavam contra nós, com
+chip no cérebro; alguns se recusaram a virar mão de obra e o processo saiu do
+controle. Quis isso explícito nos diálogos, sem soar IA. Escolheu a leitura 1
+(os que atacam são os recusantes; quem aceitou virou agente de crachá e ainda
+obedece ao chefe) e aprovou os números 4.112 / 217 / Arthur 23 (DECISIONS #276).
+
+**O que mudou:** a peça e o corte atrás da orelha entram na caixa pequena da
+Fábrica (`SEQUENCIA_AMIGO`) e do Hospital (`SEQUENCIA_MEDICO`); o Porto ganha
+"Crachá em cada gancho" e "Foram escalados"; o epílogo ganha os dois registros
+da MegaCorp e a fala do Arthur era o 23; o diário ganha a entrada reativa
+`implante`, desbloqueada no fechamento da caixa do doutor. `PREMISSA-V2.md`
+registra a nova camada da lore. Nenhuma cutscene foi reescrita.
+
+**Por que não soa IA:** nenhuma fala explica o mecanismo — mostram corte, número,
+prontuário, gancho de crachá. O peso vem do objeto, não de adjetivo. As 7 falas
+novas do `main.ts` (fora da cobertura do `semIA.test.ts`) foram checadas
+manualmente contra os 11 tics: 7/7 limpas.
+
+**Gates:** `tsc` 0 erros, 1463 testes verdes (inclui o `semIA`), build ok. As
+7 strings novas estão no bundle servido. **Pendência regra 16:** `story-proof`
+não rodou — não há Chrome no ambiente (`/usr/bin/google-chrome` ausente e cache
+do Playwright vazio), então as cutscenes não foram conferidas pixel a pixel.
+
+## Entrega: o domínio do Vercel — projeto `dist` órfão removido (2026-11-20 10:19, `a59d5e8`)
+
+Relato do dono: *"aqui tá tudo bugado no vercel tá assim: dist-eight-liard-42.vercel.app"*.
+
+**A causa:** em 17/10/2026 alguém rodou `vercel deploy dist --prod` sem o
+`--name sargento-luiz` que o projeto usa desde 14/10. O Vercel leu `dist` como
+NOME de projeto e criou `muriloinc/dist` (`prj_aND2e4ZCAHCadQw35h513UhcDaqL`),
+que servia o bundle de 17/10 (`index-BaZ4dg7R.js`, md5 `c9b367d1…`) — 34 dias
+atrasado. O projeto correto `muriloinc/sargento-luiz`
+(`prj_b0YrIQ4IZsHUeUlEAWAQrcq5GCw3`) seguiu servindo `index-BrdQf1Qq.js`
+(`fd0ab124…`), idêntico ao `npm run build` local deste HEAD. A grafia
+`Sargento-Luiz.vercel.app` que o dono pediu resolve igual: DNS é
+case-insensitive, não havia troca de domínio a fazer.
+
+**A correção:** `vercel project delete dist --confirm-name dist --scope muriloinc`.
+Nada no repositório recria o projeto — `.github/workflows/ci.yml` só roda gates.
+O comando antigo fica no histórico destes docs como o erro que gerou o órfão.
+
+**Verificação:** `dist-eight-liard-42.vercel.app` → HTTP 404;
+`sargento-luiz.vercel.app` → HTTP 200 com o bundle atual. `vercel project ls`
+não lista mais `dist`.
+
 ## Entrega: o equilíbrio — "depois de upar tudo o personagem fica imbatível" (2026-11-08 11:30)
 
 Relato do dono: *"depois de upar tudo, o personagem fica imbatível e mata tudo
