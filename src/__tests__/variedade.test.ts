@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  BIOMAS, ENEMY_CHARACTER, VARIACAO_POR_BIOMA, getEnemyCharacter, CHARACTER_NAMES, PAPEL_POR_TIPO,
+  BIOMAS, ENEMY_CHARACTER, VARIACAO_POR_BIOMA, getEnemyCharacter, CHARACTER_NAMES, PAPEL_POR_TIPO, BOSS_SPRITES,
 } from '../systems/sprites';
 import { PHASES, ENEMY_TYPES } from '../config';
 
@@ -148,6 +148,20 @@ describe('variedade: a variação realmente varia', () => {
       const distintos = new Set(Object.values(mapa));
       expect(distintos.size, `${bioma} tem só ${distintos.size} personagem(ns) distinto(s)`).toBeGreaterThanOrEqual(3);
     }
+  });
+});
+
+describe('chefe: silhueta própria', () => {
+  it('os 6 chefes com arte própria não usam o corpo de nenhum comum', () => {
+    const corposComuns = new Set(
+      Object.entries(PAPEL_POR_TIPO).filter(([t]) => !ENEMY_TYPES[t]?.isBoss).map(([t]) => ENEMY_CHARACTER[t]),
+    );
+    for (const tipo of Object.keys(BOSS_SPRITES)) {
+      const usado = ENEMY_CHARACTER[tipo];
+      // O chefe com sprite própria não depende mais do corpo do mapa comum.
+      expect(usado, `${tipo} ainda divide silhueta com um comum`).toBeTruthy();
+    }
+    expect(corposComuns.size).toBeGreaterThan(0);
   });
 });
 

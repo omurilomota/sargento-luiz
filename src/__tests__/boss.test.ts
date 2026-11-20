@@ -28,7 +28,6 @@ function atoDoBoss(e: Enemy, seconds = 6): void {
 
 describe('boss: padrões novos disparam projétil orgânico', () => {
   beforeEach(() => {
-    clearBossState();
     clearBullets();
     setBossRandom(() => 0.5);
     loadMap(BIOMES[PHASES[6].map].rows);
