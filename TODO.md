@@ -1930,6 +1930,12 @@
 //     e sprite 200, e a LINHA 17 NOVA do Pântano dentro do JS do ar (1
 //     ocorrência) enquanto a antiga dá 0 — ela existia no commit anterior
 //     (git grep: 1). CI verde no push (run 39062733123).
+//     [x] FEITO 2026-11-20 10:19, `a59d5e8`: projeto `dist` órfão REMOVIDO
+//     (`vercel project delete dist --confirm-name dist --scope muriloinc`).
+//     Ele nasceu de `vercel deploy dist --prod` sem `--name` em 17/10 e
+//     servia o bundle `c9b367d1…` em `dist-eight-liard-42.vercel.app`.
+//     Agora essa URL dá 404 e `sargento-luiz.vercel.app` segue 200 com
+//     `index-BrdQf1Qq.js` (`fd0ab124…`), igual ao build local.
 
 // ═══════════════════════════════════════════════════════════════
 // PLAYTEST 2026-10-16 (Fase III) — triagem da frente F-A/F-B
