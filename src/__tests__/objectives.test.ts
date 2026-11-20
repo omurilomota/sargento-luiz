@@ -249,7 +249,7 @@ describe('objectives: protect não termina antes da luta começar', () => {
 describe('npcs: o dano por contato é por segundo, não por frame', () => {
   beforeEach(() => resetNPCs());
 
-  it('30 DPS independe do frame rate', () => {
+  it('15 DPS no vip independe do frame rate', () => {
     // a 10 frames de 1/60 e a 10 frames de 1/30 o NPC perde o mesmo
     resetNPCs(); spawnNPC(400, 400, 2);   // Civil: 15 de vida
     const npc1 = getNPCs()[0];
@@ -261,12 +261,13 @@ describe('npcs: o dano por contato é por segundo, não por frame', () => {
     const alvo2 = npc2.health;
     updateNPCs(1 / 30, 0, 0, [{ x: 400, y: 400, radius: 40, health: 10 }]);
 
-    // 30 DPS × 1/60 = 0.5 por frame contra 30 × 1/30 = 1.0: o dobro de dano no
-    // dobro de tempo. O que não pode é o comportamento antigo de 10 por frame.
+    // O vip leva 15 DPS (o aliado pago leva 30). 15 × 1/60 = 0.25 por frame
+    // contra 15 × 1/30 = 0.5: o dobro de dano no dobro de tempo. O que não
+    // pode é o comportamento antigo de 10 por frame.
     const dano1 = alvo1 - npc1.health;
     const dano2 = alvo2 - npc2.health;
-    expect(dano1).toBeCloseTo(0.5, 1);
-    expect(dano2).toBeCloseTo(1.0, 1);
+    expect(dano1).toBeCloseTo(0.25, 1);
+    expect(dano2).toBeCloseTo(0.5, 1);
     expect(dano1).toBeLessThan(10);
   });
 });

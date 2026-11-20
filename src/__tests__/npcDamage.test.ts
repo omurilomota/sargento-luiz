@@ -100,3 +100,36 @@ describe('o sobrevivente leva tiro, não só contato', () => {
     expect(npc.health).toBe(hpAntes);
   });
 });
+
+describe('o NPC de roteiro aguenta o contato até a virada da fase', () => {
+  beforeEach(() => {
+    loadMap(BIOMES.fabrica.rows);
+    resetNPCs();
+  });
+
+  const encostar = (x: number, y: number) => [{ x, y, radius: 100, health: 10 }];
+
+  it('o override de vida vale para health e maxHealth', () => {
+    spawnNPC(CELL_SIZE * 5, CELL_SIZE * 5, 0, 'manBrown', undefined, undefined, 90);
+    const npc = getNPCs()[0];
+    expect(npc.health).toBe(90);
+    expect(npc.maxHealth).toBe(90);
+  });
+
+  it('o vip leva 15 DPS de contato', () => {
+    spawnNPC(CELL_SIZE * 5, CELL_SIZE * 5, 0);
+    const vip = getNPCs()[0];
+    updateNPCs(1 / 60, vip.x, vip.y, encostar(vip.x, vip.y));
+    expect(vip.health).toBeCloseTo(30 - 15 / 60, 2);
+  });
+
+  it('o aliado pago é imune ao contato — só leva tiro', () => {
+    spawnNPC(CELL_SIZE * 5, CELL_SIZE * 5, 1, 'soldier', {
+      modo: 'contratado', nome: 'Contratado', postX: 0, postY: 0,
+      alcance: 280, dano: 1, intervalo: 1, tiroTimer: 1, angulo: 0,
+    });
+    const aliado = getNPCs()[0];
+    updateNPCs(1 / 60, aliado.x, aliado.y, encostar(aliado.x, aliado.y));
+    expect(aliado.health).toBe(50);
+  });
+});
