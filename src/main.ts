@@ -268,6 +268,7 @@ document.addEventListener('keydown', e => {
     if (k === 'm') setMusicEnabled(!isMusicEnabled());
     if (k === 's') setSfxEnabled(!isSfxEnabled());
     if (k === 'o') openSettings();
+    if (k === 'd') ativarModoDev();
     return;
   }
 
@@ -2084,6 +2085,41 @@ function pontoSeguroDoChefe(phase: { objective?: string }, worldW: number, world
     }
   }
   return livre;
+}
+
+/**
+ * Modo desenvolvedor — senha na tela do menu. Não é atalho de gameplay: só
+ * entra quem souber a senha, e entrega uma build MÁXIMA (armas lendárias com
+ * acessórios, perks, talentos e furious) para testar balanceamento de qualquer
+ * fase sem grindar 16 fases antes.
+ */
+const SENHA_DEV = 'desenvolvefacil123';
+let modoDevAtivo = false;
+
+function ativarModoDev(): boolean {
+  const senha = typeof window.prompt === 'function'
+    ? window.prompt('Senha do modo desenvolvedor:')
+    : null;
+  return ativarModoDevComSenha(senha);
+}
+
+function ativarModoDevComSenha(senha: string | null): boolean {
+  if (senha !== SENHA_DEV) return false;
+  modoDevAtivo = true;
+  // armas lendárias com todos os acessórios disponíveis
+  for (const w of WEAPONS) {
+    addPurchasedWeapon(WEAPONS.indexOf(w), 'lendaria');
+  }
+  setWeapon(0, 'lendaria');
+  for (const peca of PIECE_TYPES) addPieceToInventory(peca.id);
+  desbloquearFuria();
+  const p = player.getPlayer();
+  p.maxHealth = 300;
+  p.health = 300;
+  p.shield = 6;
+  setShopCoins(99999);
+  pushToast('MODO DESENVOLVEDOR — BUILD MÁXIMA', 5, 'achievement');
+  return true;
 }
 
 function shootEnemyAt(e: Enemy, tx: number, ty: number): void {
@@ -4129,6 +4165,12 @@ window.__ashfall = {
   musicaOn: () => isMusicEnabled(),
   efeitosOn: () => isSfxEnabled(),
   configAberta: () => isSettingsOpen(),
+  // modo dev: a prova envia a senha direto (sem prompt) e verifica a build
+  modoDev: (senha?: string) => {
+    if (senha !== undefined && senha !== SENHA_DEV) return false;
+    return ativarModoDevComSenha(senha ?? SENHA_DEV);
+  },
+  modoDevAtivo: () => modoDevAtivo,
   // distância do chefe vivo até o foguete — prova do spawn seguro do Castelo
   chefeDistFoguete: () => {
     const fog = getRocket();

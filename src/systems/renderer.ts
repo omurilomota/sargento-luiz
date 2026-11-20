@@ -89,7 +89,7 @@ export function getMenuFooterLayout(h: number, temSave: boolean, musicOn = true)
   const linhas: { texto: string; cor: string; fonte: string; pulso: boolean }[] = [
     { texto: 'WASD: Mover | Mouse: Mirar | Click: Atirar', cor: PALETTE.textOff, fonte: '11px monospace', pulso: false },
     { texto: 'Espaco: Dash | E: Escudo | F: Furia | R: Recarregar', cor: PALETTE.textOff, fonte: '11px monospace', pulso: false },
-    { texto: `M: Musica ${musicOn ? 'LIGADA' : 'DESLIGADA'} | S: Efeitos | O: Configurações`, cor: PALETTE.textOff, fonte: '11px monospace', pulso: false },
+    { texto: `M: Musica ${musicOn ? 'LIGADA' : 'DESLIGADA'} | S: Efeitos | O: Config | D: Modo dev`, cor: PALETTE.textOff, fonte: '11px monospace', pulso: false },
     { texto: 'V: Créditos', cor: PALETTE.textOff, fonte: '11px monospace', pulso: false },
   ];
   if (temSave) {
