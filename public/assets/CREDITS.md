@@ -143,6 +143,21 @@ flat do jogo.
   que antes dividiam o corpo dos inimigos comuns. Atribuição: "isaiah658 —
   50+ Monsters Pack 2D — opengameart.org/content/50-monsters-pack-2d — CC0".
 
+**Kenney — Pirate Pack** ·
+[opengameart.org/content/pirate-pack-190](https://opengameart.org/content/pirate-pack-190) ·
+**CC0 1.0 Universal**
+
+- `assets/sprites/props/barco1.png`, `barco2.png` — dois barcos top-down
+  recortados do pack (os tons cinza/azul, os mais sóbrios). Dão mar e barcos
+  atracados ao Porto, que antes era só cais seco.
+
+**LPC — Birds** ·
+[opengameart.org/content/lpc-birds](https://opengameart.org/content/lpc-birds) ·
+**CC0 1.0 Universal**
+
+- `assets/sprites/props/garca.png`, `garca_clara.png` — garças top-down
+  (primeiro frame da folha, recortado para 24×23). Vida no cais do Porto.
+
 **harrison-lord — Top-down Dog + Simple Animation** ·
 [opengameart.org/content/top-down-dog-simple-animation](https://opengameart.org/content/top-down-dog-simple-animation) ·
 **CC-BY 3.0**

@@ -21,6 +21,8 @@ REACH = 'R'
 # não alvo de IA. Um tambor inalcançável deixa a fase impossível de fechar.
 FUEL = 'G'
 WALL = '#'
+# Porto (J): mar e vida no cais — chars novos, todos andáveis (decor)
+WATER, BOAT, HERON = '~', 'S', 'g'
 
 
 def blank():
@@ -411,11 +413,15 @@ def porto():
     o enquadramento e a história.
     """
     g = blank()
-    # água ao sul: rows 15-17 são a doca/lagoa; deixamos 3 aberturas
+    # água ao sul: mar de verdade (WATER), não parede. Barcos e garças dão
+    # identidade ao cais (pedido do dono). A borda externa continua WALL —
+    # o validador de mapa exige primeira/última linha fechadas.
     for r in range(15, 18):
         for c in range(1, W - 1):
-            g[r][c] = WALL
+            g[r][c] = WATER
     g[15][3] = FLOOR; g[15][8] = FLOOR; g[15][15] = FLOOR; g[15][22] = FLOOR
+    g[16][5] = BOAT; g[16][20] = BOAT
+    g[15][10] = HERON; g[17][24] = HERON
     # contêineres como cobertura (pilhas de depósito)
     for r0, c0, r1, c1 in ((2, 3, 4, 6), (2, 9, 4, 12), (2, 15, 4, 18), (2, 21, 4, 24),
                              (6, 3, 8, 6), (6, 9, 8, 12), (6, 15, 8, 18), (6, 21, 8, 24),

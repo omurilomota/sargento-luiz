@@ -43,6 +43,9 @@ export function buildTerrain(biome: Biome, cells: string[][]): HTMLCanvasElement
       const py = row * CELL_SIZE;
       switch (ch) {
         case '#': drawWall(c, px, py, biome, cells, col, row); break;
+        case '~': drawWater(c, px, py, col, row); break;
+        case 'S': drawWater(c, px, py, col, row); drawDockProp(c, 'prop_barco1', px, py, 2); break;
+        case 'g': drawWater(c, px, py, col, row); drawDockProp(c, 'prop_garca', px, py, 1); break;
         case ',': drawDecor(c, px, py, biome, (col * 7 + row * 13) % 4); break;
         case '^': drawHazard(c, px, py, biome, (col * 7 + row * 13) % 4); break;
         // estrada da Rodovia: '=' asfalto liso, ':' faixa de pista, '-'
@@ -165,6 +168,27 @@ function varianteDeChao(col: number, row: number): number {
  * Sprite do Kenney aqui virava lixo espalhado — lê como entulho aleatório e
  * suja o gameplay. É variação de tom, não objeto.
  */
+/** Mar do Porto: tile de água do pack (CC0), não retângulo desenhado. */
+/** Barco e garça no cais: sprites CC0 recortados, sem desenho em código. */
+function drawDockProp(c: CanvasRenderingContext2D, chave: string, px: number, py: number, altura: number): void {
+  const img = getSprite(chave);
+  if (!img || !img.complete || !img.naturalWidth) return;
+  const h = CELL_SIZE * altura;
+  const w = h * (img.naturalWidth / img.naturalHeight);
+  c.drawImage(img, px + (CELL_SIZE - w) / 2, py + (CELL_SIZE - h) / 2, w, h);
+}
+
+function drawWater(c: CanvasRenderingContext2D, px: number, py: number, col: number, row: number): void {
+  const img = getSprite((col + row) % 2 === 0 ? 'tile_19' : 'tile_20');
+  if (img && img.complete && img.naturalWidth > 0) {
+    c.drawImage(img, px, py, CELL_SIZE, CELL_SIZE);
+  } else {
+    // fallback de asset ausente — a água de verdade é o tile acima
+    c.fillStyle = '#2e5a72';
+    c.fillRect(px, py, CELL_SIZE, CELL_SIZE);
+  }
+}
+
 function drawDecor(c: CanvasRenderingContext2D, px: number, py: number, biome: Biome, variant: number): void {
   c.fillStyle = biome.floor;
   c.fillRect(px, py, CELL_SIZE, CELL_SIZE);
