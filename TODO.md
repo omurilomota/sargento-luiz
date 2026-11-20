@@ -53,6 +53,17 @@
 //     normal. Hook de teste existe (__ashfall.irParaFase) — expor no menu.
 //     [ ] Ao ativar: várias armas LENDÁRIAS com acessórios e tudo no máximo
 //         (perks, talentos, vida, munição) para testar bem o balanceamento.
+// [x] M — PALE CROCODILE: alphaWolf renomeado, sprite de crocodilo, ataque
+//     de língua que arrasta o jogador (sem tiro).
+// [x] N — EVENTOS: cinzas (Vulcão/Fábrica) e frio (Espaço/Castelo).
+// [x] O — CHUVA COM SOM: chuva.ogg + trovao.ogg CC0, clarão na tela e shake.
+// [x] P — PORTO VIVO: água ondula, barcos derivam, garças andam; removida a
+//     faixa simples de água, só a dupla do topo.
+// [x] Q — REFINARIA: bombeio por permanência (500ml/tambor); bug do "sempre
+//     molhado" corrigido (poças limpas ao trocar de fase).
+// [x] R — ACESSÓRIOS VISÍVEIS: ótica/muzzle/empunhadura/carregador aparecem
+//     montados na arma. Armas arremessáveis saem da mão, não do cano.
+// [x] S — BOSSES EM MOVIMENTO: speed devolvido e escape de parede no boss.
 // [x] L — CASTELO IMPOSSÍVEL: o chefe nasce no centro (main.ts:1709) a ~130px
 //     do foguete (F no mapa, 300 HP). O tiro do boss acerta o foguete e dá
 //     hitkill. Spawnar o chefe LONGE do foguete (≥400px) e/ou dar imunidade
