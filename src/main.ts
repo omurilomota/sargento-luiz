@@ -2175,7 +2175,9 @@ function shootEnemyAt(e: Enemy, tx: number, ty: number): void {
   const sprite = def?.projectileKind === 'slime' ? 'slime_blob'
     : def?.projectileKind === 'shard' ? 'shard_blob'
     : def?.projectileKind === 'ember' ? 'ember_blob'
-    : def?.projectileKind === 'spark' ? 'spark_blob' : 'small_bullet';
+    : def?.projectileKind === 'spark' ? 'spark_blob'
+    : def?.projectileKind === 'vomit' ? 'vomit_blob'
+    : def?.projectileKind === 'rad' ? 'rad_blob' : 'small_bullet';
   e.shootTimer = e.shootRate || 2;
   if (def?.spreadShot) {
     for (let s = -1; s <= 1; s++) {
@@ -2192,7 +2194,7 @@ function shootEnemyAt(e: Enemy, tx: number, ty: number): void {
   }
   // Som acompanha o projétil: agente atira cartucho, zumbi cospe gosma.
   if (sprite === 'small_bullet') sfxEnemyShoot();
-  else sfxSpit();
+  else sfxSpit(); // gosma, vômito, radiação, brasa e faísca são "cuspidos"
 }
 
 /**

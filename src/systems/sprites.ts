@@ -278,7 +278,7 @@ export const WEAPON_ICON: Record<string, string> = {
  *  (gosma do gemGreen, lasca do tile de cristal, brasa do tile de lava). */
 export const BULLET_SPRITES = [
   'small_bullet', 'medium_bullet', 'large_bullet',
-  'slime_blob', 'shard_blob', 'ember_blob', 'spark_blob',
+  'slime_blob', 'shard_blob', 'ember_blob', 'spark_blob', 'vomit_blob', 'rad_blob',
 ] as const;
 
 /** Chefes com silhueta própria (CC0, dessaturados para a paleta do jogo).

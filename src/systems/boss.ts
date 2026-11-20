@@ -61,7 +61,9 @@ function spriteDe(def: typeof ENEMY_TYPES[string]): string {
   return def.projectileKind === 'slime' ? 'slime_blob'
     : def.projectileKind === 'shard' ? 'shard_blob'
     : def.projectileKind === 'ember' ? 'ember_blob'
-    : def.projectileKind === 'spark' ? 'spark_blob' : 'small_bullet';
+    : def.projectileKind === 'spark' ? 'spark_blob'
+    : def.projectileKind === 'vomit' ? 'vomit_blob'
+    : def.projectileKind === 'rad' ? 'rad_blob' : 'small_bullet';
 }
 function speedDe(def: typeof ENEMY_TYPES[string]): number {
   return def.bulletSpeed ?? 300;
@@ -335,7 +337,8 @@ export function updateBoss(
   // Som do disparo segue o projétil: gosma cospe, lasca/faísca estala.
   if (action === 'spread' || action === 'ring' || action === 'sweep'
     || action === 'spray' || action === 'lob' || action === 'split' || action === 'mines') {
-    if (def.projectileKind === 'slime' || def.projectileKind === 'ember') sfxSpit();
+    if (def.projectileKind === 'slime' || def.projectileKind === 'ember'
+      || def.projectileKind === 'vomit' || def.projectileKind === 'rad') sfxSpit();
     else sfxEnemyShoot();
   }
 

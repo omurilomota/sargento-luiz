@@ -269,7 +269,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
   reiMutante: {
     radius: 46, speed: 55, health: 630, damage: 38, color: '#8a8a7a', scoreValue: 800, coinDrop: 90,
     canShoot: true, shootRate: 2.2, bulletSpeed: 320, isBoss: true, bossName: 'REI MUTANTE', deathLine: 'O portão é teu.', telegraph: 0.9,
-    projectileColor: PALETTE.terracotta, projectileKind: 'slime', armor: true,
+    projectileColor: '#9a9a5a', projectileKind: 'vomit', armor: true,
     pattern: [
       { atHp: 1.0, action: 'ring', telegraph: 'GOLPE REAL' },
       { atHp: 0.6, action: 'summon', telegraph: 'GUARDA' },
@@ -287,7 +287,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
   rogerioInf: {
     radius: 30, speed: 72, health: 520, damage: 22, color: '#8a6a4a', scoreValue: 500, coinDrop: 60,
     canShoot: true, shootRate: 1.6, bulletSpeed: 320, isBoss: true, bossName: 'ROGÉRIO INFECTADO', deathLine: 'Rios... me desculpa.', telegraph: 0.8,
-    projectileColor: '#8a6a4a', projectileKind: 'slime',
+    projectileColor: '#a8c878', projectileKind: 'rad',
     pattern: [
       { atHp: 1.0, action: 'ring', telegraph: 'CUSPE DE RADIAÇÃO' },
       { atHp: 0.6, action: 'charge', telegraph: 'CORRIDA DO AMIGO' },
@@ -334,7 +334,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
   cirurgiao: {
     radius: 36, speed: 76, health: 460, damage: 26, color: '#7a8a8a', scoreValue: 450, coinDrop: 50,
     canShoot: true, shootRate: 1.5, bulletSpeed: 320, isBoss: true, bossName: 'FERNANDO INFECTADO', deathLine: 'Foi o soro... não fui eu.', telegraph: 0.9,
-    projectileColor: '#8a9a9a', projectileKind: 'slime',
+    projectileColor: '#8a9a5a', projectileKind: 'vomit',
     // O doutor Fernando depois do Nando-01 — o remédio que ele mesmo bebeu
     // "para provar seu ponto". O relato do Murilo: a luta era fácil demais;
     // o buff é velocidade e cadência, porque o jaleco apertado já limita o

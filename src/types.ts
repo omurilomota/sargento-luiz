@@ -356,7 +356,7 @@ export interface EnemyType {
    * recusante), `shard` (lasca de cristal), `ember` (brasa). Padrão `bullet`.
    * Um zumbi nunca empunha arma — pose e sprite seguem este campo.
    */
-  projectileKind?: 'bullet' | 'slime' | 'shard' | 'ember' | 'spark';
+  projectileKind?: 'bullet' | 'slime' | 'shard' | 'ember' | 'spark' | 'vomit' | 'rad';
   /** Padrão de ataque data-driven (apenas bosses) */
   pattern?: BossPatternStep[];
   /** Nome exibido na barra de boss */
