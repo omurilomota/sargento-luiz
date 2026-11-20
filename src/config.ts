@@ -372,7 +372,9 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
     ],
   },
   torre: {
-    radius: 52, speed: 40, health: 640, damage: 36, color: '#7a4a30', scoreValue: 750, coinDrop: 80,
+    // Torre de destilação é ESTRUTURA: não persegue, não carga. Fica no posto
+    // e manda o fogo até o jogador. O "COLAPSO" é uma última leva de minions.
+    radius: 52, speed: 1, health: 640, damage: 36, color: '#7a4a30', scoreValue: 750, coinDrop: 80,
     canShoot: true, shootRate: 1.5, bulletSpeed: 280, isBoss: true, bossName: 'TORRE', deathLine: 'O fogo esfriou.', telegraph: 1.0,
     projectileColor: '#c46a3a', projectileKind: 'ember',
     // A torre de destilação, viva de fogo. Lenta, quase imóvel, mas o
@@ -380,11 +382,12 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
     pattern: [
       { atHp: 1.0, action: 'lob', telegraph: 'DESTILAÇÃO' },
       { atHp: 0.55, action: 'burst', telegraph: 'PRESSÃO' },
-      { atHp: 0.25, action: 'charge', telegraph: 'COLAPSO' },
+      { atHp: 0.25, action: 'summon', telegraph: 'COLAPSO — MAIS MÃOS' },
     ],
   },
   transformador: {
-    radius: 44, speed: 50, health: 720, damage: 40, color: '#6a7a8a', scoreValue: 850, coinDrop: 95,
+    // Gerador é ESTRUTURA: parado na subestação, descarrega e chama reforços.
+    radius: 44, speed: 1, health: 720, damage: 40, color: '#6a7a8a', scoreValue: 850, coinDrop: 95,
     canShoot: true, shootRate: 1.3, bulletSpeed: 400, isBoss: true, bossName: 'TRANSFORMADOR', deathLine: 'Sem corrente.', telegraph: 0.7,
     projectileColor: '#8a9aaa',
     // Criatura de raio e metal — cada golpe é um trovão. A telegrafia é
@@ -392,7 +395,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
     pattern: [
       { atHp: 1.0, action: 'ring', telegraph: 'DESCARGA' },
       { atHp: 0.5, action: 'summon', telegraph: 'SOBRECARGA' },
-      { atHp: 0.2, action: 'charge', telegraph: 'CURTO-CIRCUITO' },
+      { atHp: 0.2, action: 'burst', telegraph: 'CURTO-CIRCUITO' },
     ],
   },
   capitao: {
