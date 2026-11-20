@@ -335,30 +335,30 @@ export function tileFileName(n: number): string {
  * lista completa de tipos → algum personagem.
  */
 export const ENEMY_CHARACTER: Record<string, string> = {
-  grunt: 'zombie',
-  // O único personagem do pack que só aparece num chefe (MOTHERSHIP, fase 8).
-  // O mutante vive nas fases 1-2, então os dois nunca coexistem na tela.
-  mutante: 'manBlue',
-  runner: 'manBrown',
-  tank: 'manOld',
+  grunt: 'free1',
+  // Recusantes usam só os corpos deformados; agentes, os corpos vivos do pack
+  // (a mesma divisão de VARIACAO_POR_BIOMA, sem fase).
+  mutante: 'free2',
+  runner: 'free3',
+  tank: 'soldier',
   bat: 'zombie',
   robot: 'robot',
   drone: 'robot',
-  slime: 'zombie',
-  lavaSlime: 'zombie',
-  mosquito: 'zombie',
+  slime: 'free1',
+  lavaSlime: 'free2',
+  mosquito: 'free3',
   knight: 'soldier',
   archer: 'hitman',
   mage: 'woman',
-  fireElemental: 'manBrown',
-  magmaGolem: 'manOld',
-  inferno: 'hitman',
+  fireElemental: 'free1',
+  magmaGolem: 'free3',
+  inferno: 'zombie',
   ufo: 'robot',
   asteroid: 'manOld',
-  alien: 'zombie',
-  frog: 'zombie',
+  alien: 'free2',
+  frog: 'free3',
   crystal: 'woman',
-  spitter: 'zombie',
+  spitter: 'free1',
 
   // Os 9 chefes. Antes nenhum estava aqui, então os 9 caíam no fallback
   // 'zombie' e todo chefe do jogo era desenhado como um zumbi genérico — o
@@ -425,106 +425,38 @@ export type Bioma = typeof BIOMAS[number];
  * Só dado: nenhuma linha aqui desenha, então o débito do `semDesenho` não
  * cresce (regra 15).
  */
-export const VARIACAO_POR_BIOMA: Record<Bioma, Record<string, string>> = {
-  // 1 CIDADE — predominantemente `zombie`, com o metal do que restou da cidade
-  cidade: {
-    grunt: 'free1', runner: 'manBrown', bat: 'free2', slime: 'free3',
-    drone: 'robot', mosquito: 'zombie', robot: 'soldier', spitter: 'zombie',
-    mutante: 'manBlue', tank: 'manOld', alien: 'zombie', crystal: 'woman',
-    frog: 'manBrown',
-  },
-  // 2 RODOVIA — quem ficou preso no trânsito
-  rodovia: {
-    grunt: 'manOld', runner: 'hitman', bat: 'woman',
-    tank: 'soldier', spitter: 'manBrown', mutante: 'manBlue',
-  },
-  // 3 FLORESTA — madeira e o corpo de quem trabalhava na roça: `manBrown` domina
-  floresta: {
-    grunt: 'manBrown', runner: 'soldier', bat: 'manBrown', slime: 'free3',
-    mosquito: 'free2', alien: 'manBrown', tank: 'manOld', spitter: 'woman',
-    mutante: 'manOld', crystal: 'manBrown', lavaSlime: 'manBrown', drone: 'robot',
-  },
-  // 4 HOSPITAL — o que a medicina não curou: `woman` (enfermeira) e `manOld` (paciente)
-  hospital: {
-    grunt: 'woman', spitter: 'manOld', tank: 'hitman', slime: 'free2',
-    bat: 'free3', mutante: 'manBlue',
-  },
-  // 5 CAVERNA — pedra e escuro: `manOld` e o que desceu da superfície
-  caverna: {
-    grunt: 'manOld', runner: 'zombie', bat: 'free1', slime: 'free3',
-    crystal: 'woman', mosquito: 'manOld', drone: 'soldier', robot: 'robot',
-    mutante: 'manBlue', tank: 'soldier', spitter: 'zombie', alien: 'manOld',
-  },
-  // 4 FÁBRICA — a máquina que ainda anda: metal domina
-  fabrica: {
-    grunt: 'robot', robot: 'manBlue', drone: 'manBlue', tank: 'soldier',
-    spitter: 'manBlue', bat: 'robot', runner: 'robot', slime: 'free3',
-    mutante: 'manBlue', alien: 'robot', mosquito: 'robot', crystal: 'woman',
-  },
-  // 7 PÁTIO DE TRENS — ferrugem e ferro-velho
-  trens: {
-    grunt: 'free2', robot: 'zombie', drone: 'manBlue', mutante: 'free1',
-    bat: 'free3', tank: 'manOld',
-  },
-  // 8 PONTE — o que anda no cabo de aço
-  ponte: {
-    bat: 'hitman', spitter: 'soldier', crystal: 'robot',
-    grunt: 'free1', mutante: 'free3',
-  },
-  // 9 PÂNTANO — o que afunde e o que não afunde
-  pantano: {
-    grunt: 'zombie', slime: 'free2', frog: 'free1', bat: 'woman',
-    mosquito: 'free3', tank: 'manBrown', alien: 'manOld', spitter: 'manBrown',
-    mutante: 'manBrown', drone: 'soldier', robot: 'manBlue', crystal: 'manOld',
-  },
-  // 10 REFINARIA — fogo industrial
-  refinaria: {
-    grunt: 'manOld', fireElemental: 'hitman', magmaGolem: 'soldier',
-    runner: 'free2', tank: 'woman', bat: 'manBrown',
-    lavaSlime: 'free1', inferno: 'zombie',
-  },
-  // 11 CASTELO — guarda de muro: `soldier` e `hitman`
-  castelo: {
-    grunt: 'soldier', runner: 'hitman', knight: 'soldier', tank: 'manOld',
-    archer: 'hitman', bat: 'manBrown', spitter: 'hitman', mosquito: 'zombie',
-    mutante: 'manBlue', slime: 'free2', alien: 'free3', drone: 'soldier',
-    robot: 'hitman',
-  },
-  // 12 SUBESTAÇÃO — faísca e metal: `robot` domina
-  subestacao: {
-    drone: 'manBlue', crystal: 'hitman', ufo: 'zombie',
-    grunt: 'free1', tank: 'soldier', mutante: 'free2',
-  },
-  // 13 VULCÃO — queimado: o pack não tem vermelho, então quem desceu é
-  // `manBrown` (lama) e `manOld` (ressecado)
-  vulcao: {
-    grunt: 'free1', tank: 'manOld', magmaGolem: 'manOld', alien: 'woman',
-    runner: 'soldier', bat: 'zombie', spitter: 'manBrown', slime: 'free2',
-    mutante: 'manOld', fireElemental: 'manBrown', inferno: 'soldier',
-    mosquito: 'zombie', drone: 'robot', robot: 'soldier',
-  },
-  // 14 PORTO — o que desembarcou: `manBlue` (marinheiro) e `soldier` (porto)
-  porto: {
-    slime: 'manBlue', ufo: 'hitman', fireElemental: 'soldier',
-    grunt: 'free2', bat: 'free1', mutante: 'manBrown', tank: 'soldier',
-  },
-  // 15 ESPAÇO — nada orgânico: `robot`/`manBlue` (aço frio do vácuo)
-  espaco: {
-    grunt: 'manBlue', ufo: 'robot', drone: 'robot', alien: 'soldier',
-    runner: 'robot', tank: 'manBlue', asteroid: 'soldier', spitter: 'robot',
-    mutante: 'manBlue', bat: 'manBrown', mosquito: 'robot', crystal: 'manBlue',
-    robot: 'soldier',
-  },
-  // 16 BUNKER — comando militar cercado
-  bunker: {
-    grunt: 'soldier', robot: 'robot', drone: 'hitman', tank: 'manOld',
-    runner: 'free2', bat: 'soldier', spitter: 'soldier', alien: 'woman',
-    mutante: 'manBlue', slime: 'free1', mosquito: 'soldier', crystal: 'woman',
-    // A biomaquina é gente costurada com peça: o `robot` do próprio bioma,
-    // que já é a silhueta de máquina do Bunker.
-    biomaquina: 'robot',
-  },
+// A lore nova (PREMISSA-V2) separa os inimigos em dois lotes, e o visual tem
+// que contar isso sem uma fala: AGENTE aceitou o implante, veste uniforme e
+// obedece ao chefe de fase; RECUSANTE foi transformado à força, saiu do
+// controle e usa os corpos deformados (os 3 zumbis SpriteAttack + o da Kenney).
+// A rotação por bioma é estável (hash do tipo) e preserva a variedade que o
+// variedade.test.ts trava — nenhum par de fases vizinhas repete silhueta.
+const AGENTES = ['soldier', 'hitman', 'manBlue', 'robot', 'manOld', 'manBrown', 'woman'];
+const RECUSANTES = ['free1', 'free2', 'free3', 'zombie'];
+
+const PAPEL_POR_TIPO: Record<string, 'agente' | 'recusante'> = {
+  grunt: 'recusante', runner: 'recusante', bat: 'recusante', slime: 'recusante',
+  lavaSlime: 'recusante', mosquito: 'recusante', inferno: 'recusante',
+  fireElemental: 'recusante', magmaGolem: 'recusante', alien: 'recusante',
+  frog: 'recusante', crystal: 'recusante', spitter: 'recusante',
+  mutante: 'recusante', asteroid: 'recusante',
+  tank: 'agente', robot: 'agente', drone: 'agente', ufo: 'agente',
+  knight: 'agente', archer: 'agente', mage: 'agente', biomaquina: 'agente',
 };
+
+function corpoPorBioma(tipo: string, indiceBioma: number): string {
+  const elenco = PAPEL_POR_TIPO[tipo] === 'agente' ? AGENTES : RECUSANTES;
+  let hash = 0;
+  for (let i = 0; i < tipo.length; i++) hash = (hash * 31 + tipo.charCodeAt(i)) >>> 0;
+  return elenco[(indiceBioma + hash) % elenco.length];
+}
+
+export const VARIACAO_POR_BIOMA: Record<Bioma, Record<string, string>> = Object.fromEntries(
+  BIOMAS.map((bioma, indice) => [
+    bioma,
+    Object.fromEntries(Object.keys(PAPEL_POR_TIPO).map((tipo) => [tipo, corpoPorBioma(tipo, indice)])),
+  ]),
+) as Record<Bioma, Record<string, string>>;
 
 /**
  * Personagem de um inimigo, por bioma.
@@ -565,6 +497,9 @@ function buildSpriteList(): [string, string][] {
       out.push([`${charKey}_${pose}`, `${EXTRA_CHARACTER_BASE}/${prefix}_${pose}.png`]);
     }
   }
+  // O cachorro de guarda (pardal) é sprite próprio, não personagem de inimigo:
+  // uma só imagem top-down, girada pelo renderer como os corpos externos.
+  out.push(['pardal', `${EXTRA_CHARACTER_BASE}/pardal.png`]);
   for (const w of WEAPON_CLASSES) {
     out.push([`weapon_${w}`, `${BASE}/weapon_${w}.png`]);
   }
