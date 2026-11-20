@@ -22,7 +22,8 @@ import { getIsReloading, getWeaponFamily, getShotRecoil, getReloadTimer, WeaponF
 import { getCurrentCutscene, getCurrentLine, isLineComplete, getTextProgress, getPortraitInfo, getBeatRestante } from './story';
 import { getDialogo, retratoDoDialogo } from './dialogo';
 import { estaEmTelaCheia } from './fullscreen';
-import { getCurrentWeapon } from '../weapons';
+import { getCurrentWeapon, getCurrentWeaponIndex } from '../weapons';
+import { getEquipped } from './pieces';
 import { getEquippedSkin } from './skins';
 import { hasSave } from './saveSystem';
 import { getLeaderboard } from './leaderboard';
@@ -1414,6 +1415,30 @@ export function drawPlayer(player: Player): void {
       ctx.translate(-recuoMao, carregando * altura * 0.12);
       ctx.rotate(-carregando * 0.22);
       ctx.drawImage(mao, -largura / 2, -altura * 0.72, largura, altura);
+      // ACESSÓRIOS VISÍVEIS: cada peça equipada aparece montada na arma,
+      // não só como número no inventário. Ótica = mira, muzzle = freio de
+      // boca, empunhadura = cabo, carregador = pente.
+      const pecas = getEquipped(getCurrentWeaponIndex());
+      for (const peca of pecas) {
+        const chave = peca.typeId === 'otica' ? 'optical'
+          : peca.typeId === 'supressor' ? 'muzzle'
+          : peca.typeId === 'cadencia' ? 'grip'
+          : peca.typeId === 'capacidade' ? 'magazine' : null;
+        if (!chave) continue;
+        const att = getSprite(`att_${chave}`);
+        if (!att || !att.complete || !att.naturalWidth) continue;
+        // posição ao longo do cano (+x local): mira em cima, freio na ponta,
+        // cabo atrás, pente embaixo. Tudo em sprites, nada desenhado em código.
+        const escala = player.radius / 16;
+        const aw = att.naturalWidth * escala;
+        const ah = att.naturalHeight * escala;
+        const ax = chave === 'grip' ? -largura * 0.55
+          : chave === 'magazine' ? 0
+          : chave === 'muzzle' ? largura * 0.5 : largura * 0.15;
+        const ay = chave === 'optical' ? -altura * 1.05
+          : chave === 'magazine' ? -altura * 0.15 : -altura * 0.72;
+        ctx.drawImage(att, ax - aw / 2, ay, aw, ah);
+      }
       // clarão na ponta do cano enquanto o recuo está ativo — o detalhe que
       // falta para o tiro "sair da arma" e não só vir de uma partícula solta.
       if (recuo > 0.02) {

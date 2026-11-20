@@ -51,6 +51,9 @@ interface BossRuntime {
   burstAngle: number;
   /**true enquanto o boss está em telegrafia */
   flashing: boolean;
+  /** arraste da língua: força e direção aplicadas ao jogador pelo main */
+  tonguePull: number;
+  tongueAngle: number;
 }
 
 const runtimes = new WeakMap<Enemy, BossRuntime>();
@@ -110,6 +113,8 @@ export function updateBoss(
       burstTimer: 0,
       burstAngle: 0,
       flashing: false,
+      tonguePull: 0,
+      tongueAngle: 0,
     };
     runtimes.set(e, rt);
   }
@@ -131,10 +136,11 @@ export function updateBoss(
     // Precisa resolver contra o grid — recuar sem colisão enterrava o boss na
     // parede e ele ficava congelado ali para sempre.
     const away = Math.atan2(e.y - ty, e.x - tx);
+    const recuo = def.speed * 0.3 * elapsed;
     const moved = moveCircleBy(
       e.x, e.y,
-      Math.cos(away) * def.speed * 0.5 * elapsed,
-      Math.sin(away) * def.speed * 0.5 * elapsed,
+      Math.cos(away) * recuo,
+      Math.sin(away) * recuo,
       e.radius,
     );
     e.x = moved.x;
@@ -205,15 +211,27 @@ export function updateBoss(
     seekY = (ty - e.y) / len;
   }
   if (seekX !== 0 || seekY !== 0) {
-    const next = moveCircleBy(
-      e.x, e.y,
-      seekX * def.speed * 0.6 * elapsed,
-      seekY * def.speed * 0.6 * elapsed,
-      e.radius,
-    );
+    const passo = def.speed * 0.9 * elapsed; // antes 0.6 — o chefe parecia arrastar
+    const antesX = e.x, antesY = e.y;
+    const next = moveCircleBy(e.x, e.y, seekX * passo, seekY * passo, e.radius);
     e.x = next.x;
     e.y = next.y;
+    // SEPRESO NA PAREDE: se o vetor direto não andou (raio grande perto de
+    // canto), testa 4 direções e fica com a que mais andou — o mesmo resgate
+    // dos inimigos comuns. Sem isto o chefe grudava no canto para sempre.
+    if (Math.hypot(e.x - antesX, e.y - antesY) < passo * 0.2) {
+      const tentativa = passo * 3;
+      let bx = e.x, by = e.y, melhor = -1;
+      for (const [cx, cy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const t = moveCircleBy(antesX, antesY, cx * tentativa, cy * tentativa, e.radius);
+        const d = Math.hypot(t.x - antesX, t.y - antesY);
+        if (d > melhor) { melhor = d; bx = t.x; by = t.y; }
+      }
+      if (melhor > 0) { e.x = bx; e.y = by; }
+    }
   }
+
+  if (rt.tonguePull > 0) rt.tonguePull = Math.max(0, rt.tonguePull - elapsed);
 
   rt.timer -= elapsed;
   if (rt.timer > 0) return spawned;
@@ -290,6 +308,16 @@ export function updateBoss(
       // fumaça de vapor saindo da chaminé
       spawnParticles(e.x, e.y, '#8a7a60', 14, 200);
       break;
+    case 'tongue': {
+      // Pale Crocodile: língua longa que acerta e ARRASTA o jogador para perto.
+      // O arraste é lido pelo main (getBossPull) e aplicado com moveCircleBy.
+      const pe = Math.cos(angle), pe2 = Math.sin(angle);
+      spawnBullet(e.x, e.y, pe * speed * 1.4, pe2 * speed * 1.4, dmg, true, color, false, false, 0, false, 'tongue_blob');
+      rt.tonguePull = 1.4;
+      rt.tongueAngle = angle;
+      sfxSpit();
+      break;
+    }
     case 'summon': {
       for (let i = 0; i < 2; i++) {
         // offset fixo caía dentro de prédio e o minion ficava preso: valida
@@ -379,4 +407,10 @@ export function isBossTelegraphing(e: Enemy): boolean {
 export function getBossTelegraphLabel(e: Enemy): string {
   const rt = runtimes.get(e);
   return rt?.flashing ? rt.telegraphLabel : '';
+}
+
+/** Força e direção do arraste da língua do Pale Crocodile (0 se não ativo). */
+export function getBossPull(e: Enemy): { forca: number; angle: number } {
+  const rt = runtimes.get(e);
+  return rt ? { forca: rt.tonguePull, angle: rt.tongueAngle } : { forca: 0, angle: 0 };
 }

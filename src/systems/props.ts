@@ -68,6 +68,8 @@ export interface Prop {
   hitFlash: number;
   /** Tempo até o barril explodir quando encostado em fogo (0 = inerte) */
   fuse: number;
+  /** Refinaria: quanto do tambor (0..1) já foi bombeado ficando em cima. */
+  fuelProgress: number;
 }
 
 /** Tempo de pavio de um barril, em segundos. */
@@ -175,7 +177,7 @@ export function initProps(cells: string[][]): void {
         health: hp,
         maxHealth: hp,
         hitFlash: 0,
-        fuse: 0,
+        fuse: 0, fuelProgress: 0,
       });
     }
   }
@@ -198,7 +200,7 @@ export function spawnCapsula(x: number, y: number): void {
     health: CAPSULA_HEALTH,
     maxHealth: CAPSULA_HEALTH,
     hitFlash: 0,
-    fuse: 0,
+    fuse: 0, fuelProgress: 0,
   });
 }
 
@@ -220,14 +222,36 @@ export function getNests(): Prop[] {  return props.filter(p => p.kind === 'nest'
  * A coleta é por proximidade e não por tiro: o beat é "Rios enche tambores"
  * (PREMISSA-V2), e atirar no combustível seria o contrário do que a fase pede.
  */
-export function collectFuelAt(px: number, py: number, playerRadius: number): Prop | undefined {
+const TEMPO_BOMBEIO = 1.8; // segundos em cima de cada tambor (500ml)
+
+/**
+ * Bombeia o tambor embaixo do jogador. Enquanto você fica em cima, o progresso
+ * sobe; só quando o tambor enche (500ml) ele é removido e creditado. Se você
+ * sair, o progresso DAQUILO tambor fica (não zera) — o combustível não volta
+ * para o tanque. Devolve o tambor no frame em que completou.
+ */
+export function pumpFuelAt(px: number, py: number, playerRadius: number, dt: number): Prop | undefined {
   for (const p of props) {
     if (p.kind !== 'combustivel') continue;
     if (Math.hypot(p.x - px, p.y - py) > playerRadius + p.radius) continue;
-    props.splice(props.indexOf(p), 1);
-    return p;
+    p.fuelProgress += dt / TEMPO_BOMBEIO;
+    if (p.fuelProgress >= 1) {
+      props.splice(props.indexOf(p), 1);
+      return p;
+    }
+    return undefined; // um tambor por frame
   }
   return undefined;
+}
+
+/** Progresso do tambor sob o jogador (0..1), para a barra no HUD. */
+export function fuelProgressAt(px: number, py: number, playerRadius: number): number {
+  for (const p of props) {
+    if (p.kind !== 'combustivel') continue;
+    if (Math.hypot(p.x - px, p.y - py) > playerRadius + p.radius) continue;
+    return p.fuelProgress;
+  }
+  return 0;
 }
 
 /** O foguete do Castelo ainda de pé, se o mapa trouxe um (char `F`). */

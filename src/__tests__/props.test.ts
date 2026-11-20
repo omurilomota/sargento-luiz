@@ -3,7 +3,7 @@ import { TILE_NUMBERS } from '../systems/sprites';
 import {
   initProps, clearProps, getProps, getNests, getBlockingProps, getBlast,
   damageProp, igniteBarrel, detonateProp, updateProps, collapsesOnHit, PROP_SPRITES,
-  getRocket, getAnyRocket, collectFuelAt,
+  getRocket, getAnyRocket, pumpFuelAt, fuelProgressAt,
 } from '../systems/props';
 import { CELL_SIZE, BIOMES } from '../maps';
 import { PHASES } from '../config';
@@ -390,14 +390,18 @@ describe('props: o tambo de combustível da Refinaria (G)', () => {
     expect(getBlockingProps()).toHaveLength(0);
   });
 
-  it('collectFuelAt só coleta quando encosta, e remove o tambor do mapa', () => {
+  it('pumpFuelAt exige permanência: enche aos 1.8s em cima e só então remove', () => {
     initProps(mapa({ G: [3, 3] }));
     const tambo = getProps()[0];
     // longe: nada muda
-    expect(collectFuelAt(0, 0, 10)).toBeUndefined();
+    expect(pumpFuelAt(0, 0, 10, 1)).toBeUndefined();
     expect(getProps()).toHaveLength(1);
-    // em cima (raio do jogador + raio do tambor cobre a célula): coleta
-    const pego = collectFuelAt(tambo.x, tambo.y, 20);
+    // em cima: progresso sobe mas o tambor continua no mapa
+    expect(pumpFuelAt(tambo.x, tambo.y, 20, 0.9)).toBeUndefined();
+    expect(getProps()).toHaveLength(1);
+    expect(fuelProgressAt(tambo.x, tambo.y, 20)).toBeCloseTo(0.5, 1);
+    // completa 1.8s: remove e credita
+    const pego = pumpFuelAt(tambo.x, tambo.y, 20, 0.9);
     expect(pego).toBe(tambo);
     expect(getProps()).toHaveLength(0);
   });

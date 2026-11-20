@@ -238,6 +238,8 @@ export const SFX_FILES: Record<string, SfxDef> = {
   mina:        { file: 'assets/sfx/mina.ogg' },
   enemyShoot:  { file: 'assets/sfx/enemyShoot.ogg',  vary: 0.08 },
   spit:        { file: 'assets/sfx/spit.ogg',        vary: 0.1 },
+  chuva:       { file: 'assets/sfx/chuva.ogg' },
+  trovao:      { file: 'assets/sfx/trovao.ogg',      vary: 0.12 },
   explosion:   { file: 'assets/sfx/explosion.ogg' },
   bossDeath:   { file: 'assets/sfx/bossDeath.ogg' },
   playerHit:   { file: 'assets/sfx/playerHit.ogg' },
@@ -433,6 +435,13 @@ export function sfxEnemyShoot(): void {
 export function sfxSpit(): void {
   if (playSfxFile('spit')) return;
   playBurst(0.06, 0.11, 'lowpass', 900, 1.2);
+}
+
+/** Chuva contínua (loop curto) e trovão com clarão — a tempestade agora se ouve. */
+export function sfxChuva(): void { playSfxFile('chuva'); }
+export function sfxTrovao(): void {
+  if (playSfxFile('trovao')) return;
+  playNoise(0.5, 0.3);
 }
 
 export function sfxExplosion(): void {

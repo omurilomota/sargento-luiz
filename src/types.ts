@@ -203,6 +203,8 @@ export interface Weapon {
   reloadTime: number;
   /** Arma de CORPO A CORPO (P0-4): o golpe atinge em arco e não gasta munição. */
   melee?: boolean;
+  /** Arma arremessável: sai da mão em arco, não do bico da pistola. */
+  thrown?: boolean;
   /** Alcance do golpe melee, em pixels. */
   meleeRange?: number;
   /** Abertura do arco do golpe melee, em radianos. */
@@ -211,7 +213,7 @@ export interface Weapon {
 
 /** Ações possíveis de um boss data-driven */
 export type BossAction = 'spread' | 'ring' | 'charge' | 'summon' | 'mines' | 'split' | 'sweep'
-  | 'spray' | 'burst' | 'lob' | 'rail_charge';
+  | 'spray' | 'burst' | 'lob' | 'rail_charge' | 'tongue';
 
 /** Uma etapa do padrão de ataque de um boss, ativada quando o HP cruza o limiar */
 export interface BossPatternStep {

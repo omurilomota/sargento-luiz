@@ -43,9 +43,9 @@ export function buildTerrain(biome: Biome, cells: string[][]): HTMLCanvasElement
       const py = row * CELL_SIZE;
       switch (ch) {
         case '#': drawWall(c, px, py, biome, cells, col, row); break;
-        case '~': drawWater(c, px, py, col, row); break;
-        case 'S': drawWater(c, px, py, col, row); drawDockProp(c, 'prop_barco1', px, py, 2); break;
-        case 'g': drawWater(c, px, py, col, row); drawDockProp(c, 'prop_garca', px, py, 1); break;
+        // '~' 'S' 'g' são desenhados por frame em systems/dock.ts (água que
+        // balança, barcos que derivam, garças que andam) — o terrain é estático
+        case '~': case 'S': case 'g': drawWater(c, px, py, col, row); break;
         case ',': drawDecor(c, px, py, biome, (col * 7 + row * 13) % 4); break;
         case '^': drawHazard(c, px, py, biome, (col * 7 + row * 13) % 4); break;
         // estrada da Rodovia: '=' asfalto liso, ':' faixa de pista, '-'

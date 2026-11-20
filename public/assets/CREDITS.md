@@ -252,6 +252,11 @@ Origem: **Kenney.nl** (CC0), **OpenGameArt** (CC0) e
 **OpenGameArt** (CC-BY 3.0 — os 4 tiros reais de
 Vincent Sevedge, única fonte com atribuição obrigatória).
 
+`chuva.ogg` — "Rain (loopable)", **CC0**
+(opengameart.org/content/rain-loopable), cortado para 6s. `trovao.ogg` —
+"thunderclap" da **LPC**, **CC0** (lpc.opengameart.org/content/thunder),
+cortado para 2.5s. Os dois tocam na tempestade — antes a chuva era só visual.
+
 `spit.ogg` — "slime_12" do pacote **40 CC0 water/splash/slime SFX**
 (opengameart.org/content/40-cc0-water-splash-slime-sfx), **CC0**. É o som
 de cuspida dos recusantes — antes eles tocavam `enemyShoot.ogg` (barulho

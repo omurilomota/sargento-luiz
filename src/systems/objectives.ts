@@ -29,10 +29,6 @@ let destroyed = 0;
 let deadNpc = false;
 let reached = false;
 let coletados = 0;
-/** Relógio do `collect`: cada tambor tem 30s. Venceu, perde um tambor e o
- *  relógio reinicia — a pressão é a mesma de um gerador em Dead by Daylight. */
-const TEMPO_POR_TAMBOR = 30;
-let tempoCollect = TEMPO_POR_TAMBOR;
 /** O objetivo `protect` latcheia isto: sem ele, a fase termina no 1o frame. */
 let sawEnemies = false;
 
@@ -47,7 +43,6 @@ export function initObjective(objective: ObjectiveKind, objectiveTarget: number)
   deadNpc = false;
   reached = false;
   coletados = 0;
-  tempoCollect = TEMPO_POR_TAMBOR;
   sawEnemies = false;
 }
 
@@ -59,7 +54,6 @@ export function registerObjectiveDestroyed(): void {
 /** Registra a coleta de um tambo de combustível (objetivo `collect`). */
 export function registerFuelCollected(): void {
   coletados++;
-  tempoCollect = TEMPO_POR_TAMBOR;
 }
 
 /** Uma zona de extração em pixels. */
@@ -132,7 +126,7 @@ export function peekObjective(
       return {
         label: 'ENCHER OS TAMBORES',
         progress: Math.min(1, pct),
-        detail: `${coletados}/${target} · ${Math.ceil(tempoCollect)}s`,
+        detail: `${coletados}/${target}`,
         done: coletados >= target,
       };
     }
@@ -160,15 +154,6 @@ export function updateObjective(
 ): ObjectiveProgress {
   if (enemiesAlive > 0) sawEnemies = true;
   if (kind === 'survive') timer += dt;
-  if (kind === 'collect' && coletados < target) {
-    tempoCollect -= dt;
-    if (tempoCollect <= 0 && coletados > 0) {
-      coletados--; // o fogo apaga um tambor — é isso que dá a pressão do DbD
-      tempoCollect = TEMPO_POR_TAMBOR;
-    } else if (tempoCollect <= 0) {
-      tempoCollect = 0.01; // sem tambores para perder, só mostra 0 no HUD
-    }
-  }
   if (kind === 'reach' && !reached) {
     for (const z of reachZones) {
       if (Math.hypot(playerX - z.x, playerY - z.y) <= z.radius) reached = true;

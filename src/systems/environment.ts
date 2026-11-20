@@ -10,11 +10,12 @@ import { moveCircleBy } from './tilemap';
 import { sfxTornado } from './audio';
 import { spawnParticles } from './particles';
 import { createExplosion } from './explosions';
-import { triggerScreenShake } from './effects';
+import { triggerScreenShake, triggerFlash } from './effects';
+import { sfxChuva, sfxTrovao } from './audio';
 import { PALETTE } from '../core/palette';
 
 /** Tipos de evento ambiente */
-export type EnvironmentEvent = 'earthquake' | 'lightning' | 'storm' | 'tornado';
+export type EnvironmentEvent = 'earthquake' | 'lightning' | 'storm' | 'tornado' | 'ash' | 'freeze';
 
 /** Estado de um evento ativo */
 interface EventState {
@@ -35,6 +36,9 @@ const events: Record<EnvironmentEvent, EventState> = {
   storm: { active: false, duration: 0, timer: 60, interval: 90 },
   // o showpiece é RARO de propósito: o uivo tem que ser evento, não móvel
   tornado: { active: false, duration: 0, timer: 70, interval: 110 },
+  // Novos: cinzas no fogo, frio no vácuo/castelo
+  ash: { active: false, duration: 0, timer: 45, interval: 75 },
+  freeze: { active: false, duration: 0, timer: 55, interval: 90 },
 };
 
 /**
@@ -122,14 +126,14 @@ export function updateEnvironmentEvents(
   const allowed: Record<HazardKind, EnvironmentEvent[]> = {
     // o tornado é da CIDADE: o prólogo já fecha o céu "do lado do mar" —
     // o evento cumpre o que a fala prometeu
-    debris: ['earthquake', 'tornado'],
+    debris: ['earthquake', 'tornado', 'ash'],
     fog: ['storm'],
     darkness: [],
-    electric: ['lightning'],
+    electric: ['lightning', 'freeze'],
     mud: ['storm'],
-    spikes: ['earthquake'],
-    lava: ['earthquake'],
-    lowGravity: [],
+    spikes: ['earthquake', 'freeze'],
+    lava: ['earthquake', 'ash'],
+    lowGravity: ['freeze'],
     none: [],
   };
   const permitido = hazard ? allowed[hazard] : [];
@@ -157,7 +161,8 @@ export function updateEnvironmentEvents(
       }
       if (event.timer <= 0) {
         event.active = true;
-        event.duration = type === 'storm' ? 5 : type === 'earthquake' ? 3 : type === 'tornado' ? 6.5 : 0.5;
+        event.duration = type === 'storm' ? 5 : type === 'earthquake' ? 3
+          : type === 'tornado' ? 6.5 : type === 'ash' ? 6 : type === 'freeze' ? 5 : 0.5;
         event.timer = event.interval;
 
         // Efeitos visuais ao iniciar
@@ -165,9 +170,12 @@ export function updateEnvironmentEvents(
           triggerScreenShake(3, 1.5);
           earthquakeActive = true;
         } else if (type === 'lightning') {
-          triggerScreenShake(2, 0.2);
+          sfxTrovao();
+          triggerFlash('#dfe8f0', 0.22);
+          triggerScreenShake(4, 0.35);
         } else if (type === 'storm') {
           stormActive = true;
+          sfxChuva(); // a chuva agora se ouve, não só aparece
         } else if (type === 'tornado') {
           // nasce numa borda aleatória e atravessa: o uivo vem junto
           const lado = Math.floor(rand(0, 4));
@@ -206,6 +214,9 @@ export function updateEnvironmentEvents(
 
         case 'lightning':
           if (event.duration > 0.3) {
+            // clarão e trovão no momento do impacto — a chuva pede o trovão
+            sfxTrovao();
+            triggerFlash('#dfe8f0', 0.18);
             if (enemies.length > 0) {
               const target = enemies[Math.floor(rand(0, enemies.length))];
               createExplosion(target.x, target.y, LIGHTNING_RADIUS, LIGHTNING_DAMAGE, enemies, PALETTE.stone);
@@ -236,6 +247,31 @@ export function updateEnvironmentEvents(
           }
           break;
 
+        case 'ash': {
+          // chuva de cinzas: o céu fecha, o ar arranha. Dano leve e contínuo,
+          // partículas cinzentas cobrindo a arena — é o inferno que resolve
+          // o combate por desgaste, não por um raio.
+          if (Math.random() < dt * 3) {
+            for (const e of enemies) {
+              e.health -= 3;
+              e.hitFlash = 0.1;
+              enemyDamages.push({ x: e.x, y: e.y - 15, damage: 3, color: '#8a8078' });
+            }
+            playerDamage += 3;
+          }
+          if (Math.random() < dt * 20) {
+            spawnParticles(rand(0, worldWidth), -10, '#7a7268', 1, 120, 'smoke');
+          }
+          break;
+        }
+        case 'freeze':
+          // frio extremo: tudo fica lento. Os multiplicadores são lidos pelo
+          // main/getVelocidade — o evento só marca a duração ativa.
+          if (Math.random() < dt * 6) {
+            spawnParticles(rand(0, worldWidth), rand(0, worldHeight), '#9ab0c0', 1, 40, 'spark');
+          }
+          if (Math.random() < dt) playerDamage += 2;
+          break;
         case 'tornado': {
           // o vórtice anda; tudo perto dele é EMPURRADO para longe do centro
           tornadoX += tornadoVX * dt;
@@ -286,6 +322,8 @@ export function getEnvironmentWarnings(): EnvironmentWarning[] {
 
 /** Se o tornado está na tela (a prova lê para saber quando acaba). */
 export function tempestadeAtiva(): boolean { return stormActive; }
+export function frioAtivo(): boolean { return events.freeze.active; }
+export function cinzasAtivas(): boolean { return events.ash.active; }
 
 export function tornadoNoAr(): boolean {
   return events.tornado.active;
@@ -332,6 +370,8 @@ export function resetEnvironmentEvents(): void {
   events.earthquake.timer = 30;
   events.lightning.timer = 20;
   events.storm.timer = 60;
+  events.ash.timer = 45;
+  events.freeze.timer = 55;
   earthquakeActive = false;
   stormActive = false;
   warnings = [];

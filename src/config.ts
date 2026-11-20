@@ -227,13 +227,16 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
       { atHp: 0.25, action: 'summon', telegraph: 'CHAMANDO REFORÇOS' },
     ],
   },
+  // Pale Crocodile: não é lobo e não atira — é um crocodilo pálido da Floresta
+  // que investe, chama a prole e estende a língua para arrastar a presa.
   alphaWolf: {
     radius: 42, speed: 95, health: 380, damage: 26, color: '#7a6a5a', scoreValue: 400, coinDrop: 45,
-    canShoot: false, isBoss: true, bossName: 'ALPHA WOLF', deathLine: 'A matilha corre sem mim.', telegraph: 0.9,
+    canShoot: false, isBoss: true, bossName: 'PALE CROCODILE', deathLine: 'A matilha corre sem mim.', telegraph: 0.9,
+    projectileKind: 'slime',
     pattern: [
-      { atHp: 1.0, action: 'charge', telegraph: 'CARREGANDO' },
-      { atHp: 0.6, action: 'summon', telegraph: 'CHAMANDO A MATILHA' },
-      { atHp: 0.3, action: 'sweep', telegraph: 'VARRENDO' },
+      { atHp: 1.0, action: 'charge', telegraph: 'INVESTIDA DO CROCODILO' },
+      { atHp: 0.6, action: 'summon', telegraph: 'CHAMANDO A PROLE' },
+      { atHp: 0.3, action: 'tongue', telegraph: 'LÍNGUA — SAI DAÍ' },
     ],
   },
   crystalQueen: {
@@ -372,9 +375,9 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
     ],
   },
   torre: {
-    // Torre de destilação é ESTRUTURA: não persegue, não carga. Fica no posto
-    // e manda o fogo até o jogador. O "COLAPSO" é uma última leva de minions.
-    radius: 52, speed: 1, health: 640, damage: 36, color: '#7a4a30', scoreValue: 750, coinDrop: 80,
+    // Torre de destilação: é INIMIGO, não cenário — persegue devagar e lança
+    // brasa. A lentidão é a lentidão de uma máquina pesada, não imobilidade.
+    radius: 52, speed: 34, health: 640, damage: 36, color: '#7a4a30', scoreValue: 750, coinDrop: 80,
     canShoot: true, shootRate: 1.5, bulletSpeed: 280, isBoss: true, bossName: 'TORRE', deathLine: 'O fogo esfriou.', telegraph: 1.0,
     projectileColor: '#c46a3a', projectileKind: 'ember',
     // A torre de destilação, viva de fogo. Lenta, quase imóvel, mas o
@@ -386,8 +389,9 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
     ],
   },
   transformador: {
-    // Gerador é ESTRUTURA: parado na subestação, descarrega e chama reforços.
-    radius: 44, speed: 1, health: 720, damage: 40, color: '#6a7a8a', scoreValue: 850, coinDrop: 95,
+    // Transformador: inimigo elétrico que avança descarregando raios e chamando
+    // reforços — não é gerador parado no mapa.
+    radius: 44, speed: 44, health: 720, damage: 40, color: '#6a7a8a', scoreValue: 850, coinDrop: 95,
     canShoot: true, shootRate: 1.3, bulletSpeed: 400, isBoss: true, bossName: 'TRANSFORMADOR', deathLine: 'Sem corrente.', telegraph: 0.7,
     projectileColor: '#8a9aaa', projectileKind: 'spark',
     // Criatura de raio e metal — cada golpe é um trovão. A telegrafia é
@@ -442,11 +446,11 @@ export const WEAPONS: Weapon[] = [
   // valores abaixo mantêm a limpeza de multidão sem transformar chefe em alvo
   // de um botão. O dano antigo também deixava RPG/Granada/Mina acima do que
   // um tiro comum deve valer.
-  { name: 'RPG', damage: 70, shootRate: 1.8, bulletSpeed: 400, bulletCount: 1, spread: 0, color: PALETTE.terracotta, price: 350, pierce: false, explosive: true, explosionRadius: 140, magazineSize: 2, reloadTime: 2.5 },
+  { name: 'RPG', damage: 70, shootRate: 1.8, bulletSpeed: 400, bulletCount: 1, spread: 0, color: PALETTE.terracotta, price: 350, pierce: false, explosive: true, thrown: true, explosionRadius: 140, magazineSize: 2, reloadTime: 2.5 },
   { name: 'Raios', damage: 4, shootRate: 0.25, bulletSpeed: 800, bulletCount: 2, spread: 0.2, color: PALETTE.stone, price: 300, pierce: true, magazineSize: 15, reloadTime: 2.0 },
   { name: 'Gel', damage: 8, shootRate: 0.28, bulletSpeed: 550, bulletCount: 2, spread: 0.2, color: '#7a9aa8', price: 180, pierce: false, magazineSize: 20, reloadTime: 1.5 },
-  { name: 'Granada', damage: 42, shootRate: 1.4, bulletSpeed: 350, bulletCount: 1, spread: 0, color: '#a05a4a', price: 250, pierce: false, explosive: true, explosionRadius: 110, magazineSize: 3, reloadTime: 2.5 },
-  { name: 'Mina', damage: 44, shootRate: 2.8, bulletSpeed: 0, bulletCount: 1, spread: 0, color: PALETTE.mustard, price: 200, pierce: false, explosive: true, explosionRadius: 140, magazineSize: 2, reloadTime: 2.5 },
+  { name: 'Granada', damage: 42, shootRate: 1.4, bulletSpeed: 350, bulletCount: 1, spread: 0, color: '#a05a4a', price: 250, pierce: false, explosive: true, thrown: true, explosionRadius: 110, magazineSize: 3, reloadTime: 2.5 },
+  { name: 'Mina', damage: 44, shootRate: 2.8, bulletSpeed: 0, bulletCount: 1, spread: 0, color: PALETTE.mustard, price: 200, pierce: false, explosive: true, thrown: true, explosionRadius: 140, magazineSize: 2, reloadTime: 2.5 },
   // 5 projéteis × 38 = 190 no centro; com a resistência de chefe (0,75),
   // 142,5 — o VIGIA sobrevive a uma descarga e a BFG continua limpando trash.
   { name: 'BFG', damage: 38, shootRate: 2.0, bulletSpeed: 500, bulletCount: 5, spread: 0.4, color: PALETTE.title, price: 999, pierce: true, explosive: true, explosionRadius: 120, magazineSize: 1, reloadTime: 3.5, secret: true },

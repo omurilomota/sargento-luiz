@@ -278,7 +278,7 @@ export const WEAPON_ICON: Record<string, string> = {
  *  (gosma do gemGreen, lasca do tile de cristal, brasa do tile de lava). */
 export const BULLET_SPRITES = [
   'small_bullet', 'medium_bullet', 'large_bullet',
-  'slime_blob', 'shard_blob', 'ember_blob', 'spark_blob', 'vomit_blob', 'rad_blob',
+  'slime_blob', 'shard_blob', 'ember_blob', 'spark_blob', 'vomit_blob', 'rad_blob', 'tongue_blob',
 ] as const;
 
 /** Chefes com silhueta própria (CC0, dessaturados para a paleta do jogo).
@@ -287,10 +287,15 @@ export const BULLET_SPRITES = [
  *  antigo até ganharem arte própria. */
 export const BOSS_SPRITES: Record<string, string> = {
   reiMutante: 'reiMutante', leviathan: 'leviathan', infernoPrime: 'infernoPrime',
-  crystalQueen: 'crystalQueen', alphaWolf: 'alphaWolf', nucleo: 'nucleo',
-  torre: 'torre', transformador: 'transformador',
+  crystalQueen: 'crystalQueen', nucleo: 'nucleo',
+  torre: 'torre', transformador: 'transformador', alphaWolf: 'paleCrocodile',
 };
 const BOSS_BASE = 'assets/sprites/bosses';
+
+/** Acessórios visíveis na arma: mira (ótica), freio (supressor/muzzle),
+ *  cabo (empunhadura/cadência) e pente (carregador/capacidade). */
+const ATTACHMENT_BASE = 'assets/sprites/attachments';
+export const ATTACHMENT_SPRITES = ['optical', 'muzzle', 'grip', 'magazine'] as const;
 
 /** As 6 armas do pack, uma por família. `weapon2` é a cor alternativa. */
 export const WEAPON_SPRITES = [
@@ -518,6 +523,9 @@ function buildSpriteList(): [string, string][] {
   }
   for (const chave of Object.values(BOSS_SPRITES)) {
     out.push([`boss_${chave}`, `${BOSS_BASE}/${chave}.png`]);
+  }
+  for (const att of ATTACHMENT_SPRITES) {
+    out.push([`att_${att}`, `${ATTACHMENT_BASE}/${att}.png`]);
   }
   // O cachorro de guarda (pardal) é sprite próprio, não personagem de inimigo:
   // uma só imagem top-down, girada pelo renderer como os corpos externos.

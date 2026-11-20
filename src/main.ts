@@ -40,10 +40,10 @@ import { checkBulletEnemyCollisions, checkEnemyPlayerCollision, checkEnemyBullet
 import { createExplosion, updateExplosions, clearExplosions, spawnFire, updateFires, clearFires, pisaEmFogo, getFires, FOGO_DPS, FOGO_RAIO } from './systems/explosions';
 import { loadMap, colAt, rowAt, charAt, isWall, hasPath, moveCircleBy, rebuildFlowField, rebuildFlowFieldAlvo, sampleFlowDir, sampleFlowDirAlvo, pushOutOfWalls, findAll, segmentHitsWall, findFreeSpotNear, setCellChar, getMap } from './systems/tilemap';
 import { initCamera, setViewportSize, setWorldSize, updateCamera, snapCamera, getCamX, getCamY, screenToWorld, drawVoid, isVisible, setShake } from './systems/camera';
-import { initProps, getProps, updateProps, damageProp, detonateProp, getBlast, drawProps, clearProps, collapsesOnHit, getRocket, getAnyRocket, igniteBarrel, ROCKET_CONTACT_DPS, Prop, spawnCapsula, consumirCapsula, collectFuelAt } from './systems/props';
+import { initProps, getProps, updateProps, damageProp, detonateProp, getBlast, drawProps, clearProps, collapsesOnHit, getRocket, getAnyRocket, igniteBarrel, ROCKET_CONTACT_DPS, Prop, spawnCapsula, consumirCapsula, pumpFuelAt, fuelProgressAt } from './systems/props';
 import { buildTerrain, drawTerrain, clearTerrain } from './systems/terrain';
 import { initObjective, updateObjective, peekObjective, vipDown, markVipDown, registerObjectiveDestroyed, cellCenter, ReachZone, forceObjectiveDone, registerFuelCollected } from './systems/objectives';
-import { updateBoss, isBossTelegraphing, getBossTelegraphLabel, clearBossState } from './systems/boss';
+import { updateBoss, isBossTelegraphing, getBossTelegraphLabel, clearBossState, getBossPull } from './systems/boss';
 
 import {
   initRenderer, drawMenu, drawCutscene, drawDialogo, drawGameOver, drawVictory, drawFimLocal, drawCredits, drawCoins as renderCoins, drawVoo,
@@ -82,8 +82,9 @@ import { triggerScreenShake, triggerDamageFlash, triggerBossKillFlash, triggerLe
 import { useSkill, isSkillActive, updateSkills, resetSkills, getDamageMultiplier, getDamageTakenMultiplier, getSkillCooldown, getSkillMaxCooldown, setMoveDirection, furiaDesbloqueada, desbloquearFuria, restoreFuria, resetFuria } from './systems/skills';
 import { toggleNpcFollow, moverTorreta } from './systems/npcs';
 import { getCurrentClass, setCurrentClass, getClassDamageMult, getClassSpeedMult, getClassReloadMult, getClassHealthPerSecond, loadClass, saveClass, resetClass, ClassId, CLASSES } from './systems/classes';
-import { updateEnvironmentEvents, resetEnvironmentEvents, getEnvironmentWarnings , forcarEventoAmbiente, tornadoNoAr, tempestadeAtiva, EnvironmentEvent } from './systems/environment';
-import { addPuddle, markFootstep, isMolhado, updatePuddles, clearPuddles } from './systems/puddles';
+import { updateEnvironmentEvents, resetEnvironmentEvents, getEnvironmentWarnings , forcarEventoAmbiente, tornadoNoAr, tempestadeAtiva, frioAtivo, cinzasAtivas, EnvironmentEvent } from './systems/environment';
+import { addPuddle, markFootstep, isMolhado, updatePuddles, clearPuddles, getPuddles } from './systems/puddles';
+import { initDock, drawDock, clearDock } from './systems/dock';
 import { updateCombos, getActiveCombos, getComboDamageBonus, getComboCooldownMult, getComboHealthBonus, resetCombos } from './systems/combos';
 import { setComboHealthMultiplier } from './entities/player';
 import { resetSkins } from './systems/skins';
@@ -771,6 +772,14 @@ function loadPhaseEnvironment(): void {
   phaseEnding = false;
   phaseEndPause = 0;
 
+  // BUG: poças da fase anterior (Pântano/Porto, que chove) vazavam para a
+  // Refinaria e dali em diante — o jogador entrava "sempre molhado". Água é
+  // por fase: limpa ao carregar cada mapa, não só em partida nova.
+  clearPuddles();
+  // Porto: só a fase atual inicializa a camada viva do cais
+  clearDock();
+  if (phase.map === 'porto') initDock(biome.rows);
+
   // Estado de ONDA é por fase: sem isto, a cota parcial da última onda da
   // fase anterior vinha junto, e o primeiro frame da nova onda 1 lia
   // "cota cheia + campo vazio" como onda completa — a fase abria na ONDA 2
@@ -1193,7 +1202,8 @@ function update(dt: number) {
   // A pilha completa de velocidade fica exposta para o piso da bala: quem
   // corre não alcança o próprio tiro (relato do Murilo: "consigo andar mais
   // rápido que as balas" — 320 base vira 744 com perks + power-up + Ponte).
-  const stackDeVelocidade = speedMult * (onMud ? 0.55 : 1) * phaseSpeedMult * classSpeedMult;
+  const stackDeVelocidade = speedMult * (onMud ? 0.55 : 1) * phaseSpeedMult * classSpeedMult
+    * (frioAtivo() ? 0.6 : 1); // frio extremo: tudo mais lento
   ultimoStackVelocidade = stackDeVelocidade;
   player.movePlayer(keys, dt, { w: worldW, h: worldH }, stackDeVelocidade);
 
@@ -1357,7 +1367,9 @@ function update(dt: number) {
     // exato: "as balas não saem certinhas do bico do cano da arma". O cano
     // da pose desenhada termina perto dos 24px na direção da mira; flash e
     // bala agora concordam.
-    const DISTANCIA_DO_CANO = 24;
+    // Armas arremessáveis saem da MÃO (granada/mina/RPG), não do bico de uma
+    // pistola — você mira a direção, mas o objeto é lançado, não disparado.
+    const DISTANCIA_DO_CANO = weapon.thrown ? 14 : 24;
     const muzzleX = p.x + Math.cos(p.angle) * DISTANCIA_DO_CANO;
     const muzzleY = p.y + Math.sin(p.angle) * DISTANCIA_DO_CANO;
     // A velocidade de quem atira: durante o dash é a do dash (800 px/s —
@@ -1370,6 +1382,11 @@ function update(dt: number) {
     // O flash acompanha o peso da arma: pistola cospe 4, shotgun 7 e
     // lançador 8 + fumaça + um tranco curto de câmera. O `getWeaponFamily`
     // é a mesma curadoria do som e da pose, então não há tabela nova.
+    if (weapon.thrown) {
+      // arremesso: fumaça da mão e tranco leve, sem clarão de pólvora
+      spawnParticles(muzzleX, muzzleY, '#8a7a60', 3, 70, 'smoke');
+      triggerScreenShake(1.2, 0.08);
+    } else {
     const familia = getWeaponFamily();
     spawnParticles(
       muzzleX, muzzleY, weapon.color,
@@ -1404,6 +1421,7 @@ function update(dt: number) {
     if (jammedNow && !wasJammed) sfxJammed();
     wasJammed = jammedNow;
     if (getCurrentAmmo() <= 0) startReload();
+    }
     }
   }
 
@@ -3033,6 +3051,7 @@ function drawWorld(): void {
 
   drawVoid(ctx);
   drawTerrain(ctx);
+  drawDock(ctx);
   drawPuddles();
   drawFiresWorld(getFires());
   drawProps(
@@ -3316,6 +3335,15 @@ for (const e of enemies) {
     for (const minion of updateBoss(e, p.x, p.y, worldW, worldH, dt)) {
       // cap para não afogar a tela com minions quando o boss faz summons
       if (enemies.length < 6) enemies.push(minion);
+    }
+    // LÍNGUA do Pale Crocodile: arrasta o jogador na direção do bicho
+    const puxao = getBossPull(e);
+    if (puxao.forca > 0) {
+      const arrastado = moveCircleBy(p.x, p.y,
+        Math.cos(puxao.angle) * puxao.forca * 140 * dt,
+        Math.sin(puxao.angle) * puxao.forca * 140 * dt, p.radius);
+      p.x = arrastado.x;
+      p.y = arrastado.y;
     }
     // boss não entra no empilhamento
     if (e.hitFlash > 0) continue;
@@ -3734,19 +3762,21 @@ updatePowerUps(dt, p.x, p.y, p.radius, (type) => {
 });
 
 // ── encher os tambores da Refinaria (objetivo `collect`) ──
-// Coleta por PROXIMIDADE, como a moeda: o beat da fase é "Rios enche
-// tambores de combustível" (PREMISSA-V2), e encher não é destruir — o tiro
-// só cobre o tambor sem tirá-lo do mapa. O último tambor é o que libera o
-// chefe (`objetivoLiberouChefe` em `peekObjective().done`).
-for (let tambo = collectFuelAt(p.x, p.y, p.radius); tambo; tambo = collectFuelAt(p.x, p.y, p.radius)) {
+// Bombeio por PERMANÊNCIA: fique em cima do tambor enchendo 500ml. Cada
+// tambor concluído encharca Rios de combustível — a mancha no chão e a gosma
+// amarela/laranja dos inimigos vêm daqui (a fase inteira fede a gasolina).
+const bombeado = pumpFuelAt(p.x, p.y, p.radius, dt);
+if (bombeado) {
   registerFuelCollected();
-  spawnParticles(tambo.x, tambo.y, PALETTE.mustard, 12, 160, 'muzzle');
+  spawnParticles(bombeado.x, bombeado.y, PALETTE.mustard, 12, 160, 'muzzle');
   damageNumbers.push({
-    x: tambo.x, y: tambo.y - 26,
-    text: 'COMBUSTÍVEL', color: PALETTE.mustard, life: 1.4, vy: -46,
+    x: bombeado.x, y: bombeado.y - 26,
+    text: 'COMBUSTÍVEL +500ml', color: PALETTE.mustard, life: 1.4, vy: -46,
   });
   sfxFerramenta();
   triggerScreenShake(2, 0.1);
+  // encharcado: poça de combustível aos pés, que escorrega como a chuva
+  addPuddle(p.x, p.y);
 }
 
 updateNPCs(dt, p.x, p.y, enemies, getBullets());
@@ -4208,6 +4238,15 @@ window.__ashfall = {
   musicaOn: () => isMusicEnabled(),
   efeitosOn: () => isSfxEnabled(),
   configAberta: () => isSettingsOpen(),
+  // prova do bug "sempre molhado": poças devem zerar ao trocar de fase
+  poças: () => getPuddles().length,
+  // teleporte para provas visuais e para o modo dev inspecionar o mapa
+  teleportar: (x: number, y: number) => {
+    const jogador = player.getPlayer();
+    jogador.x = x; jogador.y = y;
+    snapCamera(x, y);
+    return { x, y };
+  },
   // modo dev: a prova envia a senha direto (sem prompt) e verifica a build
   modoDev: (senha?: string) => {
     if (senha !== undefined && senha !== SENHA_DEV) return false;

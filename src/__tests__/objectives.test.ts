@@ -76,26 +76,13 @@ describe('objectives: cada tipo sabe quando termina', () => {
     registerFuelCollected();
     const meio = updateObjective(0.016, 0, 0, 3, ZONA);
     expect(meio.done).toBe(false);
-    expect(meio.detail).toMatch(/^2\/4 · \d+s$/);
+    expect(meio.detail).toBe('2/4');
     expect(meio.label).toBe('ENCHER OS TAMBORES');
     registerFuelCollected();
     registerFuelCollected();
     const r = updateObjective(0.016, 0, 0, 3, ZONA);
     expect(r.done).toBe(true);
-    expect(r.detail).toMatch(/^4\/4 · \d+s$/);
-  });
-
-  it('collect perde um tambor quando o tempo acaba (pressão estilo DbD)', () => {
-    initObjective('collect', 4);
-    registerFuelCollected();
-    registerFuelCollected();
-    expect(peekObjective(0, 0, 0, ZONA).detail).toMatch(/^2\/4/);
-    // 31s sem coletar: o fogo apaga um tambor e o relógio reinicia
-    updateObjective(31, 0, 0, 0, ZONA);
-    expect(peekObjective(0, 0, 0, ZONA).detail).toMatch(/^1\/4/);
-    // coletar de novo zera o relógio
-    registerFuelCollected();
-    expect(peekObjective(0, 0, 0, ZONA).detail).toMatch(/^2\/4 · 30s$/);
+    expect(r.detail).toBe('4/4');
   });
 
   it('collect é leitura pura e zera entre fases', () => {
@@ -107,11 +94,11 @@ describe('objectives: cada tipo sabe quando termina', () => {
     registerFuelCollected();
     expect(peekObjective(0, 0, 0, ZONA).done).toBe(true);
     initObjective('collect', 2);
-    expect(peekObjective(0, 0, 0, ZONA).detail).toMatch(/^0\/2 · \d+s$/);
+    expect(peekObjective(0, 0, 0, ZONA).detail).toBe('0/2');
     expect(peekObjective(0, 0, 0, ZONA).done).toBe(false);
     // e o peek não grava nada (contrato do módulo)
     peekObjective(0, 0, 0, ZONA);
-    expect(peekObjective(0, 0, 0, ZONA).detail).toMatch(/^0\/2 · \d+s$/);
+    expect(peekObjective(0, 0, 0, ZONA).detail).toBe('0/2');
   });
 
   it('reach conclui ao entrar na zona e só uma vez', () => {
