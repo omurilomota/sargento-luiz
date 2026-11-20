@@ -1350,7 +1350,7 @@ export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: n
   ctx.fillStyle = PALETTE.textDim;
   ctx.font = '12px monospace';
   ctx.textAlign = 'center';
-  ctx.fillText('ENTER para continuar', width / 2, height - 20);
+  ctx.fillText('ENTER continuar · M música · S efeitos · O configurações', width / 2, height - 20);
 }
 
 function sectionLabel(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, color: string) {
