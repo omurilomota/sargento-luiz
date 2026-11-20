@@ -13,6 +13,7 @@
 import { Enemy, Bullet, Particle, Coin, PowerUp } from '../types';
 import { Player } from '../entities/player';
 import { ENEMY_TYPES, POWERUP_TYPES } from '../config';
+import { getPuddles } from './puddles';
 import { hasPowerUp } from '../powerups';
 import { isSkillActive } from './skills';
 import { getSprite, getEnemyCharacter, poseKey, drawSpriteFit, Pose, isSpritesEnabled, HAND_SPRITES, isExtraCharacter, PAPEL_POR_TIPO, BOSS_SPRITES } from './sprites';
@@ -923,6 +924,25 @@ export function drawPowerUps(powerups: PowerUp[]): void {
  * Agora usa o Kenney Particle Pack (CC0); o `arc` fica só como fallback de
  * asset que não carregou.
  */
+/** Poças e pegadas da chuva. Forma vem de sprite? Não — é só uma mancha
+ *  translúcida no chão (efeito de água, categoria permitida do semDesenho). */
+export function drawPuddles(): void {
+  for (const p of getPuddles()) {
+    const alpha = Math.min(0.32, p.vida / VIDA_POCA_VISUAL * 0.32);
+    ctx.fillStyle = `rgba(96,128,144,${alpha})`;
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y, p.radius, p.radius * 0.6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    if (p.pegada > 0) {
+      ctx.fillStyle = `rgba(40,52,60,${Math.min(0.5, p.pegada / 3 * 0.5)})`;
+      ctx.beginPath();
+      ctx.ellipse(p.x, p.y, 6, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+const VIDA_POCA_VISUAL = 14;
+
 export function drawParticles(particles: Particle[]): void {
   for (const p of particles) {
     const alpha = Math.max(0, p.life / p.maxLife);
