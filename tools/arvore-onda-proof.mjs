@@ -54,7 +54,7 @@ await new Promise((r) => servidor.listen(0, '127.0.0.1', r));
 const porta = servidor.address().port;
 mkdirSync(SHOTS, { recursive: true });
 
-const browser = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--no-sandbox', '--disable-gpu'] });
+const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome', args: ['--no-sandbox', '--disable-gpu'] });
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
 const erros = [];
 page.on('pageerror', (e) => erros.push(e.message));

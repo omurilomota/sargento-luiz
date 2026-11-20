@@ -35,7 +35,7 @@ const porta = servidor.address().port;
 mkdirSync(SHOTS, { recursive: true });
 
 const browser = await chromium.launch({
-  executablePath: '/usr/bin/google-chrome',
+  executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome',
   args: ['--no-sandbox', '--disable-gpu'],
 });
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });

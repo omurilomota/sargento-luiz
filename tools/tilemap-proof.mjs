@@ -30,7 +30,7 @@ const s = createServer(async (req, res) => {
 await new Promise((r) => s.listen(0, '127.0.0.1', r));
 const porta = s.address().port;
 
-const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--no-sandbox', '--disable-gpu'] });
+const b = await chromium.launch({ executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome', args: ['--no-sandbox', '--disable-gpu'] });
 const page = await b.newPage({ viewport: { width: 1000, height: 700 } });
 await page.goto(`http://127.0.0.1:${porta}/`, { waitUntil: 'networkidle' });
 await page.waitForTimeout(700);

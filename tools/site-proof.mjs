@@ -22,7 +22,7 @@ const s = createServer(async (req, res) => {
   res.end(await readFile(p));
 });
 await new Promise((r) => s.listen(0, '127.0.0.1', r));
-const browser = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--no-sandbox', '--disable-gpu'] });
+const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome', args: ['--no-sandbox', '--disable-gpu'] });
 const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
 const erros = [], faltando = [];
 page.on('pageerror', (e) => erros.push(e.message));

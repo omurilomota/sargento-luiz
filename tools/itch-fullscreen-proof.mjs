@@ -74,7 +74,7 @@ const EMBED = `<!DOCTYPE html>
 </script></body></html>`;
 
 const browser = await chromium.launch({
-  executablePath: '/usr/bin/google-chrome',
+  executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome',
   args: ['--no-sandbox', '--disable-gpu', '--autoplay-policy=no-user-gesture-required'],
 });
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
