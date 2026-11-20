@@ -183,28 +183,28 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
   bat: { radius: 10, speed: 120, health: 15, damage: 6, color: '#6a5a4a', scoreValue: 12, coinDrop: 2 },
   robot: { radius: 18, speed: 70, health: 50, damage: 12, color: '#6a6a6a', scoreValue: 35, coinDrop: 6, canShoot: true, shootRate: 1.5, bulletSpeed: 350, projectileColor: PALETTE.terracotta },
   slime: { radius: 20, speed: 60, health: 25, damage: 8, color: '#5a7a5a', scoreValue: 20, coinDrop: 3 },
-  spitter: { radius: 14, speed: 70, health: 18, damage: 4, color: '#5a7a5a', scoreValue: 18, coinDrop: 3, canShoot: true, shootRate: 1.5, bulletSpeed: 300, projectileColor: '#5a7a5a' },
-  crystal: { radius: 22, speed: 40, health: 60, damage: 15, color: '#608090', scoreValue: 40, coinDrop: 7, canShoot: true, shootRate: 3.0, bulletSpeed: 200, splitBullet: true, projectileColor: PALETTE.stone },
+  spitter: { radius: 14, speed: 70, health: 18, damage: 4, color: '#5a7a5a', scoreValue: 18, coinDrop: 3, canShoot: true, shootRate: 1.5, bulletSpeed: 300, projectileColor: '#5a7a5a', projectileKind: 'slime' },
+  crystal: { radius: 22, speed: 40, health: 60, damage: 15, color: '#608090', scoreValue: 40, coinDrop: 7, canShoot: true, shootRate: 3.0, bulletSpeed: 200, splitBullet: true, projectileColor: PALETTE.stone, projectileKind: 'shard' },
   drone: { radius: 11, speed: 100, health: 12, damage: 5, color: '#6a6a6a', scoreValue: 14, coinDrop: 2 },
   mosquito: { radius: 8, speed: 200, health: 8, damage: 4, color: '#8a6a4a', scoreValue: 8, coinDrop: 1 },
-  frog: { radius: 18, speed: 90, health: 22, damage: 10, color: '#5a7a5a', scoreValue: 22, coinDrop: 3, canShoot: true, shootRate: 2.5, bulletSpeed: 300, projectileColor: PALETTE.stone },
+  frog: { radius: 18, speed: 90, health: 22, damage: 10, color: '#5a7a5a', scoreValue: 22, coinDrop: 3, canShoot: true, shootRate: 2.5, bulletSpeed: 300, projectileColor: '#5a7a5a', projectileKind: 'slime' },
   knight: { radius: 20, speed: 65, health: 45, damage: 18, color: '#8a8a7a', scoreValue: 35, coinDrop: 5, armor: true },
   // O arqueiro é o caçador do sobrevivente: passa por você para atirar no NPC.
   // knight e mage continuam caçando o jogador, então a pressão não some — o
   // jogador escolhe entre matar o arqueiro ou servir de escudo.
   archer: { radius: 13, speed: 55, health: 20, damage: 8, color: '#b07050', scoreValue: 28, coinDrop: 4, canShoot: true, huntsNpc: true, shootRate: 1.2, bulletSpeed: 400, projectileColor: PALETTE.terracotta },
   mage: { radius: 15, speed: 50, health: 25, damage: 12, color: '#7a6a8a', scoreValue: 45, coinDrop: 8, canShoot: true, shootRate: 2.0, bulletSpeed: 350, projectileColor: '#7a6a8a' },
-  fireElemental: { radius: 17, speed: 85, health: 28, damage: 12, color: '#8b4040', scoreValue: 30, coinDrop: 4, canShoot: true, shootRate: 1.8, bulletSpeed: 300, leavesFire: true, projectileColor: '#c46a3a' },
+  fireElemental: { radius: 17, speed: 85, health: 28, damage: 12, color: '#8b4040', scoreValue: 30, coinDrop: 4, canShoot: true, shootRate: 1.8, bulletSpeed: 300, leavesFire: true, projectileColor: '#c46a3a', projectileKind: 'ember' },
   lavaSlime: { radius: 22, speed: 45, health: 35, damage: 10, color: '#8a5a3a', scoreValue: 25, coinDrop: 4 },
   magmaGolem: { radius: 30, speed: 35, health: 120, damage: 25, color: '#6a3a2a', scoreValue: 60, coinDrop: 10, armor: true },
-  inferno: { radius: 16, speed: 90, health: 30, damage: 8, color: '#a08050', scoreValue: 35, coinDrop: 5, canShoot: true, shootRate: 0.6, bulletSpeed: 350, spreadShot: true, projectileColor: '#c46a3a' },
+  inferno: { radius: 16, speed: 90, health: 30, damage: 8, color: '#a08050', scoreValue: 35, coinDrop: 5, canShoot: true, shootRate: 0.6, bulletSpeed: 350, spreadShot: true, projectileColor: '#c46a3a', projectileKind: 'ember' },
   ufo: { radius: 20, speed: 70, health: 40, damage: 10, color: '#6a8a6a', scoreValue: 40, coinDrop: 6, canShoot: true, shootRate: 1.5, bulletSpeed: 300, projectileColor: PALETTE.moss },
   // O asteroid não desvia (speed 30), então o dano é o que decide a morte no
   // Espaço: a 30 ele tirava 28 do jogador (4 toques, mais letal que todas as
   // fases). A 21 tira 19 — 6 toques, na faixa do resto da campanha — e ainda é
   // o golpe mais forte entre os inimigos comuns (19 × 18 do magmaGolem).
   asteroid: { radius: 28, speed: 30, health: 100, damage: 21, color: '#6a6a6a', scoreValue: 50, coinDrop: 8 },
-  alien: { radius: 14, speed: 110, health: 20, damage: 8, color: '#5a7a5a', scoreValue: 25, coinDrop: 4, canShoot: true, shootRate: 1.0, bulletSpeed: 400, projectileColor: PALETTE.moss },
+  alien: { radius: 14, speed: 110, health: 20, damage: 8, color: '#5a7a5a', scoreValue: 25, coinDrop: 4, canShoot: true, shootRate: 1.0, bulletSpeed: 400, projectileColor: PALETTE.moss, projectileKind: 'slime' },
 
   // A biomaquina: gente costurada com peça de robô, feita pela máquina.
   // Só aparece na fase 9 e não conta na cota da onda — ela nasce do NÚCLEO
@@ -239,7 +239,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
   crystalQueen: {
     radius: 46, speed: 45, health: 550, damage: 30, color: '#608090', scoreValue: 550, coinDrop: 60,
     canShoot: true, shootRate: 2.4, bulletSpeed: 260, isBoss: true, bossName: 'CRYSTAL QUEEN', deathLine: 'O escuro era meu.', telegraph: 1.0,
-    projectileColor: PALETTE.stone,
+    projectileColor: PALETTE.stone, projectileKind: 'shard',
     pattern: [
       { atHp: 1.0, action: 'split', telegraph: 'FRATURANDO' },
       { atHp: 0.65, action: 'ring', telegraph: 'ONDA DE CRISTAL' },
@@ -260,7 +260,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
   leviathan: {
     radius: 50, speed: 60, health: 420, damage: 36, color: '#5a7a5a', scoreValue: 750, coinDrop: 85,
     canShoot: true, shootRate: 2.0, bulletSpeed: 280, isBoss: true, bossName: 'LEVIATHAN', deathLine: 'A lama me devolve.', telegraph: 0.9,
-    projectileColor: '#5a7a5a',
+    projectileColor: '#5a7a5a', projectileKind: 'slime',
     pattern: [
       { atHp: 1.0, action: 'spread', telegraph: 'JATO ABRASIVO' },
       { atHp: 0.5, action: 'sweep', telegraph: 'CAUDA' },
@@ -269,7 +269,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
   reiMutante: {
     radius: 46, speed: 55, health: 630, damage: 38, color: '#8a8a7a', scoreValue: 800, coinDrop: 90,
     canShoot: true, shootRate: 2.2, bulletSpeed: 320, isBoss: true, bossName: 'REI MUTANTE', deathLine: 'O portão é teu.', telegraph: 0.9,
-    projectileColor: PALETTE.terracotta, armor: true,
+    projectileColor: PALETTE.terracotta, projectileKind: 'slime', armor: true,
     pattern: [
       { atHp: 1.0, action: 'ring', telegraph: 'GOLPE REAL' },
       { atHp: 0.6, action: 'summon', telegraph: 'GUARDA' },
@@ -287,7 +287,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
   rogerioInf: {
     radius: 30, speed: 72, health: 520, damage: 22, color: '#8a6a4a', scoreValue: 500, coinDrop: 60,
     canShoot: true, shootRate: 1.6, bulletSpeed: 320, isBoss: true, bossName: 'ROGÉRIO INFECTADO', deathLine: 'Rios... me desculpa.', telegraph: 0.8,
-    projectileColor: '#8a6a4a',
+    projectileColor: '#8a6a4a', projectileKind: 'slime',
     pattern: [
       { atHp: 1.0, action: 'ring', telegraph: 'CUSPE DE RADIAÇÃO' },
       { atHp: 0.6, action: 'charge', telegraph: 'CORRIDA DO AMIGO' },
@@ -297,7 +297,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
   infernoPrime: {
     radius: 48, speed: 62, health: 830, damage: 40, color: '#c46a3a', scoreValue: 900, coinDrop: 100,
     canShoot: true, shootRate: 1.4, bulletSpeed: 340, isBoss: true, bossName: 'INFERNO PRIME', deathLine: 'O legado arde sem mim.', telegraph: 0.7,
-    projectileColor: '#c46a3a',
+    projectileColor: '#c46a3a', projectileKind: 'ember',
     pattern: [
       { atHp: 1.0, action: 'spread', telegraph: 'CABRAÇAS' },
       { atHp: 0.55, action: 'mines', telegraph: 'GEISERS' },
@@ -334,7 +334,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
   cirurgiao: {
     radius: 36, speed: 76, health: 460, damage: 26, color: '#7a8a8a', scoreValue: 450, coinDrop: 50,
     canShoot: true, shootRate: 1.5, bulletSpeed: 320, isBoss: true, bossName: 'FERNANDO INFECTADO', deathLine: 'Foi o soro... não fui eu.', telegraph: 0.9,
-    projectileColor: '#8a9a9a',
+    projectileColor: '#8a9a9a', projectileKind: 'slime',
     // O doutor Fernando depois do Nando-01 — o remédio que ele mesmo bebeu
     // "para provar seu ponto". O relato do Murilo: a luta era fácil demais;
     // o buff é velocidade e cadência, porque o jaleco apertado já limita o
@@ -373,7 +373,7 @@ export const ENEMY_TYPES: Record<string, EnemyType> = {
   torre: {
     radius: 52, speed: 40, health: 640, damage: 36, color: '#7a4a30', scoreValue: 750, coinDrop: 80,
     canShoot: true, shootRate: 1.5, bulletSpeed: 280, isBoss: true, bossName: 'TORRE', deathLine: 'O fogo esfriou.', telegraph: 1.0,
-    projectileColor: '#c46a3a',
+    projectileColor: '#c46a3a', projectileKind: 'ember',
     // A torre de destilação, viva de fogo. Lenta, quase imóvel, mas o
     // chão ao redor dela derrete — cada passo é uma escolha.
     pattern: [

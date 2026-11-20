@@ -2056,19 +2056,25 @@ function shootEnemyAt(e: Enemy, tx: number, ty: number): void {
   const angle = Math.atan2(ty - e.y, tx - e.x);
   const speed = def?.bulletSpeed || 300;
   const color = def?.projectileColor || PALETTE.terracotta;
+  // Zumbi não atira bala: cospe gosma, atira lasca ou brasa conforme o tipo.
+  // Cartucho é coisa de agente. O x4 do crystal continua x4 — agora são
+  // 4 lascas, não 4 balas de metralhadora.
+  const sprite = def?.projectileKind === 'slime' ? 'slime_blob'
+    : def?.projectileKind === 'shard' ? 'shard_blob'
+    : def?.projectileKind === 'ember' ? 'ember_blob' : 'small_bullet';
   e.shootTimer = e.shootRate || 2;
   if (def?.spreadShot) {
     for (let s = -1; s <= 1; s++) {
       const a = angle + s * 0.3;
-      spawnBullet(e.x, e.y, Math.cos(a) * speed * 0.83, Math.sin(a) * speed * 0.83, e.damage, true, color, false, false, 0, false, 'small_bullet', e.type);
+      spawnBullet(e.x, e.y, Math.cos(a) * speed * 0.83, Math.sin(a) * speed * 0.83, e.damage, true, color, false, false, 0, false, sprite, e.type);
     }
   } else if (def?.splitBullet) {
     for (let s = 0; s < 4; s++) {
       const a = angle + (s * Math.PI) / 2;
-      spawnBullet(e.x, e.y, Math.cos(a) * speed * 0.67, Math.sin(a) * speed * 0.67, e.damage, true, color, false, false, 0, false, 'small_bullet', e.type);
+      spawnBullet(e.x, e.y, Math.cos(a) * speed * 0.67, Math.sin(a) * speed * 0.67, e.damage, true, color, false, false, 0, false, sprite, e.type);
     }
   } else {
-    spawnBullet(e.x, e.y, Math.cos(angle) * speed, Math.sin(angle) * speed, e.damage, true, color, false, false, 0, false, 'small_bullet', e.type);
+    spawnBullet(e.x, e.y, Math.cos(angle) * speed, Math.sin(angle) * speed, e.damage, true, color, false, false, 0, false, sprite, e.type);
   }
   sfxEnemyShoot();
 }
