@@ -278,6 +278,16 @@ export const BULLET_SPRITES = [
   'slime_blob', 'shard_blob', 'ember_blob',
 ] as const;
 
+/** Chefes com silhueta própria (CC0, dessaturados para a paleta do jogo).
+ *  Sem isto, 16 chefes dividiam os 9 corpos do pack com os inimigos comuns —
+ *  o chefe só se distinguia pelo tamanho. Os restantes continuam no mapa
+ *  antigo até ganharem arte própria. */
+export const BOSS_SPRITES: Record<string, string> = {
+  reiMutante: 'reiMutante', leviathan: 'leviathan', infernoPrime: 'infernoPrime',
+  crystalQueen: 'crystalQueen', alphaWolf: 'alphaWolf', nucleo: 'nucleo',
+};
+const BOSS_BASE = 'assets/sprites/bosses';
+
 /** As 6 armas do pack, uma por família. `weapon2` é a cor alternativa. */
 export const WEAPON_SPRITES = [
   'pistol', 'revolver', 'shotgun', 'sniper', 'smg', 'assaultrifle', 'grenade',
@@ -500,6 +510,9 @@ function buildSpriteList(): [string, string][] {
     for (const pose of POSES) {
       out.push([`${charKey}_${pose}`, `${EXTRA_CHARACTER_BASE}/${prefix}_${pose}.png`]);
     }
+  }
+  for (const chave of Object.values(BOSS_SPRITES)) {
+    out.push([`boss_${chave}`, `${BOSS_BASE}/${chave}.png`]);
   }
   // O cachorro de guarda (pardal) é sprite próprio, não personagem de inimigo:
   // uma só imagem top-down, girada pelo renderer como os corpos externos.

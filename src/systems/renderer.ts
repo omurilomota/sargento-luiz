@@ -15,7 +15,7 @@ import { Player } from '../entities/player';
 import { ENEMY_TYPES, POWERUP_TYPES } from '../config';
 import { hasPowerUp } from '../powerups';
 import { isSkillActive } from './skills';
-import { getSprite, getEnemyCharacter, poseKey, drawSpriteFit, Pose, isSpritesEnabled, HAND_SPRITES, isExtraCharacter, PAPEL_POR_TIPO } from './sprites';
+import { getSprite, getEnemyCharacter, poseKey, drawSpriteFit, Pose, isSpritesEnabled, HAND_SPRITES, isExtraCharacter, PAPEL_POR_TIPO, BOSS_SPRITES } from './sprites';
 import { buildCutsceneBackdrop, cutsceneVeil } from './terrain';
 import { getIsReloading, getWeaponFamily, getShotRecoil, WeaponFamily } from '../weapons';
 import { getCurrentCutscene, getCurrentLine, isLineComplete, getTextProgress, getPortraitInfo, getBeatRestante } from './story';
@@ -722,6 +722,7 @@ export function drawCredits(): void {
     { texto: 'Uso gratuito com atribuição — agradecimento a todos os autores', cor: PALETTE.textDim, tamanho: '11px', peso: '' },
     { texto: 'SPRITES EXTRAS', cor: PALETTE.mustard, tamanho: '13px', peso: 'bold ' },
     { texto: 'harrison-lord (CC-BY 3.0) — Top-down Dog, o pardal da loja', cor: PALETTE.text, tamanho: '12px', peso: '' },
+    { texto: 'isaiah658 (CC0) — 50+ Monsters Pack, silhuetas dos chefes', cor: PALETTE.text, tamanho: '12px', peso: '' },
     { texto: '', cor: PALETTE.textDim, tamanho: '11px', peso: '' },
     { texto: 'SFX', cor: PALETTE.mustard, tamanho: '13px', peso: 'bold ' },
     { texto: 'Kenney.nl + OpenGameArt — CC0 e CC-BY (52 efeitos)', cor: PALETTE.text, tamanho: '12px', peso: '' },
@@ -1121,7 +1122,8 @@ export function drawEnemies(
     // chapada verde/roxa/amarela — o dono leu como "aura feia" no playtest
     // de 2026-11. A cor do tipo continua no fallback procedural e nos
     // projéteis; o corpo na tela é a arte do pack.
-    const img = spritesOn ? getSprite(poseKey(char, pose)) : null;
+    const bossKey = BOSS_SPRITES[e.type];
+    const img = spritesOn ? (bossKey ? getSprite(`boss_${bossKey}`) : getSprite(poseKey(char, pose))) : null;
 
     if (img) {
       // "squash" de dano: o corpo encolhe/estica 16% no flash em vez de só
@@ -1132,8 +1134,10 @@ export function drawEnemies(
       // corpo à direção de perseguição sem mudar a arte de cada um. O corpo
       // deles ocupa 34px dentro do quadro 51×43, então precisa de 1.3× para
       // ler no mesmo tamanho do Kenney.
-      const extra = isExtraCharacter(char);
-      const angulo = extra ? facing(e) + Math.PI / 2 : facing(e);
+      const extra = isExtraCharacter(char) || !!bossKey;
+      // O chefe tem arte "de frente" própria: girá-la com a mira deixaria o
+      // monstro de lado/costas conforme o jogador se move. Fica fixo.
+      const angulo = bossKey ? 0 : extra ? facing(e) + Math.PI / 2 : facing(e);
       drawSpriteFit(ctx, img, e.x, e.y, e.radius * 2.4 * squash * (extra ? 1.3 : 1), angulo);
       if (e.hitFlash > 0) {
         ctx.save();

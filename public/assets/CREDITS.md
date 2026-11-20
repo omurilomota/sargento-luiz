@@ -133,6 +133,16 @@ flat do jogo.
   `bodySize` de 38px. As 6 poses compartilham o mesmo quadro porque o pack é
   de corpo parado; o corpo inteiro gira na direção da perseguição.
 
+**isaiah658 — 50+ Monsters Pack 2D** ·
+[opengameart.org/content/50-monsters-pack-2d](https://opengameart.org/content/50-monsters-pack-2d) ·
+**CC0 1.0 Universal**
+
+- `assets/sprites/bosses/{reiMutante,leviathan,infernoPrime,crystalQueen,alphaWolf,nucleo}.png`
+  — 6 monstros recortados da face "Front", dessaturados a 28% e escurecidos a
+  78% para sentar na paleta pós-apocalíptica. Dão silhueta própria aos chefes
+  que antes dividiam o corpo dos inimigos comuns. Atribuição: "isaiah658 —
+  50+ Monsters Pack 2D — opengameart.org/content/50-monsters-pack-2d — CC0".
+
 **harrison-lord — Top-down Dog + Simple Animation** ·
 [opengameart.org/content/top-down-dog-simple-animation](https://opengameart.org/content/top-down-dog-simple-animation) ·
 **CC-BY 3.0**
