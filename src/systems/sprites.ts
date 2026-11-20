@@ -288,6 +288,7 @@ export const BULLET_SPRITES = [
 export const BOSS_SPRITES: Record<string, string> = {
   reiMutante: 'reiMutante', leviathan: 'leviathan', infernoPrime: 'infernoPrime',
   crystalQueen: 'crystalQueen', alphaWolf: 'alphaWolf', nucleo: 'nucleo',
+  torre: 'torre', transformador: 'transformador',
 };
 const BOSS_BASE = 'assets/sprites/bosses';
 
