@@ -178,8 +178,9 @@ describe('variedade: getEnemyCharacter resolve por fase', () => {
   });
 
   it('tipo sem entrada no bioma cai no mapa geral', () => {
-    // `tank` não está na tabela da Cidade: tem de vir do mapa geral
-    expect(getEnemyCharacter('tank', 0)).toBe(ENEMY_CHARACTER.tank);
+    // A tabela por papel cobre todo inimigo comum; um chefe não entra nela
+    // (variedade.test trava isso), então ele exercita o fallback do mapa geral.
+    expect(getEnemyCharacter('cirurgiao', 0)).toBe(ENEMY_CHARACTER.cirurgiao);
   });
 
   it('tipo desconhecido continua caindo no zumbi (nunca em undefined)', () => {

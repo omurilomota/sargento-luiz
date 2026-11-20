@@ -5,7 +5,7 @@ import { join } from 'path';
 import { ENEMY_TYPES, PHASES, WEAPONS, SPAWN_PROPRIO, SCRIPTED_TYPES } from '../config';
 import {
   characterFileExists, weaponFileExists, TILE_NUMBERS, tileFileName,
-  POSES, WEAPON_CLASSES, ENEMY_CHARACTER,
+  POSES, WEAPON_CLASSES, ENEMY_CHARACTER, CHARACTER_NAMES,
   BULLET_FAMILY, WEAPON_ICON, BULLET_SPRITES, WEAPON_SPRITES,
   DUNGEON_FLOORS, DUNGEON_WALLS, DUNGEON_COUNT, PARTICLE_SPRITES, BULLET_EXTRA,
   ITEM_SPRITES,
@@ -319,8 +319,9 @@ describe('conteúdo: nenhum tipo de inimigo fica órfão', () => {
 });
 
 describe('assets: nenhum tipo de inimigo fica sem personagem', () => {
-  /** As 9 chaves do mapa de personagens do pack. */
-  const CHAVES = ['survivor', 'manBlue', 'manBrown', 'manOld', 'hitman', 'soldier', 'robot', 'woman', 'zombie'];
+  /** As 9 chaves do pack + os 3 corpos de zumbi externos (SpriteAttack, CC0),
+   *  que o `sprites.ts` já carrega no mesmo cache. */
+  const CHAVES = CHARACTER_NAMES;
 
   it('todo tipo de ENEMY_TYPES tem entrada no mapa de sprite', () => {
     // getEnemyCharacter cai em 'zombie' quando a chave não existe, e o fallback
