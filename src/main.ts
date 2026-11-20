@@ -290,6 +290,15 @@ document.addEventListener('keydown', e => {
     return;
   }
 
+  if (state === 'shop') {
+    // controles de som também na loja — as mesmas teclas do menu
+    if (k === 'm') setMusicEnabled(!isMusicEnabled());
+    if (k === 's') setSfxEnabled(!isSfxEnabled());
+    if (k === 'o') openSettings();
+    keys[k] = true;
+    return;
+  }
+
   if (state !== 'playing') {
     keys[k] = true;
     return;
@@ -306,10 +315,13 @@ document.addEventListener('keydown', e => {
       triggerScreenShake(1.2, 0.08);
     }
   }
-  if (k === 'f') { if (useSkill('shield')) sfxShield(); }
-  if (k === 'e') {
+  // E de Escudo, F de Fúria (mnemônico em português). Antes era o contrário
+  // só por ordem em que as habilidades foram escritas — o dono apontou a
+  // inversão e não havia motivo de design para mantê-la.
+  if (k === 'e') { if (useSkill('shield')) sfxShield(); }
+  if (k === 'f') {
     // H2: a fúria começa travada — o gate é a história da Fábrica do
-    // Rogério. Murilo (2026-10-14): a liberação é SEGREDO — apertar E
+    // Rogério. Murilo (2026-10-14): a liberação é SEGREDO — apertar F
     // antes da hora não avisa nada, a tecla é só silêncio. O grito
     // "FÚRIA DESBLOQUEADA" na morte do Rogério é a surpresa inteira.
     if (useSkill('fury')) sfxFury();
@@ -2183,7 +2195,7 @@ function killEnemy(e: Enemy, award: boolean): void {
     // o gate de história que a decisão do Murilo pediu.
     if (e.type === 'rogerioInf') {
       desbloquearFuria();
-      pushToast('FÚRIA DESBLOQUEADA — TECLA E', 4);
+      pushToast('FÚRIA DESBLOQUEADA — TECLA F', 4);
       abrirDialogo(SEQUENCIA_POS_MORTE);
     }
     const bossAch = checkAchievements('boss_kill');
@@ -2746,6 +2758,10 @@ function draw() {
       else drawMenu(selectedMode, selectedClass);
     } else if (state === 'paused') {
       drawFrozenWorld();
+    } else if (state === 'shop') {
+      // a loja congela atrás do painel — senão o overlay abria em cima do
+      // vazio e o jogador perdia a referência de onde estava
+      drawShop(ctx, canvas.width, canvas.height, mouse.x, mouse.y);
     }
     drawSettings(getMasterVolume(), getMusicVolume(), getSfxVolume(), isMusicEnabled(), isSfxEnabled());
     return;
@@ -3029,8 +3045,8 @@ function buildHudData(): HudData {
     // jogador vê que ela existe.
     skills: [
       { key: 'SPC', name: 'Dash', cooldown: getSkillCooldown('dash'), maxCooldown: getSkillMaxCooldown('dash'), active: isSkillActive('dash') },
-      { key: 'F', name: 'Escudo', cooldown: getSkillCooldown('shield'), maxCooldown: getSkillMaxCooldown('shield'), active: isSkillActive('shield') },
-      ...(furiaDesbloqueada() ? [{ key: 'E', name: 'Furia', cooldown: getSkillCooldown('fury'), maxCooldown: getSkillMaxCooldown('fury'), active: isSkillActive('fury') }] : []),
+      { key: 'E', name: 'Escudo', cooldown: getSkillCooldown('shield'), maxCooldown: getSkillMaxCooldown('shield'), active: isSkillActive('shield') },
+      ...(furiaDesbloqueada() ? [{ key: 'F', name: 'Furia', cooldown: getSkillCooldown('fury'), maxCooldown: getSkillMaxCooldown('fury'), active: isSkillActive('fury') }] : []),
     ],
     activePowerups,
     powerupMeta: Object.fromEntries(Object.entries(POWERUP_TYPES).map(([k, v]) => [k, { color: v.color, symbol: v.symbol }])),
@@ -4086,6 +4102,10 @@ window.__ashfall = {
   tirosDeAliado: () => getTirosDeAliado(),
   // prova M2 #1: o anúncio de onda diferido (caixa de diálogo do Hospital)
   ondaPendente: () => anuncioDeOndaPendente,
+  // exposto para a prova dos controles de som na loja (audio-loja-proof)
+  musicaOn: () => isMusicEnabled(),
+  efeitosOn: () => isSfxEnabled(),
+  configAberta: () => isSettingsOpen(),
   // prova M2 #4: o Destruidor forçado na fase do NÚCLEO
   armaAtual: () => WEAPONS[getCurrentWeaponIndex()]?.name ?? '',
   // prova M2 #3: qual tela de fim o jogo desenhou (vitoria | gameover | local)

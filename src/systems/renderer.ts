@@ -88,7 +88,7 @@ const RODAPE_ESPACO = [12, 12, 12, 16, 18];
 export function getMenuFooterLayout(h: number, temSave: boolean, musicOn = true): MenuFooterLine[] {
   const linhas: { texto: string; cor: string; fonte: string; pulso: boolean }[] = [
     { texto: 'WASD: Mover | Mouse: Mirar | Click: Atirar', cor: PALETTE.textOff, fonte: '11px monospace', pulso: false },
-    { texto: 'Espaco: Dash | F: Escudo | E: Furia | R: Recarregar', cor: PALETTE.textOff, fonte: '11px monospace', pulso: false },
+    { texto: 'Espaco: Dash | E: Escudo | F: Furia | R: Recarregar', cor: PALETTE.textOff, fonte: '11px monospace', pulso: false },
     { texto: `M: Musica ${musicOn ? 'LIGADA' : 'DESLIGADA'} | S: Efeitos | O: Configurações`, cor: PALETTE.textOff, fonte: '11px monospace', pulso: false },
     { texto: 'V: Créditos', cor: PALETTE.textOff, fonte: '11px monospace', pulso: false },
   ];
