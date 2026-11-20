@@ -145,6 +145,14 @@ ordem das frentes: [`ROADMAP.md`](ROADMAP.md)
 
 ---
 
+## Entrega: push e deploy das doze frentes (2026-11-20 17:26, `64301d5`)
+
+`git push origin develop` fast-forward (1b79601..64301d5, 25 commits) — CI verde
+(run 44783049074, 48s). Deploy `sargento-luiz-26bjouvsn-muriloinc` em produção,
+alias apontando. Prova de conteúdo: MD5 do bundle local e remoto idênticos
+(`11a3d30c…`, `index-DgWQ9o48.js`); assets novos em 200 — chefes, barco, garça,
+slime_blob, combat_ruinas e pardal. A URL órfã `dist-eight-liard-42` segue 404.
+
 ## Entrega: doze frentes (A-L) em feature branches (2026-11-20 13:15, `develop`)
 
 Pedidos do dono ao longo da sessão, cada um em sua branch com merge `--no-ff`:
