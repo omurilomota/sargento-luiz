@@ -35,7 +35,7 @@ export interface NPC {
  * mecânica dele morde (DPS de contato), não atira.
  */
 export interface Aliado {
-  modo: 'contratado' | 'torreta';
+  modo: 'contratado' | 'torreta' | 'pardal';
   /** Rótulo no mundo (o nome do NPC sai daqui, não do NPC_DEFS). */
   nome: string;
   /** Sprite próprio (chave do cache, ex.: 'prop_torreta'). Vazio usa `character`. */
@@ -109,8 +109,13 @@ export function toggleNpcFollow(): boolean {
 /** Se o NPC está seguindo o jogador (para o HUD mostrar a tecla J). */
 export function isNpcFollowing(): boolean { return npcFollow; }
 
-/** Dano por segundo do NPC enquanto um inimigo encosta nele. */
-const NPC_CONTACT_DPS = 30;
+/** Dano por segundo do NPC de roteiro enquanto um inimigo encosta nele.
+ *  Com 30 DPS um encostão matava o Cientista da Fábrica em 1s, antes da virada
+ *  do Rogério. Aliado pago não chega aqui: o ramo `npc.aliado` acima dá
+ *  `continue` — ele só leva tiro, não dano de contato. */
+const NPC_CONTACT_DPS = 15;
+/** Dano do cachorro de guarda por segundo de mordida. */
+const PARDAL_DPS = 18;
 
 let npcs: NPC[] = [];
 
@@ -157,14 +162,15 @@ export function npcBark(): void {
   npc.messageTimer = 3;
 }
 
-export function spawnNPC(x: number, y: number, defIndex: number, character?: string, aliado?: Aliado, pose?: string): void {
+export function spawnNPC(x: number, y: number, defIndex: number, character?: string, aliado?: Aliado, pose?: string, vida?: number): void {
   const def = NPC_DEFS[defIndex % NPC_DEFS.length];
+  const vidaFinal = vida ?? aliado?.vida ?? def.health;
   npcs.push({
     x, y,
     name: aliado ? aliado.nome : def.name,
     color: def.color,
-    health: aliado?.vida ?? def.health,
-    maxHealth: aliado?.vida ?? def.health,
+    health: vidaFinal,
+    maxHealth: vidaFinal,
     radius: def.radius,
     speed: def.speed,
     alive: true,
@@ -244,6 +250,29 @@ function updateAliado(
   enemies: { x: number; y: number; radius: number; health: number }[],
 ): void {
   const a = npc.aliado!;
+
+  // O cachorro não atira: ele segue rente e morde quem encosta. O DPS de
+  // contato é a mecânica que a DECISIONS #214 já tinha definido para o
+  // serviço, só faltava a arte top-down.
+  if (a.modo === 'pardal') {
+    const dx = playerX - npc.x;
+    const dy = playerY - npc.y;
+    const d = Math.hypot(dx, dy);
+    if (d > 70) {
+      const moved = moveCircleBy(npc.x, npc.y, (dx / d) * npc.speed * 0.8 * dt, (dy / d) * npc.speed * 0.8 * dt, npc.radius);
+      npc.x = moved.x;
+      npc.y = moved.y;
+    }
+    a.angulo = Math.atan2(dy, dx);
+    for (const e of enemies) {
+      if (e.health <= 0) continue;
+      if (Math.hypot(e.x - npc.x, e.y - npc.y) < npc.radius + e.radius) {
+        e.health -= PARDAL_DPS * dt;
+        break;
+      }
+    }
+    return;
+  }
 
   if (a.modo === 'contratado') {
     const dx = playerX - npc.x;

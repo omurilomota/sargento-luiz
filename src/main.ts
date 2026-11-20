@@ -19,7 +19,7 @@ import { PALETTE } from './core/palette';
 import * as player from './entities/player';
 import { applyRegen, resetRegen } from './entities/player';
 import { getBullets, spawnBullet, updateBullets, updateMines, clearBullets } from './entities/bullet';
-import { getSprite, BULLET_FAMILY, getEnemyCharacter } from './systems/sprites';
+import { getSprite, BULLET_FAMILY, getEnemyCharacter, BIOMAS } from './systems/sprites';
 import { getCoins, spawnCoins, updateCoins, clearCoins, setMagnetActive, resetPermanentMagnet , getMoedasGeradas, zeraMoedasGeradas } from './entities/coin';
 import { PHASE_END_PAUSE, PLAYER_BASE_HEALTH, PERIGO_NAVE_SEGUNDOS, ALCANCE_DO_ATIRADOR, RECUO_DO_ATIRADOR, RAIO_TROCA_DE_ALVO } from './core/constants';
 import type { Toast, ToastKind, WeaponSheet } from './ui/hud';
@@ -72,7 +72,7 @@ import { powerups, spawnPowerUp, spawnPowerUpDeChefe, spawnPowerUpDeTipo, update
 import {
   initAudio, sfxAmbiente, sfxExplosion, sfxBossDeath, sfxPlayerHit, sfxImpact, sfxKill, sfxCoin, sfxPowerup, sfxWaveStart, sfxLevelUp,
   sfxGameOver, sfxEnemyShoot, sfxDash, sfxShield, sfxFury, sfxMenuMove, sfxMenuSelect, sfxError, sfxJammed, sfxPiece,
-  startMusic, playMusic, setMusicEnabled, setSfxEnabled, isMusicEnabled, isSfxEnabled, unlockAudio,
+  startMusic, playMusic, setMusicEnabled, setSfxEnabled, isMusicEnabled, isSfxEnabled, unlockAudio, MusicTrack,
   getMasterVolume, getMusicVolume, getSfxVolume, WEAPON_SOUNDS,
   sfxReload, sfxCondicao, resetFerrugem, sfxRisada, sfxFerramenta, sfxFogueteLancamento,
 } from './systems/audio';
@@ -519,6 +519,18 @@ let enemies: Enemy[] = [];
 let damageNumbers: { x: number; y: number; text: string; color: string; life: number; vy: number }[] = [];
 let lastTime = 0;
 let phaseTransitionTimer = 0;
+
+// Três faixas cobrem as 16 fases. Antes toda fase tocava a mesma combat.ogg;
+// a família segue o bioma, não a onda — o combate dentro da fase continua
+// mudando só para boss/shop/epílogo.
+const MUSICA_POR_BIOMA: Record<string, MusicTrack> = {
+  cidade: 'combat_ruinas', rodovia: 'combat_ruinas', floresta: 'combat_ruinas',
+  hospital: 'combat_ruinas', pantano: 'combat_ruinas',
+  fabrica: 'combat_industrial', trens: 'combat_industrial', refinaria: 'combat_industrial',
+  subestacao: 'combat_industrial', porto: 'combat_industrial',
+  vulcao: 'combat_terminal', castelo: 'combat_terminal',
+  espaco: 'combat_terminal', bunker: 'combat_terminal',
+};
 // Poeira do passo: a cada 260ms, uma única partícula no pé. Não é rastro de
 // dash (esse é o sprite fantasma do renderer) — é a leitura de que o corpo
 // tem peso no chão, mesmo com o pack sem frame de caminhada.
@@ -815,6 +827,13 @@ function loadPhaseEnvironment(): void {
         postX: postTorreta.x, postY: postTorreta.y,
         alcance: 320, dano: 5, intervalo: 0.45, tiroTimer: 0, angulo: 0,
       });
+    } else if (svc === 'pardal') {
+      // cachorro de guarda: segue rente e morde, não atira (DECISIONS #214)
+      spawnNPC(postContratado.x, postContratado.y, 1, 'manBrown', {
+        modo: 'pardal', nome: 'Pardal', sprite: 'pardal', vida: 80,
+        postX: postContratado.x, postY: postContratado.y,
+        alcance: 0, dano: 18, intervalo: 0, tiroTimer: 0, angulo: 0,
+      });
     }
   }
   player.placePlayer(pos.x, pos.y);
@@ -1056,6 +1075,11 @@ function update(dt: number) {
     return;
   }
 
+  // O anúncio da onda envelhece MESMO com a caixa aberta: o ramo abaixo devolve
+  // cedo, e antes o "Onda N" ficava parado no meio da tela durante as 21 falas
+  // da Fábrica. O áudio continua pendente até a caixa fechar (m2-fluxo-proof).
+  if (phaseTransitionTimer > 0) phaseTransitionTimer -= dt;
+
   // A caixa pequena da Fábrica (H2): PAUSADO POR LINHA (decisão do Murilo) —
   // o mundo congela atrás, o ENTER avança. O auto-avanço de 10s existe para
   // quem soltou o teclado (e para os harnesses): a caixa nunca prende, mas
@@ -1110,7 +1134,6 @@ function update(dt: number) {
   const phase = getCurrentPhase();
   const hard = getCurrentMode() === 'hardcore';
 
-  if (phaseTransitionTimer > 0) phaseTransitionTimer -= dt;
   if (phaseEndPause > 0) phaseEndPause = Math.max(0, phaseEndPause - dt);
   if (vooAtivo > 0) vooAtivo = Math.max(0, vooAtivo - dt);
   if (bossGritoTimer > 0) bossGritoTimer = Math.max(0, bossGritoTimer - dt);
@@ -1494,14 +1517,16 @@ function update(dt: number) {
     // H2: a SEGUNDA onda da Fábrica traz o Rogério — o amigo do relato
     // do Murilo. O NPC nasce do lado do jogador e a caixa pequena conta
     // a cápsula. O mundo congela na hora (a caixa é pausada por linha).
-    if (phase.name === 'Fábrica' && getCurrentWave() === 1 && getCurrentMode() === 'campaign' && !amigoApareceu) {
+    // Antes abria na onda 1, com 21 falas seguidas (chegada + amigo) antes
+    // do jogador ver a fase: agora a chegada fica sozinha na abertura.
+    if (phase.name === 'Fábrica' && getCurrentWave() === 2 && getCurrentMode() === 'campaign' && !amigoApareceu) {
       amigoApareceu = true;
       caixaAbriuNestaOnda = true;
       // o NPC nasce AO LADO, mas o offset cru podia cair na parede quando o
       // jogador estava encostado nela (playtest: "o amigo nasce e buga com a
       // parede" na Fábrica). Mesmo resgate dos serviços da loja.
       const postoAmigo = pushOutOfWalls(p.x + 60, p.y, 16);
-      spawnNPC(postoAmigo.x, postoAmigo.y, 0, 'manBrown');
+      spawnNPC(postoAmigo.x, postoAmigo.y, 0, 'manBrown', undefined, undefined, 90);
       abrirDialogo(SEQUENCIA_AMIGO);
     }
     // O HOSPITAL (2026-10-14): o doutor Fernando chega em jogo, na primeira
@@ -2178,7 +2203,9 @@ function killEnemy(e: Enemy, award: boolean): void {
     // levar comigo". Deste ponto em diante o jogador conhece o caminho: o
     // minimapa libera nas fases seguintes.
     if (e.type === 'cirurgiao' && getCurrentPhase().name === 'Hospital de Campanha' && getCurrentMode() === 'campaign') {
-      abrirDialogo(SEQUENCIA_POS_DOUTOR);
+      abrirDialogo(SEQUENCIA_POS_DOUTOR, () => {
+        if (unlockDiaryEvent('implante')) pushToast('DIÁRIO: O PRONTUÁRIO', 4, 'aviso');
+      });
     }
     if (unlockDiaryEvent('boss_kill')) pushToast('NOVA ENTRADA NO DIÁRIO', 3, 'aviso');
     // M5: o toast da fala entra por ÚLTIMO de propósito — o cap de 3 comia
@@ -2342,6 +2369,9 @@ const SEQUENCIA_AMIGO: EntradaDialogo[] = [
   { speaker: 'rios', text: 'O quê? Que cápsulas são essas? Não foi uma mutação da natureza toda essa infecção?' },
   { speaker: 'fernando', text: 'Não cara, isso é o que eles querem que você acredite. Sabe os trilionários? Eles querem destruir a terra com zumbis pra cobrar pra morar no espaço, no suposto novo planeta deles.' },
   { speaker: 'rios', text: 'Você está bem? Que merda de história de filme é essa?' },
+  { speaker: 'fernando', text: 'A cápsula não soltou remédio. Soltou gente.' },
+  { speaker: 'rios', text: 'Botaram alguma coisa na cabeça deles?' },
+  { speaker: 'fernando', text: 'Um corte. Um número atrás da orelha. O meu não apareceu.' },
   { speaker: 'narrador', text: 'A cápsula range no subsolo. A tampa cede.', efeito: 'explosaoCapsula' },
   { speaker: 'fernando', text: 'ESSA NÃO, NÓS VAMOS MORRER!' },
   { speaker: 'rios', text: 'Merda!' },
@@ -2416,6 +2446,10 @@ const SEQUENCIA_MEDICO: EntradaDialogo[] = [
   { speaker: 'doutor', text: 'Os pacientes nunca melhoraram de verdade com o remédio Zombonic-24. Eles foram piorando, matando e contaminando os outros.' },
   { speaker: 'doutor', text: 'Eu suspeito que esse reagente apenas potencialize os efeitos do vírus. Aliás, sou cientista, tenho moral pra falar.' },
   { speaker: 'rios', text: 'Cientistas são malucos às vezes.' },
+  { speaker: 'doutor', text: 'O remédio veio depois. Primeiro foi a peça.' },
+  { speaker: 'doutor', text: 'Um corte atrás da orelha. Em todos os que assinaram.' },
+  { speaker: 'rios', text: 'Quem assinou?' },
+  { speaker: 'doutor', text: 'O registro tem número. Não tem pergunta.' },
 ];
 
 const SEQUENCIA_NANDO: EntradaDialogo[] = [
@@ -2602,7 +2636,10 @@ function leaveShop(): void {
   bossZoomTriggered = false;
   phaseTransitionTimer = 2.0;
   resetInput();
-  if (getGameState() === 'playing') void playMusic('combat');
+  if (getGameState() === 'playing') {
+    const indiceFase = PHASES.indexOf(getCurrentPhase());
+    void playMusic(MUSICA_POR_BIOMA[BIOMAS[indiceFase]] ?? 'combat');
+  }
   // A cutscene da fase abre ANTES do combate. Sem isto, `showCutscene()` só era
   // chamado no menu e 62 das 69 linhas escritas nunca jogavam — incluindo a
   // morte do Fernandes e os 3 finais do epílogo. `nextPhase()` já rodou acima,
