@@ -133,6 +133,18 @@ flat do jogo.
   `bodySize` de 38px. As 6 poses compartilham o mesmo quadro porque o pack é
   de corpo parado; o corpo inteiro gira na direção da perseguição.
 
+**harrison-lord — Top-down Dog + Simple Animation** ·
+[opengameart.org/content/top-down-dog-simple-animation](https://opengameart.org/content/top-down-dog-simple-animation) ·
+**CC-BY 3.0**
+
+- `assets/sprites/enemies/pardal.png` — quadro top-down do cachorro (o 3º da
+  animação, recortado do alpha original de 256×256 para 49×111 com 4px de
+  folga). É o cachorro de guarda da loja: segue o jogador e morde quem encosta.
+  A arte é pixel art cinza, mais escura que o pack Kenney — foi a única
+  encontrada com ângulo realmente top-down e resolução aceitável (a de #214
+  era de perfil ou 16×16). Atribuição: "harrison-lord — Top-down Dog + Simple
+  Animation — opengameart.org/content/top-down-dog-simple-animation — CC-BY 3.0".
+
 **SARGENTO LUIZ — trilho, trens e galão (autorais, CC0)**
 
 - `assets/sprites/props/trilho_h_{00,01}.png` — tile de 64px com lastro,
