@@ -17,7 +17,7 @@ import { hasPowerUp } from '../powerups';
 import { isSkillActive } from './skills';
 import { getSprite, getEnemyCharacter, poseKey, drawSpriteFit, Pose, isSpritesEnabled, HAND_SPRITES, isExtraCharacter, PAPEL_POR_TIPO, BOSS_SPRITES } from './sprites';
 import { buildCutsceneBackdrop, cutsceneVeil } from './terrain';
-import { getIsReloading, getWeaponFamily, getShotRecoil, WeaponFamily } from '../weapons';
+import { getIsReloading, getWeaponFamily, getShotRecoil, getReloadTimer, WeaponFamily } from '../weapons';
 import { getCurrentCutscene, getCurrentLine, isLineComplete, getTextProgress, getPortraitInfo, getBeatRestante } from './story';
 import { getDialogo, retratoDoDialogo } from './dialogo';
 import { estaEmTelaCheia } from './fullscreen';
@@ -1383,7 +1383,26 @@ export function drawPlayer(player: Player): void {
     if (mao) {
       const largura = mao.naturalWidth * (player.radius / 16);
       const altura = mao.naturalHeight * (player.radius / 16);
+      // Animação mínima da arma: recuo no eixo do cano e leve "abaixar" ao
+      // recarregar. O recuo já existe no corpo (linha acima); aqui ele chega
+      // à mão, que antes ficava colada no ombro como um adesivo.
+      const recuoMao = recuo * 4;
+      const carregando = getReloadTimer() > 0 ? 1 : 0;
+      ctx.save();
+      ctx.translate(-recuoMao, carregando * altura * 0.12);
+      ctx.rotate(-carregando * 0.22);
       ctx.drawImage(mao, -largura / 2, -altura * 0.72, largura, altura);
+      // clarão na ponta do cano enquanto o recuo está ativo — o detalhe que
+      // falta para o tiro "sair da arma" e não só vir de uma partícula solta.
+      if (recuo > 0.02) {
+        const flash = getSprite('fx_muzzle_01');
+        if (flash && flash.complete && flash.naturalWidth > 0) {
+          ctx.globalAlpha = Math.min(1, recuo * 4);
+          ctx.drawImage(flash, largura * 0.42, -altura * 0.86, altura * 0.5, altura * 0.5);
+          ctx.globalAlpha = 1;
+        }
+      }
+      ctx.restore();
     }
   } else {
     let bodyColor = skin.bodyColor;

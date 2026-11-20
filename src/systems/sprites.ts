@@ -255,20 +255,23 @@ export const PROP_EXTRA = ['foguete', 'arvore_00', 'arvore_01', 'arvore_morta_00
  * armas de mesma família compartilham desenho, que é honesto — RPG e Granada
  * são o mesmo cano com munição diferente.
  */
+/** Um desenho por arma — antes 7 ícones serviam 13 armas, e Laser/RPG/BFG/
+ *  Destruidor apareciam todos como o mesmo fuzil. Os 13 sprites do pack são
+ *  perfil (vitrine da loja, não o mundo top-down — DECISIONS #91). */
 export const WEAPON_ICON: Record<string, string> = {
   Pistola: 'pistol',
   Shotgun: 'shotgun',
   Metralhadora: 'smg',
   Sniper: 'sniper',
-  Laser: 'assaultrifle',
-  RPG: 'assaultrifle',
-  Raios: 'revolver',
-  Gel: 'revolver',
+  Laser: 'assaultrifle2',   // emissor alongado / mira
+  Raios: 'revolver2',       // emissor duplo
+  Gel: 'pistol2',           // cartucho pressurizado
   Granada: 'grenade',
-  Mina: 'grenade',
-  BFG: 'assaultrifle',
-  'M. Quebrada': 'pistol',
-  Destruidor: 'assaultrifle',
+  Mina: 'grenade2',         // variante escura da granada (mina)
+  RPG: 'shotgun2',          // tubo largo de lança
+  BFG: 'smg2',              // corpo grande, cano duplo
+  'M. Quebrada': 'revolver',// revólver desgastado
+  Destruidor: 'assaultrifle',// arma pesada de uma mão só
 };
 
 /** Cartuchos do pack + 3 projéteis orgânicos recortados de assets do jogo
@@ -290,7 +293,8 @@ const BOSS_BASE = 'assets/sprites/bosses';
 
 /** As 6 armas do pack, uma por família. `weapon2` é a cor alternativa. */
 export const WEAPON_SPRITES = [
-  'pistol', 'revolver', 'shotgun', 'sniper', 'smg', 'assaultrifle', 'grenade',
+  'pistol', 'pistol2', 'revolver', 'revolver2', 'shotgun', 'shotgun2',
+  'sniper', 'sniper2', 'smg', 'smg2', 'assaultrifle', 'assaultrifle2', 'grenade', 'grenade2',
 ] as const;
 
 /** A arma-na-mão por nome de arma (F-C): vista de cima, autoral CC0 —

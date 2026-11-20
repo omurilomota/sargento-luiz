@@ -23,7 +23,7 @@ import { getGameState, getCurrentPhase } from '../phases';
 import { furiaDesbloqueada } from '../systems/skills';
 import { sfxBuy, sfxError } from '../systems/audio';
 import { PALETTE } from '../core/palette';
-import { getSprite } from '../systems/sprites';
+import { getSprite, WEAPON_ICON } from '../systems/sprites';
 import { getInventory, getEquipped, equipPiece, unequipPiece, getPieceType, hasPieceSynergy, PIECE_INVENTORY_LIMIT, returnEquippedPieces, sellPieceFromInventory, pieceSellPrice } from '../systems/pieces';
 
 /** Saldo atual de moedas do jogador */
@@ -864,13 +864,7 @@ export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: n
       ctx.font = 'bold 13px monospace';
       ctx.fillText(`${w.name}`, r.x + 40, r.y + 16);
       {
-        ctx.fillStyle = q.color;
-        ctx.fillRect(r.x + 6, r.y + 6, 30, 30);
-        ctx.fillStyle = '#111';
-        ctx.font = 'bold 14px monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText(w.name.charAt(0), r.x + 6 + 15, r.y + 6 + 20);
-        ctx.textAlign = 'left';
+        desenhaIconeArma(ctx, w.name, r.x + 6, r.y + 6, q.color);
       }
 
       ctx.textAlign = 'right';
@@ -924,13 +918,7 @@ export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: n
       ctx.font = 'bold 13px monospace';
       ctx.fillText(`${w.name} · ${conditionLabel(w.name, p.quality)}`, r.x + 40, r.y + 16);
       {
-        ctx.fillStyle = q.color;
-        ctx.fillRect(r.x + 6, r.y + 6, 30, 30);
-        ctx.fillStyle = '#111';
-        ctx.font = 'bold 14px monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText(w.name.charAt(0), r.x + 6 + 15, r.y + 6 + 20);
-        ctx.textAlign = 'left';
+        desenhaIconeArma(ctx, w.name, r.x + 6, r.y + 6, q.color);
       }
       const { primary, sell } = rowActionButtons(r);
       const sellPrice = Math.round(WEAPONS[p.index].price * 0.5 * q.sellMult);
@@ -1109,13 +1097,7 @@ export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: n
       ctx.strokeStyle = isEquipped ? PALETTE.moss : 'rgba(255,255,255,0.05)';
       ctx.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1);
       {
-        ctx.fillStyle = q.color;
-        ctx.fillRect(r.x + 6, r.y + 6, 30, 30);
-        ctx.fillStyle = '#111';
-        ctx.font = 'bold 14px monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText(w.name.charAt(0), r.x + 6 + 15, r.y + 6 + 20);
-        ctx.textAlign = 'left';
+        desenhaIconeArma(ctx, w.name, r.x + 6, r.y + 6, q.color);
       }
       ctx.textAlign = 'left';
       ctx.fillStyle = isEquipped ? PALETTE.moss : q.color;
@@ -1351,6 +1333,26 @@ export function drawShop(ctx: CanvasRenderingContext2D, width: number, height: n
   ctx.font = '12px monospace';
   ctx.textAlign = 'center';
   ctx.fillText('ENTER continuar · M música · S efeitos · O configurações', width / 2, height - 20);
+}
+
+/** Ícone da arma: sprite do pack por nome, com a inicial como fallback de
+ *  asset ausente. Antes a loja importava getSprite e nunca chamava — 13 armas
+ *  apareciam como letras dentro de quadrados. */
+function desenhaIconeArma(ctx: CanvasRenderingContext2D, nome: string, x: number, y: number, cor: string): void {
+  const icone = getSprite(`gun_${WEAPON_ICON[nome] ?? 'pistol'}`);
+  if (icone && icone.complete && icone.naturalWidth > 0) {
+    const h = 30;
+    const larg = h * (icone.naturalWidth / icone.naturalHeight);
+    ctx.drawImage(icone, x + (30 - larg) / 2, y, larg, h);
+    return;
+  }
+  ctx.fillStyle = cor;
+  ctx.fillRect(x, y, 30, 30);
+  ctx.fillStyle = '#111';
+  ctx.font = 'bold 14px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText(nome.charAt(0), x + 15, y + 20);
+  ctx.textAlign = 'left';
 }
 
 function sectionLabel(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, color: string) {
