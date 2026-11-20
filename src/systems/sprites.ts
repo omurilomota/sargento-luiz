@@ -248,7 +248,7 @@ export const BULLET_EXTRA = ['foguete', 'plasma', 'orbe', 'feixe', 'estilhaco'];
  * árvores autorais da Floresta e do Pântano (o pack não tem vegetação — os
  * 185 tiles-objeto dele são caixa e cilindro).
  */
-export const PROP_EXTRA = ['foguete', 'arvore_00', 'arvore_01', 'arvore_morta_00', 'carro_00', 'carro_01', 'carro_02', 'tocha_00', 'tocha_01', 'painel_00', 'berco_00', 'trilho_h_00', 'trilho_h_01', 'trem_locomotiva_00', 'trem_vagao_00', 'combustivel_00'];
+export const PROP_EXTRA = ['barco1', 'barco2', 'garca', 'garca_clara', 'foguete', 'arvore_00', 'arvore_01', 'arvore_morta_00', 'carro_00', 'carro_01', 'carro_02', 'tocha_00', 'tocha_01', 'painel_00', 'berco_00', 'trilho_h_00', 'trilho_h_01', 'trem_locomotiva_00', 'trem_vagao_00', 'combustivel_00'];
 
 /**
  * Sprite de arma por nome, para a loja e o HUD. 6 famílias para 12 armas: as
