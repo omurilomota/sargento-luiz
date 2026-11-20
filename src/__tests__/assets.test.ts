@@ -212,6 +212,13 @@ it('nenhuma família aponta para sprite que não existe no pack', () => {
     }
   });
 
+  it('as 13 armas não dividem o mesmo ícone', () => {
+    const usados = Object.values(WEAPON_ICON);
+    const duplicados = usados.filter((v, i) => usados.indexOf(v) !== i);
+    expect(duplicados, `ícones repetidos: ${duplicados.join(', ')}`).toEqual([]);
+    expect(usados).toHaveLength(WEAPONS.length);
+  });
+
   it('as 12 armas não colapsam nas 3 classes do Kenney', () => {
     // A contagem de projéteis distintos é o que prova que o tiro deixou de
     // ser o mesmo em toda arma: com `weaponClass` seriam 3, com o nome da
