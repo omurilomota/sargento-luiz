@@ -12,6 +12,54 @@
 // ═══════════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════════
+// BACKLOG 2026-11-20 — cinco frentes pedidas pelo dono (em execução)
+// Cada frente = uma feature branch de develop, gates + regra 16 no fim.
+// [x] A — GOSMA E POSE: zumbi nunca empunha arma nem atira cartucho.
+//     [ ] types.ts: projectileKind 'bullet'|'slime'|'shard'|'ember'
+//     [ ] config.ts: recusantes (spitter, crystal, frog, inferno,
+//         fireElemental) e bosses orgânicos marcados como gosma
+//     [ ] shootEnemyAt: escolher slime_blob; x4 do crystal vira 4 gotas
+//     [ ] enemyPose: gosma => stand/hold, nunca gun/machine (o zumbi armado)
+//     [ ] drawBullets: sprite de gosma sem a rotação +90° do cartucho
+// [x] B — PROJÉTEIS E PADRÕES: 3 sprites (slime/shard/ember já extraídos),
+//     3 ações novas em boss.ts (spray, burst, lob) nos bosses de ring repetido.
+// [x] C — SKINS DE CHEFE: 5-6 sprites CC0 únicos; nenhum chefe dividir
+//     silhueta com comum da própria fase.
+// [x] D — SOM/CONFIG NA LOJA: M música, S efeitos, O painel; incluir
+//     'shop' no draw do overlay e atualizar rodapé da loja.
+// [x] E — ARMAS: 6 ícones únicos (Laser, RPG, Raios, Gel, BFG, Destruidor)
+//     + recuo/flash na mão + ficha TAB coerente.
+// [x] F — MAQUINISTA E O TREM: o chefe do Pátio hoje só faz charge/ring/summon
+//     genéricos; o config já diz que a investida é "a locomotiva em marcha",
+//     mas o trem é só cenário (maps.ts:493). Fazer o chefe USAR a via:
+//     investida em linha reta sobre o trilho, vagões que descem, apito.
+// [x] G — REFINARIA COM TEMPO: encher os tambores está fácil demais. Introduzir
+//     contador estilo Dead by Daylight: encher N tambores antes do tempo acabar,
+//     com progresso visível no HUD e consequência clara se expirar.
+// [x] H — CHUVA: poças deixam o player escorregadio (inércia no movimento),
+//     passos molhados marcam o chão e secam com o tempo, SFX de passo diferente,
+//     relâmpagos + trovões com shake mais frequentes. Pode estender a outras
+//     fases. Reusa systems/environment.ts + effects.ts + audio.ts.
+// [x] I — BOSSES-OBJETO: TORRE e TRANSFORMADOR hoje são humanoides com
+//     charge/ring (config.ts:374-395). Torre de destilação e gerador têm que
+//     ser ESTÁTICOS: parados, cercados por mobs que chegam, atacando por
+//     área. Trocar charge por summon/defesa de perímetro. SKIN própria
+//     (tipo de máquina, não soldier/zombie).
+// [x] J — PORTO COM MAR: a fase hoje é seca, sem mar nem barco. Acrescentar
+//     água no mapa, barcos atracados, elementos de cais e GARÇAS (pedido do
+//     dono) — já existem tiles de cais em terrain.ts (prop_trilho, 317 respingo).
+// [x] K — MODO DESENVOLVEDOR: senha `desenvolvefacil123` libera acesso a
+//     qualquer fase. Guardar como feature de dev, não atalho no gameplay
+//     normal. Hook de teste existe (__ashfall.irParaFase) — expor no menu.
+//     [ ] Ao ativar: várias armas LENDÁRIAS com acessórios e tudo no máximo
+//         (perks, talentos, vida, munição) para testar bem o balanceamento.
+// [x] L — CASTELO IMPOSSÍVEL: o chefe nasce no centro (main.ts:1709) a ~130px
+//     do foguete (F no mapa, 300 HP). O tiro do boss acerta o foguete e dá
+//     hitkill. Spawnar o chefe LONGE do foguete (≥400px) e/ou dar imunidade
+//     curta ao foguete no spawn do chefe.
+// ═══════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════
 // CONCLUÍDO
 // ═══════════════════════════════════════════════════════════════
 - [x] Sons para cada arma especificamente.

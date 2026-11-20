@@ -145,6 +145,37 @@ ordem das frentes: [`ROADMAP.md`](ROADMAP.md)
 
 ---
 
+## Entrega: doze frentes (A-L) em feature branches (2026-11-20 13:15, `develop`)
+
+Pedidos do dono ao longo da sessão, cada um em sua branch com merge `--no-ff`:
+
+- **A/B** — zumbi não empunha mais metralhadora: cospe gosma/lasca/brasa.
+  Inclui o tiro x4 do crystal (agora 4 lascas) e 3 ações novas de boss
+  (`spray`, `burst`, `lob`) com os sprites orgânicos.
+- **C** — 8 chefes com silhueta própria (pack CC0 dessaturado para a paleta).
+- **D** — `M`/`S`/`O` funcionam na loja; overlay de configurações desenha sobre
+  a loja congelada. **E/F trocados**: E = Escudo, F = Fúria (mnemônico).
+- **E** — 13 ícones únicos para 13 armas (antes 7); recuo e flash na mão.
+- **F** — maquinista desce o trilho na investida (`rail_charge`) com tremor.
+- **G** — Refinaria: 30s por tambor, perde um se o tempo acaba (DbD).
+- **H** — chuva: poças escorregadias (inércia), pegadas, som de água e
+  relâmpagos frequentes na tempestade.
+- **I** — TORRE e TRANSFORMADOR são estruturas estáticas (sem `charge`).
+- **J** — Porto com mar, barcos e garças (assets CC0 creditados).
+- **K** — Modo dev: senha `desenvolvefacil123`, build máxima (armas lendárias
+  com acessórios, 300 HP, furia), `N` salta para qualquer fase.
+- **L** — chefe do Castelo nasce a ~450px do foguete (antes 63px → hitkill).
+
+**Gates:** `tsc` 0 erros, **1477 testes em 69 arquivos**, build ok. Regra 16
+cumprida com Chrome instalado: `npm run visual` + folhas abertas, além de
+`story-proof` 37/37, `m2-fluxo`, `castelo-spawn` (63→453px), `modo-dev`,
+`audio-loja` e `porto-proof` — todos sem pageerror.
+
+**Pendência conhecida:** `genmaps.py` ainda gera o Porto com a água antiga;
+o gerador foi atualizado (`WATER/BOAT/HERON`), mas rodá-lo hoje reescreveria
+os outros mapas e apagaria decors manuais — não foi executado (armadilha
+documentada no AGENTS.md).
+
 ## Entrega: deploy das cinco frentes em produção (2026-11-20 11:28, `a59d5e8`)
 
 `vercel deploy --prod --yes` na raiz (projeto linkado `sargento-luiz`), **nunca**
