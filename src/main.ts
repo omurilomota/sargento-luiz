@@ -269,6 +269,16 @@ document.addEventListener('keydown', e => {
     if (k === 's') setSfxEnabled(!isSfxEnabled());
     if (k === 'o') openSettings();
     if (k === 'd') ativarModoDev();
+    // no modo dev, N pede o número da fase (1-16) e vai direto para ela
+    if (k === 'n' && modoDevAtivo) {
+      const entrada = typeof window.prompt === 'function'
+        ? window.prompt('Ir para a fase (1-16):')
+        : null;
+      const indice = Number(entrada) - 1;
+      if (Number.isInteger(indice) && indice >= 0 && indice < PHASES.length) {
+        irParaFaseDev(indice);
+      }
+    }
     return;
   }
 
@@ -2095,6 +2105,26 @@ function pontoSeguroDoChefe(phase: { objective?: string }, worldW: number, world
  */
 const SENHA_DEV = 'desenvolvefacil123';
 let modoDevAtivo = false;
+
+/** Salta para a fase i limpando o mundo — o mesmo contrato do hook de teste,
+ *  exposto também ao atalho N do modo dev. */
+function irParaFaseDev(i: number): void {
+  for (let k = enemies.length - 1; k >= 0; k--) enemies.splice(k, 1);
+  clearBullets();
+  clearParticles();
+  damageNumbers.length = 0;
+  resetDanoTelemetria();
+  playerDied = false;
+  bossKilled = false;
+  bossSpawned = false;
+  bossRushIndex = 0;
+  biomaquinaTimer = 0;
+  phaseEnding = false;
+  phaseEndPause = 0;
+  resetPhases();
+  setGameState('playing');
+  for (let k = 0; k < i; k++) nextPhase();
+}
 
 function ativarModoDev(): boolean {
   const senha = typeof window.prompt === 'function'
@@ -3969,11 +3999,9 @@ window.__ashfall = {
   // `rush-proof.mjs` precisa disto para chegar ao Bunker Central sem rodar
   // as 8 fases anteriores a cada execução.
   irParaFase: (i: number) => {
-    // Limpa o mundo ANTES de trocar. Sem isto, `fases-todas.mjs` mede a fase
-    // errada: os inimigos da fase anterior sobrevivem ao salto e continuam
-    // perseguindo, então a Cidade aparecia no Espaço com o `mutante` dela
-    // batendo. A tabela inteira saiu idêntica nas 9 fases — e o sintoma era
-    // "todo mundo morre igual", não "todo mundo é igual".
+    // limpa o mundo ANTES de trocar (contrato do fases-todas.mjs).
+    // Os zeraments abaixo ficam aqui de propósito: phaseEnd.test.ts lê o
+    // corpo textual desta função para travar o contrato.
     for (let k = enemies.length - 1; k >= 0; k--) enemies.splice(k, 1);
     clearBullets();
     clearParticles();
@@ -3986,10 +4014,7 @@ window.__ashfall = {
     biomaquinaTimer = 0;
     phaseEnding = false;
     phaseEndPause = 0;
-
-    resetPhases();
-    setGameState('playing');
-    for (let k = 0; k < i; k++) nextPhase();
+    irParaFaseDev(i);
     loadPhaseEnvironment();
     return PHASES.indexOf(getCurrentPhase());
   },
