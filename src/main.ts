@@ -1704,9 +1704,11 @@ function update(dt: number) {
         }
       });
     } else {
-    // célula livre mais próxima do centro: o centro do mapa é parede em 3 dos
-    // 9 biomas, e o boss nascia lá dentro
-    const livre = findFreeSpotNear(worldW / 2, worldH / 2, 46);
+    // Célula livre mais próxima do centro — mas no Castelo o centro fica a
+    // ~130px do foguete (F no mapa), e o chefe nascia cospeando em cima dele:
+    // uma rajada derrubava os 300 HP do alvo antes do jogador reagir. Quando
+    // há foguete em campo, o spawn foge para o canto oposto (≥360px).
+    const livre = pontoSeguroDoChefe(phase, worldW, worldH);
     const tipoChefe = ehNucleoRush ? NUCLEO_RUSH[bossRushIndex] : phase.boss;
     const boss = spawnEnemy(tipoChefe, worldW, worldH, 0, livre.x, livre.y);
     if (boss) {
@@ -2061,6 +2063,27 @@ function updateDamageNumbers(dt: number): void {
   for (let i = damageNumbers.length - 1; i >= 0; i--) {
     if (damageNumbers[i].life <= 0) damageNumbers.splice(i, 1);
   }
+}
+
+/** Ponto de spawn do chefe. No Castelo o centro do mapa fica a ~130px do
+ *  foguete, e o chefe nascia cospeando em cima dele: uma rajada derrubava os
+ *  300 HP do alvo antes do jogador reagir. Com `protect`, foge para ≥360px. */
+function pontoSeguroDoChefe(phase: { objective?: string }, worldW: number, worldH: number) {
+  let livre = findFreeSpotNear(worldW / 2, worldH / 2, 46);
+  const foguete = phase.objective === 'protect' ? getRocket() : undefined;
+  if (foguete) {
+    const dx = livre.x - foguete.x;
+    const dy = livre.y - foguete.y;
+    const dist = Math.hypot(dx, dy) || 1;
+    if (dist < 360) {
+      livre = findFreeSpotNear(
+        foguete.x + (dx / dist) * 420,
+        foguete.y + (dy / dist) * 420,
+        46,
+      );
+    }
+  }
+  return livre;
 }
 
 function shootEnemyAt(e: Enemy, tx: number, ty: number): void {
@@ -3940,7 +3963,7 @@ window.__ashfall = {
   invocarChefe: () => {
     const faseAtual = getCurrentPhase();
     if (!faseAtual.boss) return false;
-    const livre = findFreeSpotNear(worldW / 2, worldH / 2, 46);
+    const livre = pontoSeguroDoChefe(faseAtual, worldW, worldH);
     const b = spawnEnemy(faseAtual.boss, worldW, worldH, 0, livre.x, livre.y);
     if (!b) return false;
     b.spawnDelay = 0;
@@ -4106,6 +4129,13 @@ window.__ashfall = {
   musicaOn: () => isMusicEnabled(),
   efeitosOn: () => isSfxEnabled(),
   configAberta: () => isSettingsOpen(),
+  // distância do chefe vivo até o foguete — prova do spawn seguro do Castelo
+  chefeDistFoguete: () => {
+    const fog = getRocket();
+    const chefe = enemies.find(e => ENEMY_TYPES[e.type]?.isBoss);
+    if (!fog || !chefe) return null;
+    return Math.round(Math.hypot(chefe.x - fog.x, chefe.y - fog.y));
+  },
   // prova M2 #4: o Destruidor forçado na fase do NÚCLEO
   armaAtual: () => WEAPONS[getCurrentWeaponIndex()]?.name ?? '',
   // prova M2 #3: qual tela de fim o jogo desenhou (vitoria | gameover | local)
