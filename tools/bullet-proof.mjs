@@ -35,7 +35,7 @@ const porta = s.address().port;
 mkdirSync(OUT, { recursive: true });
 
 const b = await chromium.launch({
-  executablePath: '/usr/bin/google-chrome',
+  executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome',
   args: ['--no-sandbox', '--disable-gpu'],
 });
 const page = await b.newPage({ viewport: { width: 900, height: 600 } });
@@ -113,7 +113,7 @@ if (injetado) {
 await b.close();
 
 const b2 = await chromium.launch({
-  executablePath: '/usr/bin/google-chrome',
+  executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome',
   args: ['--no-sandbox', '--disable-gpu'],
 });
 const p2 = await b2.newPage({ viewport: { width: 900, height: 600 } });

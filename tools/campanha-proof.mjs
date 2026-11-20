@@ -52,7 +52,7 @@ await new Promise((r) => servidor.listen(0, '127.0.0.1', r));
 const porta = servidor.address().port;
 
 const browser = await chromium.launch({
-  executablePath: '/usr/bin/google-chrome',
+  executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome',
   args: ['--no-sandbox', '--disable-gpu', '--autoplay-policy=no-user-gesture-required'],
 });
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
