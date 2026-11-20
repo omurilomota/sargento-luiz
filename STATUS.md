@@ -145,6 +145,28 @@ ordem das frentes: [`ROADMAP.md`](ROADMAP.md)
 
 ---
 
+## Entrega: revisão de projéteis, som e loja (2026-11-20 17:26, `c5a1a88`)
+
+Pedidos finais do dono, todos no ar:
+- **E/F** já estavam corretos no código, HUD, tutorial e rodapé — confirmado.
+- **Som de cuspida**: `sfxSpit()` (`spit.ogg`, CC0, pacote 40 water/slime SFX)
+  toca para slime/vômito/radiação/brasa; cartucho continua com `enemyShoot`.
+  Antes os recusantes tocavam barulho de arma de fogo.
+- **Bosses revisados**: máquinas e estruturas (Sentinel, Mothership, Gárgula,
+  Transformador, Capitão, Núcleo) trocaram cartucho por `spark_blob` (faísca
+  amarela recortada do Kenney Particle Pack); Pedagiário usa `shard_blob`;
+  Rogério infectado cospe `rad_blob` (radiação), Fernando e Rei Mutante usam
+  `vomit_blob`. O `boss.ts` agora toca o som conforme o projétil.
+- **Ícones da loja**: `desenhaIconeArma` faz FIT dentro do quadrado 30×30 —
+  o tamanho fixo antigo fazia fuzis vazarem e pintarem por cima do texto.
+- **Acessórios à venda**: Empunhadura (cadência), Muzzle (precisão) e
+  Carregador (capacidade) entregam a peça correspondente ao inventário.
+
+**Gates:** `tsc` 0 erros, **1477 testes em 69 arquivos**, build ok.
+`loja-proof`: 0 problemas de texto/caixa; `npm run visual`: 9 shots, 0 erros.
+Push `5942cf0..c5a1a88`; deploy `sargento-luiz-l4rvdcdnl`, MD5 idêntico
+(`d377cc8…`) e os 4 assets novos em 200.
+
 ## Entrega: push e deploy das doze frentes (2026-11-20 17:26, `64301d5`)
 
 `git push origin develop` fast-forward (1b79601..64301d5, 25 commits) — CI verde
