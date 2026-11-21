@@ -19,7 +19,7 @@ import { PALETTE } from './core/palette';
 import * as player from './entities/player';
 import { applyRegen, resetRegen } from './entities/player';
 import { getBullets, spawnBullet, updateBullets, updateMines, clearBullets } from './entities/bullet';
-import { getSprite, BULLET_FAMILY, getEnemyCharacter, BIOMAS } from './systems/sprites';
+import { getSprite, BULLET_FAMILY, getEnemyCharacter, BIOMAS, drawSpriteFit } from './systems/sprites';
 import { getCoins, spawnCoins, updateCoins, clearCoins, setMagnetActive, resetPermanentMagnet , getMoedasGeradas, zeraMoedasGeradas } from './entities/coin';
 import { PHASE_END_PAUSE, PLAYER_BASE_HEALTH, PERIGO_NAVE_SEGUNDOS, ALCANCE_DO_ATIRADOR, RECUO_DO_ATIRADOR, RAIO_TROCA_DE_ALVO } from './core/constants';
 import type { Toast, ToastKind, WeaponSheet } from './ui/hud';
@@ -38,7 +38,7 @@ let wasJammed = false;
 const killTimes: number[] = [];
 import { checkBulletEnemyCollisions, checkEnemyPlayerCollision, checkEnemyBulletPlayerCollision, bulletHitsCircle } from './systems/collision';
 import { createExplosion, updateExplosions, clearExplosions, spawnFire, updateFires, clearFires, pisaEmFogo, getFires, FOGO_DPS, FOGO_RAIO } from './systems/explosions';
-import { loadMap, colAt, rowAt, charAt, isWall, hasPath, moveCircleBy, rebuildFlowField, rebuildFlowFieldAlvo, sampleFlowDir, sampleFlowDirAlvo, pushOutOfWalls, findAll, segmentHitsWall, findFreeSpotNear, setCellChar, getMap } from './systems/tilemap';
+import { loadMap, colAt, rowAt, charAt, isWall, hasPath, moveCircleBy, rebuildFlowField, rebuildFlowFieldAlvo, sampleFlowDir, sampleFlowDirAlvo, pushOutOfWalls, findAll, segmentHitsWall, findFreeSpotNear, setCellChar, getMap, setWallOverride } from './systems/tilemap';
 import { initCamera, setViewportSize, setWorldSize, updateCamera, snapCamera, getCamX, getCamY, screenToWorld, drawVoid, isVisible, setShake } from './systems/camera';
 import { initProps, getProps, updateProps, damageProp, detonateProp, getBlast, drawProps, clearProps, collapsesOnHit, getRocket, getAnyRocket, igniteBarrel, ROCKET_CONTACT_DPS, Prop, spawnCapsula, consumirCapsula, pumpFuelAt, fuelProgressAt } from './systems/props';
 import { buildTerrain, drawTerrain, clearTerrain } from './systems/terrain';
@@ -84,8 +84,11 @@ import { toggleNpcFollow, moverTorreta } from './systems/npcs';
 import { getCurrentClass, setCurrentClass, getClassDamageMult, getClassSpeedMult, getClassReloadMult, getClassHealthPerSecond, loadClass, saveClass, resetClass, ClassId, CLASSES } from './systems/classes';
 import { updateEnvironmentEvents, resetEnvironmentEvents, getEnvironmentWarnings , forcarEventoAmbiente, tornadoNoAr, tempestadeAtiva, frioAtivo, cinzasAtivas, EnvironmentEvent } from './systems/environment';
 import { addPuddle, markFootstep, isMolhado, updatePuddles, clearPuddles, getPuddles } from './systems/puddles';
-import { initDock, drawDock, clearDock } from './systems/dock';
-import { initTrain, drawTrain, clearTrain } from './systems/train';
+import { initDock, drawDock, clearDock, updateDock, getDockEntities, damageDockEntity } from './systems/dock';
+import { resetGrenades, getGrenadeSlots, getGrenadeSelecionada, trocaGrenade, usarGrenada, addGrenade, granadaAleatoria, GRENADES } from './systems/grenades';
+import { initDestruction, danoParede, paredeCaiu, getParedesCaídas, centroParede } from './systems/destruction';
+import { initInteractive, getAlavancas, acionarAlavanca, addPorta, addAlavanca, temInteractive } from './systems/interactive';
+import { initTrain, drawTrain, clearTrain, avancaTrem, getTrainHit, pushOutOfTrain, marchaTrem } from './systems/train';
 import { updateCombos, getActiveCombos, getComboDamageBonus, getComboCooldownMult, getComboHealthBonus, resetCombos } from './systems/combos';
 import { setComboHealthMultiplier } from './entities/player';
 import { resetSkins } from './systems/skins';
@@ -341,6 +344,13 @@ document.addEventListener('keydown', e => {
     if (useSkill('fury')) sfxFury();
   }
   if (k === 'r') startReload();
+  // Granadas utilitárias: Z/X troca, G usa no ponto da mira
+  if (k === 'z') trocaGrenade(-1);
+  if (k === 'x') trocaGrenade(1);
+  if (k === 'g') {
+    const alvo = screenToWorld(mouse.x, mouse.y);
+    usarGrenada(alvo.x, alvo.y, enemies);
+  }
   if (k === 'j') toggleNpcFollow();
   // P0-3: a torreta é fixa, mas o posto é escolha do jogador. T a move para
   // trás do corpo (a posição que ele acabou de deixar), sem virar seguidora.
@@ -545,7 +555,6 @@ let enemies: Enemy[] = [];
 let damageNumbers: { x: number; y: number; text: string; color: string; life: number; vy: number }[] = [];
 let lastTime = 0;
 let phaseTransitionTimer = 0;
-let marchaTrem = 0;
 
 // Três faixas cobrem as 16 fases. Antes toda fase tocava a mesma combat.ogg;
 // a família segue o bioma, não a onda — o combate dentro da fase continua
@@ -553,7 +562,7 @@ let marchaTrem = 0;
 const MUSICA_POR_BIOMA: Record<string, MusicTrack> = {
   cidade: 'combat_ruinas', rodovia: 'combat_ruinas', floresta: 'combat_ruinas',
   hospital: 'combat_ruinas', pantano: 'combat_ruinas',
-  fabrica: 'combat_industrial', trens: 'combat_industrial', refinaria: 'combat_industrial',
+  fabrica: 'combat_industrial', trens: 'combat_industrial', refinaria: 'combat_longa',
   subestacao: 'combat_industrial', porto: 'combat_industrial',
   vulcao: 'combat_terminal', castelo: 'combat_terminal',
   espaco: 'combat_terminal', bunker: 'combat_terminal',
@@ -602,7 +611,9 @@ function armarRespiro(): void {
   // é a fase INTEIRA, ondas + chefe).
   const faseAch = checkAchievements('phase_end');
   if (faseAch) pushToast(faseAch.name, 3.5);
-  if (getCurrentPhase()?.name === 'Castelo' && getCurrentMode() === 'campaign') vooAtivo = PHASE_END_PAUSE;
+  // O vôo NÃO começa aqui. Começa na fala do motor (`lancamentoFoguete`) —
+  // armar no fechamento da fase fazia o foguete sumir da tela antes do
+  // "O motor ronca de primeira", e a cena saía fora de sincronia.
 }
 // pilha de velocidade do último frame (telemetria da prova de serviços)
 let ultimoStackVelocidade = 1;
@@ -780,11 +791,19 @@ function loadPhaseEnvironment(): void {
   // Refinaria e dali em diante — o jogador entrava "sempre molhado". Água é
   // por fase: limpa ao carregar cada mapa, não só em partida nova.
   clearPuddles();
+  resetGrenades();
+  initDestruction();
+  initInteractive();
+  setWallOverride((c, r) => paredeCaiu(c, r) ? false : null);
+  // B2: o Castelo ganha uma porta lateral e a alavanca que a abre
+  if (phase.map === 'castelo') {
+    addPorta('portao_lateral', 8, 10);
+    addAlavanca(3 * 64 + 32, 10 * 64 + 32, 'portao_lateral');
+  }
   // Porto: só a fase atual inicializa a camada viva do cais
   clearDock();
   if (phase.map === 'porto') initDock(biome.rows);
   clearTrain();
-  marchaTrem = 0;
   if (biome.train) initTrain(biome.train);
 
   // Estado de ONDA é por fase: sem isto, a cota parcial da última onda da
@@ -1238,6 +1257,30 @@ function update(dt: number) {
     }
   }
   updatePuddles(dt);
+  // Porto: barcos e garças se movem por frame e o jogador bate no casco
+  if (getCurrentPhase()?.map === 'porto') {
+    updateDock(dt, p.x, p.y);
+    for (const barco of getDockEntities()) {
+      if (barco.tipo !== 'barco') continue;
+      const d = Math.hypot(barco.x - p.x, barco.y - p.y);
+      if (d < barco.radius + p.radius) {
+        // empurra para fora do casco e causa dano de contato
+        const nx = (p.x - barco.x) / (d || 1);
+        const ny = (p.y - barco.y) / (d || 1);
+        p.x = barco.x + nx * (barco.radius + p.radius + 1);
+        p.y = barco.y + ny * (barco.radius + p.radius + 1);
+        if (p.invincible <= 0) {
+          player.damagePlayer(12, { fonte: 'contato', tipo: 'barco' });
+          p.invincible = 0.5;
+        }
+      }
+    }
+  }
+  // B2: encostar na alavanca abre a porta ligada a ela
+  if (temInteractive() && acionarAlavanca(p.x, p.y, p.radius)) {
+    pushToast('PORTA ABERTA', 2, 'achievement');
+    rebuildFlowField(colAt(p.x), rowAt(p.y));
+  }
   ultimoPassoX = p.x;
   ultimoPassoY = p.y;
 
@@ -1432,10 +1475,14 @@ function update(dt: number) {
     const jammedNow = isJammed();
     if (jammedNow && !wasJammed) sfxJammed();
     wasJammed = jammedNow;
-    if (getCurrentAmmo() <= 0) startReload();
     }
     }
   }
+
+  // RECARGA AUTOMÁTICA fora do bloco de tiro: antes ficava dentro do
+  // `if (mouse.down)`, então soltar o botão no último tiro deixava a arma
+  // vazia até o próximo clique. Com RPG (2 tiros, 2.5s) isso era grave.
+  if (getCurrentAmmo() <= 0 && !getIsReloading() && !isJammed()) startReload();
 
   if (p.invincible > 0) p.invincible -= dt;
   if (p.hitFlash > 0) p.hitFlash = Math.max(0, p.hitFlash - dt);
@@ -1567,7 +1614,9 @@ function update(dt: number) {
     ondaCompleta: ondaConcluida,
     ultimaOnda,
     respiroArmado: phaseEnding,
-    chefeLiberado: objetivoLiberouChefe,
+    // Refinaria: a TORRE já está em campo desde a onda 2, então o termo
+    // "chefe liberado" é sempre true — quem decide o fim é `chefeVivo`.
+    chefeLiberado: objetivoLiberouChefe || (phase.name === 'Refinaria' && getCurrentMode() === 'campaign'),
     respiroRestante: phaseEndPause,
     chefeVivo,
     jogadorMorto: playerDied || p.health <= 0,
@@ -1724,15 +1773,20 @@ function update(dt: number) {
     proximaPosicao: bossRushIndex,
     tamanhoDaFila: NUCLEO_RUSH.length,
   });
-  // A fase do NÚCLEO não espera "última onda": a fila começa na entrada. Nas
-  // demais fases a regra é a comum (última onda + objetivo + campo vazio).
-  const horaDoChefe = ehNucleoRush ? true : (objetivoLiberouChefe && isUltimasOndas);
+  // A fase do NÚCLEO não espera "última onda": a fila começa na entrada.
+  // A REFINARIA é a exceção nova: a TORRE nasce na onda 2 e fica viva
+  // durante a coleta — você bombeia combustível sob fogo, não depois dele.
+  // O objetivo `collect` continua exigindo os 4 tambores para FECHAR a fase.
+  const torreViva = phase.name === 'Refinaria' && getCurrentMode() === 'campaign';
+  const horaDoChefe = ehNucleoRush ? true
+    : torreViva ? getCurrentWave() >= 1
+    : (objetivoLiberouChefe && isUltimasOndas);
   // O próximo chefe do rush espera só o chefe ANTERIOR cair — não o campo
   // ficar vazio. Com a biomaquina nascendo da máquina a fase inteira, o
   // campo nunca esvazia e a fila travava no primeiro chefe para sempre
   // (DECISIONS #170). A fase normal continua esperando o campo vazio: lá é a
   // última onda que define o momento, e não há máquina pulsando.
-  const campoLivre = ehNucleoRush ? true : enemies.length === 0;
+  const campoLivre = ehNucleoRush || torreViva ? true : enemies.length === 0;
   if ((!bossSpawned || proximoDoRush) && phase.boss && horaDoChefe && campoLivre) {
     // O HOSPITAL (2026-10-14): o chefe da fase É o doutor Fernando — a
     // virada corre na caixa pequena ("Nando-01, pois afinal, meu nome é
@@ -2422,6 +2476,11 @@ function killEnemy(e: Enemy, award: boolean): void {
     // A coleta da Fábrica (H2) dobra a chance de loot: "os zumbis droparão
     // mais coisas e com mais facilidade" (relato do Murilo).
     rollLootDrop(e.x, e.y, e.type, e.isElite === true, getCurrentPhase().coleta ? 2 : 1);
+    // Granada utilitária: 20% em elite/TITÃ, garantida em chefe de fase
+    if ((ELITE_TYPES.has(e.type) || e.isElite === true) && Math.random() < 0.2) {
+      const g = granadaAleatoria();
+      if (addGrenade(g)) pushToast(`GRANADA: ${GRENADES[g].nome}`, 2, 'achievement');
+    }
     // elites têm 25% de chance de dropar peça/acessório direto no inventário.
     // O TITÃ (T1) entra na mesma conta: ele é o corpo grande da onda, a
     // chance é do tamanho — não do nome do tipo dele.
@@ -2637,6 +2696,9 @@ function efeitoDaCapsula(efeito: 'explosaoCapsula' | 'ferramenta' | 'lancamentoF
     sfxFogueteLancamento();
     triggerDamageFlash();
     triggerScreenShake(10, 1.2);
+    // O vôo nasce AQUI, no mesmo frame do ronco e do clarão. Antes era armado
+    // no armarRespiro() e o foguete decolava antes da fala do motor.
+    vooAtivo = PHASE_END_PAUSE;
     return;
   }
   const amigo = getNPCs().find(n => n.alive);
@@ -3020,6 +3082,7 @@ function draw() {
   if (vooAtivo <= 0) {
     const hudData = buildHudData();
     drawHud(hudData);
+    desenhaGranadasHud();
     if (tabAberto) drawTabScreen(hudData, canvas.width, canvas.height);
   }
   if (estaEmTelaCheia()) drawFullscreenHint(canvas.width, canvas.height);
@@ -3032,6 +3095,27 @@ function draw() {
  * para voltar. Sem este aviso o jogador que entrou em fullscreen por engano
  * fica sem nenhuma pista de como sair.
  */
+/** Slots de granadas utilitárias: desenho simples no canto, sem tocar no
+ *  layout do HUD (os testes de geometria medem getHudCenterLayout). */
+function desenhaGranadasHud(): void {
+  const slots = getGrenadeSlots();
+  if (slots.length === 0) return;
+  const sel = getGrenadeSelecionada();
+  ctx.save();
+  ctx.font = '11px monospace';
+  ctx.textAlign = 'left';
+  const baseY = canvas.height - 120;
+  for (let i = 0; i < slots.length; i++) {
+    const s = slots[i];
+    const y = baseY - i * 16;
+    ctx.globalAlpha = i === sel ? 1 : 0.55;
+    ctx.fillStyle = i === sel ? PALETTE.mustard : PALETTE.textDim;
+    ctx.fillText(`${i === sel ? '>' : ' '} ${GRENADES[s.tipo].nome} ×${s.qtd}`, 16, y);
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
 function drawFullscreenHint(W: number, H: number): void {
   // o texto antigo ("ESC: sair da tela cheia") mentia desde a mudança do
   // ESC — agora a saída é opção do menu de pausa, e o aviso diz o caminho
@@ -3070,10 +3154,24 @@ function drawWorld(): void {
 
   drawVoid(ctx);
   drawTerrain(ctx);
+  // B0: escombros das paredes caídas (sprite de entulho do pack, não desenho)
+  for (const c of getParedesCaídas()) {
+    const escombro = getSprite('tile_289') ?? getSprite('tile_317');
+    if (!escombro || !escombro.complete || !escombro.naturalWidth) continue;
+    const centro = centroParede(c.col, c.row);
+    drawSpriteFit(ctx, escombro, centro.x, centro.y, CELL_SIZE, 0);
+  }
+  // B2: alavancas e portas (sprites do pack)
+  if (temInteractive()) {
+    for (const a of getAlavancas()) {
+      const img = getSprite(a.ativada ? 'prop_tocha_00' : 'prop_painel_00');
+      if (img && img.complete && img.naturalWidth) ctx.drawImage(img, a.x - 14, a.y - 14, 28, 28);
+    }
+  }
   drawDock(ctx);
   {
     const maquinista = enemies.find(e => e.type === 'maquinista');
-    drawTrain(ctx, marchaTrem, maquinista ? (maquinista.angle >= -Math.PI / 2 && maquinista.angle <= Math.PI / 2 ? 1 : -1) : 1);
+    drawTrain(ctx);
   }
   drawPuddles();
   drawFiresWorld(getFires());
@@ -3355,6 +3453,11 @@ for (const e of enemies) {
     continue;
   }
   if (e.hitFlash > 0) e.hitFlash -= dt;
+  // Atordoado pela Flash: não se move, não atira, só apodrece o timer.
+  if (e.stun > 0) {
+    e.stun -= dt;
+    continue;
+  }
 
   const def = ENEMY_TYPES[e.type];
   if (def?.isBoss) {
@@ -3364,8 +3467,8 @@ for (const e of enemies) {
     }
     // MAQUINISTA: o trem desce a via junto com a investida
     if (e.type === 'maquinista') {
-      if (tremEmMarcha(e)) marchaTrem += 140 * dt;
-      else marchaTrem = Math.max(0, marchaTrem - 30 * dt);
+      const dir = e.angle >= -Math.PI / 2 && e.angle <= Math.PI / 2 ? 1 : -1;
+      avancaTrem(dt, tremEmMarcha(e), dir);
     }
     // LÍNGUA do Pale Crocodile: arrasta o jogador na direção do bicho
     const puxao = getBossPull(e);
@@ -3474,7 +3577,11 @@ for (const e of enemies) {
       }
     }
 
-    const spd = (e.type === 'mosquito' ? e.speed * 1.3 : e.speed) * aiMods.enemySpeedMult;
+    // MOLHADO: água/lama e máquinas não escorregam; o resto derrapa na poça.
+    const imuneAgua = ['slime', 'lavaSlime', 'frog', 'robot', 'drone', 'ufo', 'alien'].includes(e.type);
+    const molhado = !imuneAgua && isMolhado(e.x, e.y);
+    let spd = (e.type === 'mosquito' ? e.speed * 1.3 : e.speed) * aiMods.enemySpeedMult;
+    if (molhado && ['tank', 'magmaGolem', 'knight'].includes(e.type)) spd *= 0.6;
     const gravityPush = phase.hazard === 'lowGravity' ? 1.35 : 1;
     const next = moveCircleBy(
       e.x, e.y,
@@ -3482,8 +3589,27 @@ for (const e of enemies) {
       (seekY + sepY * 1.6) * spd * dt * gravityPush,
       e.radius
     );
+    const antesX = e.x, antesY = e.y;
     e.x = next.x;
     e.y = next.y;
+    if (molhado) {
+      const moveuX = e.x - antesX, moveuY = e.y - antesY;
+      if (Math.hypot(moveuX, moveuY) > 0.1) {
+        e.slideWet = 0.35;
+        e.slideWetX = moveuX / dt;
+        e.slideWetY = moveuY / dt;
+      }
+      markFootstep(e.x, e.y);
+    } else if (e.slideWet > 0) {
+      // continua deslizando após sair da poça, com atrito
+      const arrastado = moveCircleBy(e.x, e.y, e.slideWetX * dt, e.slideWetY * dt, e.radius);
+      e.x = arrastado.x;
+      e.y = arrastado.y;
+      e.slideWet = Math.max(0, e.slideWet - dt);
+      const atrito = Math.max(0, 1 - dt * 5);
+      e.slideWetX *= atrito;
+      e.slideWetY *= atrito;
+    }
 
     // Tira da parede quem entrou nela. `moveCircleBy` só impede ENTRAR: um
     // inimigo que já sobrepõe uma parede fica com `flowDist === -1`, o
@@ -3500,6 +3626,32 @@ for (const e of enemies) {
     const fora = pushOutOfWalls(e.x, e.y, e.radius);
     e.x = fora.x;
     e.y = fora.y;
+
+    // FRESTA: `pushOutOfWalls` resolve sobreposição, mas um círculo grande
+    // (chefe raio 46-54) em corredor de 1 célula continua sem conseguir
+    // atravessar — todos os 4 passos diagonais batem na parede. Testa 8
+    // direções com passo adaptativo e fica com a que mais andou.
+    if (Math.hypot(e.x - next.x, e.y - next.y) < 0.5) {
+      const origX = e.x, origY = e.y;
+      let melhorX = e.x, melhorY = e.y, melhorDist = 0;
+      for (const mult of [1, 2, 3]) {
+        const passo = e.speed * dt * mult;
+        for (let a = 0; a < 8; a++) {
+          const ang = (a * Math.PI) / 4;
+          const tent = moveCircleBy(origX, origY, Math.cos(ang) * passo, Math.sin(ang) * passo, e.radius);
+          const d = Math.hypot(tent.x - origX, tent.y - origY);
+          if (d > melhorDist) { melhorDist = d; melhorX = tent.x; melhorY = tent.y; }
+        }
+        if (melhorDist > 0) break;
+      }
+      if (melhorDist > 0) { e.x = melhorX; e.y = melhorY; }
+      else {
+        // ainda preso: última saída é reposicionar na célula livre mais próxima
+        const livre = findFreeSpotNear(e.x, e.y, e.radius);
+        e.x = livre.x;
+        e.y = livre.y;
+      }
+    }
   }
 
   if (e.canShoot && !ENEMY_TYPES[e.type]?.isBoss) {
@@ -3565,6 +3717,9 @@ function golpeDeMartelo(
     const aplicado = danoNoAlvo(danoBase, e);
     e.health -= aplicado;
     e.hitFlash = 0.15;
+    // Peso do martelo: atordoa quem acerta. Nos chefes isso interrompe
+    // o ataque e dá a janela para o jogador sair do corpo a corpo.
+    e.stun = ENEMY_TYPES[e.type]?.isBoss ? 0.4 : 0.2;
     damageNumbers.push({
       x: e.x + (Math.random() - 0.5) * 20,
       y: e.y - 20,
@@ -3582,6 +3737,14 @@ function golpeDeMartelo(
     const a = p.angle - arco / 2 + (arco * i) / (passos - 1);
     spawnParticles(p.x + Math.cos(a) * alcance * 0.7, p.y + Math.sin(a) * alcance * 0.7, PALETTE.mustard, 2, 60, 'spark');
   }
+  // A explosão declarada no config (raio 260) agora existe de verdade:
+  // o golpe é área, não só o alvo da frente. Dano menor que o acerto direto.
+  if (weapon.explosive && weapon.explosionRadius) {
+    createExplosion(p.x + Math.cos(p.angle) * alcance * 0.6, p.y + Math.sin(p.angle) * alcance * 0.6,
+      weapon.explosionRadius, Math.floor(danoBase * 0.5), enemies, PALETTE.terracotta, true);
+  }
+  // 0.25s de invencibilidade: tempo para o golpe sair sem morrer no contato
+  if (p.invincible < 0.25) p.invincible = 0.25;
   triggerScreenShake(5, 0.16);
   triggerHitStop(0.03);
   // arco do martelo visível por ~0.18s, desenhado no renderer por cima do mundo
@@ -3597,6 +3760,22 @@ function golpeDeMartelo(
  * projétil contra prop.
  */
 function resolveCollisions(p: ReturnType<typeof player.getPlayer>): void {
+
+// ── trem: casco empurra e fumaça tóxica machuca ──
+const danoTrem = getTrainHit(p.x, p.y, p.radius);
+if (danoTrem > 0) {
+  const empurrado = pushOutOfTrain(p.x, p.y, p.radius);
+  p.x = empurrado.x;
+  p.y = empurrado.y;
+  if (p.invincible <= 0) {
+    const d = damageTaken(danoTrem);
+    if (d > 0) {
+      player.enemyCollisionDamage(d, { fonte: 'evento', tipo: 'trem' });
+      p.invincible = 0.6;
+      feedbackDanoNoJogador();
+    }
+  }
+}
 
 // ── colisões ──
 const activeEnemies = enemies.filter(e => e.spawnDelay <= 0);
@@ -3735,6 +3914,19 @@ for (const b of updateBullets(dt, worldW, worldH)) detonateBullet(b);
 for (const b of getBullets()) {
   if (b.life <= 0) continue;
   if (segmentHitsWall(b.px, b.py, b.x, b.y)) {
+    // B0: tiro do jogador desgasta a parede; quando cai, o flow é refeito
+    if (!b.isEnemy) {
+      const resultado = danoParede(b.x, b.y, b.damage);
+      if (resultado === 'caiu') {
+        const col = colAt(b.x), row = rowAt(b.y);
+        const c = centroParede(col, row);
+        rebuildFlowField(colAt(p.x), rowAt(p.y));
+        spawnParticles(c.x, c.y, '#8a7a60', 14, 180, 'smoke');
+        pushToast('PAREDE CAIU', 1.4, 'aviso');
+      } else if (resultado === 'danificou') {
+        spawnParticles(b.x, b.y, '#a08050', 2, 60);
+      }
+    }
     if (b.explosive && b.explosionRadius) detonateBullet(b);
     else {
       b.life = 0;
@@ -3745,6 +3937,10 @@ for (const b of getBullets()) {
 updateParticles(dt);
 updateExplosions(dt);
 updateFires(dt);
+// B1: água e fogo se anulam — poça apaga o fogo, fogo seca a poça.
+for (const f of getFires()) {
+  if (isMolhado(f.x, f.y)) f.life = Math.min(f.life, 0.1);
+}
 // B7: o fogo é do mundo — fere os dois lados. O inimigo que fica em cima
 // da poça paga 8/s; a coleta do health <= 0 é a do loop de mortes.
 for (const e of enemies) {
@@ -4274,7 +4470,7 @@ window.__ashfall = {
   configAberta: () => isSettingsOpen(),
   // prova do bug "sempre molhado": poças devem zerar ao trocar de fase
   poças: () => getPuddles().length,
-  marchaTrem: () => Math.round(marchaTrem),
+  marchaTrem: () => marchaTrem(),
   // teleporte para provas visuais e para o modo dev inspecionar o mapa
   teleportar: (x: number, y: number) => {
     const jogador = player.getPlayer();

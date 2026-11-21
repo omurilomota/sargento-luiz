@@ -18,7 +18,7 @@ let sfxGain: GainNode | null = null;
 
 /** Faixas de música disponíveis por contexto de jogo */
 export type MusicTrack = 'menu' | 'combat' | 'boss' | 'shop' | 'epilogo'
-  | 'combat_ruinas' | 'combat_industrial' | 'combat_terminal';
+  | 'combat_ruinas' | 'combat_industrial' | 'combat_terminal' | 'combat_longa';
 
 interface TrackDef {
   file: string;
@@ -38,6 +38,9 @@ const TRACKS: Record<MusicTrack, TrackDef> = {
   combat_ruinas: { file: 'assets/music/combat_ruinas.ogg', loopStart: 0, loopEnd: 0 },
   combat_industrial: { file: 'assets/music/combat_industrial.ogg', loopStart: 0, loopEnd: 0 },
   combat_terminal: { file: 'assets/music/combat_terminal.ogg', loopStart: 0, loopEnd: 0 },
+  // Refinaria tem 6 ondas com a TORRE viva: loop de 4 min evita a repetição
+  // que as faixas curtas (34-67s) causavam em sessões longas.
+  combat_longa: { file: 'assets/music/combat_longa.ogg', loopStart: 0, loopEnd: 0 },
 };
 
 const CROSSFADE = 0.8;

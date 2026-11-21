@@ -24,6 +24,7 @@ import { furiaDesbloqueada } from '../systems/skills';
 import { sfxBuy, sfxError } from '../systems/audio';
 import { PALETTE } from '../core/palette';
 import { getSprite, WEAPON_ICON } from '../systems/sprites';
+import { addGrenade } from '../systems/grenades';
 import { getInventory, getEquipped, equipPiece, unequipPiece, getPieceType, hasPieceSynergy, PIECE_INVENTORY_LIMIT, returnEquippedPieces, sellPieceFromInventory, pieceSellPrice, addPieceToInventory } from '../systems/pieces';
 
 /** Saldo atual de moedas do jogador */
@@ -320,6 +321,8 @@ export const SHOP_SERVICES = [
   { id: 'empunhadura', name: 'Empunhadura',                price: 80, desc: 'peça cadência: -25% recarga (1× por visita)' },
   { id: 'muzzle',      name: 'Muzzle',                     price: 80, desc: 'peça precisão: -40% dispersão (1× por visita)' },
   { id: 'carregador',  name: 'Carregador',                 price: 90, desc: 'peça capacidade: +50% pente (1× por visita)' },
+  { id: 'granada_he',  name: 'Granada HE',                 price: 60, desc: '2 granadas explosivas (Z/X troca, G lança)' },
+  { id: 'granada_flash', name: 'Granada Flash',            price: 90, desc: '2 granadas que cegam inimigos por 2.5s' },
 ];
 
 /**
@@ -335,7 +338,8 @@ export function isServiceAvailable(id: string): boolean {
   if (id === 'reroll') return !rerolledThisVisit;
   if (id === 'discount') return !nextDiscount;
   if (id === 'hire') return !hiredThisVisit;
-  if (id === 'turret' || id === 'pardal' || id === 'empunhadura' || id === 'muzzle' || id === 'carregador') {
+  if (id === 'turret' || id === 'pardal' || id === 'empunhadura' || id === 'muzzle' || id === 'carregador'
+    || id === 'granada_he' || id === 'granada_flash') {
     return !serviceUsedThisVisit.has(id);
   }
   return true;
@@ -395,6 +399,10 @@ export function buyService(id: string): void {
   } else if (id === 'pardal') {
     boughtServices.push('pardal');
     flashNotice('PARDAL VAI CONTIGO NA PRÓXIMA FASE', PALETTE.moss);
+  } else if (id === 'granada_he' || id === 'granada_flash') {
+    const tipo = id === 'granada_he' ? 'he' : 'flash';
+    if (addGrenade(tipo, 2)) flashNotice('GRANADAS COMPRADAS — G PARA LANÇAR', PALETTE.mustard);
+    else flashNotice('SLOTS DE GRANADA CHEIOS', PALETTE.danger);
   } else if (id === 'empunhadura' || id === 'muzzle' || id === 'carregador') {
     // Acessórios vão direto para o inventário de peças (a loja não vendia
     // peças — só caíam em loot). O efeito é o da PIECE_TYPES correspondente.

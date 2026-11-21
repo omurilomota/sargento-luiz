@@ -169,12 +169,19 @@ export function loadDiary(): void {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const saved = JSON.parse(raw);
-      if (!Array.isArray(saved)) return;
+      if (!Array.isArray(saved)) {
+        localStorage.removeItem(STORAGE_KEY); // save fantasma: apagar
+        return;
+      }
       for (const entry of DIARY_ENTRIES) {
         entry.unlocked = entry.event ? saved.includes(entry.event) : saved.includes(entry.phase);
       }
     }
-  } catch {}
+  } catch {
+    // JSON corrompido: sem apagar, o diário fica vazio para sempre e o
+    // jogador nunca descobre por quê. Mesma família do bug do saveSystem.
+    localStorage.removeItem(STORAGE_KEY);
+  }
 }
 
 /**

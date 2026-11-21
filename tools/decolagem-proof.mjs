@@ -26,6 +26,10 @@ await p.evaluate(()=>{ window.__ashfall.cumprirObjetivo(); window.__ashfall.invo
 await p.waitForTimeout(500);
 await p.evaluate(()=>window.__ashfall.matarChefe());
 await p.waitForTimeout(400);
+// O vôo agora nasce na FALA DO MOTOR, não na morte do chefe. Avança o diálogo
+// pós-missão até o efeito `lancamentoFoguete` disparar (cada fala leva dois
+// Enter: um completa o texto, outro avança).
+for(let i=0;i<10;i++){ await p.keyboard.press('Enter'); await p.waitForTimeout(180); if(await p.evaluate(()=>window.__ashfall.voo())>0) break; }
 const v1 = await p.evaluate(()=>window.__ashfall.voo());
 const d1 = await p.evaluate(()=>window.__ashfall.dialogo());
 await p.screenshot({ path: join(SHOTS,'decolagem-1.png') });

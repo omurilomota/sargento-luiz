@@ -720,7 +720,8 @@ export function drawCredits(): void {
   const linhas: { texto: string; cor: string; tamanho: string; peso: string }[] = [
     { texto: 'MÚSICA', cor: PALETTE.mustard, tamanho: '13px', peso: 'bold ' },
     { texto: 'Juhani Junkala / SubspaceAudio (CC0) — Post Apocalyptic Wastelands (menu)', cor: PALETTE.text, tamanho: '12px', peso: '' },
-    { texto: 'Eric Matyas (soundimage.org) — Automation, Darkness Below, Puzzle Dreams, Autumn Changes, Dystopic Mayhem, And the Machines Came at Midnight, 80s Space Game', cor: PALETTE.text, tamanho: '12px', peso: '' },
+    { texto: 'Eric Matyas (soundimage.org) — Automation, Puzzle Dreams, Autumn Changes, Dystopic Mayhem, And the Machines Came at Midnight, 80s Space Game', cor: PALETTE.text, tamanho: '12px', peso: '' },
+    { texto: 'Alexandr Zhelanov (CC-BY 4.0) — Battle 1, Raiders', cor: PALETTE.text, tamanho: '12px', peso: '' },
     { texto: 'Uso gratuito com atribuição — agradecimento a todos os autores', cor: PALETTE.textDim, tamanho: '11px', peso: '' },
     { texto: 'SPRITES EXTRAS', cor: PALETTE.mustard, tamanho: '13px', peso: 'bold ' },
     { texto: 'harrison-lord (CC-BY 3.0) — Top-down Dog, o pardal da loja', cor: PALETTE.text, tamanho: '12px', peso: '' },
