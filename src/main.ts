@@ -19,7 +19,7 @@ import { PALETTE } from './core/palette';
 import * as player from './entities/player';
 import { applyRegen, resetRegen } from './entities/player';
 import { getBullets, spawnBullet, updateBullets, updateMines, clearBullets } from './entities/bullet';
-import { getSprite, BULLET_FAMILY, getEnemyCharacter, BIOMAS } from './systems/sprites';
+import { getSprite, BULLET_FAMILY, getEnemyCharacter, BIOMAS, drawSpriteFit } from './systems/sprites';
 import { getCoins, spawnCoins, updateCoins, clearCoins, setMagnetActive, resetPermanentMagnet , getMoedasGeradas, zeraMoedasGeradas } from './entities/coin';
 import { PHASE_END_PAUSE, PLAYER_BASE_HEALTH, PERIGO_NAVE_SEGUNDOS, ALCANCE_DO_ATIRADOR, RECUO_DO_ATIRADOR, RAIO_TROCA_DE_ALVO } from './core/constants';
 import type { Toast, ToastKind, WeaponSheet } from './ui/hud';
@@ -38,7 +38,7 @@ let wasJammed = false;
 const killTimes: number[] = [];
 import { checkBulletEnemyCollisions, checkEnemyPlayerCollision, checkEnemyBulletPlayerCollision, bulletHitsCircle } from './systems/collision';
 import { createExplosion, updateExplosions, clearExplosions, spawnFire, updateFires, clearFires, pisaEmFogo, getFires, FOGO_DPS, FOGO_RAIO } from './systems/explosions';
-import { loadMap, colAt, rowAt, charAt, isWall, hasPath, moveCircleBy, rebuildFlowField, rebuildFlowFieldAlvo, sampleFlowDir, sampleFlowDirAlvo, pushOutOfWalls, findAll, segmentHitsWall, findFreeSpotNear, setCellChar, getMap } from './systems/tilemap';
+import { loadMap, colAt, rowAt, charAt, isWall, hasPath, moveCircleBy, rebuildFlowField, rebuildFlowFieldAlvo, sampleFlowDir, sampleFlowDirAlvo, pushOutOfWalls, findAll, segmentHitsWall, findFreeSpotNear, setCellChar, getMap, setWallOverride } from './systems/tilemap';
 import { initCamera, setViewportSize, setWorldSize, updateCamera, snapCamera, getCamX, getCamY, screenToWorld, drawVoid, isVisible, setShake } from './systems/camera';
 import { initProps, getProps, updateProps, damageProp, detonateProp, getBlast, drawProps, clearProps, collapsesOnHit, getRocket, getAnyRocket, igniteBarrel, ROCKET_CONTACT_DPS, Prop, spawnCapsula, consumirCapsula, pumpFuelAt, fuelProgressAt } from './systems/props';
 import { buildTerrain, drawTerrain, clearTerrain } from './systems/terrain';
@@ -86,6 +86,8 @@ import { updateEnvironmentEvents, resetEnvironmentEvents, getEnvironmentWarnings
 import { addPuddle, markFootstep, isMolhado, updatePuddles, clearPuddles, getPuddles } from './systems/puddles';
 import { initDock, drawDock, clearDock, updateDock, getDockEntities, damageDockEntity } from './systems/dock';
 import { resetGrenades, getGrenadeSlots, getGrenadeSelecionada, trocaGrenade, usarGrenada, addGrenade, granadaAleatoria, GRENADES } from './systems/grenades';
+import { initDestruction, danoParede, paredeCaiu, getParedesCaídas, centroParede } from './systems/destruction';
+import { initInteractive, getAlavancas, acionarAlavanca, addPorta, addAlavanca, temInteractive } from './systems/interactive';
 import { initTrain, drawTrain, clearTrain, avancaTrem, getTrainHit, pushOutOfTrain, marchaTrem } from './systems/train';
 import { updateCombos, getActiveCombos, getComboDamageBonus, getComboCooldownMult, getComboHealthBonus, resetCombos } from './systems/combos';
 import { setComboHealthMultiplier } from './entities/player';
@@ -788,6 +790,14 @@ function loadPhaseEnvironment(): void {
   // por fase: limpa ao carregar cada mapa, não só em partida nova.
   clearPuddles();
   resetGrenades();
+  initDestruction();
+  initInteractive();
+  setWallOverride((c, r) => paredeCaiu(c, r) ? false : null);
+  // B2: o Castelo ganha uma porta lateral e a alavanca que a abre
+  if (phase.map === 'castelo') {
+    addPorta('portao_lateral', 8, 10);
+    addAlavanca(3 * 64 + 32, 10 * 64 + 32, 'portao_lateral');
+  }
   // Porto: só a fase atual inicializa a camada viva do cais
   clearDock();
   if (phase.map === 'porto') initDock(biome.rows);
@@ -1263,6 +1273,11 @@ function update(dt: number) {
         }
       }
     }
+  }
+  // B2: encostar na alavanca abre a porta ligada a ela
+  if (temInteractive() && acionarAlavanca(p.x, p.y, p.radius)) {
+    pushToast('PORTA ABERTA', 2, 'achievement');
+    rebuildFlowField(colAt(p.x), rowAt(p.y));
   }
   ultimoPassoX = p.x;
   ultimoPassoY = p.y;
@@ -3134,6 +3149,20 @@ function drawWorld(): void {
 
   drawVoid(ctx);
   drawTerrain(ctx);
+  // B0: escombros das paredes caídas (sprite de entulho do pack, não desenho)
+  for (const c of getParedesCaídas()) {
+    const escombro = getSprite('tile_289') ?? getSprite('tile_317');
+    if (!escombro || !escombro.complete || !escombro.naturalWidth) continue;
+    const centro = centroParede(c.col, c.row);
+    drawSpriteFit(ctx, escombro, centro.x, centro.y, CELL_SIZE, 0);
+  }
+  // B2: alavancas e portas (sprites do pack)
+  if (temInteractive()) {
+    for (const a of getAlavancas()) {
+      const img = getSprite(a.ativada ? 'prop_tocha_00' : 'prop_painel_00');
+      if (img && img.complete && img.naturalWidth) ctx.drawImage(img, a.x - 14, a.y - 14, 28, 28);
+    }
+  }
   drawDock(ctx);
   {
     const maquinista = enemies.find(e => e.type === 'maquinista');
@@ -3880,6 +3909,19 @@ for (const b of updateBullets(dt, worldW, worldH)) detonateBullet(b);
 for (const b of getBullets()) {
   if (b.life <= 0) continue;
   if (segmentHitsWall(b.px, b.py, b.x, b.y)) {
+    // B0: tiro do jogador desgasta a parede; quando cai, o flow é refeito
+    if (!b.isEnemy) {
+      const resultado = danoParede(b.x, b.y, b.damage);
+      if (resultado === 'caiu') {
+        const col = colAt(b.x), row = rowAt(b.y);
+        const c = centroParede(col, row);
+        rebuildFlowField(colAt(p.x), rowAt(p.y));
+        spawnParticles(c.x, c.y, '#8a7a60', 14, 180, 'smoke');
+        pushToast('PAREDE CAIU', 1.4, 'aviso');
+      } else if (resultado === 'danificou') {
+        spawnParticles(b.x, b.y, '#a08050', 2, 60);
+      }
+    }
     if (b.explosive && b.explosionRadius) detonateBullet(b);
     else {
       b.life = 0;
@@ -3890,6 +3932,10 @@ for (const b of getBullets()) {
 updateParticles(dt);
 updateExplosions(dt);
 updateFires(dt);
+// B1: água e fogo se anulam — poça apaga o fogo, fogo seca a poça.
+for (const f of getFires()) {
+  if (isMolhado(f.x, f.y)) f.life = Math.min(f.life, 0.1);
+}
 // B7: o fogo é do mundo — fere os dois lados. O inimigo que fica em cima
 // da poça paga 8/s; a coleta do health <= 0 é a do loop de mortes.
 for (const e of enemies) {
