@@ -107,8 +107,19 @@ export function charAt(col: number, row: number): string {
   return map.cells[row][col];
 }
 
+/** Override de parede viva (B0). O tilemap não importa o módulo de destruição
+ *  para não criar ciclo — o main registra a função uma vez por fase. */
+let wallOverride: ((col: number, row: number) => boolean | null) | null = null;
+export function setWallOverride(fn: ((col: number, row: number) => boolean | null) | null): void {
+  wallOverride = fn;
+}
+
 /** Verifica se a célula é parede (bloqueia movimento). */
 export function isWall(col: number, row: number): boolean {
+  if (wallOverride) {
+    const vivo = wallOverride(col, row);
+    if (vivo !== null) return vivo;
+  }
   return charAt(col, row) === '#';
 }
 

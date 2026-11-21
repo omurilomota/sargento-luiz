@@ -19,7 +19,7 @@ import { PALETTE } from './core/palette';
 import * as player from './entities/player';
 import { applyRegen, resetRegen } from './entities/player';
 import { getBullets, spawnBullet, updateBullets, updateMines, clearBullets } from './entities/bullet';
-import { getSprite, BULLET_FAMILY, getEnemyCharacter, BIOMAS } from './systems/sprites';
+import { getSprite, BULLET_FAMILY, getEnemyCharacter, BIOMAS, drawSpriteFit } from './systems/sprites';
 import { getCoins, spawnCoins, updateCoins, clearCoins, setMagnetActive, resetPermanentMagnet , getMoedasGeradas, zeraMoedasGeradas } from './entities/coin';
 import { PHASE_END_PAUSE, PLAYER_BASE_HEALTH, PERIGO_NAVE_SEGUNDOS, ALCANCE_DO_ATIRADOR, RECUO_DO_ATIRADOR, RAIO_TROCA_DE_ALVO } from './core/constants';
 import type { Toast, ToastKind, WeaponSheet } from './ui/hud';
@@ -38,7 +38,7 @@ let wasJammed = false;
 const killTimes: number[] = [];
 import { checkBulletEnemyCollisions, checkEnemyPlayerCollision, checkEnemyBulletPlayerCollision, bulletHitsCircle } from './systems/collision';
 import { createExplosion, updateExplosions, clearExplosions, spawnFire, updateFires, clearFires, pisaEmFogo, getFires, FOGO_DPS, FOGO_RAIO } from './systems/explosions';
-import { loadMap, colAt, rowAt, charAt, isWall, hasPath, moveCircleBy, rebuildFlowField, rebuildFlowFieldAlvo, sampleFlowDir, sampleFlowDirAlvo, pushOutOfWalls, findAll, segmentHitsWall, findFreeSpotNear, setCellChar, getMap } from './systems/tilemap';
+import { loadMap, colAt, rowAt, charAt, isWall, hasPath, moveCircleBy, rebuildFlowField, rebuildFlowFieldAlvo, sampleFlowDir, sampleFlowDirAlvo, pushOutOfWalls, findAll, segmentHitsWall, findFreeSpotNear, setCellChar, getMap, setWallOverride } from './systems/tilemap';
 import { initCamera, setViewportSize, setWorldSize, updateCamera, snapCamera, getCamX, getCamY, screenToWorld, drawVoid, isVisible, setShake } from './systems/camera';
 import { initProps, getProps, updateProps, damageProp, detonateProp, getBlast, drawProps, clearProps, collapsesOnHit, getRocket, getAnyRocket, igniteBarrel, ROCKET_CONTACT_DPS, Prop, spawnCapsula, consumirCapsula, pumpFuelAt, fuelProgressAt } from './systems/props';
 import { buildTerrain, drawTerrain, clearTerrain } from './systems/terrain';
@@ -86,6 +86,7 @@ import { updateEnvironmentEvents, resetEnvironmentEvents, getEnvironmentWarnings
 import { addPuddle, markFootstep, isMolhado, updatePuddles, clearPuddles, getPuddles } from './systems/puddles';
 import { initDock, drawDock, clearDock, updateDock, getDockEntities, damageDockEntity } from './systems/dock';
 import { resetGrenades, getGrenadeSlots, getGrenadeSelecionada, trocaGrenade, usarGrenada, addGrenade, granadaAleatoria, GRENADES } from './systems/grenades';
+import { initDestruction, danoParede, paredeCaiu, getParedesCaídas, centroParede } from './systems/destruction';
 import { initTrain, drawTrain, clearTrain, avancaTrem, getTrainHit, pushOutOfTrain, marchaTrem } from './systems/train';
 import { updateCombos, getActiveCombos, getComboDamageBonus, getComboCooldownMult, getComboHealthBonus, resetCombos } from './systems/combos';
 import { setComboHealthMultiplier } from './entities/player';
@@ -788,6 +789,8 @@ function loadPhaseEnvironment(): void {
   // por fase: limpa ao carregar cada mapa, não só em partida nova.
   clearPuddles();
   resetGrenades();
+  initDestruction();
+  setWallOverride((c, r) => paredeCaiu(c, r) ? false : null);
   // Porto: só a fase atual inicializa a camada viva do cais
   clearDock();
   if (phase.map === 'porto') initDock(biome.rows);
@@ -3134,6 +3137,13 @@ function drawWorld(): void {
 
   drawVoid(ctx);
   drawTerrain(ctx);
+  // B0: escombros das paredes caídas (sprite de entulho do pack, não desenho)
+  for (const c of getParedesCaídas()) {
+    const escombro = getSprite('tile_289') ?? getSprite('tile_317');
+    if (!escombro || !escombro.complete || !escombro.naturalWidth) continue;
+    const centro = centroParede(c.col, c.row);
+    drawSpriteFit(ctx, escombro, centro.x, centro.y, CELL_SIZE, 0);
+  }
   drawDock(ctx);
   {
     const maquinista = enemies.find(e => e.type === 'maquinista');
@@ -3880,6 +3890,19 @@ for (const b of updateBullets(dt, worldW, worldH)) detonateBullet(b);
 for (const b of getBullets()) {
   if (b.life <= 0) continue;
   if (segmentHitsWall(b.px, b.py, b.x, b.y)) {
+    // B0: tiro do jogador desgasta a parede; quando cai, o flow é refeito
+    if (!b.isEnemy) {
+      const resultado = danoParede(b.x, b.y, b.damage);
+      if (resultado === 'caiu') {
+        const col = colAt(b.x), row = rowAt(b.y);
+        const c = centroParede(col, row);
+        rebuildFlowField(colAt(p.x), rowAt(p.y));
+        spawnParticles(c.x, c.y, '#8a7a60', 14, 180, 'smoke');
+        pushToast('PAREDE CAIU', 1.4, 'aviso');
+      } else if (resultado === 'danificou') {
+        spawnParticles(b.x, b.y, '#a08050', 2, 60);
+      }
+    }
     if (b.explosive && b.explosionRadius) detonateBullet(b);
     else {
       b.life = 0;
