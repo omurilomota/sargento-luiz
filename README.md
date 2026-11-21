@@ -7,6 +7,8 @@ Você não limpa corredores: você luta por **terreno**. Cada fase é um mapa de
 30×20 células (1920×1280 px, maior que a tela), com paredes, cobertura, barris
 e eventos climáticos que mudam a leitura de cada tiro. Onde você fica é a decisão.
 
+![Menu, combate, loja e ficha da arma](docs/folha-readme.png)
+
 Jogar no navegador:
 - **itch.io:** https://omurilomota.itch.io/sargento-luis
 - **Vercel:** https://sargento-luiz.vercel.app
@@ -153,15 +155,21 @@ Três coisas que valem saber antes de mexer:
 
 ## Licença e contribuição
 
-**Código: copyright (c) 2026 Murilo Mota — todos os direitos reservados.**
-Não é permitido copiar, modificar ou distribuir sem autorização escrita.
-Contribuições via PR são bem-vindas — leia [`CONTRIBUTING.md`](CONTRIBUTING.md).
+**Código: copyright (c) 2026 Murilo Mota — Apache License 2.0**
+([`LICENSE`](LICENSE)). Uso, modificação e distribuição permitidos com
+atribuição — veja [`NOTICE`](NOTICE). Contribuições via PR são bem-vindas:
+você mantém os direitos do que escreve, sem CLA. Leia
+[`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 Assets de terceiros mantêm suas licenças originais (Kenney CC0, Eric Matyas
 royalty-free com atribuição, Vincent Sevedge e harrison-lord CC-BY 3.0,
 isaiah658 CC0, LPC CC0, Kay Lousberg CC0). Créditos completos em
-[`public/assets/CREDITS.md`](public/assets/CREDITS.md) e
+[`NOTICE`](NOTICE), [`public/assets/CREDITS.md`](public/assets/CREDITS.md) e
 [`public/assets/music/CREDITS.md`](public/assets/music/CREDITS.md).
 
+Caminho de leitura para quem quer ajudar: `README` → `CONTRIBUTING` →
+`docs/DESIGN.md` → `docs/PENDENCIAS.md` → `AGENTS.md`. O `TODO.md` é histórico.
+
 [`AGENTS.md`](AGENTS.md) · [`STATUS.md`](STATUS.md) ·
+[`docs/PENDENCIAS.md`](docs/PENDENCIAS.md) ·
 [`docs/DESIGN.md`](docs/DESIGN.md) · [`docs/PREMISSA-V2.md`](docs/PREMISSA-V2.md)
