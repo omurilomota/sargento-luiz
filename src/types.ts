@@ -101,6 +101,11 @@ export interface Enemy {
   canShoot: boolean;
   /** Identificador do tipo de inimigo (chave no ENEMY_TYPES) */
   type: string;
+  /** Segundos de inércia em poça (escorrega depois de mudar de direção). */
+  slideWet: number;
+  /** Direção do deslizamento molhado. */
+  slideWetX: number;
+  slideWetY: number;
   /** Ângulo de rotação atual */
   angle: number;
   /** Temporizador para ataques especiais */
