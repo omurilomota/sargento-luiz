@@ -252,6 +252,10 @@ Origem: **Kenney.nl** (CC0), **OpenGameArt** (CC0) e
 **OpenGameArt** (CC-BY 3.0 — os 4 tiros reais de
 Vincent Sevedge, única fonte com atribuição obrigatória).
 
+`destruidor.ogg` — mix autoral de `bossDeath.ogg` (Kenney, CC0,
+pitch reduzido) e `explosion.ogg` (rubberduck, CC0) — o golpe do
+Destruidor de Mundos, antes com o impacto comum de qualquer tiro.
+
 `chuva.ogg` — "Rain (loopable)", **CC0**
 (opengameart.org/content/rain-loopable), cortado para 6s. `trovao.ogg` —
 "thunderclap" da **LPC**, **CC0** (lpc.opengameart.org/content/thunder),

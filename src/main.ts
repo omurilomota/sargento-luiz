@@ -49,7 +49,7 @@ import {
   initRenderer, drawMenu, drawCutscene, drawDialogo, drawGameOver, drawVictory, drawFimLocal, drawCredits, drawCoins as renderCoins, drawVoo,
   drawPlayer2 as renderPlayer2,
   drawPowerUps as renderPowerUps, drawParticles as renderParticles, drawBullets as renderBullets, drawFires as drawFiresWorld,
-  drawEnemies as renderEnemies, drawPlayer as renderPlayer, drawDamageNumbers, drawPhaseTransition, drawPuddles,
+  drawEnemies as renderEnemies, drawPlayer as renderPlayer, drawDamageNumbers, drawPhaseTransition, drawPuddles, drawGolpeArco,
   restoreCanvas, drawNPCs, drawBots, drawPause, menuIndexAt, getPauseIndex, movePause, PAUSE_OPTIONS, setPauseIndex, pauseOptionAt, setUiMouse,
   drawSettings, settingsRowAt, settingsButtonAt, isSettingsOpen, openSettings, closeSettings,
   moveSettings, setSettingsIndex, getSettingsIndex, attachSettingsWheelListener, adjustSettingsVolume, SETTINGS_ROWS,
@@ -70,7 +70,7 @@ import { addPieceToInventory, getPieceType, resetPieces, getInventorySnapshot, r
 import { powerups, spawnPowerUp, spawnPowerUpDeChefe, spawnPowerUpDeTipo, updatePowerUps, hasPowerUp, activePowerups } from './powerups';
 
 import {
-  initAudio, sfxAmbiente, sfxExplosion, sfxBossDeath, sfxPlayerHit, sfxImpact, sfxKill, sfxCoin, sfxPowerup, sfxWaveStart, sfxLevelUp,
+  initAudio, sfxAmbiente, sfxExplosion, sfxBossDeath, sfxPlayerHit, sfxImpact, sfxDestruidor, sfxKill, sfxCoin, sfxPowerup, sfxWaveStart, sfxLevelUp,
   sfxGameOver, sfxEnemyShoot, sfxSpit, sfxDash, sfxShield, sfxFury, sfxMenuMove, sfxMenuSelect, sfxError, sfxJammed, sfxPiece,
   startMusic, playMusic, setMusicEnabled, setSfxEnabled, isMusicEnabled, isSfxEnabled, unlockAudio, MusicTrack,
   getMasterVolume, getMusicVolume, getSfxVolume, WEAPON_SOUNDS,
@@ -608,6 +608,8 @@ function armarRespiro(): void {
 let ultimoStackVelocidade = 1;
 let currentBossZoom = 1;
 let currentFlash: string | null = null;
+/** Arco do Destruidor: ângulo/timer do golpe para o renderer desenhar. */
+let golpeArco = { ativo: 0, angulo: 0, arco: 2.4, alcance: 96 };
 /** O véu de radiação da cápsula — sustentado, não pisca como o flash. */
 let currentVeil: string | null = null;
 let currentShake: { x: number; y: number } = { x: 0, y: 0 };
@@ -1118,6 +1120,11 @@ function update(dt: number) {
   // cedo, e antes o "Onda N" ficava parado no meio da tela durante as 21 falas
   // da Fábrica. O áudio continua pendente até a caixa fechar (m2-fluxo-proof).
   if (phaseTransitionTimer > 0) phaseTransitionTimer -= dt;
+  // A decolagem do Castelo continua DURANTE o diálogo pós-missão: antes o
+  // early-return da caixa congelava o voo em 5s e a cena travava com a fala
+  // "o motor ronca" por cima de um foguete parado. Agora o relógio do voo
+  // anda junto e o draw sobrepõe o diálogo à decolagem.
+  if (vooAtivo > 0) vooAtivo = Math.max(0, vooAtivo - dt);
 
   // A caixa pequena da Fábrica (H2): PAUSADO POR LINHA (decisão do Murilo) —
   // o mundo congela atrás, o ENTER avança. O auto-avanço de 10s existe para
@@ -1174,7 +1181,7 @@ function update(dt: number) {
   const hard = getCurrentMode() === 'hardcore';
 
   if (phaseEndPause > 0) phaseEndPause = Math.max(0, phaseEndPause - dt);
-  if (vooAtivo > 0) vooAtivo = Math.max(0, vooAtivo - dt);
+  if (golpeArco.ativo > 0) golpeArco.ativo = Math.max(0, golpeArco.ativo - dt);
   if (bossGritoTimer > 0) bossGritoTimer = Math.max(0, bossGritoTimer - dt);
   if (perigoNave > 0) perigoNave = Math.max(0, perigoNave - dt);
   phaseElapsed += dt;
@@ -2998,17 +3005,24 @@ function draw() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
+  // A decolagem é o FUNDO da cena: o foguete sai, o mundo some. O diálogo
+  // pós-missão (Júlio, "o motor ronca de primeira") desenha DEPOIS, por cima
+  // — as falas acompanham o lançamento em vez de ficarem presas nele.
+  if (vooAtivo > 0) drawVoo(vooAtivo / PHASE_END_PAUSE, canvas.width, canvas.height);
+
   // A caixa pequena da Fábrica por cima do mundo congelado (H2)
   drawDialogo();
 
   if (phaseTransitionTimer > 0) {
     drawPhaseTransition(phaseTransitionTimer, getCurrentWave(), getCurrentPhase()?.name);
   }
-  const hudData = buildHudData();
-  drawHud(hudData);
-  if (tabAberto) drawTabScreen(hudData, canvas.width, canvas.height);
+  // HUD some na decolagem: você não está mais lutando, está indo embora.
+  if (vooAtivo <= 0) {
+    const hudData = buildHudData();
+    drawHud(hudData);
+    if (tabAberto) drawTabScreen(hudData, canvas.width, canvas.height);
+  }
   if (estaEmTelaCheia()) drawFullscreenHint(canvas.width, canvas.height);
-  if (vooAtivo > 0) drawVoo(vooAtivo / PHASE_END_PAUSE, canvas.width, canvas.height);
 }
 
 /**
@@ -3079,6 +3093,9 @@ function drawWorld(): void {
   if (getCurrentMode() === 'competitive') drawBots(getBots());
   renderBullets(getBullets());
   renderPlayer(p);
+  if (golpeArco.ativo > 0) {
+    drawGolpeArco(p.x, p.y, golpeArco.angulo, golpeArco.arco, golpeArco.alcance, golpeArco.ativo);
+  }
   // o P2 do versus local: sem esta linha o modo anunciava "mesmo teclado" com
   // um jogador que existia no estado e não aparecia em tela (FUTURO §1.10)
   const p2 = isLocalEnabled() ? getPlayer2() : null;
@@ -3567,7 +3584,10 @@ function golpeDeMartelo(
   }
   triggerScreenShake(5, 0.16);
   triggerHitStop(0.03);
-  sfxImpact();
+  // arco do martelo visível por ~0.18s, desenhado no renderer por cima do mundo
+  golpeArco = { ativo: 0.18, angulo: p.angle, arco, alcance };
+  triggerDamageFlash();
+  sfxDestruidor();
   playWeaponSound(weapon.name);
   registerShot();
 }

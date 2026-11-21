@@ -238,6 +238,7 @@ export const SFX_FILES: Record<string, SfxDef> = {
   mina:        { file: 'assets/sfx/mina.ogg' },
   enemyShoot:  { file: 'assets/sfx/enemyShoot.ogg',  vary: 0.08 },
   spit:        { file: 'assets/sfx/spit.ogg',        vary: 0.1 },
+  destruidor:  { file: 'assets/sfx/destruidor.ogg',  vary: 0.06 },
   chuva:       { file: 'assets/sfx/chuva.ogg' },
   trovao:      { file: 'assets/sfx/trovao.ogg',      vary: 0.12 },
   explosion:   { file: 'assets/sfx/explosion.ogg' },
@@ -435,6 +436,17 @@ export function sfxEnemyShoot(): void {
 export function sfxSpit(): void {
   if (playSfxFile('spit')) return;
   playBurst(0.06, 0.11, 'lowpass', 900, 1.2);
+}
+
+/** O Destruidor de Mundos: martelo que braça e cai. Três camadas — o
+ *  assobio do giro, o impacto grave e o estrondo da explosão. O jogo já
+ *  tocava só o `sfxImpact` comum, sem peso nenhum. */
+export function sfxDestruidor(): void {
+  if (playSfxFile('destruidor')) return;
+  playSweep(680, 90, 0.22, 'sawtooth', 0.11); // giro do martelo
+  playTone(vary(58, 0.05), 0.36, 'triangle', 0.34); // impacto grave
+  playBurst(0.26, 0.3, 'lowpass', 320, 1.4); // corpo do golpe
+  playNoise(0.18, 0.16); // cascalho/estilhaço
 }
 
 /** Chuva contínua (loop curto) e trovão com clarão — a tempestade agora se ouve. */

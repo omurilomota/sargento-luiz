@@ -969,6 +969,28 @@ export function drawParticles(particles: Particle[]): void {
  * a brasa é o `flare_01` pulsando devagar por cima, encolhendo com a vida
  * restante. Dois assets do pack de partículas, nenhum desenho de código.
  */
+/** Arco do Destruidor de Mundos: uma varredura luminosa que acompanha o
+ *  golpe e desaparece. É efeito de ação (categoria permitida do semDesenho). */
+export function drawGolpeArco(x: number, y: number, angulo: number, arco: number, alcance: number, vida: number): void {
+  if (vida <= 0) return;
+  const forca = Math.min(1, vida / 0.18);
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.globalAlpha = forca * 0.55;
+  ctx.strokeStyle = '#c8b890';
+  ctx.lineWidth = 6 * forca + 2;
+  ctx.beginPath();
+  ctx.arc(0, 0, alcance * 0.75, angulo - arco / 2, angulo + arco / 2);
+  ctx.stroke();
+  ctx.globalAlpha = forca * 0.9;
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(0, 0, alcance * 0.9, angulo - arco / 3, angulo + arco / 3);
+  ctx.stroke();
+  ctx.restore();
+}
+
 export function drawFires(fires: { x: number; y: number; radius: number; life: number; maxLife: number }[]): void {
   const marca = getSprite('fx_scorch_01');
   const brasa = getSprite('fx_flare_01');
