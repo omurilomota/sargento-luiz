@@ -84,7 +84,7 @@ import { toggleNpcFollow, moverTorreta } from './systems/npcs';
 import { getCurrentClass, setCurrentClass, getClassDamageMult, getClassSpeedMult, getClassReloadMult, getClassHealthPerSecond, loadClass, saveClass, resetClass, ClassId, CLASSES } from './systems/classes';
 import { updateEnvironmentEvents, resetEnvironmentEvents, getEnvironmentWarnings , forcarEventoAmbiente, tornadoNoAr, tempestadeAtiva, frioAtivo, cinzasAtivas, EnvironmentEvent } from './systems/environment';
 import { addPuddle, markFootstep, isMolhado, updatePuddles, clearPuddles, getPuddles } from './systems/puddles';
-import { initDock, drawDock, clearDock } from './systems/dock';
+import { initDock, drawDock, clearDock, updateDock, getDockEntities, damageDockEntity } from './systems/dock';
 import { initTrain, drawTrain, clearTrain } from './systems/train';
 import { updateCombos, getActiveCombos, getComboDamageBonus, getComboCooldownMult, getComboHealthBonus, resetCombos } from './systems/combos';
 import { setComboHealthMultiplier } from './entities/player';
@@ -1238,6 +1238,25 @@ function update(dt: number) {
     }
   }
   updatePuddles(dt);
+  // Porto: barcos e garças se movem por frame e o jogador bate no casco
+  if (getCurrentPhase()?.map === 'porto') {
+    updateDock(dt, p.x, p.y);
+    for (const barco of getDockEntities()) {
+      if (barco.tipo !== 'barco') continue;
+      const d = Math.hypot(barco.x - p.x, barco.y - p.y);
+      if (d < barco.radius + p.radius) {
+        // empurra para fora do casco e causa dano de contato
+        const nx = (p.x - barco.x) / (d || 1);
+        const ny = (p.y - barco.y) / (d || 1);
+        p.x = barco.x + nx * (barco.radius + p.radius + 1);
+        p.y = barco.y + ny * (barco.radius + p.radius + 1);
+        if (p.invincible <= 0) {
+          player.damagePlayer(12, { fonte: 'contato', tipo: 'barco' });
+          p.invincible = 0.5;
+        }
+      }
+    }
+  }
   ultimoPassoX = p.x;
   ultimoPassoY = p.y;
 
