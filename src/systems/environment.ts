@@ -68,7 +68,7 @@ export function empurraDoTornado(dx: number, dy: number): { x: number; y: number
   return { x: (dx / dist) * forca, y: (dy / dist) * forca };
 }
 
-const WARNING_TIME = 5;
+const WARNING_TIME = 8;
 
 export interface EnvironmentWarning {
   type: EnvironmentEvent;
@@ -216,7 +216,10 @@ export function updateEnvironmentEvents(
           if (event.duration > 0.3) {
             // clarão e trovão no momento do impacto — a chuva pede o trovão
             sfxTrovao();
-            triggerFlash('#dfe8f0', 0.18);
+            // updateFlash faz replace de "número)" no fim — com hex (#dfe8f0)
+            // o replace não casava e a tela ficava BRANCO SÓLIDO por 180ms.
+            // Com rgba o alpha decai e o clarão some suavemente.
+            triggerFlash('rgba(223, 232, 240, 1)', 0.18);
             if (enemies.length > 0) {
               const target = enemies[Math.floor(rand(0, enemies.length))];
               createExplosion(target.x, target.y, LIGHTNING_RADIUS, LIGHTNING_DAMAGE, enemies, PALETTE.stone);

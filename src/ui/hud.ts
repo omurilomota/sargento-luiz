@@ -8,7 +8,7 @@
 
 import { PALETTE } from '../core/palette';
 import { ObjectiveProgress } from '../systems/objectives';
-import { EnvironmentWarning } from '../systems/environment';
+import { EnvironmentWarning, EnvironmentEvent } from '../systems/environment';
 import { isJammed } from '../weapons';
 
 const INSET = 12;
@@ -673,11 +673,15 @@ function drawBossBar(d: HudData, W: number, y: number): void {
 /** Faixa de aviso ambiental (destrava o relâmpago invisível de 40 de dano). */
 function drawWarningStrip(d: HudData, W: number, y: number): void {
   if (d.warnings.length === 0) return;
-  const labels: Record<string, string> = {
+  // Record tipado: o tsc avisa se um evento novo (ash/freeze) ficar sem rótulo.
+  // Antes era Record<string,string> e aparecia "freeze em 5s" cru na tela.
+  const labels: Record<EnvironmentEvent, string> = {
     earthquake: 'TERREMOTO',
     lightning: 'RELÂMPAGO',
     storm: 'TEMPESTADE',
     tornado: 'TORNADO',
+    ash: 'CINZAS',
+    freeze: 'FRIO EXTREMO',
   };
   const stripH = 20;
   ctx!.fillStyle = 'rgba(0,0,0,0.55)';
