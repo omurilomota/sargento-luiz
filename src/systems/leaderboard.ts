@@ -30,9 +30,14 @@ export function getLeaderboard(): LeaderboardEntry[] {
     // corrompido parseia (catch não pega) e devolve não-array — o .map do
     // fim de campanha explodia depois (relato do playtest 2026-10-16).
     // A fronteira é o único lugar de validação: dentro do jogo se confia.
-    if (!Array.isArray(dado)) return [];
+    if (!Array.isArray(dado)) {
+      localStorage.removeItem(STORAGE_KEY);
+      return [];
+    }
     return dado as LeaderboardEntry[];
   } catch {
+    // JSON corrompido: apagar, senão o recorde quebra em toda leitura.
+    localStorage.removeItem(STORAGE_KEY);
     return [];
   }
 }

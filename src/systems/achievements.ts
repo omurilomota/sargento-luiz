@@ -88,11 +88,19 @@ export function loadAchievements(): void {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const saved = JSON.parse(raw) as string[];
+      if (!Array.isArray(saved)) {
+        localStorage.removeItem(STORAGE_KEY);
+        return;
+      }
       for (const a of ACHIEVEMENTS) {
         a.unlocked = saved.includes(a.id);
       }
     }
-  } catch {}
+  } catch {
+    // Conquistas corrompidas: apagar ou o jogador perde as conquistas em
+    // silêncio toda partida. Mesma correção do saveSystem/diary.
+    localStorage.removeItem(STORAGE_KEY);
+  }
 }
 
 /**

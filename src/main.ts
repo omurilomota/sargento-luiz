@@ -84,7 +84,7 @@ import { toggleNpcFollow, moverTorreta } from './systems/npcs';
 import { getCurrentClass, setCurrentClass, getClassDamageMult, getClassSpeedMult, getClassReloadMult, getClassHealthPerSecond, loadClass, saveClass, resetClass, ClassId, CLASSES } from './systems/classes';
 import { updateEnvironmentEvents, resetEnvironmentEvents, getEnvironmentWarnings , forcarEventoAmbiente, tornadoNoAr, tempestadeAtiva, frioAtivo, cinzasAtivas, EnvironmentEvent } from './systems/environment';
 import { addPuddle, markFootstep, isMolhado, updatePuddles, clearPuddles, getPuddles } from './systems/puddles';
-import { initDock, drawDock, clearDock } from './systems/dock';
+import { initDock, drawDock, clearDock, updateDock, getDockEntities, damageDockEntity } from './systems/dock';
 import { initTrain, drawTrain, clearTrain } from './systems/train';
 import { updateCombos, getActiveCombos, getComboDamageBonus, getComboCooldownMult, getComboHealthBonus, resetCombos } from './systems/combos';
 import { setComboHealthMultiplier } from './entities/player';
@@ -1238,6 +1238,25 @@ function update(dt: number) {
     }
   }
   updatePuddles(dt);
+  // Porto: barcos e garças se movem por frame e o jogador bate no casco
+  if (getCurrentPhase()?.map === 'porto') {
+    updateDock(dt, p.x, p.y);
+    for (const barco of getDockEntities()) {
+      if (barco.tipo !== 'barco') continue;
+      const d = Math.hypot(barco.x - p.x, barco.y - p.y);
+      if (d < barco.radius + p.radius) {
+        // empurra para fora do casco e causa dano de contato
+        const nx = (p.x - barco.x) / (d || 1);
+        const ny = (p.y - barco.y) / (d || 1);
+        p.x = barco.x + nx * (barco.radius + p.radius + 1);
+        p.y = barco.y + ny * (barco.radius + p.radius + 1);
+        if (p.invincible <= 0) {
+          player.damagePlayer(12, { fonte: 'contato', tipo: 'barco' });
+          p.invincible = 0.5;
+        }
+      }
+    }
+  }
   ultimoPassoX = p.x;
   ultimoPassoY = p.y;
 
@@ -1432,10 +1451,14 @@ function update(dt: number) {
     const jammedNow = isJammed();
     if (jammedNow && !wasJammed) sfxJammed();
     wasJammed = jammedNow;
-    if (getCurrentAmmo() <= 0) startReload();
     }
     }
   }
+
+  // RECARGA AUTOMÁTICA fora do bloco de tiro: antes ficava dentro do
+  // `if (mouse.down)`, então soltar o botão no último tiro deixava a arma
+  // vazia até o próximo clique. Com RPG (2 tiros, 2.5s) isso era grave.
+  if (getCurrentAmmo() <= 0 && !getIsReloading() && !isJammed()) startReload();
 
   if (p.invincible > 0) p.invincible -= dt;
   if (p.hitFlash > 0) p.hitFlash = Math.max(0, p.hitFlash - dt);
@@ -3500,6 +3523,32 @@ for (const e of enemies) {
     const fora = pushOutOfWalls(e.x, e.y, e.radius);
     e.x = fora.x;
     e.y = fora.y;
+
+    // FRESTA: `pushOutOfWalls` resolve sobreposição, mas um círculo grande
+    // (chefe raio 46-54) em corredor de 1 célula continua sem conseguir
+    // atravessar — todos os 4 passos diagonais batem na parede. Testa 8
+    // direções com passo adaptativo e fica com a que mais andou.
+    if (Math.hypot(e.x - next.x, e.y - next.y) < 0.5) {
+      const origX = e.x, origY = e.y;
+      let melhorX = e.x, melhorY = e.y, melhorDist = 0;
+      for (const mult of [1, 2, 3]) {
+        const passo = e.speed * dt * mult;
+        for (let a = 0; a < 8; a++) {
+          const ang = (a * Math.PI) / 4;
+          const tent = moveCircleBy(origX, origY, Math.cos(ang) * passo, Math.sin(ang) * passo, e.radius);
+          const d = Math.hypot(tent.x - origX, tent.y - origY);
+          if (d > melhorDist) { melhorDist = d; melhorX = tent.x; melhorY = tent.y; }
+        }
+        if (melhorDist > 0) break;
+      }
+      if (melhorDist > 0) { e.x = melhorX; e.y = melhorY; }
+      else {
+        // ainda preso: última saída é reposicionar na célula livre mais próxima
+        const livre = findFreeSpotNear(e.x, e.y, e.radius);
+        e.x = livre.x;
+        e.y = livre.y;
+      }
+    }
   }
 
   if (e.canShoot && !ENEMY_TYPES[e.type]?.isBoss) {

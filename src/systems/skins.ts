@@ -86,10 +86,15 @@ export function resetSkins(): void {
     const raw = localStorage.getItem('luiz.skins_unlocked');
     if (raw) {
       const ids = JSON.parse(raw) as number[];
-    if (!Array.isArray(ids)) return;
+      if (!Array.isArray(ids)) {
+        localStorage.removeItem('luiz.skins_unlocked');
+        return;
+      }
       for (const idx of ids) if (idx in skins) skins[idx].unlocked = true;
     }
-  } catch {}
+  } catch {
+    localStorage.removeItem('luiz.skins_unlocked');
+  }
 }
 
 function persistUnlocked(): void {
