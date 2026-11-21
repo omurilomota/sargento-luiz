@@ -562,7 +562,7 @@ let phaseTransitionTimer = 0;
 const MUSICA_POR_BIOMA: Record<string, MusicTrack> = {
   cidade: 'combat_ruinas', rodovia: 'combat_ruinas', floresta: 'combat_ruinas',
   hospital: 'combat_ruinas', pantano: 'combat_ruinas',
-  fabrica: 'combat_industrial', trens: 'combat_industrial', refinaria: 'combat_industrial',
+  fabrica: 'combat_industrial', trens: 'combat_industrial', refinaria: 'combat_longa',
   subestacao: 'combat_industrial', porto: 'combat_industrial',
   vulcao: 'combat_terminal', castelo: 'combat_terminal',
   espaco: 'combat_terminal', bunker: 'combat_terminal',
