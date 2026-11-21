@@ -101,6 +101,8 @@ export interface Enemy {
   canShoot: boolean;
   /** Identificador do tipo de inimigo (chave no ENEMY_TYPES) */
   type: string;
+  /** Segundos de atordoamento (granada Flash). Não age nem atira. */
+  stun: number;
   /** Segundos de inércia em poça (escorrega depois de mudar de direção). */
   slideWet: number;
   /** Direção do deslizamento molhado. */

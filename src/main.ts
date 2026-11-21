@@ -85,6 +85,7 @@ import { getCurrentClass, setCurrentClass, getClassDamageMult, getClassSpeedMult
 import { updateEnvironmentEvents, resetEnvironmentEvents, getEnvironmentWarnings , forcarEventoAmbiente, tornadoNoAr, tempestadeAtiva, frioAtivo, cinzasAtivas, EnvironmentEvent } from './systems/environment';
 import { addPuddle, markFootstep, isMolhado, updatePuddles, clearPuddles, getPuddles } from './systems/puddles';
 import { initDock, drawDock, clearDock, updateDock, getDockEntities, damageDockEntity } from './systems/dock';
+import { resetGrenades, getGrenadeSlots, getGrenadeSelecionada, trocaGrenade, usarGrenada, addGrenade, granadaAleatoria, GRENADES } from './systems/grenades';
 import { initTrain, drawTrain, clearTrain, avancaTrem, getTrainHit, pushOutOfTrain, marchaTrem } from './systems/train';
 import { updateCombos, getActiveCombos, getComboDamageBonus, getComboCooldownMult, getComboHealthBonus, resetCombos } from './systems/combos';
 import { setComboHealthMultiplier } from './entities/player';
@@ -341,6 +342,13 @@ document.addEventListener('keydown', e => {
     if (useSkill('fury')) sfxFury();
   }
   if (k === 'r') startReload();
+  // Granadas utilitárias: Z/X troca, G usa no ponto da mira
+  if (k === 'z') trocaGrenade(-1);
+  if (k === 'x') trocaGrenade(1);
+  if (k === 'g') {
+    const alvo = screenToWorld(mouse.x, mouse.y);
+    usarGrenada(alvo.x, alvo.y, enemies);
+  }
   if (k === 'j') toggleNpcFollow();
   // P0-3: a torreta é fixa, mas o posto é escolha do jogador. T a move para
   // trás do corpo (a posição que ele acabou de deixar), sem virar seguidora.
@@ -779,6 +787,7 @@ function loadPhaseEnvironment(): void {
   // Refinaria e dali em diante — o jogador entrava "sempre molhado". Água é
   // por fase: limpa ao carregar cada mapa, não só em partida nova.
   clearPuddles();
+  resetGrenades();
   // Porto: só a fase atual inicializa a camada viva do cais
   clearDock();
   if (phase.map === 'porto') initDock(biome.rows);
@@ -2443,6 +2452,11 @@ function killEnemy(e: Enemy, award: boolean): void {
     // A coleta da Fábrica (H2) dobra a chance de loot: "os zumbis droparão
     // mais coisas e com mais facilidade" (relato do Murilo).
     rollLootDrop(e.x, e.y, e.type, e.isElite === true, getCurrentPhase().coleta ? 2 : 1);
+    // Granada utilitária: 20% em elite/TITÃ, garantida em chefe de fase
+    if ((ELITE_TYPES.has(e.type) || e.isElite === true) && Math.random() < 0.2) {
+      const g = granadaAleatoria();
+      if (addGrenade(g)) pushToast(`GRANADA: ${GRENADES[g].nome}`, 2, 'achievement');
+    }
     // elites têm 25% de chance de dropar peça/acessório direto no inventário.
     // O TITÃ (T1) entra na mesma conta: ele é o corpo grande da onda, a
     // chance é do tamanho — não do nome do tipo dele.
@@ -3041,6 +3055,7 @@ function draw() {
   if (vooAtivo <= 0) {
     const hudData = buildHudData();
     drawHud(hudData);
+    desenhaGranadasHud();
     if (tabAberto) drawTabScreen(hudData, canvas.width, canvas.height);
   }
   if (estaEmTelaCheia()) drawFullscreenHint(canvas.width, canvas.height);
@@ -3053,6 +3068,27 @@ function draw() {
  * para voltar. Sem este aviso o jogador que entrou em fullscreen por engano
  * fica sem nenhuma pista de como sair.
  */
+/** Slots de granadas utilitárias: desenho simples no canto, sem tocar no
+ *  layout do HUD (os testes de geometria medem getHudCenterLayout). */
+function desenhaGranadasHud(): void {
+  const slots = getGrenadeSlots();
+  if (slots.length === 0) return;
+  const sel = getGrenadeSelecionada();
+  ctx.save();
+  ctx.font = '11px monospace';
+  ctx.textAlign = 'left';
+  const baseY = canvas.height - 120;
+  for (let i = 0; i < slots.length; i++) {
+    const s = slots[i];
+    const y = baseY - i * 16;
+    ctx.globalAlpha = i === sel ? 1 : 0.55;
+    ctx.fillStyle = i === sel ? PALETTE.mustard : PALETTE.textDim;
+    ctx.fillText(`${i === sel ? '>' : ' '} ${GRENADES[s.tipo].nome} ×${s.qtd}`, 16, y);
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
 function drawFullscreenHint(W: number, H: number): void {
   // o texto antigo ("ESC: sair da tela cheia") mentia desde a mudança do
   // ESC — agora a saída é opção do menu de pausa, e o aviso diz o caminho
@@ -3376,6 +3412,11 @@ for (const e of enemies) {
     continue;
   }
   if (e.hitFlash > 0) e.hitFlash -= dt;
+  // Atordoado pela Flash: não se move, não atira, só apodrece o timer.
+  if (e.stun > 0) {
+    e.stun -= dt;
+    continue;
+  }
 
   const def = ENEMY_TYPES[e.type];
   if (def?.isBoss) {
