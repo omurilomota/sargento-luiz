@@ -1,2 +1,22 @@
 node_modules/
 dist/
+*.tsbuildinfo
+__pycache__/
+session-*.md
+plano*.md
+RELATORIO*.md
+.kilo/
+2dd0cd6b66cbbf54491f17cc3c1b7efc5c3bbf12
+
+# Pacotes de build (o `npm run package` gera `sargento-rios.zip` na raiz)
+*.zip
+
+# Transcrições de conversa e artefatos de ferramenta
+freebuff-chat-*.md
+.freebuff/
+
+# Screenshots do harness visual
+tools/shots/
+
+# Vercel CLI
+.vercel/

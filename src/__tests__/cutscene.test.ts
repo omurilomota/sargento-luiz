@@ -1,0 +1,266 @@
+import { describe, it, expect, beforeEach } from 'vitest';
+import {
+  CUTSCENES, showCutscene, advanceCutscene, skipCutscene, skipCutsceneText,
+  isShowingCutscene, updateCutscene, isLineComplete,
+  resetStory, getCurrentLine, cutsceneForPhase,
+  EPILOGUE_CUTSCENE, isEpilogueScene,
+} from '../systems/story';
+import { PHASES } from '../config';
+
+const ULTIMA = CUTSCENES.length - 1;
+
+/**
+ * Avança o ponteiro de cutscene até a de índice `n`.
+ *
+ * `showCutscene()` não muda o índice — quem muda é `skipCutscene()`, que
+ * incrementa `currentCutsceneIndex`. Então é preciso pular as anteriores.
+ */
+function pularPara(cena: number): void {
+  // `skipCutscene` só age se algo estiver na tela, e o primeiro skip já a
+  // fecha — então precisa reexibir entre um pulo e o outro.
+  for (let i = 0; i < cena; i++) {
+    showCutscene();
+    skipCutscene();
+  }
+}
+
+/**
+ * Conta os toques de ENTER que NÃO FIZERAM NADA.
+ *
+ * Esse é o invariante real: o bug era `advanceCutscene` devolvendo false sem
+ * mudar nada enquanto a linha digitava, então o jogador apertava e nada
+ * acontecia. Contar toques totais é frágil (chama a função uma vez a mais no
+ * fim do loop); contar toques inertes é exato.
+ */
+function toquesInertes(): number {
+  let inertes = 0;
+  let guarda = 0;
+  while (isShowingCutscene() && guarda++ < 900) {
+    const antesLinha = getCurrentLine();
+    const antesCompleta = isLineComplete();
+    const terminou = advanceCutscene();
+    if (terminou) break;
+    const mudouAlgo =
+      getCurrentLine() !== antesLinha ||
+      isLineComplete() !== antesCompleta;
+    if (!mudouAlgo) inertes++;
+  }
+  return inertes;
+}
+
+describe('diálogo: ENTER nunca fica inerte', () => {
+  // Bug: `advanceCutscene` começava com `if (!lineComplete) return false` e a
+  // velocidade era 18 chars/s. Numa linha de 90 caracteres, ENTER não fazia
+  // nada por 5 segundos. A única saída era BACKSPACE, anunciado só DEPOIS da
+  // linha terminar, e ainda exigia um segundo ENTER.
+  beforeEach(() => {
+    resetStory();
+  });
+
+  it('ENTER na linha que está digitando completa o texto em vez de ignorar', () => {
+    showCutscene();
+    updateCutscene(0.2);
+    expect(isLineComplete()).toBe(false);
+    expect(advanceCutscene()).toBe(false);
+    expect(isLineComplete()).toBe(true);
+  });
+
+  it('nenhum toque de ENTER é inerte, em nenhuma cutscene do jogo', () => {
+    for (let c = 0; c <= ULTIMA; c++) {
+      resetStory();
+      pularPara(c);
+      showCutscene();
+      const inertes = toquesInertes();
+      expect(inertes, `${CUTSCENES[c].title}: ${inertes} toques inertes`).toBe(0);
+    }
+  });
+
+  it('atravessa o jogo inteiro só apertando ENTER', () => {
+    resetStory();
+    let cenas = 0;
+    while (cenas < CUTSCENES.length + 2) {
+      showCutscene();
+      if (!isShowingCutscene()) break;
+      let guarda = 0;
+      while (isShowingCutscene() && guarda++ < 900) {
+        advanceCutscene();
+      }
+      cenas++;
+      if (cenas > CUTSCENES.length + 2) break;
+      showCutscene();
+      if (!isShowingCutscene()) break;
+    }
+    expect(cenas).toBeLessThanOrEqual(CUTSCENES.length + 2);
+  });
+
+  it('toda linha do jogo digita em menos de 4 segundos', () => {
+    for (const cena of CUTSCENES) {
+      for (const linha of cena.lines) {
+        // taxa efetiva: 40 chars/s contra a linha mais longa do jogo
+        const segundos = linha.text.length / 40;
+        expect(segundos, `"${linha.text.slice(0, 30)}..."`).toBeLessThan(4);
+      }
+    }
+  });
+});
+
+describe('diálogo: BACKSPACE pula a cutscene inteira', () => {
+  beforeEach(() => {
+    resetStory();
+  });
+
+  it('encerra a cutscene na hora', () => {
+    showCutscene();
+    updateCutscene(0.1);
+    expect(isShowingCutscene()).toBe(true);
+    skipCutscene();
+    expect(isShowingCutscene()).toBe(false);
+  });
+
+  it('devolve true quando pula a ÚLTIMA cutscene (encerra o jogo)', () => {
+    resetStory();
+    pularPara(ULTIMA);
+    showCutscene();
+    expect(skipCutscene()).toBe(true);
+  });
+
+  it('não faz nada quando não há cutscene na tela', () => {
+    expect(skipCutscene()).toBe(false);
+  });
+
+  it('o epílogo atravessa só com ENTER e pula com BACKSPACE (sem escolhas)', () => {
+    // A reescrita de 2026-10-13 (DECISIONS #174) trocou os 3 finais por
+    // NARRADOR + créditos da jornada + teaser AHB-45. O contrato novo:
+    // nenhuma tela espera tecla que não seja ENTER/BACKSPACE — a
+    // maquinaria de escolhas (selectChoice/isWaitingForChoice) saiu junto,
+    // e este teste atravessa a última cena inteira para provar que ela
+    // termina sozinha.
+    resetStory();
+    pularPara(ULTIMA);
+    showCutscene();
+    let guarda = 0;
+    while (isShowingCutscene() && guarda++ < 900) {
+      advanceCutscene();
+    }
+    expect(guarda).toBeLessThan(900);
+    expect(isShowingCutscene()).toBe(false);
+  });
+});
+
+describe('a fase final não abre o epílogo', () => {
+  /**
+   * Bug do jogador: a abertura da fase 9 e o EPÍLOGO eram a MESMA cena.
+   *
+   * `FASE_PARA_CUTSCENE[8]` e `EPILOGUE_CUTSCENE` davam 8, então quem jogava
+   * lia "O MOTHERSHIP cai" ao entrar no Bunker e lia tudo de novo no fim. A
+   * MOTHERSHIP é a 3ª da fila do NÚCLEO, ou seja: a linha da cena de abertura
+   * falava de uma morte que ainda não tinha acontecido.
+   *
+   * A trava é sobre o ÍNDICE, não sobre o texto: reescrever a cena sem
+   * desindexar as duas deixaria o bug voltar com outra frase.
+   */
+  const FASE_FINAL = PHASES.length - 1;
+
+  it('a última fase abre uma cena própria, diferente do epílogo', () => {
+    const abertura = cutsceneForPhase(FASE_FINAL);
+    expect(abertura).toBeGreaterThanOrEqual(0);
+    expect(abertura).not.toBe(EPILOGUE_CUTSCENE);
+  });
+
+  it('a cena de abertura da fase final não é a última da lista', () => {
+    expect(cutsceneForPhase(FASE_FINAL)).toBeLessThan(CUTSCENES.length - 1);
+  });
+
+  it('o epílogo continua sendo a ÚLTIMA cena (o final depende disso)', () => {
+    // `selectChoice` insere as linhas do final na cena corrente e
+    // `skipCutscene` só encerra o jogo na última: se o epílogo não for o
+    // último, os 3 finais somem.
+    expect(EPILOGUE_CUTSCENE).toBe(CUTSCENES.length - 1);
+    expect(CUTSCENES[EPILOGUE_CUTSCENE].title).toBe('EPÍLOGO');
+  });
+
+  it('terminar a cena ANTES do epílogo deixa o índice NO epílogo — a armadilha do Game Over do Bunker', () => {
+    // O índice depois do fim de uma cena aponta para a SEGUINTE — e a
+    // abertura do NÚCLEO-CENTRAL é a cena que antecede o epílogo. Quem
+    // terminava essa cutscene com ENTER ganhava o fim de campanha na
+    // ENTRADA da fase final: `isEpilogueScene()` lido DEPOIS do
+    // `advanceCutscene` respondia true para a abertura. O main pergunta
+    // ANTES de avançar; este teste documenta o porquê, para ninguém
+    // "simplificar" a ordem de volta. (Relato do Murilo, 2026-10-13.)
+    resetStory();
+    pularPara(ULTIMA - 1);
+    showCutscene();
+    let guarda = 0;
+    while (isShowingCutscene() && guarda++ < 900) advanceCutscene();
+    expect(isShowingCutscene()).toBe(false);
+    // a armadilha em pessoa: a cena fechada foi a ABERTURA, e o índice
+    // já pousou no epílogo
+    expect(isEpilogueScene()).toBe(true);
+  });
+
+  it('cada fase abre uma cena, e nenhuma é o epílogo — MENOS a Fábrica, que é caixa pequena', () => {
+    for (let f = 0; f < PHASES.length; f++) {
+      const idx = cutsceneForPhase(f);
+      if (PHASES[f].name === 'Fábrica') {
+        // H2 (2026-10-13, pedido do Murilo): "esse diálogo e o anterior
+        // gostaria que fosse em uma caixa de diálogo pequena, não gigante
+        // igual aos outros níveis". A chegada, o amigo e a virada correm
+        // no `systems/dialogo.ts` — a Fábrica não tem cena grande.
+        expect(idx, 'a Fábrica não abre cutscene grande (H2)').toBe(-1);
+        continue;
+      }
+      expect(idx, `fase ${f} (${PHASES[f].name}) sem cena de abertura`).toBeGreaterThanOrEqual(0);
+      expect(idx, `fase ${f} (${PHASES[f].name}) abre o epílogo`).not.toBe(EPILOGUE_CUTSCENE);
+    }
+  });
+
+  it('a fala da MOTHERSHIP não é a primeira linha do epílogo', () => {
+    // A MOTHERSIP é a 3ª da fila: ela morre NO MEIO da luta, então no roteiro
+    // dela a queda vem depois do NÚCLEO parar — nunca abre a cena.
+    const primeira = CUTSCENES[EPILOGUE_CUTSCENE].lines[0].text;
+    expect(primeira).not.toMatch(/MOTHERSHIP cai/i);
+  });
+
+  it('o epílogo fecha com o roll da jornada e o teaser da Parte II', () => {
+    // H4 (DECISIONS #174): NARRADOR + créditos da jornada + música nostálgica
+    // + teaser AHB-45. O roll cita quem a jornada perdeu e quem ficou no
+    // rádio — é o conteúdo do pedido do dono, travado aqui para um texto
+    // futuro não apagar a homenagem sem notar.
+    const texto = CUTSCENES[EPILOGUE_CUTSCENE].lines.map(l => l.text).join(' ');
+    // Rogério (não mais Fernandes): o amigo da Fábrica é o nome que a
+    // jornada sempre perde. O Júlio não entra na lista — ele pode sobreviver.
+    for (const nome of ['Joe', 'Arthur', 'Rogério', 'Ferreira', 'Vale']) {
+      expect(texto, `o roll da jornada não cita ${nome}`).toContain(nome);
+    }
+    expect(texto).toContain('FIM DA PARTE I');
+    expect(texto).toContain('AHB-45');
+    expect(texto).toContain('PART II EM BREVE');
+  });
+
+  it('isEpilogueScene só reconhece a cena do epílogo', () => {
+    resetStory();
+    pularPara(EPILOGUE_CUTSCENE);
+    showCutscene();
+    expect(isEpilogueScene()).toBe(true);
+    resetStory();
+    pularPara(cutsceneForPhase(FASE_FINAL));
+    showCutscene();
+    expect(isEpilogueScene()).toBe(false);
+  });
+});
+
+describe('diálogo: skipCutsceneText ainda completa só a linha', () => {
+  beforeEach(() => {
+    resetStory();
+  });
+
+  it('completa a linha sem fechar a cutscene', () => {
+    showCutscene();
+    updateCutscene(0.05);
+    skipCutsceneText();
+    expect(isLineComplete()).toBe(true);
+    expect(isShowingCutscene()).toBe(true);
+    expect(advanceCutscene()).toBe(false);
+    expect(isShowingCutscene()).toBe(true);
+  });
+});

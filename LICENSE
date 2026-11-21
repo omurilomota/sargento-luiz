@@ -1,21 +1,32 @@
-MIT License
+Copyright (c) 2026 Murilo Mota. Todos os direitos reservados.
 
-Copyright (c) 2026 Murilo Mota
+O código-fonte deste projeto é de propriedade exclusiva do autor.
+Nenhuma parte pode ser copiada, modificada, distribuída, sublicenciada
+ou utilizada, total ou parcialmente, sem autorização escrita prévia
+do titular dos direitos autorais.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Contribuições são bem-vindas e podem ser enviadas por pull request.
+Ao enviar uma contribuição, você concorda em transferir ao titular
+todos os direitos sobre essa contribuição, que passa a integrar o
+projeto sob esta mesma licença.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+---
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+AVISO SOBRE ASSETS DE TERCEIROS (não cobertos por esta licença):
+
+O repositório contém assets de terceiros com licenças próprias, que
+devem ser respeitadas independentemente desta licença de código:
+
+- Kenney (sprites, efeitos) — CC0 1.0 Universal
+- isaiah658, 50+ Monsters Pack 2D — CC0 1.0 Universal
+- Juhani Junkala / SubspaceAudio — CC0 1.0 Universal
+- Eric Matyas / soundimage.org — royalty-free com atribuição obrigatória
+- Vincent Sevedge — CC-BY 3.0
+- harrison-lord — CC-BY 3.0
+- LPC / OpenGameArt — CC0 1.0 Universal
+- Kay Lousberg — CC0 1.0 Universal
+
+A atribuição completa está em public/assets/CREDITS.md e
+public/assets/music/CREDITS.md e DEVE permanecer em qualquer cópia
+ou distribuição do jogo. A licença acima se aplica apenas ao código
+e aos materiais autorais do projeto.

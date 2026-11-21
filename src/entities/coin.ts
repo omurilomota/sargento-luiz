@@ -6,7 +6,8 @@
 
 import { Coin } from '../types';
 import { rand } from '../utils';
-import { COIN_LIFE, COLLECT_RADIUS, MAGNET_RADIUS, MAGNET_SPEED } from '../core/constants';
+import { moveCircleBy, pushOutOfWalls } from '../systems/tilemap';
+import { COIN_LIFE, COLLECT_RADIUS, MAGNET_RADIUS, MAGNET_SPEED, PICKUP_RADIUS } from '../core/constants';
 
 /** Lista de moedas ativas no campo */
 const coinList: Coin[] = [];
@@ -17,13 +18,11 @@ let permanentMagnet = false;
 
 /**
  * Retorna a lista de moedas ativas para renderização.
- * @returns array de moedas
  */
 export function getCoins(): Coin[] { return coinList; }
 
 /**
  * Ativa ou desativa o magnetismo das moedas.
- * @param active - true para ativar magnetismo
  */
 export function setMagnetActive(active: boolean): void { magnetActive = active; }
 
@@ -40,16 +39,24 @@ export function resetPermanentMagnet(): void { permanentMagnet = false; }
 /**
  * Cria moedas em uma posição com velocidades aleatórias.
  * Usado quando um inimigo é derrotado.
- * @param x - posição horizontal de origem
- * @param y - posição vertical de origem
- * @param count - quantidade de moedas a criar
  */
+/**
+ * Moedas GERADAS desde o load da fase (M3): a medição da economia compara
+ * o que o jogo CRIA por abate contra o que o modelo promete — coletar é
+ * comportamento do jogador, não torneira. Zerado junto com o campo.
+ */
+let moedasGeradas = 0;
+export function getMoedasGeradas(): number { return moedasGeradas; }
+export function zeraMoedasGeradas(): void { moedasGeradas = 0; }
+
 export function spawnCoins(x: number, y: number, count: number): void {
+  moedasGeradas += count;
   for (let i = 0; i < count; i++) {
     const angle = rand(0, Math.PI * 2);
     const spd = rand(50, 150);
+    const at = pushOutOfWalls(x + rand(-10, 10), y + rand(-10, 10), PICKUP_RADIUS);
     coinList.push({
-      x: x + rand(-10, 10), y: y + rand(-10, 10),
+      x: at.x, y: at.y,
       value: 1, life: COIN_LIFE,
       vx: Math.cos(angle) * spd, vy: Math.sin(angle) * spd,
     });
@@ -59,11 +66,6 @@ export function spawnCoins(x: number, y: number, count: number): void {
 /**
  * Atualiza posição, atração e coleta de todas as moedas.
  * Quando magnetismo está ativo, as moedas são atraídas de longe.
- * @param dt - delta time em segundos
- * @param playerX - posição horizontal do jogador
- * @param playerY - posição vertical do jogador
- * @param playerRadius - raio de colisão do jogador
- * @param onCollect - callback chamado quando o jogador coleta uma moeda
  */
 export function updateCoins(
   dt: number,
@@ -77,21 +79,27 @@ export function updateCoins(
     c.life -= dt;
     c.vx *= 0.95;
     c.vy *= 0.95;
-    c.x += c.vx * dt;
-    c.y += c.vy * dt;
+
+    const magnet = magnetActive || permanentMagnet;
+    let stepX = c.vx * dt;
+    let stepY = c.vy * dt;
 
     const dx = playerX - c.x;
     const dy = playerY - c.y;
     const d = Math.hypot(dx, dy);
-    const collectRadius = (magnetActive || permanentMagnet) ? MAGNET_RADIUS : playerRadius + COLLECT_RADIUS;
+    const collectRadius = magnet ? MAGNET_RADIUS : playerRadius + COLLECT_RADIUS;
 
     if (d < collectRadius) {
-      const speed = (magnetActive || permanentMagnet) ? MAGNET_SPEED : 200;
-      const nx = dx / (d || 1);
-      const ny = dy / (d || 1);
-      c.x += nx * speed * dt;
-      c.y += ny * speed * dt;
+      const speed = magnet ? MAGNET_SPEED : 200;
+      stepX += (dx / (d || 1)) * speed * dt;
+      stepY += (dy / (d || 1)) * speed * dt;
     }
+
+    // Deslize por eixo: sem isto a velocidade inicial da moeda a empurrava
+    // para dentro da parede e ela morria ali, intocável.
+    const moved = moveCircleBy(c.x, c.y, stepX, stepY, PICKUP_RADIUS);
+    c.x = moved.x;
+    c.y = moved.y;
 
     if (d < playerRadius + 8) {
       onCollect(c.value);

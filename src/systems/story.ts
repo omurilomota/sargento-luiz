@@ -3,8 +3,10 @@
  * Narração com diálogos, retratos de personagens e efeito de máquina de escrever.
  */
 
+import { PALETTE } from '../core/palette';
+
 /** Personagens da história */
-export type Character = 'narrador' | 'rios' | 'comandante' | 'cientista' | 'mensagem';
+export type Character = 'narrador' | 'rios' | 'comandante' | 'cientista' | 'mensagem' | 'medico' | 'bot' | 'viajante' | 'fernando' | 'doutor';
 
 /** Uma fala na cutscene */
 export interface DialogueLine {
@@ -12,6 +14,10 @@ export interface DialogueLine {
   speaker: Character;
   /** Texto da fala */
   text: string;
+  /** Efeito que dispara quando ESTA linha aparece (o molde da caixa
+   *  pequena): a risada do epílogo tem que sair NA LINHA do riso, não na
+   *  abertura da cena — "risada na hora errada", duas vezes no playtest. */
+  efeito?: 'risada';
 }
 
 /** Uma cutscene completa */
@@ -24,103 +30,213 @@ export interface Cutscene {
   lines: DialogueLine[];
 }
 
-/** Retratos dos personagens (desenhos Canvas2D) */
-const PORTRAITS: Record<Character, { name: string; color: string }> = {
-  narrador: { name: '', color: '#888' },
-  rios: { name: 'SARGENTO RIOS', color: '#7a9a6a' },
-  comandante: { name: 'COMANDANTE VALE', color: '#b07050' },
-  cientista: { name: 'DRA. FERREIRA', color: '#608090' },
-  mensagem: { name: 'MENSAGEM Interceptada', color: '#a08050' },
+/** Retratos dos personagens. `sprite` é a pose do pack Kenney usada no
+ * desenho da cutscene (Regra 15: visual vem de asset, nunca de código).
+ * Vazio (narrador/mensagem) é entidade sem forma física — o renderer cai no
+ * fallback procedural quando o asset não carregou. */
+const PORTRAITS: Record<Character, { name: string; color: string; sprite: string }> = {
+  narrador: { name: '', color: '#888', sprite: '' },
+  rios: { name: 'SARGENTO LUIZ', color: '#7a9a6a', sprite: 'survivor_hold' },
+  comandante: { name: 'COMANDANTE VALE', color: '#b07050', sprite: 'soldier_hold' },
+  cientista: { name: 'DRA. FERREIRA', color: '#608090', sprite: 'woman_hold' },
+  mensagem: { name: 'MENSAGEM INTERCEPTADA', color: '#a08050', sprite: '' },
+  medico: { name: 'JÚLIO', color: PALETTE.stone, sprite: 'manBlue_hold' },
+  bot: { name: 'BOT #89', color: PALETTE.stone, sprite: 'robot_hold' },
+  viajante: { name: 'VIAJANTE #23', color: '#a08050', sprite: 'manOld_hold' },
+  fernando: { name: 'ROGÉRIO', color: '#8a6a4a', sprite: 'manBrown_hold' },
+  doutor: { name: 'DR. FERNANDO', color: '#8a9a9a', sprite: 'hitman_hold' },
 };
 
-/** Cutscenes do jogo */
+/**
+ * Cutscenes do jogo.
+ *
+ * Cada bloco declara um fato concreto da fase que ele abre, para o texto
+ * concordar com `PHASES` em `config.ts`. Premissa V2: Luiz vai reagrupar no
+ * batalhão do norte, e o Núcleo (fase 9) é a máquina que gera os zumbis — a
+ * MegaCorp 2089 (trilionários) a ligou e fugiu do planeta. A cutscene não
+ * repete o que o diário já conta sobre a mesma parada.
+ */
 export const CUTSCENES: Cutscene[] = [
   {
     title: 'PRÓLOGO',
     color: '#b07050',
     lines: [
+      { speaker: 'narrador', text: 'O quartel caiu de madrugada. Luiz acorda debaixo de uma viga, com o rádio chiando no bolso.' },
+      { speaker: 'narrador', text: 'Sete caras do esquadrão no pátio. Nenhum se mexe. O cheiro vem antes da luz.' },
       { speaker: 'mensagem', text: '[ TRANSMISSÃO INTERCEPTADA — 12/03/2087 ]' },
-      { speaker: 'comandante', text: 'Alpha-1, aqui é Vale. Você recebeu?' },
-      { speaker: 'rios', text: 'Recebi, comandante. Mas não vou gostar disso.' },
-      { speaker: 'comandante', text: 'A pandemia se espalhou. 80% da população transformada.' },
-      { speaker: 'comandante', text: 'Seu esquadrão foi designado para chegar ao Bunker Central.' },
-      { speaker: 'rios', text: 'Meu esquadrão? Comandante, sobrou eu e o silêncio.' },
-      { speaker: 'comandante', text: '...Lamento, Rios. Mas a Dra. Ferreira tem uma hipótese.' },
-      { speaker: 'comandante', text: 'Se você chegar lá, pode haver uma cura. Pode.' },
-      { speaker: 'rios', text: '"Pode." Ótimo. Só preciso atravessar meio mundo infestado.' },
-      { speaker: 'comandante', text: 'Você é o último, Rios. Não temos outra opção.' },
-      { speaker: 'rios', text: 'Entendido. Saindo agora.' },
+      { speaker: 'comandante', text: 'Alpha-1, aqui é Vale. Se você tá me ouvindo, você é o que sobrou.' },
+      { speaker: 'rios', text: 'Ouvi, comandante. Sete no pátio. Todos meus.' },
+      { speaker: 'comandante', text: '...Porra. Luiz, escuta. O batalhão do norte ainda marca ponto no mapa.' },
+      { speaker: 'rios', text: 'O norte. Isso é atravessar o país inteiro.' },
+      { speaker: 'comandante', text: 'Atravessa. É a única ordem que me resta. Chegue no outro batalhão, Luiz.' },
+      { speaker: 'rios', text: 'E se não tiver ninguém lá?' },
+      { speaker: 'comandante', text: 'Aí você para. Me conta. Mas você vai. Vai por eles.' },
+      { speaker: 'narrador', text: 'Ele cobre o rosto do mais novo com a própria farda antes de sair. A farda fica pesada de terra.' },
+      { speaker: 'rios', text: 'Nunca mais vai ser a mesma coisa. Cidade que sempre amei.' },
+      { speaker: 'rios', text: 'Isso aqui parece uma série cara. Não é possível que eu tenho de passar por isso.' },
+      { speaker: 'narrador', text: 'No horizonte, o céu fecha pesado do lado do mar. Um vento quente empurra a poeira contra as pernas dele.' },
+      { speaker: 'rios', text: 'Esse vento não promete nada. Melhor andar logo.' },
+    ],
+  },
+  {
+    title: 'RODOVIA',
+    color: '#9a8860',
+    lines: [
+      { speaker: 'narrador', text: 'A estrada norte corta o que sobrou do país. As portas dos carros ficaram abertas. As chaves continuam na ignição.' },
+      { speaker: 'rios', text: 'Nunca imaginei o silêncio daqui… Costumava ser movimentada.' },
+      { speaker: 'rios', text: 'Será que tem mais mantimentos ou suprimentos nesses carros?' },
+      { speaker: 'narrador', text: 'O pedágio segue com a cancela baixa. Tem uma coisa atrás do vidro da cabine.' },
+      { speaker: 'rios', text: 'Se é pedágio que ele quer, é pedágio que ele leva.' },
     ],
   },
   {
     title: 'FLORESTA',
     color: '#7a9a6a',
     lines: [
-      { speaker: 'narrador', text: 'A floresta ao norte da cidade. Onde tudo parou.' },
-      { speaker: 'rios', text: 'Silêncio demais. Isso é pior que barulho.' },
-      { speaker: 'narrador', text: 'Entre as árvores, figuras se movem. Devagar. Com fome.' },
-      { speaker: 'rios', text: 'Eles... ainda usam roupas. Eram pessoas.' },
-      { speaker: 'rios', text: 'Não olho para trás. Não posso.' },
-      { speaker: 'narrador', text: 'Os primeiros mutantes. Fracos, mas numerosos.' },
-      { speaker: 'rios', text: 'Se isso é o começo, o que vem depois?' },
+      { speaker: 'rios', text: 'Passei por essa estrada cem vezes. Levava o Joe pescar no riacho, atrás do morro.' },
+      { speaker: 'narrador', text: 'A floresta começa onde o asfalto acaba. Panos de roupa presos nos galhos, na altura de um segundo andar.' },
+      { speaker: 'rios', text: 'Nenhum pássaro. Nem vento. Só o meu passo voltando.' },
+      { speaker: 'narrador', text: 'A casa do Joe ainda está de pé. A porta aberta, batendo devagar.' },
+      { speaker: 'rios', text: 'Joe. Seu velho teimoso. Você plantou essas árvores e agora elas te enterraram.' },
+      { speaker: 'narrador', text: 'Duas xícaras na mesa da cozinha. Uma virada, a bebida secou faz tempo.' },
+      { speaker: 'rios', text: 'Duas xícaras. Você tava esperando alguém, Joe.' },
+      { speaker: 'rios', text: 'Saudades daqui. Gostava de brincar no balanço, e tinha aquela casa da cabana sombria que meus amigos falavam que tinha uma bruxa.' },
+      { speaker: 'rios', text: 'Certeza que era mentira.' },
+      { speaker: 'rios', text: 'As trilhas que nunca levavam a lugar nenhum… O que importava era a brincadeira.' },
+      { speaker: 'rios', text: 'Agora só tem zumbis. Vou destruir todos!' },
+      { speaker: 'narrador', text: 'Movimento entre os troncos. Sempre a uns quarenta metros, sempre parando quando ele para.' },
+      { speaker: 'rios', text: 'Eles ainda usam roupa. Eram gente. Gente como o Joe.' },
+      { speaker: 'narrador', text: 'Ele senta na varanda e bebe da xícara virada. Não tem nada dentro. Fica assim um tempo.' },
+    ],
+  },
+  {
+    title: 'HOSPITAL',
+    color: '#8a9a9a',
+    lines: [
+      { speaker: 'narrador', text: 'O hospital de campanha que o Ferreira marcou no rádio. As lonas das tendas ainda estão de pé. Os terminais, também.' },
+      { speaker: 'rios', text: 'Se nem os médicos têm a cura, quem dirá eu!' },
+      { speaker: 'narrador', text: 'Uma voz de dentro da ala principal grita com quem chegou. Ainda tem gente viva aqui.' },
+      { speaker: 'rios', text: 'Gente viva é o que eu menos esperava encontrar hoje.' },
     ],
   },
   {
     title: 'CAVERNA',
     color: '#608090',
     lines: [
-      { speaker: 'narrador', text: 'A caverna de crystal. Ninguém volta de lá.' },
-      { speaker: 'rios', text: 'Escuro total. Perfeito para morrer.' },
-      { speaker: 'narrador', text: 'Brilhos estranhos nas paredes. Energia pura.' },
-      { speaker: 'rios', text: 'Os morcegos... eles voam em formação. Isso não é normal.' },
-      { speaker: 'narrador', text: 'Os mutantes aqui são mais rápidos. Mais inteligentes.' },
-      { speaker: 'rios', text: 'Algo está dirigindo eles. Não é instinto.' },
+      { speaker: 'rios', text: 'Finalmente saí da floresta. Os zumbis estão evoluindo rapidamente.' },
+      { speaker: 'rios', text: 'No hospital, os médicos ainda tentavam entender isso. Não entenderam a tempo.' },
+      { speaker: 'rios', text: 'Pelo menos aqui na caverna não deve ter nenhum!' },
+      { speaker: 'narrador', text: 'A lanterna dele está no chão, virada pra parede. A luz morreu faz tempo.' },
+      { speaker: 'narrador', text: 'Arthur está sentado de costas pra saída, como quem esperava alguém descer pelo túnel.' },
+      { speaker: 'rios', text: '...Arthur.' },
+      { speaker: 'narrador', text: 'A mochila do lado está cheia. Ele tava enchendo pra levar embora. Não deu tempo.' },
+      { speaker: 'rios', text: 'Treze anos. Você me trouxe aqui e falou que aqui embaixo ninguém mandava na gente.' },
+      { speaker: 'narrador', text: 'Três pontos de luz pulsam no fundo, no mesmo ritmo. Não é mineral. Tá se reproduzindo.' },
+      { speaker: 'narrador', text: 'Grr… vem do túnel de baixo. Perto.' },
+      { speaker: 'rios', text: 'O que é isso? Ah não…' },
+      { speaker: 'rios', text: 'Você ficou com o lugar. Eu levo o crachá.' },
+      { speaker: 'narrador', text: 'Guarda no bolso da farda, do lado de dentro. Do lado do peito.' },
     ],
   },
   {
-    title: 'FÁBRICA',
-    color: '#999',
+    title: 'PÁTIO DE TRENS',
+    color: '#8a7a5a',
     lines: [
-      { speaker: 'rios', text: 'A BioGen Corp. Onde tudo começou.' },
-      { speaker: 'narrador', text: 'Placa na entrada: "PROJETO GENESIS — NÃO AUTORIZADO."' },
-      { speaker: 'rios', text: 'Genesis. Eles chamaram isso de progresso.' },
-      { speaker: 'narrador', text: 'Robôs de segurança patrulham os corredores. Contaminados.' },
-      { speaker: 'rios', text: 'Até as máquinas ficaram doentes aqui.' },
-      { speaker: 'rios', text: 'Preciso encontrar os registros. A Dra. Ferreira precisa saber.' },
+      { speaker: 'narrador', text: 'O manifesto do vagão sete diz "BioGen — urgente — não abrir".' },
+      { speaker: 'narrador', text: 'Um trem passa no pátio. Os vagões abrem sozinhos, e o que está dentro desce em fila.' },
+      { speaker: 'rios', text: 'Ué… Como assim os trens funcionam ainda?' },
+      { speaker: 'rios', text: 'O maquinista deve estar morto-vivo. Não é possível, cara. Que azar.' },
+      { speaker: 'narrador', text: 'Os trilhos zumbem com corrente que ninguém desligou. O cheiro de óleo queimado vem de dentro dos vagões.' },
+    ],
+  },
+  {
+    title: 'PONTE',
+    color: '#7a8a9a',
+    lines: [
+      { speaker: 'narrador', text: 'A única travessia por quilômetros. Metade da ponte caiu. A outra metade não é sua.' },
+      { speaker: 'rios', text: 'Se eu conseguir chegar do outro lado, economizo muito tempo. Mas tem muitos zumbis por aqui. Estou cercado. Puta merda!' },
+      { speaker: 'narrador', text: 'Coisas que vivem nos cabos de aço descem quando sentem peso na estrutura.' },
+      { speaker: 'rios', text: 'Atravessa ou morre tentando. Não tem terceira opção.' },
     ],
   },
   {
     title: 'PÂNTANO',
     color: '#5a8a7a',
     lines: [
-      { speaker: 'narrador', text: 'A zona tóxica. O ar queima os pulmões.' },
-      { speaker: 'rios', text: 'Cada respiração é um pedaço de mim que vai embora.' },
-      { speaker: 'narrador', text: 'Slimes venenosos. Mosquitos do tamanho de cachorros.' },
-      { speaker: 'rios', text: 'O pantano não quer me ver passar. Concordo com ele.' },
-      { speaker: 'rios', text: 'Mas o Bunker está do outro lado. Não posso parar.' },
+      { speaker: 'narrador', text: 'Névoa baixa, amarela, com cheiro de PVC. A bússola gira sem parar.' },
+      { speaker: 'rios', text: 'Aqui eu não conheço nada. Nem o nome do lugar.' },
+      { speaker: 'rios', text: 'Nada mais me surpreende. Daqui a pouco estão saindo do chão.' },
+      { speaker: 'narrador', text: 'A lama borbulha perto da bota dele. Um som grosso, devagar, como quem engole.' },
+      { speaker: 'rios', text: '...Tenho que tomar cuidado com o que falo nesse lugar.' },
+      { speaker: 'narrador', text: 'A lama sobe até o joelho depois de vinte metros. E gruda.' },
+      { speaker: 'narrador', text: 'Um corpo boia de bruços, de uniforme. O distintivo foi polido até sumir.' },
+      { speaker: 'rios', text: '...Não é do meu batalhão. Não reconheço. Isso é pior.' },
+      { speaker: 'narrador', text: 'A lama estala e cede meio palmo sob a bota. O barulho vem antes do tombo.' },
+      { speaker: 'rios', text: 'Ohoa…! Quase engoliu a bota junto.' },
+      { speaker: 'narrador', text: 'A água sobe mais um palmo sem que tenha chovido.' },
+      { speaker: 'rios', text: 'Esse lugar tá engolindo gente. E eu tô no meio.' },
+    ],
+  },
+  {
+    title: 'REFINARIA',
+    color: '#9a603a',
+    lines: [
+      { speaker: 'narrador', text: 'O foguete do Castelo bebe combustível refinado. Esta refinaria é a mais próxima que ainda tem tanque.' },
+      { speaker: 'rios', text: 'Objetivo simples: pegar gasolina. Espero que os zumbis não tenham queimado ou tomado tudo.' },
+      { speaker: 'rios', text: 'Vai saber. Nunca duvide de nada.' },
+      { speaker: 'narrador', text: 'As torres de destilação apontam para o céu como dedos. O fogo entre elas não é o fogo do trabalho.' },
     ],
   },
   {
     title: 'CASTELO',
     color: '#8070a0',
     lines: [
-      { speaker: 'narrador', text: 'A fortaleza. Onde os mutantes se organizam.' },
-      { speaker: 'rios', text: 'Eles constuíram algo. Não é caos. É sociedade.' },
-      { speaker: 'narrador', text: 'Cavaleiros de ossos guardam os portões.' },
-      { speaker: 'rios', text: 'E no topo... o Rei. O primeiro mutante. O mais forte.' },
-      { speaker: 'rios', text: 'Se eu passar dele, o caminho fica aberto.' },
-      { speaker: 'rios', text: 'Se eu não passar... bem, pelo menos tentei.' },
+      { speaker: 'narrador', text: 'Muros de pedra, portões de ferro, torres com luz em cima. Alguém ainda acende as torres.' },
+      { speaker: 'rios', text: 'Eles ergueram isso. Não é bando. É governo.' },
+      { speaker: 'rios', text: 'Bom, de acordo com a coordenada daquela cápsula, o antigo abrigo deles era aqui.' },
+      { speaker: 'rios', text: 'Vamos ver o que temos aqui!' },
+      { speaker: 'narrador', text: 'Os cavaleiros dos portões são montados com osso de gente. O povo virou muro.' },
+      { speaker: 'narrador', text: 'No muro principal, algo grande se levanta. O REI MUTANTE tava esperando.' },
+    ],
+  },
+  {
+    title: 'SUBESTAÇÃO',
+    color: '#7a9aaa',
+    lines: [
+      { speaker: 'narrador', text: 'A subestação que alimenta o NÚCLEO. Cortar o fornecimento aqui enfraquece o coração da máquina.' },
+      { speaker: 'rios', text: 'OK. Já cheguei muito longe, sem tempo de olhar para trás. Vamos nessa!' },
+      { speaker: 'narrador', text: 'Os transformadores ronam com a carga que passa por eles. Algo se alimenta dessa corrente.' },
     ],
   },
   {
     title: 'VULCÃO',
     color: '#b07050',
     lines: [
-      { speaker: 'narrador', text: 'A zona industrial em chamas. O calor é insuportável.' },
-      { speaker: 'rios', text: 'A terra treme. Não é terremoto. É raiva.' },
-      { speaker: 'narrador', text: 'Elementais de fogo surgem da lava.' },
-      { speaker: 'rios', text: 'O Bunker está além dessa fumaça. Eu sinto.' },
-      { speaker: 'rios', text: 'Mais um passo. Só mais um.' },
+      { speaker: 'narrador', text: 'O calor levanta o asfalto. O concreto estala e levanta em placas.' },
+      { speaker: 'rios', text: 'Se me contassem que eu ia morrer num vulcão, eu ria. E olha eu aqui.' },
+      { speaker: 'narrador', text: 'A lava subiu três metros desde a última vez que ele passou.' },
+      { speaker: 'rios', text: 'Minha irmã morava numa cidade quente assim. Dizia que o calor era vida.' },
+      { speaker: 'rios', text: 'Não sei se ela tá viva. Não sei faz meses. E eu sigo.' },
+      { speaker: 'narrador', text: 'Elementais de fogo sobem do chão junto com a brasa.' },
+      { speaker: 'rios', text: 'Meu pai foi sargento. Aguentou trinta anos sem reclamar. Dizia que a gente segue por teimosia.' },
+      { speaker: 'rios', text: 'Não é coragem. É teimosia. É o que me trouxe até aqui.' },
+      { speaker: 'rios', text: 'Continua em frente, pra manter o legado. É o que ele deixou pra eu fazer.' },
+      { speaker: 'narrador', text: 'No fim do corredor, o INFERNO PRIME se levanta do magma.' },
+      { speaker: 'rios', text: 'A zona fica do outro lado. Eu não limpo. Eu passo.' },
+    ],
+  },
+  {
+    title: 'PORTO',
+    color: '#6a8a9a',
+    lines: [
+      { speaker: 'narrador', text: 'A última linha de suprimentos do NÚCLEO. Os navios chegam com peças e saem com o que sobra das cidades.' },
+      { speaker: 'rios', text: 'Consigo ver… Aparentemente os zumbis trabalham para eles. Quem imaginaria, né?' },
+      { speaker: 'rios', text: 'Crachá em cada gancho. Linha de produção.' },
+      { speaker: 'rios', text: 'Eles não fugiram. Foram escalados.' },
+      { speaker: 'rios', text: 'Vou me aproximar e ver o que posso fazer. Bom, percebo uma linha de produção. Preciso destruir as máquinas e eles ficam nas mãos, vou me a—' },
+      { speaker: 'narrador', text: 'Uma voz corta o pátio, do alto do guindaste de carga.' },
+      { speaker: 'mensagem', text: 'EI! QUEM É VOCÊ?' },
+      { speaker: 'rios', text: 'Agora descobri quem pergunta. Último porto antes do espaço. Depois disto, não tem mais terra.' },
     ],
   },
   {
@@ -128,24 +244,80 @@ export const CUTSCENES: Cutscene[] = [
     color: '#8070a0',
     lines: [
       { speaker: 'mensagem', text: '[ TRANSMISSÃO — ESTAÇÃO ORBITAL EREBUS ]' },
-      { speaker: 'rios', text: 'Uma estação orbital? Como chegou aqui em cima?' },
-      { speaker: 'narrador', text: 'OVNs patrulham o espaço. A Mãe-Nave espera no centro.' },
-      { speaker: 'rios', text: 'Tudo que eu passei... foi pra chegar aqui.' },
-      { speaker: 'rios', text: 'Vou destruir essa porra. Pela Terra. Pelos que ficaram.' },
+      { speaker: 'rios', text: 'A placa do casco diz MONTAGEM 2079. Trinta anos em órbita e o chão ainda tá molhado.' },
+      { speaker: 'narrador', text: 'Cinco discos em formação apertada. No centro, ancorada com a porta de carga aberta.' },
+      { speaker: 'rios', text: 'MOTHERSHIP. A Vale usava esse nome. É ela que espalha eles pro resto do mundo.' },
+      { speaker: 'rios', text: 'O núcleo faz. Ela joga longe. Enquanto ela voar, não adianta eu ter chegado.' },
+      { speaker: 'narrador', text: 'Aqui não tem chão pra se cobrir. Nenhuma parede pra parar tiro.' },
+      { speaker: 'bot', text: 'INIMIGO DETECTADO! ATIRAR PROJÉTEIS.' },
+      { speaker: 'rios', text: 'Não tão antes que eu já estou aqui!' },
+      { speaker: 'narrador', text: 'A primeira salva raspa o casco. A explosão de trás joga Luiz contra a parede do corredor.' },
+      { speaker: 'rios', text: 'Joe. Arthur. Rogério. Se vocês tão em algum lugar, olha.' },
+      { speaker: 'narrador', text: 'O casco central abre a porta de carga. Não pra receber. Pra descer.' },
+      { speaker: 'rios', text: 'Última esperança. Eu não posso decepcionar.' },
+    ],
+  },
+  {
+    title: 'NÚCLEO-CENTRAL',
+    color: '#8b4040',
+    lines: [
+      { speaker: 'narrador', text: 'O pátio do batalhão do norte está vazio. As tendas continuam montadas.' },
+      { speaker: 'rios', text: 'Vale. Tô chegando. Quantos?' },
+      { speaker: 'narrador', text: 'O rádio devolve estática. Ninguém responde.' },
+      { speaker: 'narrador', text: 'No centro do pátio, uma cratera de doze metros. A borda está vítrea.' },
+      { speaker: 'narrador', text: 'No fundo, a máquina. Quatro andares de metal pulsando.' },
+      { speaker: 'narrador', text: 'O mesmo pulso do cristal que o Arthur carregava na mochila.' },
+      { speaker: 'rios', text: 'Agora você vai ver só seus trilionários. Vocês estão fudidos.' },
+      { speaker: 'narrador', text: 'A máquina não tem rosto pra responder. O painel registra o intruso do mesmo jeito.' },
+      { speaker: 'narrador', text: 'Um homem sai do galpão pela porta dos fundos. Mochila de viajante, crachá número vinte e três.' },
+      { speaker: 'viajante', text: 'Ei, você! Pegue isto!' },
+      { speaker: 'narrador', text: 'O martelo é AI-ON, o mais potente do universo. O traje de contenção vem junto, os dois deixados de propósito.' },
+      { speaker: 'viajante', text: 'O universo está a meu favo-' },
+      { speaker: 'narrador', text: 'A explosão do pátio engole o resto da frase. Quando o clarão baixa, o viajante não está mais ali.' },
+      { speaker: 'mensagem', text: '[ NÚCLEO — INTRUSO AVISTADO! MODO NEUTRALIZADOR ATIVO ]' },
+      { speaker: 'rios', text: 'Então é aqui. É tudo que sobrou.' },
     ],
   },
   {
     title: 'EPÍLOGO',
     color: '#a08050',
     lines: [
-      { speaker: 'narrador', text: 'A Mãe-Nave caiu. Os mutantes enfraquecem.' },
-      { speaker: 'comandante', text: 'Rios? RIOS! Você está aí?' },
-      { speaker: 'rios', text: 'Estou... por aqui, comandante.' },
-      { speaker: 'comandante', text: 'A cura está a caminho. Você conseguiu.' },
-      { speaker: 'rios', text: 'Não fui só eu. Foram todos que caíram no caminho.' },
-      { speaker: 'comandante', text: 'A humanidade não vai esquecer, Rios.' },
-      { speaker: 'rios', text: 'Espero que não. Agora... me deixa dormir.' },
-      { speaker: 'narrador', text: 'FIM.' },
+      { speaker: 'narrador', text: 'O NÚCLEO para de pulsar. O metal esfria de fora pra dentro e leva quatro minutos.' },
+      { speaker: 'mensagem', text: '[ INSTABILIDADE REGISTRADA… MODO CRÍ-CRÍ-CRÍ-TICOOOOO ]' },
+      { speaker: 'rios', text: 'HAHAHAHA! Acabei com você, maldição! Mas ainda não acabou!', efeito: 'risada' },
+      { speaker: 'rios', text: 'Os responsáveis ainda precisam ter uma conversa comigo.' },
+      { speaker: 'narrador', text: 'O MOTHERSHIP cai a três quilômetros dali. A luz do rompimento desce por quarenta minutos e depois some.' },
+      { speaker: 'narrador', text: 'O céu fica quieto. É a primeira noite limpa desde que o quartel caiu.' },
+      { speaker: 'narrador', text: 'Luiz abre o painel de manutenção. O registro continua na tela.' },
+      { speaker: 'mensagem', text: '[ REGISTRO — MEGACORP 2089 — TESTES EM HUMANOS — APROVADO SEM PARECER ]' },
+      { speaker: 'mensagem', text: '[ MEGACORP 2089 — IMPLANTE 2085 — MÃO DE OBRA — 4.112 REGISTRADOS ]' },
+      { speaker: 'mensagem', text: '[ 217 RECUSAS — CONTENÇÃO FALHOU — MODO NEUTRALIZADOR PERMANENTE ]' },
+      { speaker: 'rios', text: 'O Arthur era o 23. Duzentos e dezessete não quiseram.' },
+      { speaker: 'rios', text: 'E o Núcleo continuou chamando.' },
+      { speaker: 'rios', text: 'Gente rica. Rodaram o país inteiro e não ficaram pra ver o resultado.' },
+      { speaker: 'narrador', text: 'Outra linha no painel. Destino. Fora da Terra.' },
+      { speaker: 'mensagem', text: '[ EVACUAÇÃO DA DIRETORIA — PLANETA HABITÁVEL — COORDENADAS SELADAS ]' },
+      { speaker: 'rios', text: 'Eles pilharam a Terra e venderam a máquina. Depois fugiram do mundo.' },
+      { speaker: 'narrador', text: 'Luiz encosta a mão no metal. Ainda morno.' },
+      { speaker: 'rios', text: 'Joe. Arthur. Rogério. Eu desliguei. Por vocês.' },
+      { speaker: 'narrador', text: 'Ele acha um galpão nos fundos. Uma nave quebrada. Dava pra consertar. Dava.' },
+      { speaker: 'rios', text: 'Um dia eu alcanço vocês. Um dia.' },
+      { speaker: 'narrador', text: 'O canal do Vale fica aberto. O silêncio do outro lado não pergunta.' },
+      { speaker: 'narrador', text: 'Luiz desce a rampa com o registro no bolso e o Bunker nas costas.' },
+      { speaker: 'narrador', text: 'A jornada passa na cabeça dele enquanto anda.' },
+      { speaker: 'narrador', text: 'O quartel da Cidade, que caiu primeiro. A cabana do Joe na Floresta, com o balanço parado na varanda.' },
+      { speaker: 'narrador', text: 'A Caverna onde o Arthur ficou. A Fábrica com a cápsula vaga. O Pântano que engolia sem pressa.' },
+      { speaker: 'narrador', text: 'O portão do Castelo, com o foguete guardado atrás dele à espera de um motor.' },
+      { speaker: 'narrador', text: 'O Vulcão, a estação no Espaço. E o Núcleo, que agora é metal frio.' },
+      { speaker: 'narrador', text: 'O Ferreira ainda transmite pela 4.7. O Vale responde quando pode.' },
+      { speaker: 'rios', text: 'Deu. Chegamos até aqui e ainda tem gente no rádio.' },
+      { speaker: 'narrador', text: 'Na tela do painel, antes de sair, o destino piscava devagar.' },
+      { speaker: 'mensagem', text: '[ DESTINO DA DIRETORIA — PLANETA AHB-45 — VERIFICAÇÃO PENDENTE ]' },
+      { speaker: 'rios', text: 'AHB-45. Anota aí, Vale. Um dia a gente vai até eles.' },
+      { speaker: 'narrador', text: 'A vida na terra está voltando ao normal aos poucos. Luiz não tem paz ainda — ele quer a vingança inteira.' },
+      { speaker: 'narrador', text: 'Será que ele vai conseguir? AHB-45 fica muito distante… Como ele vai fazer isso?' },
+      { speaker: 'narrador', text: 'FIM DA PARTE I.' },
+      { speaker: 'mensagem', text: '[ PART II EM BREVE — AHB-45 ]' },
     ],
   },
 ];
@@ -159,9 +331,11 @@ let textProgress = 0;
 let lineComplete = false;
 let fadeAlpha = 0;
 let fadingIn = true;
+/** Tempo restante do beat de silêncio (linha "---"). */
+let holdingBeat = 0;
 
 /** Velocidade do texto (caracteres por segundo) */
-const TEXT_SPEED = 18;
+const TEXT_SPEED = 40;
 
 export function getCurrentCutscene(): Cutscene {
   return CUTSCENES[currentCutsceneIndex] || CUTSCENES[0];
@@ -184,16 +358,6 @@ export function getTextProgress(): number {
   return textProgress;
 }
 
-export function getFadeAlpha(): number {
-  return fadeAlpha;
-}
-
-export function nextCutscene(): void {
-  if (currentCutsceneIndex < CUTSCENES.length - 1) {
-    currentCutsceneIndex++;
-  }
-}
-
 export function resetStory(): void {
   currentCutsceneIndex = 0;
   currentLineIndex = 0;
@@ -209,22 +373,108 @@ export function showCutscene(): void {
   showingCutscene = true;
   cutsceneTimer = 0;
   currentLineIndex = 0;
+  dispararEfeitoDaLinha(getCurrentCutscene().lines[0]);
   textProgress = 0;
   lineComplete = false;
   fadeAlpha = 0;
   fadingIn = true;
 }
 
+/**
+ * Índice da cutscene que abre a fase.
+ *
+ * `showCutscene()` é chamado em 2 lugares, ambos no menu, então só o PRÓLOGO
+ * jogava: 62 das 69 linhas escritas eram conteúdo morto, e com elas os 3 finais
+ * do epílogo. Este mapa liga cada fase à sua cena.
+ *
+ * Fase 0 abre o PRÓLOGO. A fase 8 (Bunker Central) abre a NÚCLEO-CENTRAL, e
+ * a resolução é o EPÍLOGO, que vem depois do chefe final.
+ *
+ * Antes a fase 8 apontava para o EPÍLOGO: as duas eram a MESMA cena (`8: 8`),
+ * então o jogador lia o fim antes de lutar e lia de novo no fim — e a primeira
+ * linha do epíLOGO era "O MOTHERSHIP cai", sendo que a MOTHERSHIP é a 3ª da
+ * fila do NÚCLEO (`NUCLEO_RUSH`). A abertura passou a ser cena própria e a
+ * linha da MOTHERSHIP foi para o meio do epíLOGO, onde a coisa aconteceu.
+ *
+ * O EPÍLOGO é o ÚLTIMO índice da lista, e essa ordem é contrato:
+ * `skipCutscene` só encerra o jogo na última. `cutscene.test.ts` cobre.
+ * O epílogo não tem mais escolhas: a reescrita de 2026-10-13 (DECISIONS
+ * #174) trocou os 3 finais por NARRADOR + créditos da jornada + teaser
+ * AHB-45, e a maquinaria de escolhas saiu junto (semOrfao limpo).
+ *
+ * A FÁBRICA não abre cutscene grande (H2, 2026-10-13): a chegada, o amigo
+ * e a cápsula correm na CAIXA PEQUENA de diálogo (`systems/dialogo.ts`),
+ * a pedido do Murilo — "caixa de diálogo pequena, não gigante igual aos
+ * outros níveis". Por isso a tabela pula o índice 5 (a Fábrica).
+ *
+ * Com as 7 fases novas (2026-10-14), a campanha tem 16 entradas e a lista
+ * tem 15 cenas grandes + o epílogo (a Fábrica é a única sem cena).
+ */
+// M4 (2026-10-15): a ORDEM das fases mudou (Castelo depois do Porto — o
+// foguete enche tanque antes do conserto); a chave continua sendo o ÍNDICE
+// da fase e o valor o índice da CENA, que não se mexeu.
+const FASE_PARA_CUTSCENE: Record<number, number> = {
+  0: 0,   // Cidade -> PRÓLOGO
+  1: 1,   // Rodovia -> RODOVIA
+  2: 2,   // Floresta -> FLORESTA
+  3: 3,   // Hospital -> HOSPITAL
+  4: 4,   // Caverna -> CAVERNA
+  // 5 (Fábrica): caixa pequena, ver dialogo.ts e o script da fase no main
+  6: 5,   // Pátio de Trens -> PÁTIO DE TRENS
+  7: 6,   // Ponte -> PONTE
+  8: 7,   // Pântano -> PÂNTANO
+  9: 8,   // Refinaria -> REFINARIA
+  10: 10, // Subestação -> SUBESTAÇÃO
+  11: 11, // Vulcão -> VULCÃO
+  12: 12, // Porto -> PORTO
+  13: 9,  // Castelo -> CASTELO (M4: agora depois do Porto)
+  14: 13, // Espaço -> ESPAÇO
+  15: 14, // Bunker -> NÚCLEO-CENTRAL (o EPÍLOGO fecha depois do chefe final)
+};
+
+export const EPILOGUE_CUTSCENE = 15;
+
+/** Índice da cutscene que abre a fase, ou -1 se essa fase não abre uma. */
+export function cutsceneForPhase(phaseIndex: number): number {
+  const idx = FASE_PARA_CUTSCENE[phaseIndex];
+  return idx === undefined ? -1 : idx;
+}
+
+/**
+ * Abre a cutscene de uma cena específica.
+ *
+ * `showCutscene()` não mexe em `currentCutsceneIndex` de propósito — ele é
+ * advanced por `advanceCutscene`, e mexer aqui quebraria o prólogo.
+ */
+export function showCutsceneAt(index: number): void {
+  currentCutsceneIndex = Math.max(0, Math.min(index, CUTSCENES.length - 1));
+  showCutscene();
+}
+
+/** True quando a cena é a do epílogo (que devolve o jogador ao menu). */
+export function isEpilogueScene(): boolean {
+  return currentCutsceneIndex === EPILOGUE_CUTSCENE;
+}
+
 export function advanceCutscene(): boolean {
   if (!showingCutscene) return false;
 
-  if (!lineComplete) return false;
+  // ENTER tem dois estados: se a linha ainda está digitando, ele completa o
+  // texto; só depois avança. Antes o guard `if (!lineComplete) return false`
+  // deixava ENTER inerte durante ~5s por linha e o jogador precisava apertar
+  // BACKSPACE (que só era anunciado DEPOIS da linha terminar) para destravar.
+  if (!lineComplete) {
+    lineComplete = true;
+    textProgress = getCurrentLine().text.length;
+    return false;
+  }
 
   const scene = getCurrentCutscene();
   if (currentLineIndex < scene.lines.length - 1) {
     currentLineIndex++;
     textProgress = 0;
     lineComplete = false;
+    dispararEfeitoDaLinha(scene.lines[currentLineIndex]);
     return false;
   }
 
@@ -234,10 +484,36 @@ export function advanceCutscene(): boolean {
   return true;
 }
 
+/** Efeito da linha (injetável — o molde do dialogo.ts: quem tem os
+ *  sistemas de mundo é o main, a cena só conta as linhas). */
+let aoEfeitoDeLinha: ((efeito: 'risada') => void) | null = null;
+export function setEfeitoDeLinha(cb: (efeito: 'risada') => void): void {
+  aoEfeitoDeLinha = cb;
+}
+function dispararEfeitoDaLinha(linha: DialogueLine | undefined): void {
+  if (linha?.efeito && aoEfeitoDeLinha) aoEfeitoDeLinha(linha.efeito);
+}
+
+/** Completa a linha atual sem avançar. */
 export function skipCutsceneText(): void {
   if (!showingCutscene || lineComplete) return;
   lineComplete = true;
   textProgress = getCurrentLine().text.length;
+}
+
+/**
+ * Pula a cutscene inteira.
+ *
+ * @returns true se isso encerrou o jogo (última cutscene)
+ */
+export function skipCutscene(): boolean {
+  if (!showingCutscene) return false;
+  showingCutscene = false;
+  currentCutsceneIndex++;
+  currentLineIndex = 0;
+  textProgress = 0;
+  lineComplete = false;
+  return true;
 }
 
 export function updateCutscene(dt: number): void {
@@ -249,8 +525,21 @@ export function updateCutscene(dt: number): void {
     if (fadeAlpha >= 1) fadingIn = false;
   }
 
+  // Beat de silêncio: a linha "---" segura a tela sem texto. Sem isso a morte
+  // do Fernandes passou como mais uma linha de diálogo, e ela é o momento que
+  // sustenta o resto da história.
+  if (holdingBeat > 0) {
+    holdingBeat -= dt;
+    lineComplete = holdingBeat <= 0;
+    return;
+  }
+
   if (!lineComplete) {
     const line = getCurrentLine();
+    if (line.text.trim() === '---') {
+      holdingBeat = BEAT_SILENCIO;
+      return;
+    }
     textProgress = Math.min(line.text.length, textProgress + TEXT_SPEED * dt);
     if (textProgress >= line.text.length) {
       lineComplete = true;
@@ -258,10 +547,14 @@ export function updateCutscene(dt: number): void {
   }
 }
 
-export function getCutsceneTimer(): number {
-  return cutsceneTimer;
+/** Quanto tempo o beat "---" segura a tela, em segundos. */
+export const BEAT_SILENCIO = 1.8;
+
+/** Tempo restante do beat de silêncio, para o renderer poder esmaecer. */
+export function getBeatRestante(): number {
+  return holdingBeat;
 }
 
-export function getPortraitInfo(speaker: Character): { name: string; color: string } {
+export function getPortraitInfo(speaker: Character): { name: string; color: string; sprite: string } {
   return PORTRAITS[speaker];
 }

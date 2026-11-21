@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SARGENTO LUIZ — Pós-Apocalíptico</title>
+<link rel="icon" type="image/png" href="imagens/icone.png" />
+<meta name="description" content="Top-down survival shooter com progressão roguelite: 16 fases, 13 armas, 16 chefes. Joga no navegador, com teclado e mouse.">
+<style>
+  /* Paleta tirada de src/core/palette.ts sem desvio: fundo #111, título areia
+     velha, texto cinza, acentos musgo/terracota/mostarda/azul-pedra. Nada de
+     gradiente, sombra ou cantinho arredondado: o jogo é pó e ferrugem, e o
+     site é a mesma sala. A textura de fundo é o próprio tile de chão (CC0). */
+  :root {
+    --bg: #111111; --titulo: #c8b890; --texto: #ccc; --sec: #888; --off: #444;
+    --musgo: #7a9a6a; --terracota: #b07050; --mostarda: #a08050; --pedra: #608090;
+    --linha: rgba(200, 184, 144, 0.14); --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--texto); font: 14px/1.7 var(--mono); padding: 0 20px 80px; }
+  body::before {
+    content: ''; position: fixed; inset: 0; z-index: -1;
+    background: url('imagens/piso.png') repeat; opacity: 0.07;
+  }
+  .folha { max-width: 70rem; margin: 0 auto; }
+  a { color: var(--musgo); text-decoration: none; border-bottom: 1px solid rgba(122, 154, 106, 0.4); }
+  a:hover { color: var(--titulo); border-color: var(--titulo); }
+  h1 { font-size: 30px; letter-spacing: 2px; color: var(--titulo); font-weight: 700; }
+  h2 { font-size: 16px; letter-spacing: 1px; color: var(--titulo); margin: 0 0 6px; }
+  section { border-top: 1px solid var(--linha); padding: 34px 0; }
+  .rotulo { font-size: 11px; letter-spacing: 3px; color: var(--off); text-transform: uppercase; }
+  header { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-end; justify-content: space-between; padding: 64px 0 34px; }
+  .resumo { color: var(--sec); max-width: 46ch; margin-top: 10px; }
+  .meta { text-align: right; color: var(--off); font-size: 12px; }
+  .jogar { display: inline-block; color: var(--bg); background: var(--mostarda); padding: 9px 16px; border: 0; font: inherit; letter-spacing: 1px; }
+  .jogar:hover { background: var(--titulo); color: var(--bg); }
+  .capturas { display: grid; grid-template-columns: 1.35fr 1fr; gap: 18px; }
+  figure img { width: 100%; display: block; border: 1px solid var(--linha); }
+  figcaption { color: var(--off); font-size: 12px; margin-top: 6px; }
+  .dupla { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; color: var(--off); font-weight: 400; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; padding: 8px 10px 8px 0; border-bottom: 1px solid var(--linha); }
+  td { padding: 7px 10px 7px 0; border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--texto); vertical-align: top; }
+  td.num { color: var(--sec); }
+  .chefe { color: var(--terracota); }
+  .objetivo { color: var(--pedra); font-size: 12px; }
+  dl { display: grid; grid-template-columns: 6.5rem 1fr; gap: 4px 16px; }
+  dt { color: var(--mostarda); }
+  dd { color: var(--texto); }
+  footer { border-top: 1px solid var(--linha); padding-top: 28px; color: var(--off); font-size: 12px; }
+  footer p { margin-bottom: 10px; max-width: 80ch; }
+  @media (max-width: 700px) { .capturas, .dupla { grid-template-columns: 1fr; } h1 { font-size: 24px; } }
+</style>
+</head>
+<body>
+<div class="folha">
+
+  <header>
+    <div>
+      <p class="rotulo">sobrevivência · tiro de cima · roguelite</p>
+      <h1>SARGENTO LUIZ</h1>
+      <p class="resumo">Dezesseis fases de um mundo que já acabou. Cada fase tem ondas, um objetivo e um
+      chefe que não espera você ficar pronto. Você morre, volta ao menu, compra melhor e repete —
+      e o diário anota o que aconteceu do seu jeito.</p>
+    </div>
+    <div class="meta">
+      <p><a class="jogar" href="https://omurilomota.itch.io/sargento-luis">jogar no itch.io</a></p>
+      <p style="margin-top:10px">navegador · teclado + mouse<br>conteúdo gerado de <code>config.ts</code> em <span id="gerado">—</span></p>
+    </div>
+  </header>
+
+  <section class="capturas">
+    <figure><img src="imagens/menu.png" alt="Menu principal do jogo" loading="lazy"><figcaption>Menu — o fundo é o terreno do jogo, não arte de vitrine.</figcaption></figure>
+    <figure><img src="imagens/cutscene-floresta.png" alt="Cutscene da Floresta" loading="lazy"><figcaption>Uma das cutscenes. O cenário é montado com os mesmos tiles do jogo.</figcaption></figure>
+    <figure><img src="imagens/combate.png" alt="Combate na Cidade em Ruínas" loading="lazy"><figcaption>Cidade em Ruínas, onda 1/3. A moeda no chão é sprite, não círculo.</figcaption></figure>
+    <figure><img src="imagens/ficha.png" alt="Ficha da arma" loading="lazy"><figcaption>Ficha da arma no TAB: campo e build na mesma tela.</figcaption></figure>
+  </section>
+
+  <section class="dupla">
+    <div>
+      <h2>Como jogar</h2>
+      <dl>
+        <dt>WASD</dt><dd>andar</dd>
+        <dt>mouse</dt><dd>mira</dd>
+        <dt>clique</dt><dd>atirar (segurar)</dd>
+        <dt>ESPAÇO</dt><dd>dash</dd>
+        <dt>E / F</dt><dd>escudo / fúria</dd>
+        <dt>1–4</dt><dd>trocar arma</dd>
+        <dt>TAB</dt><dd>ficha da arma</dd>
+        <dt>ESC</dt><dd>pausa</dd>
+      </dl>
+    </div>
+    <div>
+      <h2>O que tem</h2>
+      <dl id="contadores"></dl>
+      <p style="color:var(--sec); margin-top:14px">Quatro modos: campanha, competitivo com bots,
+      local para dois no mesmo teclado e hardcore (sem loja, sem pausa).</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>As dezesseis fases</h2>
+    <p class="rotulo">objetivo e chefe saem do config — se a fase mudar, isto muda junto</p>
+    <table><thead><tr><th>#</th><th>fase</th><th>ondas</th><th>objetivo</th><th>chefe</th></tr></thead><tbody id="t-fases"></tbody></table>
+  </section>
+
+  <section>
+    <h2>Treze armas</h2>
+    <table><thead><tr><th>arma</th><th>classe</th><th>dano</th><th>s entre tiros</th><th>pente</th><th>o que ela faz</th></tr></thead><tbody id="t-armas"></tbody></table>
+  </section>
+
+  <section>
+    <h2>Quem está lá fora</h2>
+    <p class="rotulo" id="nota-inimigos"></p>
+    <table><thead><tr><th>tipo</th><th>vida</th><th>dano</th><th>velocidade</th></tr></thead><tbody id="t-inimigos"></tbody></table>
+  </section>
+
+  <footer>
+    <p>Se achou um problema, o lugar é a página do jogo.</p>
+    <p>Arte: Kenney (Top-down Shooter, Particle Pack, Platformer Art Deluxe) e Screaming Brain Studios
+    (Top Down Dungeon Pack), CC0. Armas: Kay Lousberg, CC0. Sons: Kenney e OpenGameArt (CC0),
+    com quatro tiros de Vincent Sevedge em CC-BY 3.0. Música: Juhani Junkala (CC0) e Eric Matyas
+    (soundimage.org), livre com atribuição. Detalhe em <code>public/assets/CREDITS.md</code>.</p>
+  </footer>
+
+</div>
+<script src="conteudo.js"></script>
+<script>
+  // Tudo que aparece nestas tabelas vem do `config.ts` do jogo, gerado por
+  // tools/gensite.mjs. Nenhum número é digitado aqui: se o balanceamento mudar,
+  // o site não mente.
+  const d = window.ASHFALL || { contadores: {}, fases: [], armas: [], inimigos: [] };
+  const alvo = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
+  const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+  const OBJ = { clear: 'limpar a área', survive: 'sobreviver', destroy: 'destruir', protect: 'proteger', reach: 'chegar ao ponto' };
+
+  document.getElementById('gerado').textContent = d.geradoEm || '—';
+  alvo('contadores', Object.entries(d.contadores).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join(''));
+  alvo('t-fases', d.fases.map((f) =>
+    `<tr><td class="num">${f.indice + 1}</td><td>${esc(f.nome)}</td><td class="num">${f.ondas}</td>` +
+    `<td class="objetivo">${esc(OBJ[f.objetivo] || f.objetivo)}</td>` +
+    `<td class="chefe">${f.chefe ? esc(f.chefe) : '—'}</td></tr>`).join(''));
+  alvo('t-armas', d.armas.map((a) =>
+    `<tr><td>${esc(a.nome)}</td><td class="objetivo">${esc(a.classe)}</td>` +
+    `<td class="num">${a.dano}</td><td class="num">${a.cadencia}</td><td class="num">${a.pente ?? '—'}</td>` +
+    `<td>${esc(a.desc)}</td></tr>`).join(''));
+  alvo('t-inimigos', d.inimigos.map((i) =>
+    `<tr><td>${esc(i.tipo)}</td><td class="num">${i.vida}</td><td class="num">${i.dano}</td><td class="num">${i.velocidade}</td></tr>`).join(''));
+  alvo('nota-inimigos', `${d.inimigos.length} tipos — vida, dano e velocidade do config`);
+</script>
+</body>
+</html>

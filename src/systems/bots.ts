@@ -6,8 +6,9 @@
  * - Diferentes níveis de dificuldade
  */
 
-import { Enemy } from '../types';
 import { normalize } from '../utils';
+import { moveCircleBy, sampleFlowDir, getMapWidth, getMapHeight, findFreeSpotNear } from './tilemap';
+import { PALETTE } from '../core/palette';
 
 /** Nível de dificuldade do bot */
 export type BotDifficulty = 'easy' | 'medium' | 'hard';
@@ -53,6 +54,8 @@ export interface Bot {
   coinDrop: number;
   /** Nome exibido do bot */
   name: string;
+  /** Tempo que o bot ficou preso na parede */
+  stuckTimer?: number;
 }
 
 /** Configurações de dificuldade */
@@ -86,24 +89,34 @@ export function getBots(): Bot[] {
 
 /**
  * Cria um bot com a dificuldade especificada.
- * @param difficulty - nível de dificuldade
- * @param canvasWidth - largura do canvas
- * @param canvasHeight - altura do canvas
- * @returns bot criado
+ *
+ * @param worldWidth - largura do MAPA, não da tela
+ * @param worldHeight - altura do MAPA, não da tela
+ *
+ * Nasce dentro do mapa, numa célula de chão perto de uma borda. Antes ia para
+ * `-30` / `worldW + 30`: `main.ts` passa `worldW/worldH` (o tamanho do mapa,
+ * não o do canvas) e o bot aparecia dentro do anel de parede da borda, de onde
+ * o `moveCircleBy` não consegue sair — daí o "bot esbarrando em parede".
  */
-export function createBot(difficulty: BotDifficulty, canvasWidth: number, canvasHeight: number): Bot {
+export function createBot(difficulty: BotDifficulty, worldWidth: number, worldHeight: number): Bot {
   const config = DIFFICULTY_CONFIG[difficulty];
-  const side = Math.floor(Math.random() * 4);
-  let x = 0, y = 0;
-  if (side === 0) { x = -30; y = Math.random() * canvasHeight; }
-  else if (side === 1) { x = canvasWidth + 30; y = Math.random() * canvasHeight; }
-  else if (side === 2) { x = Math.random() * canvasWidth; y = -30; }
-  else { x = Math.random() * canvasWidth; y = canvasHeight + 30; }
+  const margin = 96;
+  const x = Math.random();
+  const y = Math.random();
+  const bx = margin + x * (worldWidth - margin * 2);
+  const by = margin + y * (worldHeight - margin * 2);
+  const edge = [
+    [bx, margin],
+    [bx, worldHeight - margin],
+    [margin, by],
+    [worldWidth - margin, by],
+  ][Math.floor(Math.random() * 4)];
+  const spot = findFreeSpotNear(edge[0], edge[1], 16);
 
   return {
-    x, y, radius: 16, speed: config.speed,
+    x: spot.x, y: spot.y, radius: 16, speed: config.speed,
     health: config.health, maxHealth: config.health,
-    damage: config.damage, color: difficulty === 'hard' ? '#e74c3c' : difficulty === 'medium' ? '#f39c12' : '#3498db',
+    damage: config.damage, color: difficulty === 'hard' ? PALETTE.danger : difficulty === 'medium' ? PALETTE.mustard : PALETTE.stone,
     angle: 0, shootTimer: 0, shootRate: config.shootRate,
     difficulty, moveTimer: 0, moveDirX: 0, moveDirY: 0,
     dodgeTimer: 0, isDodging: false,
@@ -114,13 +127,7 @@ export function createBot(difficulty: BotDifficulty, canvasWidth: number, canvas
 
 /**
  * Atualiza a IA de todos os bots.
- * @param dt - delta time
  * @param playerX - posição X do jogador
- * @param playerY - posição Y do jogador
- * @param bullets - lista de projéteis ativos (para esquiva)
- * @param canvasWidth - largura do canvas
- * @param canvasHeight - altura do canvas
- * @returns array de projéteis disparados pelos bots
  */
 export function updateBots(
   dt: number,
@@ -146,8 +153,15 @@ export function updateBots(
         bot.moveDirX = -dir.x;
         bot.moveDirY = -dir.y;
       } else if (distToPlayer > 350) {
-        bot.moveDirX = dir.x;
-        bot.moveDirY = dir.y;
+        // usa o flow field: seek direto fazia o bot da IA esbarrar nos cantos
+        const flow = sampleFlowDir(bot.x, bot.y);
+        if (flow.x !== 0 || flow.y !== 0) {
+          bot.moveDirX = flow.x;
+          bot.moveDirY = flow.y;
+        } else {
+          bot.moveDirX = dir.x;
+          bot.moveDirY = dir.y;
+        }
       } else {
         // Strafe perpendicular
         bot.moveDirX = -dir.y * (Math.random() > 0.5 ? 1 : -1);
@@ -157,12 +171,48 @@ export function updateBots(
 
     // Aplica movimento
     const len = Math.hypot(bot.moveDirX, bot.moveDirY) || 1;
-    bot.x += (bot.moveDirX / len) * bot.speed * dt;
-    bot.y += (bot.moveDirY / len) * bot.speed * dt;
+    const ox = bot.x;
+    const oy = bot.y;
+    const moved = moveCircleBy(
+      bot.x, bot.y,
+      (bot.moveDirX / len) * bot.speed * dt,
+      (bot.moveDirY / len) * bot.speed * dt,
+      bot.radius,
+    );
+    bot.x = moved.x;
+    bot.y = moved.y;
+    const movido = Math.hypot(bot.x - ox, bot.y - oy);
+    if (movido < bot.speed * dt * 0.2) {
+      bot.stuckTimer = (bot.stuckTimer ?? 0) + dt;
+      if (bot.stuckTimer > 1) {
+        // escape validado: testa 4 direcoes via moveCircleBy e fica com a que
+        // mais andou. Sortear 1 direcao cega podia mandar pra mesma parede.
+        const step = bot.speed * dt * 4;
+        const cands: [number, number][] = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+        let best: [number, number] = cands[Math.floor(Math.random() * 4)];
+        let bestDist = -1;
+        for (const [cx, cy] of cands) {
+          const t = moveCircleBy(bot.x, bot.y, cx * step, cy * step, bot.radius);
+          const dd = Math.hypot(t.x - bot.x, t.y - bot.y);
+          if (dd > bestDist) { bestDist = dd; best = [cx, cy]; }
+        }
+        bot.moveDirX = best[0];
+        bot.moveDirY = best[1];
+        bot.moveTimer = 0.4;
+        bot.stuckTimer = 0;
+      }
+    } else {
+      bot.stuckTimer = 0;
+    }
 
-    // Limites da tela
-    bot.x = Math.max(bot.radius, Math.min(canvasWidth - bot.radius, bot.x));
-    bot.y = Math.max(bot.radius, Math.min(canvasHeight - bot.radius, bot.y));
+    // limites do MUNDO (tilemap ja da clamp), nao da tela: o mundo e maior
+    // que o canvas e o clamp de tela prendia o bot na borda visivel
+    const mw = getMapWidth();
+    const mh = getMapHeight();
+    if (mw > 0) bot.x = Math.max(bot.radius, Math.min(mw - bot.radius, bot.x));
+    else bot.x = Math.max(bot.radius, Math.min(canvasWidth - bot.radius, bot.x));
+    if (mh > 0) bot.y = Math.max(bot.radius, Math.min(mh - bot.radius, bot.y));
+    else bot.y = Math.max(bot.radius, Math.min(canvasHeight - bot.radius, bot.y));
 
     // --- Dodge AI ---
     bot.dodgeTimer -= dt;
@@ -209,7 +259,6 @@ export function updateBots(
 
 /**
  * Remove bots mortos (health <= 0).
- * @returns array de bots derrotados (para processamento de score/coins)
  */
 export function removeDeadBots(): Bot[] {
   const dead: Bot[] = [];

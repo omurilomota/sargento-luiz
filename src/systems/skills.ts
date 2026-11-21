@@ -5,6 +5,8 @@
  */
 
 import { Player } from '../entities/player';
+import { hasPowerUp } from '../powerups';
+import { getStat } from '../core/stats';
 
 /** Tipos de habilidade disponíveis */
 export type SkillType = 'dash' | 'shield' | 'fury';
@@ -36,25 +38,66 @@ const DASH_SPEED = 800;
 const FURY_DAMAGE_MULT = 2;
 /** Escala de dano recebido na fúria */
 const FURY_DAMAGE_TAKEN_MULT = 1.5;
+/**
+ * Multiplicador do INTERVALO entre tiros durante a fúria.
+ *
+ * A fúria só mexia em dano (2×) e dano recebido (1,5×). Dano sem cadência
+ * continua sendo dano, então a habilidade não mudava a *ritmo* de combate —
+ * uma Metralhadora em fúria matava mais, mas no mesmo ritmo. Como 0.75 é
+ * multiplicador de intervalo, a conta real é 1/0.75 = +33% de cadência.
+ */
+const FURY_COOLDOWN_MULT = 0.75;
+/** Direção da última investida do dash (undefined = parado) */
+let dashDirection: { x: number; y: number } | null = null;
+
+/**
+ * Informa o módulo de skills para qual lado o jogador está andando.
+ * O dash segue o movimento, não o mouse: uma esquiva que vai para onde a
+ * arma aponta é o oposto de esquivar.
+ */
+export function setMoveDirection(dx: number, dy: number): void {
+  if (dx === 0 && dy === 0) {
+    dashDirection = null;
+    return;
+  }
+  const len = Math.hypot(dx, dy) || 1;
+  dashDirection = { x: dx / len, y: dy / len };
+}
+
+/**
+ * A FÚRIA só existe depois da Fábrica do Rogério (H2 — gate de história,
+ * decisão do Murilo 2026-10-13: "a fúria só vai ser descoberta aqui, pois
+ * após ter raiva dos trilionários o player libera a fúria"). Sem isto ela
+ * existia desde o início da campanha e o beat não custava nada. Travada
+ * para saves antigos também — o gate é a história, não a data do save.
+ */
+let furiaLiberada = false;
+
+export function furiaDesbloqueada(): boolean { return furiaLiberada; }
+export function desbloquearFuria(): void { furiaLiberada = true; }
+/** Continue do save: o flag viaja com a partida. */
+export function restoreFuria(v: boolean): void { furiaLiberada = v; }
+/** Partida nova começa travada — a Fábrica abre a porta de novo. */
+export function resetFuria(): void { furiaLiberada = false; }
 
 /**
  * Tenta ativar uma habilidade.
- * @param type - tipo da habilidade
  * @returns true se a habilidade foi ativada
  */
 export function useSkill(type: SkillType): boolean {
   const skill = skills[type];
   if (skill.cooldown > 0 || skill.active) return false;
-  
+  // o gate de história: sem a Fábrica, não há raiva o bastante
+  if (type === 'fury' && !furiaLiberada) return false;
+
   skill.active = true;
   skill.duration = skill.maxDuration;
-  skill.cooldown = skill.maxCooldown;
+  skill.cooldown = skill.maxCooldown * getStat('dashCooldown');
   return true;
 }
 
 /**
  * Verifica se uma habilidade está ativa.
- * @param type - tipo da habilidade
  * @returns true se ativa
  */
 export function isSkillActive(type: SkillType): boolean {
@@ -63,7 +106,6 @@ export function isSkillActive(type: SkillType): boolean {
 
 /**
  * Retorna o cooldown restante de uma habilidade.
- * @param type - tipo da habilidade
  * @returns segundos restantes de cooldown
  */
 export function getSkillCooldown(type: SkillType): number {
@@ -72,7 +114,6 @@ export function getSkillCooldown(type: SkillType): number {
 
 /**
  * Retorna o cooldown máximo de uma habilidade.
- * @param type - tipo da habilidade
  * @returns segundos totais de cooldown
  */
 export function getSkillMaxCooldown(type: SkillType): number {
@@ -81,58 +122,73 @@ export function getSkillMaxCooldown(type: SkillType): number {
 
 /**
  * Retorna se uma habilidade está em cooldown.
- * @param type - tipo da habilidade
  * @returns true se em cooldown
- */
-export function isSkillOnCooldown(type: SkillType): boolean {
-  return skills[type].cooldown > 0;
-}
 
 /**
  * Retorna o multiplicador de dano baseado nas habilidades ativas.
- * @returns multiplicador de dano
  */
 export function getDamageMultiplier(): number {
-  return skills.fury.active ? FURY_DAMAGE_MULT : 1;
+  let mult = skills.fury.active ? FURY_DAMAGE_MULT : 1;
+  if (hasPowerUp('furia')) mult *= 1.3;
+  if (hasPowerUp('trajeNucleo')) mult *= 2;
+  // o power-up 'damage' era vendido, dropado e exibido no HUD sem leitor
+  // nenhum: coletava "DANO +50%" e o multiplicador real não mudava
+  if (hasPowerUp('damage')) mult *= 1.5;
+  return mult;
+}
+
+/**
+ * Multiplicador do intervalo entre tiros durante a fúria.
+ * `< 1` dispara mais rápido. Retorna 1 com a fúria inativa.
+ */
+export function getFuryCooldownMult(): number {
+  return skills.fury.active ? FURY_COOLDOWN_MULT : 1;
 }
 
 /**
  * Retorna o multiplicador de dano recebido baseado nas habilidades ativas.
- * @returns multiplicador de dano recebido
  */
 export function getDamageTakenMultiplier(): number {
   if (skills.shield.active) return 0;
-  return skills.fury.active ? FURY_DAMAGE_TAKEN_MULT : 1;
+  let mult = skills.fury.active ? FURY_DAMAGE_TAKEN_MULT : 1;
+  if (hasPowerUp('peleDePedra')) mult *= 0.5;
+  if (hasPowerUp('trajeNucleo')) mult *= 0.5;
+  return mult;
 }
 
 /**
  * Atualiza todas as habilidades.
- * @param dt - delta time em segundos
- * @param player - estado do jogador (para dash)
+ * @param bounds - limites do mundo (o dash precisa de clamp, senão atravessa a borda)
  */
-export function updateSkills(dt: number, player: Player): void {
+export function updateSkills(dt: number, player: Player, bounds?: { w: number; h: number }): void {
   for (const type of Object.keys(skills) as SkillType[]) {
     const skill = skills[type];
-    
+
     if (skill.cooldown > 0) {
       skill.cooldown = Math.max(0, skill.cooldown - dt);
     }
-    
+
     if (skill.active) {
       skill.duration -= dt;
-      
-      // Dash move o jogador
+
+      // Dash move o jogador na direção do movimento; parado, usa a mira
       if (type === 'dash' && skill.duration > 0) {
+        const dir = dashDirection ?? { x: Math.cos(player.angle), y: Math.sin(player.angle) };
         const dashDist = DASH_SPEED * dt;
-        player.x += Math.cos(player.angle) * dashDist;
-        player.y += Math.sin(player.angle) * dashDist;
+        player.x += dir.x * dashDist;
+        player.y += dir.y * dashDist;
         player.invincible = 0.1; // Invencível durante dash
       }
-      
+
       if (skill.duration <= 0) {
         skill.active = false;
       }
     }
+  }
+
+  if (bounds) {
+    player.x = Math.max(player.radius, Math.min(bounds.w - player.radius, player.x));
+    player.y = Math.max(player.radius, Math.min(bounds.h - player.radius, player.y));
   }
 }
 
@@ -140,6 +196,7 @@ export function updateSkills(dt: number, player: Player): void {
  * Reseta todas as habilidades.
  */
 export function resetSkills(): void {
+  dashDirection = null;
   for (const type of Object.keys(skills) as SkillType[]) {
     skills[type].cooldown = 0;
     skills[type].duration = 0;

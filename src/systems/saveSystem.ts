@@ -1,5 +1,5 @@
 /**
- * Sistema de save/load using localStorage.
+ * Sistema de save/load em localStorage.
  * Salva progresso do jogo: fase, onda, arma, upgrades, moedas, score.
  */
 
@@ -18,24 +18,40 @@ interface SaveData {
   /** Upgrades comprados */
   upgrades: string[];
   /** Armas compradas */
-  weapons: number[];
+  weapons: { index: number; quality: string }[];
+  /** Peças na mochila (ids de PieceType) */
+  pieces: string[];
+  /** Peças equipadas por arma: { índiceDaArma: [ids] } */
+  equippedPieces: Record<string, string[]>;
+  /** Ids de talento da árvore de progressão comprados */
+  talentos: string[];
+  /** XP total da partida (o nível é recalculado dele no load) */
+  xp?: number;
+  /**
+   * A FÚRIA desbloqueada (H2): o gate de história da Fábrica viaja no save.
+   * Ausente = travado (saves antigos começam travados — decisão do dono).
+   */
+  furia?: boolean;
   /** Nome da fase para exibição */
   phaseName: string;
   /** Timestamp do save */
   timestamp: number;
 }
 
-const SAVE_KEY = 'bubbleShooter_save';
+const SAVE_KEY = 'luiz.save';
 
 /**
  * Salva o progresso do jogo no localStorage.
  */
 export function saveGame(
   phase: number, wave: number, weaponIndex: number,
-  coins: number, score: number, upgrades: string[], weapons: number[], phaseName: string
+  coins: number, score: number, upgrades: string[], weapons: { index: number; quality: string }[], phaseName: string,
+  pieces: string[] = [], equippedPieces: Record<string, string[]> = {}, talentos: string[] = [], xp = 0,
+  furia = false
 ): void {
   const data: SaveData = {
     phase, wave, weaponIndex, coins, score, upgrades, weapons, phaseName,
+    pieces, equippedPieces, talentos, xp, furia,
     timestamp: Date.now(),
   };
   try {
@@ -53,7 +69,16 @@ export function loadGame(): SaveData | null {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as SaveData;
+    const dado = JSON.parse(raw);
+    // save de formato antigo parseia como objeto incompleto — o jogo
+    // inteiro lê save.coins/save.weapons, e meia-carga crasha longe da
+    // causa (o TypeError do fim de campanha do playtest 2026-10-16 nasceu
+    // desta família). A fronteira garante a forma mínima ou descarta.
+    if (!dado || typeof dado !== 'object' || !Array.isArray(dado.upgrades) || !Array.isArray(dado.weapons)) {
+      deleteSave();
+      return null;
+    }
+    return dado as SaveData;
   } catch {
     return null;
   }
@@ -63,12 +88,42 @@ export function loadGame(): SaveData | null {
  * Verifica se existe um save.
  */
 export function hasSave(): boolean {
-  return localStorage.getItem(SAVE_KEY) !== null;
+  try {
+    return localStorage.getItem(SAVE_KEY) !== null;
+  } catch {
+    return false;
+  }
 }
 
 /**
  * Remove o save.
  */
 export function deleteSave(): void {
-  localStorage.removeItem(SAVE_KEY);
+  try {
+    localStorage.removeItem(SAVE_KEY);
+  } catch {
+    // localStorage indisponível (modo privado)
+  }
+}
+
+const COMPLETION_KEY = 'luiz.completed';
+
+/**
+ * Marca o jogo como completado.
+ */
+export function markGameCompleted(): void {
+  try {
+    localStorage.setItem(COMPLETION_KEY, 'true');
+  } catch {}
+}
+
+/**
+ * Verifica se o jogo já foi completado.
+ */
+export function isGameCompleted(): boolean {
+  try {
+    return localStorage.getItem(COMPLETION_KEY) === 'true';
+  } catch {
+    return false;
+  }
 }

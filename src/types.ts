@@ -14,6 +14,10 @@ export interface Bullet {
   x: number;
   /** Posição vertical */
   y: number;
+  /** Posição horizontal no frame anterior (colisão swept) */
+  px: number;
+  /** Posição vertical no frame anterior (colisão swept) */
+  py: number;
   /** Velocidade horizontal */
   vx: number;
   /** Velocidade vertical */
@@ -26,12 +30,34 @@ export interface Bullet {
   isEnemy: boolean;
   /** Cor de renderização do projétil */
   color: string;
+  /** Indica se este projétil acertou crítico */
+  isCrit: boolean;
   /** Indica se o projétil atravessa múltiplos alvos */
   pierce: boolean;
   /** Indica se o projétil é explosivo */
   explosive?: boolean;
   /** Raio da explosão em pixels */
   explosionRadius?: number;
+  /**
+   * Família da sprite de projétil (`small_bullet` | `medium_bullet` |
+   * `large_bullet`). Vem da classe da arma que disparou; o renderer usa para
+   * escolher o asset, e cai no `arc` procedural se a sprite não carregar.
+   */
+  bulletSprite?: string;
+  /** Inimigos já atingidos por esta bala (perfurante não re-hitta o mesmo alvo) */
+  hitBy?: Set<Enemy>;
+  /** Já explodiu — o flag que impede a dupla detonação (pavio × parede × impacto) */
+  detonated?: boolean;
+  /**
+   * Tipo do inimigo que disparou (só em projétil inimigo).
+   *
+   * Só a telemetria lê: sem ele, `npm run sessao` responde "quanto o Espaço
+   * mata" e não "qual inimigo mata mais no Espaço" — que é a pergunta que
+   * decide o balanceamento do hazard.
+   */
+  orcador?: string;
+  /** Fuse da mina plantada: segundos acumulados desde que o inimigo entrou no raio */
+  fuse?: number;
 }
 
 /** Representa um inimigo no campo de batalha */
@@ -42,6 +68,19 @@ export interface Enemy {
   y: number;
   /** Raio de colisão */
   radius: number;
+  /**
+   * O TITÃ da onda (T1): um inimigo comum que nasce grande — 3× vida, 1,5×
+   * dano, 1,35× raio, 3× moedas, anel mostarda e barra de vida. Abre as
+   * ondas a partir da segunda, para o chefão não ser o único corpo
+   * grande da fase.
+   */
+  isElite?: boolean;
+  /**
+   * Segundos de ressentimento com o JOGADOR (decisão do Murilo, 2026-10-13):
+   * o caçador do alvo que leva tiro troca de alvo temporariamente — persegue
+   * quem atirou — e depois volta ao foguete.
+   */
+  aggroTimer?: number;
   /** Velocidade de movimento em pixels/segundo */
   speed: number;
   /** Pontos de vida atuais */
@@ -94,6 +133,12 @@ export interface Particle {
   radius: number;
   /** Cor da partícula */
   color: string;
+  /**
+   * Sprite do Kenney Particle Pack (CC0). Ausente = usa o círculo de fallback.
+   * Escolhido na criação conforme o evento: muzzle flash, fumaça ou faísca não
+   * são a mesma coisa.
+   */
+  sprite?: string;
 }
 
 /** Representa uma moeda coletável dropada por inimigos */
@@ -148,24 +193,64 @@ export interface Weapon {
   explosive?: boolean;
   /** Raio da explosão em pixels (apenas para armas explosivas) */
   explosionRadius?: number;
-  /** Tamanho do pente (máximo de balas antes de recarregar) */
+  /** Se a arma é secreta (desbloqueada ao completar o jogo) */
+  secret?: boolean;
+  /** Armas 'quebradas' encasquilham após N disparos e exigem conserto */
+  broken?: boolean;
+  /** Tamanho do pente */
   magazineSize: number;
   /** Tempo de recarga em segundos */
   reloadTime: number;
-  /** Arma secreta - só aparece se desbloqueada */
-  secret?: boolean;
+  /** Arma de CORPO A CORPO (P0-4): o golpe atinge em arco e não gasta munição. */
+  melee?: boolean;
+  /** Arma arremessável: sai da mão em arco, não do bico da pistola. */
+  thrown?: boolean;
+  /** Alcance do golpe melee, em pixels. */
+  meleeRange?: number;
+  /** Abertura do arco do golpe melee, em radianos. */
+  meleeArc?: number;
 }
 
-/** Define um upgrade permanente disponível na loja */
-export interface Upgrade {
-  /** Nome do upgrade exibido na interface */
-  name: string;
-  /** Identificador do efeito aplicado (health, speed, damage, etc.) */
-  effect: string;
-  /** Valor do efeito (absoluto para vida, percentual para dano/velocidade) */
-  value: number;
-  /** Preço em moedas para comprar */
-  price: number;
+/** Ações possíveis de um boss data-driven */
+export type BossAction = 'spread' | 'ring' | 'charge' | 'summon' | 'mines' | 'split' | 'sweep'
+  | 'spray' | 'burst' | 'lob' | 'rail_charge' | 'tongue';
+
+/** Uma etapa do padrão de ataque de um boss, ativada quando o HP cruza o limiar */
+export interface BossPatternStep {
+  /** Limiar de HP (0-1) abaixo do qual esta etapa assume */
+  atHp: number;
+  /** Ação executada nesta etapa */
+  action: BossAction;
+  /** Texto curto exibido na telegrafia (opcional) */
+  telegraph?: string;
+}
+
+/** Tipos de hazard por bioma */
+export type HazardKind =
+  | 'none'
+  | 'debris'
+  | 'fog'
+  | 'darkness'
+  | 'electric'
+  | 'mud'
+  | 'spikes'
+  | 'lava'
+  | 'lowGravity';
+
+/** Tipos de objetivo por fase */
+export type ObjectiveKind = 'clear' | 'survive' | 'destroy' | 'protect' | 'reach' | 'collect';
+
+/** Uma zona de objetivo posicionada no mapa (ninho, ponto de extração, NPC) */
+export interface ObjectiveZone {
+  /** Posição no mapa em pixels */
+  x: number;
+  y: number;
+  /** HP do objetivo (ninhos e barreiras) */
+  health?: number;
+  /** Índice do NPC VIP quando objective = protect */
+  npcIndex?: number;
+  /** Raio de alcance quando objective = reach */
+  radius?: number;
 }
 
 /** Define uma fase do jogo com suas configurações visuais e de inimigos */
@@ -180,8 +265,44 @@ export interface Phase {
   gridColor: string;
   /** Tipos de inimigos que aparecem nesta fase */
   enemyTypes: string[];
+  /**
+   * Quantos mutantes entram na onda, quando `mutant` faz parte de `enemyTypes`.
+   * A cota é separada do total: o mutante não é "mais um inimigo", ele
+   * substitui vários. Sem este campo a fase mostraria 4 inimigos comuns.
+   */
+  mutantsPerWave?: number;
   /** Número total de ondas na fase */
   waves: number;
+  /**
+   * Quantos corpos entram por célula de spawn (P0-2, Ponte). 1 = o spawner
+   * clássico, um por vez; 2–3 = a onda entra em grupo e o jogador enfrenta
+   * um bloco, não uma fila. A cota total da onda NÃO muda.
+   */
+  spawnGroup?: number;
+  /** Chave do mapa em `maps.ts` */
+  map: string;
+  /** Hazard do bioma */
+  hazard: HazardKind;
+  /** Objetivo da fase */
+  objective: ObjectiveKind;
+  /**
+   * Multiplicador de stats dos inimigos da fase (1 = sem ajuste).
+   *
+   * A rampa de dificuldade vem do número de ondas; este campo só corrige os
+   * tipos que fogem dela. Ver `balance.test.ts` para a curva medida.
+   */
+  difficulty?: number;
+  /** Alvo numérico do objetivo (segundos, quantidade de ninhos, etc.) */
+  objectiveTarget: number;
+  /** Chave do tipo de inimigo boss desta fase, se houver */
+  boss?: string;
+  /**
+   * Fase de COLETA (H2, a Fábrica do Rogério — "essa fase será destinada a
+   * coleta de recursos. Os zumbis droparão mais coisas e com mais
+   * facilidade"): os drops e moedas pagam mais, e a dificuldade das fases
+   * SEGUINTES compensa (o texto do dono pede os dois lados).
+   */
+  coleta?: boolean;
 }
 
 /** Define as estatísticas e comportamento de um tipo de inimigo */
@@ -204,10 +325,24 @@ export interface EnemyType {
   canShoot?: boolean;
   /** Intervalo entre disparos em segundos */
   shootRate?: number;
+  /** Velocidade dos projéteis disparados */
+  bulletSpeed?: number;
   /** Indica se é um chefe */
   isBoss?: boolean;
   /** Indica se possui armadura (forma hexagonal) */
   armor?: boolean;
+  /**
+   * Indica que o inimigo caça o NPC protegido em vez do jogador.
+   * Só o objetivo `protect` usa; sem isso o NPC é só alguém que foge de todo
+   * mundo por igual e o jogador não tem agência nenhuma no objetivo.
+   */
+  huntsNpc?: boolean;
+  /**
+   * Mutante: lento, muita vida, dano alto. Aparece em número baixo no lugar de
+   * encher a onda de inimigos comuns. O spawner usa a flag para reservar a cota
+   * mutantsPerWave em vez de contar no total da onda.
+   */
+  isMutant?: boolean;
   /** Indica se dispara múltiplos projéteis em leque */
   spreadShot?: boolean;
   /** Indica se o projétil se divide em 4 direções */
@@ -218,7 +353,23 @@ export interface EnemyType {
   leavesFire?: boolean;
   /** Cor dos projéteis disparados */
   projectileColor?: string;
+  /**
+   * Forma do projétil: `bullet` (cartucho de agente), `slime` (gosma de
+   * recusante), `shard` (lasca de cristal), `ember` (brasa). Padrão `bullet`.
+   * Um zumbi nunca empunha arma — pose e sprite seguem este campo.
+   */
+  projectileKind?: 'bullet' | 'slime' | 'shard' | 'ember' | 'spark' | 'vomit' | 'rad';
+  /** Padrão de ataque data-driven (apenas bosses) */
+  pattern?: BossPatternStep[];
+  /** Nome exibido na barra de boss */
+  bossName?: string;
+  /** Grito de ENTRADA: o que ele grita ao aparecer (barra de boss, M5) */
+  entryShout?: string;
+  /** Fala de MORTE: o que a barra de boss mostra quando ele cai (M5) */
+  deathLine?: string;
+  /** Duração da telegrafia antes de uma ação (segundos) */
+  telegraph?: number;
 }
 
 /** Estados possíveis do ciclo de vida do jogo */
-export type GameStateType = 'menu' | 'playing' | 'shop' | 'gameover' | 'paused';
+export type GameStateType = 'menu' | 'playing' | 'shop' | 'gameover' | 'paused' | 'credits';
