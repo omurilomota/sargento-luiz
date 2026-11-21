@@ -3497,7 +3497,11 @@ for (const e of enemies) {
       }
     }
 
-    const spd = (e.type === 'mosquito' ? e.speed * 1.3 : e.speed) * aiMods.enemySpeedMult;
+    // MOLHADO: água/lama e máquinas não escorregam; o resto derrapa na poça.
+    const imuneAgua = ['slime', 'lavaSlime', 'frog', 'robot', 'drone', 'ufo', 'alien'].includes(e.type);
+    const molhado = !imuneAgua && isMolhado(e.x, e.y);
+    let spd = (e.type === 'mosquito' ? e.speed * 1.3 : e.speed) * aiMods.enemySpeedMult;
+    if (molhado && ['tank', 'magmaGolem', 'knight'].includes(e.type)) spd *= 0.6;
     const gravityPush = phase.hazard === 'lowGravity' ? 1.35 : 1;
     const next = moveCircleBy(
       e.x, e.y,
@@ -3505,8 +3509,27 @@ for (const e of enemies) {
       (seekY + sepY * 1.6) * spd * dt * gravityPush,
       e.radius
     );
+    const antesX = e.x, antesY = e.y;
     e.x = next.x;
     e.y = next.y;
+    if (molhado) {
+      const moveuX = e.x - antesX, moveuY = e.y - antesY;
+      if (Math.hypot(moveuX, moveuY) > 0.1) {
+        e.slideWet = 0.35;
+        e.slideWetX = moveuX / dt;
+        e.slideWetY = moveuY / dt;
+      }
+      markFootstep(e.x, e.y);
+    } else if (e.slideWet > 0) {
+      // continua deslizando após sair da poça, com atrito
+      const arrastado = moveCircleBy(e.x, e.y, e.slideWetX * dt, e.slideWetY * dt, e.radius);
+      e.x = arrastado.x;
+      e.y = arrastado.y;
+      e.slideWet = Math.max(0, e.slideWet - dt);
+      const atrito = Math.max(0, 1 - dt * 5);
+      e.slideWetX *= atrito;
+      e.slideWetY *= atrito;
+    }
 
     // Tira da parede quem entrou nela. `moveCircleBy` só impede ENTRAR: um
     // inimigo que já sobrepõe uma parede fica com `flowDist === -1`, o
