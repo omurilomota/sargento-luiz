@@ -4,7 +4,8 @@
 
 **Mista:**
 - `menu.ogg` — **CC0** (domínio público; crédito é cortesia, não obrigação)
-- `combat.ogg`, `boss.ogg`, `shop.ogg`, `epilogo.ogg` — **Royalty-Free com atribuição obrigatória** — Eric Matyas / soundimage.org
+- `boss.ogg`, `combat_longa.ogg` — **CC-BY 4.0** — Alexandr Zhelanov
+- `combat.ogg`, `shop.ogg`, `epilogo.ogg`, `combat_ruinas.ogg`, `combat_industrial.ogg`, `combat_terminal.ogg` — **Royalty-Free com atribuição obrigatória** — Eric Matyas / soundimage.org
 
 ## Origem
 
@@ -12,12 +13,17 @@
 |---|---|---|---|
 | `menu.ogg` | Post Apocalyptic Wastelands [Loop Ready] | opengameart.org/content/horror-atmosphere | CC0 |
 | `combat.ogg` | Automation.ogg | soundimage.org/looping-music/ | RF com atribuição |
-| `boss.ogg` | The-Darkness-Below_Looping.ogg | soundimage.org/looping-music/ | RF com atribuição |
+| `boss.ogg` | Battle 1 (Post Apocalyptic and CyberPunk Melodies) | opengameart.org/content/post-apocalyptic-and-cyberpunk-melodies | CC-BY 4.0 — Alexandr Zhelanov |
+| `combat_longa.ogg` | Raiders (Post Apocalyptic and CyberPunk Melodies) | opengameart.org/content/post-apocalyptic-and-cyberpunk-melodies | CC-BY 4.0 — Alexandr Zhelanov |
 | `shop.ogg` | Puzzle-Dreams.ogg | soundimage.org/looping-music/ | RF com atribuição |
 | `epilogo.ogg` | Autumn-Changes_Looping.mp3 (transcodado MP3→OGG, libvorbis q5) | soundimage.org/introspective/ | RF com atribuição |
 | `combat_ruinas.ogg` | Dystopic-Mayhem.ogg | soundimage.org/looping-music/ | RF com atribuição |
 | `combat_industrial.ogg` | And-the-Machines-Came-at-Midnight.ogg | soundimage.org/looping-music/ | RF com atribuição |
 | `combat_terminal.ogg` | 80s-Space-Game-Loop_v002.ogg | soundimage.org/looping-music/ | RF com atribuição |
+
+**Modificações (CC-BY 4.0, cláusula 3a):** `boss.ogg` e `combat_longa.ogg`
+foram re-encodados de ~420 kbps para 128 kbps (libvorbis) para reduzir o peso
+no download do jogo; título, autor e licença originais preservados.
 
 As três novas faixas de combate tocam por FAMÍLIA DE BIOMA, não por fase:
 ruínas (Cidade, Rodovia, Floresta, Hospital, Pântano), indústria (Fábrica,
