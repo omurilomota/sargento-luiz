@@ -200,7 +200,7 @@ export function spawnEnemy(
     health: Math.floor(def.health * hpScale * variance * timeScale), maxHealth: Math.floor(def.health * hpScale * variance * timeScale),
     damage: Math.floor(def.damage * dmgScale * timeScale), color: def.color, scoreValue: def.scoreValue,
     shootTimer: rand(0, def.shootRate || 0), shootRate: def.shootRate || 0,
-    canShoot: def.canShoot || false, type, angle: rand(0, Math.PI * 2),
+    canShoot: def.canShoot || false, type, angle: rand(0, Math.PI * 2), stun: 0,
     attackTimer: 0, summonTimer: 0, spawnDelay: 0.5, hitFlash: 0, bossPhase: 0,
   };
 }
