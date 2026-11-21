@@ -18,6 +18,8 @@ import { detonateProp, getProps, igniteBarrel } from './props';
 import { moveCircleBy, pushOutOfWalls, isWall, colAt, rowAt, sampleFlowDir } from './tilemap';
 import { triggerScreenShake } from './effects';
 import { sfxEnemyShoot, sfxSpit } from './audio';
+import { addPuddle } from './puddles';
+import { spawnFire } from './explosions';
 
 /** Intervalo base entre ações do boss (segundos) */
 const ACTION_INTERVAL = 3.4;
@@ -26,6 +28,10 @@ const CHARGE_SPEED = 620;
 const CHARGE_TIME = 0.75;
 /** Telegrafia padrão quando `EnemyType.telegraph` não vem definido */
 const DEFAULT_TELEGRAPH = 0.8;
+/** Abaixo deste percentual de HP o chefe entra em fúria: ataca mais e recua menos. */
+const ENRAGE_HP = 0.4;
+/** Intervalo da mecânica própria dos cinco chefes com assinatura. */
+const ESPECIAL_INTERVAL = 7;
 
 /** Estado de execução por inimigo (indexado por identidade do objeto) */
 interface BossRuntime {
@@ -54,6 +60,10 @@ interface BossRuntime {
   /** arraste da língua: força e direção aplicadas ao jogador pelo main */
   tonguePull: number;
   tongueAngle: number;
+  /** Cooldown da assinatura própria do chefe */
+  especialTimer: number;
+  /** Já entrou em fúria nesta luta (para não repetir o aviso) */
+  enraged: boolean;
 }
 
 const runtimes = new WeakMap<Enemy, BossRuntime>();
@@ -76,6 +86,69 @@ function speedDe(def: typeof ENEMY_TYPES[string]): number {
 let randFn: () => number = Math.random;
 export function setBossRandom(fn: () => number): void {
   randFn = fn;
+}
+
+/**
+ * Assinatura própria de cinco chefes — a metade "mecânica" da opção híbrida.
+ * Os outros 14 não ganham ação nova: ganham a fúria de HP abaixo de 40%.
+ * Cada assinatura usa um sistema que já existe (poça, fogo, projétil, minion),
+ * então o jogador lê o efeito sem aprender um HP novo.
+ */
+function mecanicaPropria(
+  e: Enemy,
+  def: typeof ENEMY_TYPES[string],
+  tx: number, ty: number,
+  worldW: number, worldH: number,
+  spawned: Enemy[],
+  elapsed: number,
+  rt: BossRuntime,
+): void {
+  if (!['vigia', 'crystalQueen', 'leviathan', 'infernoPrime', 'nucleo'].includes(e.type)) return;
+  rt.especialTimer -= elapsed;
+  if (rt.especialTimer > 0) return;
+  rt.especialTimer = rt.enraged ? ESPECIAL_INTERVAL * 0.6 : ESPECIAL_INTERVAL;
+
+  const cor = def.projectileColor ?? PALETTE.terracotta;
+  const speed = def.bulletSpeed ?? 300;
+  const dmg = e.damage * (rt.enraged ? 0.9 : 0.6);
+  spawnParticles(e.x, e.y, cor, 10, 150);
+
+  switch (e.type) {
+    case 'vigia':
+      // Reforço: dois grunts, não dois chefes — a arena não vira um rush.
+      for (let i = 0; i < 2; i++) {
+        const minion = spawnEnemy('grunt', worldW, worldH, 0, e.x + (i ? 60 : -60), e.y + 64);
+        if (minion) spawned.push(minion);
+      }
+      break;
+    case 'crystalQueen':
+      // Reflexo: anel de lascas fecha o espaço ao redor da rainha.
+      for (let i = 0; i < 8; i++) {
+        const a = (i * Math.PI) / 4;
+        spawnBullet(e.x, e.y, Math.cos(a) * speed * 0.9, Math.sin(a) * speed * 0.9,
+          dmg, true, cor, false, false, 0, false, spriteDe(def));
+      }
+      break;
+    case 'leviathan':
+      // Lama: três poças onde o jogador pisa e derrapa.
+      for (let i = 0; i < 3; i++) {
+        const a = (i * Math.PI * 2) / 3;
+        addPuddle(e.x + Math.cos(a) * 70, e.y + Math.sin(a) * 70);
+      }
+      break;
+    case 'infernoPrime':
+      // Brasa: três focos que ficam queimando depois que ele passa.
+      for (let i = 0; i < 3; i++) {
+        const a = (i * Math.PI * 2) / 3;
+        spawnFire(e.x + Math.cos(a) * 80, e.y + Math.sin(a) * 80);
+      }
+      break;
+    case 'nucleo':
+      // Pulso: puxa o jogador para o centro antes da próxima descarga.
+      rt.tonguePull = 0.9;
+      rt.tongueAngle = Math.atan2(ty - e.y, tx - e.x);
+      break;
+  }
 }
 
 /**
@@ -115,19 +188,34 @@ export function updateBoss(
       flashing: false,
       tonguePull: 0,
       tongueAngle: 0,
+      especialTimer: ESPECIAL_INTERVAL * 0.6,
+      enraged: false,
     };
     runtimes.set(e, rt);
   }
 
   const hpPct = e.health / e.maxHealth;
+  // FÚRIA: abaixo de 40% de HP todo chefe perde o freio. Não é mecânica nova —
+  // é a mesma luta com o intervalo curto, o passo mais rápido e o aviso menor.
+  // A assinatura própria de cinco chefes vem logo abaixo, somada a isto.
+  const enraged = hpPct <= ENRAGE_HP;
+  const rage = enraged ? 1.35 : 1;
+  const interval = enraged ? ACTION_INTERVAL * 0.7 : ACTION_INTERVAL;
+  if (enraged && !rt.enraged) {
+    rt.enraged = true;
+    spawnParticles(e.x, e.y, PALETTE.danger, 18, 200);
+  }
+  mecanicaPropria(e, def, tx, ty, worldW, worldH, spawned, elapsed, rt);
+
   const step = currentStep(def.pattern, hpPct);
   if (step.index !== rt.step) {
     rt.step = step.index;
-    // telegrafia 0.2s menor: mantém a leitura mas cobra punho rápido
-    rt.telegraph = Math.max(0.4, (def.telegraph ?? DEFAULT_TELEGRAPH) - 0.2);
+    // telegrafia menor na fúria: mantém a leitura mas cobra punho rápido
+    rt.telegraph = Math.max(enraged ? 0.25 : 0.4,
+      (def.telegraph ?? DEFAULT_TELEGRAPH) - (enraged ? 0.45 : 0.2));
     rt.telegraphLabel = step.step.telegraph ?? '';
     rt.flashing = true;
-    rt.timer = ACTION_INTERVAL;
+    rt.timer = interval;
   }
 
   if (rt.flashing) {
@@ -136,7 +224,8 @@ export function updateBoss(
     // Precisa resolver contra o grid — recuar sem colisão enterrava o boss na
     // parede e ele ficava congelado ali para sempre.
     const away = Math.atan2(e.y - ty, e.x - tx);
-    const recuo = def.speed * 0.3 * elapsed;
+    // na fúria o chefe recua menos: o jogador sente que ele "segura o chão"
+    const recuo = def.speed * (enraged ? 0.15 : 0.3) * elapsed;
     const moved = moveCircleBy(
       e.x, e.y,
       Math.cos(away) * recuo,
@@ -147,7 +236,7 @@ export function updateBoss(
     e.y = moved.y;
     if (rt.telegraph <= 0) {
       rt.flashing = false;
-      rt.timer = ACTION_INTERVAL * 0.4;
+      rt.timer = interval * 0.4;
     }
     return spawned;
   }
@@ -181,7 +270,7 @@ export function updateBoss(
   if (rt.burstLeft > 0) {
     rt.burstTimer -= elapsed;
     if (rt.burstTimer <= 0) {
-      rt.burstTimer = 0.35;
+      rt.burstTimer = enraged ? 0.22 : 0.35;
       rt.burstLeft--;
       for (let s = -2; s <= 2; s++) {
         const a = rt.burstAngle + s * 0.12;
@@ -211,7 +300,7 @@ export function updateBoss(
     seekY = (ty - e.y) / len;
   }
   if (seekX !== 0 || seekY !== 0) {
-    const passo = def.speed * 0.9 * elapsed; // antes 0.6 — o chefe parecia arrastar
+    const passo = def.speed * 0.9 * rage * elapsed; // antes 0.6 — o chefe parecia arrastar
     const antesX = e.x, antesY = e.y;
     const next = moveCircleBy(e.x, e.y, seekX * passo, seekY * passo, e.radius);
     e.x = next.x;
@@ -235,13 +324,13 @@ export function updateBoss(
 
   rt.timer -= elapsed;
   if (rt.timer > 0) return spawned;
-  rt.timer = ACTION_INTERVAL;
+  rt.timer = interval;
 
   const action = step.step.action;
   const angle = Math.atan2(ty - e.y, tx - e.x);
   const speed = def.bulletSpeed ?? 300;
   const color = def.projectileColor ?? PALETTE.terracotta;
-  const dmg = e.damage * 1.3;
+  const dmg = e.damage * (enraged ? 1.6 : 1.3);
 
   switch (action) {
     case 'spread':
