@@ -1597,7 +1597,9 @@ function update(dt: number) {
     ondaCompleta: ondaConcluida,
     ultimaOnda,
     respiroArmado: phaseEnding,
-    chefeLiberado: objetivoLiberouChefe,
+    // Refinaria: a TORRE já está em campo desde a onda 2, então o termo
+    // "chefe liberado" é sempre true — quem decide o fim é `chefeVivo`.
+    chefeLiberado: objetivoLiberouChefe || (phase.name === 'Refinaria' && getCurrentMode() === 'campaign'),
     respiroRestante: phaseEndPause,
     chefeVivo,
     jogadorMorto: playerDied || p.health <= 0,
@@ -1754,15 +1756,20 @@ function update(dt: number) {
     proximaPosicao: bossRushIndex,
     tamanhoDaFila: NUCLEO_RUSH.length,
   });
-  // A fase do NÚCLEO não espera "última onda": a fila começa na entrada. Nas
-  // demais fases a regra é a comum (última onda + objetivo + campo vazio).
-  const horaDoChefe = ehNucleoRush ? true : (objetivoLiberouChefe && isUltimasOndas);
+  // A fase do NÚCLEO não espera "última onda": a fila começa na entrada.
+  // A REFINARIA é a exceção nova: a TORRE nasce na onda 2 e fica viva
+  // durante a coleta — você bombeia combustível sob fogo, não depois dele.
+  // O objetivo `collect` continua exigindo os 4 tambores para FECHAR a fase.
+  const torreViva = phase.name === 'Refinaria' && getCurrentMode() === 'campaign';
+  const horaDoChefe = ehNucleoRush ? true
+    : torreViva ? getCurrentWave() >= 1
+    : (objetivoLiberouChefe && isUltimasOndas);
   // O próximo chefe do rush espera só o chefe ANTERIOR cair — não o campo
   // ficar vazio. Com a biomaquina nascendo da máquina a fase inteira, o
   // campo nunca esvazia e a fila travava no primeiro chefe para sempre
   // (DECISIONS #170). A fase normal continua esperando o campo vazio: lá é a
   // última onda que define o momento, e não há máquina pulsando.
-  const campoLivre = ehNucleoRush ? true : enemies.length === 0;
+  const campoLivre = ehNucleoRush || torreViva ? true : enemies.length === 0;
   if ((!bossSpawned || proximoDoRush) && phase.boss && horaDoChefe && campoLivre) {
     // O HOSPITAL (2026-10-14): o chefe da fase É o doutor Fernando — a
     // virada corre na caixa pequena ("Nando-01, pois afinal, meu nome é
