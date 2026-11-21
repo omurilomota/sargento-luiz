@@ -3,21 +3,29 @@
 Obrigado pelo interesse! O projeto aceita contribuições via pull request.
 Antes de começar, leia isto — economiza tempo seu e meu.
 
-## Direitos
+## Direitos e licença
 
-O código é **copyright (c) 2026 Murilo Mota — todos os direitos reservados**
-(veja `LICENSE`). Ao enviar um PR, você concorda que sua contribuição passa
-a ser propriedade do projeto, sob a mesma licença.
+O código é **copyright (c) 2026 Murilo Mota**, licenciado sob
+**Apache License 2.0** (veja `LICENSE` e `NOTICE`).
+
+Ao enviar um pull request, **você mantém os direitos autorais** do que
+escreveu. Sua contribuição entra no projeto sob a mesma Apache-2.0, sem
+transferência de propriedade e sem CLA — a seção 5 da licença já cobre
+isso. Você continua livre para reutilizar seu próprio código em outros
+projetos, respeitada a licença do projeto.
 
 Assets de terceiros (Kenney, Eric Matyas, Vincent Sevedge, harrison-lord,
-isaiah658, LPC, Kay Lousberg) têm licenças próprias e **devem** manter os
-créditos em `public/assets/CREDITS.md` e `public/assets/music/CREDITS.md`.
+isaiah658, LPC, Kay Lousberg e outros) têm licenças próprias e **devem**
+manter os créditos em `public/assets/CREDITS.md`,
+`public/assets/music/CREDITS.md` e `NOTICE`. Não relicencie esses assets.
 
 ## Antes de mexer
 
-1. Leia `AGENTS.md` — contém as regras de design e os anti-padrões.
-2. Leia `TODO.md` e `docs/PENDENCIAS.md` — o que já está planejado.
-3. Abra uma issue descrevendo o que quer mudar **antes** de escrever código.
+1. Leia o `README.md` — o que o jogo é e como rodar.
+2. Leia `docs/PENDENCIAS.md` — a **lista viva** do que está aberto.
+   (`TODO.md` é histórico de sessões: não é leitura obrigatória.)
+3. Leia `AGENTS.md` — regras de design e anti-padrões.
+4. Abra uma issue descrevendo o que quer mudar **antes** de escrever código.
    Isso evita trabalho duplicado.
 
 ## Gitflow
