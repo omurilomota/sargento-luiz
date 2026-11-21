@@ -85,7 +85,7 @@ import { getCurrentClass, setCurrentClass, getClassDamageMult, getClassSpeedMult
 import { updateEnvironmentEvents, resetEnvironmentEvents, getEnvironmentWarnings , forcarEventoAmbiente, tornadoNoAr, tempestadeAtiva, frioAtivo, cinzasAtivas, EnvironmentEvent } from './systems/environment';
 import { addPuddle, markFootstep, isMolhado, updatePuddles, clearPuddles, getPuddles } from './systems/puddles';
 import { initDock, drawDock, clearDock, updateDock, getDockEntities, damageDockEntity } from './systems/dock';
-import { initTrain, drawTrain, clearTrain } from './systems/train';
+import { initTrain, drawTrain, clearTrain, avancaTrem, getTrainHit, pushOutOfTrain, marchaTrem } from './systems/train';
 import { updateCombos, getActiveCombos, getComboDamageBonus, getComboCooldownMult, getComboHealthBonus, resetCombos } from './systems/combos';
 import { setComboHealthMultiplier } from './entities/player';
 import { resetSkins } from './systems/skins';
@@ -545,7 +545,6 @@ let enemies: Enemy[] = [];
 let damageNumbers: { x: number; y: number; text: string; color: string; life: number; vy: number }[] = [];
 let lastTime = 0;
 let phaseTransitionTimer = 0;
-let marchaTrem = 0;
 
 // Três faixas cobrem as 16 fases. Antes toda fase tocava a mesma combat.ogg;
 // a família segue o bioma, não a onda — o combate dentro da fase continua
@@ -784,7 +783,6 @@ function loadPhaseEnvironment(): void {
   clearDock();
   if (phase.map === 'porto') initDock(biome.rows);
   clearTrain();
-  marchaTrem = 0;
   if (biome.train) initTrain(biome.train);
 
   // Estado de ONDA é por fase: sem isto, a cota parcial da última onda da
@@ -3096,7 +3094,7 @@ function drawWorld(): void {
   drawDock(ctx);
   {
     const maquinista = enemies.find(e => e.type === 'maquinista');
-    drawTrain(ctx, marchaTrem, maquinista ? (maquinista.angle >= -Math.PI / 2 && maquinista.angle <= Math.PI / 2 ? 1 : -1) : 1);
+    drawTrain(ctx);
   }
   drawPuddles();
   drawFiresWorld(getFires());
@@ -3387,8 +3385,8 @@ for (const e of enemies) {
     }
     // MAQUINISTA: o trem desce a via junto com a investida
     if (e.type === 'maquinista') {
-      if (tremEmMarcha(e)) marchaTrem += 140 * dt;
-      else marchaTrem = Math.max(0, marchaTrem - 30 * dt);
+      const dir = e.angle >= -Math.PI / 2 && e.angle <= Math.PI / 2 ? 1 : -1;
+      avancaTrem(dt, tremEmMarcha(e), dir);
     }
     // LÍNGUA do Pale Crocodile: arrasta o jogador na direção do bicho
     const puxao = getBossPull(e);
@@ -3669,6 +3667,22 @@ function golpeDeMartelo(
  * projétil contra prop.
  */
 function resolveCollisions(p: ReturnType<typeof player.getPlayer>): void {
+
+// ── trem: casco empurra e fumaça tóxica machuca ──
+const danoTrem = getTrainHit(p.x, p.y, p.radius);
+if (danoTrem > 0) {
+  const empurrado = pushOutOfTrain(p.x, p.y, p.radius);
+  p.x = empurrado.x;
+  p.y = empurrado.y;
+  if (p.invincible <= 0) {
+    const d = damageTaken(danoTrem);
+    if (d > 0) {
+      player.enemyCollisionDamage(d, { fonte: 'evento', tipo: 'trem' });
+      p.invincible = 0.6;
+      feedbackDanoNoJogador();
+    }
+  }
+}
 
 // ── colisões ──
 const activeEnemies = enemies.filter(e => e.spawnDelay <= 0);
@@ -4346,7 +4360,7 @@ window.__ashfall = {
   configAberta: () => isSettingsOpen(),
   // prova do bug "sempre molhado": poças devem zerar ao trocar de fase
   poças: () => getPuddles().length,
-  marchaTrem: () => Math.round(marchaTrem),
+  marchaTrem: () => marchaTrem(),
   // teleporte para provas visuais e para o modo dev inspecionar o mapa
   teleportar: (x: number, y: number) => {
     const jogador = player.getPlayer();
