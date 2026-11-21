@@ -460,7 +460,7 @@ export const WEAPONS: Weapon[] = [
   // CORPO (P0-4, playtest: "martelo não é melee"). O golpe atinge em arco
   // curto, não gasta munição e a cadência lenta é o peso. Não é comprável:
   // só aparece na caixa especial do boss NÚCLEO.
-  { name: 'Destruidor', damage: 110, shootRate: 1.6, bulletSpeed: 0, bulletCount: 1, spread: 0, color: PALETTE.terracotta, price: 0, pierce: false, explosive: true, explosionRadius: 260, magazineSize: 3, reloadTime: 3.0, secret: true, melee: true, meleeRange: 96, meleeArc: 2.4 },
+  { name: 'Destruidor', damage: 140, shootRate: 1.15, bulletSpeed: 0, bulletCount: 1, spread: 0, color: PALETTE.terracotta, price: 0, pierce: false, explosive: true, explosionRadius: 260, magazineSize: 4, reloadTime: 2.2, secret: true, melee: true, meleeRange: 140, meleeArc: 2.4 },
 ];
 
 /** Qualidades sorteáveis de armas: modificam dano, cadência, spread, crítico e pierce. */

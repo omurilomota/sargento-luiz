@@ -3683,6 +3683,9 @@ function golpeDeMartelo(
     const aplicado = danoNoAlvo(danoBase, e);
     e.health -= aplicado;
     e.hitFlash = 0.15;
+    // Peso do martelo: atordoa quem acerta. Nos chefes isso interrompe
+    // o ataque e dá a janela para o jogador sair do corpo a corpo.
+    e.stun = ENEMY_TYPES[e.type]?.isBoss ? 0.4 : 0.2;
     damageNumbers.push({
       x: e.x + (Math.random() - 0.5) * 20,
       y: e.y - 20,
@@ -3700,6 +3703,14 @@ function golpeDeMartelo(
     const a = p.angle - arco / 2 + (arco * i) / (passos - 1);
     spawnParticles(p.x + Math.cos(a) * alcance * 0.7, p.y + Math.sin(a) * alcance * 0.7, PALETTE.mustard, 2, 60, 'spark');
   }
+  // A explosão declarada no config (raio 260) agora existe de verdade:
+  // o golpe é área, não só o alvo da frente. Dano menor que o acerto direto.
+  if (weapon.explosive && weapon.explosionRadius) {
+    createExplosion(p.x + Math.cos(p.angle) * alcance * 0.6, p.y + Math.sin(p.angle) * alcance * 0.6,
+      weapon.explosionRadius, Math.floor(danoBase * 0.5), enemies, PALETTE.terracotta, true);
+  }
+  // 0.25s de invencibilidade: tempo para o golpe sair sem morrer no contato
+  if (p.invincible < 0.25) p.invincible = 0.25;
   triggerScreenShake(5, 0.16);
   triggerHitStop(0.03);
   // arco do martelo visível por ~0.18s, desenhado no renderer por cima do mundo
