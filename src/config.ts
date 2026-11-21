@@ -646,5 +646,5 @@ export const PIECE_TYPES: PieceType[] = [
  * publicar. Vazio faria o botão não abrir nada, então a loja mostra o aviso
  * de "copie a URL" — que é exatamente o fallback do popup bloqueado.
  */
-export const SUPPORT_URL = 'https://omurilomota.itch.io/sargento-luiz';
+export const SUPPORT_URL = 'https://omurilomota.itch.io/sargento-luis';
 export const SUPPORT_LABEL = 'APOIE O PROJETO';

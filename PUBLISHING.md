@@ -1,14 +1,18 @@
-# Publicar no itch.io
+# Publicar no itch.io — SARGENTO LUIZ — Pós-Apocalíptico
+
+**Título oficial:** `SARGENTO LUIZ — Pós-Apocalíptico` (o mesmo do `<title>`
+do jogo no Vercel). Use este título em todo lugar: itch.io, Vercel, site e docs.
+**Slug do itch:** `omurilomota/sargento-luis` (com **s** em `luis`, não `luiz`).
 
 ## Resposta curta
 
-**Existe CLI do itch: sim.** É o `itchio` (Go, binário único).
+A ferramenta é o **butler** (instalado em
+`/home/murilo/tmp/opencode/butler/linux-amd64/butler`).
 
 ```bash
-# install
-# Linux: baixe o binário em https://itch.io/docs/creators/cli e ponha no PATH
-itchio login                      # abre o navegador pra autorizar
-itchio push SEU_USUARIO ashfall ./dist    # envia build direto
+export BUTLER_API_KEY="sua_chave"   # https://itch.io/user/settings/api-keys
+butler push dist omurilomota/sargento-luis:html
+butler status omurilomota/sargento-luis:html
 ```
 
 Mas **para este projeto eu recomendo subir o zip pela interface web**, não pelo CLI:
@@ -17,7 +21,7 @@ Mas **para este projeto eu recomendo subir o zip pela interface web**, não pelo
 - você vai querer trocar `SUPPORT_URL` e as imagens antes de publicar
 - o CLI não deixa você ver a página antes de ir ao ar
 
-O zip já está pronto: **`ashfall.zip`** (8,6 MB, 658 arquivos), gerado por `npm run package`.
+O build está em `dist/` (20,99 MiB, 918 arquivos), gerado por `npm run build`. Já publicado no canal `:html` com `butler push`.
 
 ---
 
@@ -47,7 +51,7 @@ npm run package && cd dist && python3 -m http.server 8000
 
 1. Crie a conta em itch.io
 2. **New Project** → tipo **HTML5**
-3. Upload do `ashfall.zip`
+3. Upload do build: `butler push dist omurilomota/sargento-luis:html`
 4. Em **Embed options** — atenção, é aqui que dá pra estragar:
    - **Embed: `Click to launch in fullscreen`**, NÃO "Embed in page".
      "Embed in page" com tamanho manual 640x360 cria um iframe minúsculo —
@@ -90,14 +94,14 @@ estilizada, e descrever como pixel art atrai o público errado.
 
 Use esta (104 caracteres):
 
-> Top-down roguelite: 9 fases, 9 chefes, 12 armas e uma loja entre cada uma. Feito em TypeScript + Canvas.
+> Top-down roguelite: 16 fases, 16 chefes, 13 armas e loja entre cada uma. Feito em TypeScript + Canvas.
 
 Alternativas:
 
-> Roguelite top-down de sobrevivência. Nove fases, nove chefes, doze armas e loja a cada uma. Sem engine. (103)
-> Nove fases, nove chefes, doze armas. Você não limpa corredores: você luta por terreno, mapa por mapa. (101)
-> Sobreviva a nove fases e nove chefes num mapa maior que a tela. Doze armas, loja entre cada uma. (96)
-> Roguelite top-down: nove fases com mapa próprio, nove chefes, doze armas e loja entre uma e outra. (98)
+> Roguelite top-down: 16 fases, 16 chefes, 13 armas e loja a cada uma. Sem engine. (94)
+> 16 fases, 16 chefes, 13 armas. Você não limpa corredores: luta por terreno, mapa por mapa. (96)
+> Sobreviva a 16 fases e 16 chefes num mapa maior que a tela. 13 armas e loja entre cada uma. (99)
+> Roguelite top-down: 16 fases com mapa próprio, 16 chefes, 13 armas e loja entre uma e outra. (98)
 
 O campo é estreito e o texto rola conforme digita — isso é normal, não trunca de
 verdade. Só salva mesmo assim.
@@ -112,15 +116,15 @@ verdade. Só salva mesmo assim.
 >
 > **O que tem dentro:**
 >
-> - **9 fases**, da cidade em ruínas à estação orbital, cada uma com hazard
+> - **16 fases**, da cidade em ruínas à estação orbital, cada uma com hazard
 >   e objetivo próprios: limpar, sobreviver, destruir ninhos, proteger um
 >   sobrevivente, chegar na zona
-> - **9 chefes** com padrão de ataque próprio e telegrafia — você vê o que vem
+> - **16 chefes** com padrão de ataque próprio e telegrafia — você vê o que vem
 >   antes de vir
-> - **12 armas** com pente e recarga reais, e peças que mudam o
+> - **13 armas** com pente e recarga reais, e peças que mudam o
 >   comportamento de cada uma
-> - **24 conquistas**, diário de bordo com 11 entradas que reagem ao seu
->   desempenho, e 8 sinergias entre arma e upgrade
+> - **Conquistas**, diário de bordo que reage ao seu desempenho e sinergias
+>   entre armas e upgrades
 > - **4 modos**: campanha, competitivo contra bots, 2 jogadores local, e
 >   hardcore (uma vida, sem loja)
 >
@@ -128,8 +132,8 @@ verdade. Só salva mesmo assim.
 > sem framework, sem asset pago. Toda a arte é do Kenney Top-down Shooter (CC0).
 > Trilha por faixas originais do projeto e efeitos por Kenney/OpenGameArt.
 >
-> **Controles:** WASD mover · mouse mirar · click atirar · espaço dash · F escudo
-> · E fúria · R recarregar · 1-9 trocar arma · ESC pausa
+> **Controles:** WASD mover · mouse mirar · click atirar · espaço dash · E escudo
+> · F fúria · R recarregar · 1-9 trocar arma · ESC pausa
 
 **Cuidado com o Local 2P:** o segundo jogador se move, atira e mata inimigo por
 contato, mas **não leva dano e não existe condição de vitória**. Anunciar como

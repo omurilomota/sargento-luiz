@@ -1,6 +1,6 @@
 // Gerado por tools/gensite.mjs a partir de src/config.ts — não editar à mão.
 window.ASHFALL = {
- "geradoEm": "2026-11-07",
+ "geradoEm": "2026-11-21",
  "contadores": {
   "fases": 16,
   "armas": 13,
@@ -452,13 +452,13 @@ window.ASHFALL = {
    "tipo": "torre",
    "vida": 640,
    "dano": 36,
-   "velocidade": 40
+   "velocidade": 34
   },
   {
    "tipo": "transformador",
    "vida": 720,
    "dano": 40,
-   "velocidade": 50
+   "velocidade": 44
   },
   {
    "tipo": "capitao",
