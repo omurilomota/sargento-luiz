@@ -80,6 +80,11 @@ export function loadGame(): SaveData | null {
     }
     return dado as SaveData;
   } catch {
+    // JSON corrompido (escrita interrompida, localStorage sujo, save de
+    // versão antiga inválida): apagar aqui é obrigatório. Sem isto o
+    // `hasSave()` continua true, o menu oferece "Continuar" e toda tentativa
+    // falha de novo — um save fantasma que o jogador não consegue remover.
+    deleteSave();
     return null;
   }
 }
