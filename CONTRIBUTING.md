@@ -87,6 +87,9 @@ Regras que os testes não pegam sozinhos:
 
 ## Pull request
 
+Antes de abrir, leia [`docs/REVIEW.md`](docs/REVIEW.md) — é o que eu olho
+ao revisar.
+
 - Base: `develop`.
 - Descreva **o quê** e **por quê**, com as provas (testes, screenshots).
 - Um PR = uma mudança lógica. PRs grandes e mistos serão pedidos para dividir.
