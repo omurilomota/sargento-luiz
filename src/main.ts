@@ -611,7 +611,9 @@ function armarRespiro(): void {
   // é a fase INTEIRA, ondas + chefe).
   const faseAch = checkAchievements('phase_end');
   if (faseAch) pushToast(faseAch.name, 3.5);
-  if (getCurrentPhase()?.name === 'Castelo' && getCurrentMode() === 'campaign') vooAtivo = PHASE_END_PAUSE;
+  // O vôo NÃO começa aqui. Começa na fala do motor (`lancamentoFoguete`) —
+  // armar no fechamento da fase fazia o foguete sumir da tela antes do
+  // "O motor ronca de primeira", e a cena saía fora de sincronia.
 }
 // pilha de velocidade do último frame (telemetria da prova de serviços)
 let ultimoStackVelocidade = 1;
@@ -2694,6 +2696,9 @@ function efeitoDaCapsula(efeito: 'explosaoCapsula' | 'ferramenta' | 'lancamentoF
     sfxFogueteLancamento();
     triggerDamageFlash();
     triggerScreenShake(10, 1.2);
+    // O vôo nasce AQUI, no mesmo frame do ronco e do clarão. Antes era armado
+    // no armarRespiro() e o foguete decolava antes da fala do motor.
+    vooAtivo = PHASE_END_PAUSE;
     return;
   }
   const amigo = getNPCs().find(n => n.alive);
