@@ -87,6 +87,7 @@ import { addPuddle, markFootstep, isMolhado, updatePuddles, clearPuddles, getPud
 import { initDock, drawDock, clearDock, updateDock, getDockEntities, damageDockEntity } from './systems/dock';
 import { resetGrenades, getGrenadeSlots, getGrenadeSelecionada, trocaGrenade, usarGrenada, addGrenade, granadaAleatoria, GRENADES } from './systems/grenades';
 import { initDestruction, danoParede, paredeCaiu, getParedesCaídas, centroParede } from './systems/destruction';
+import { initInteractive, getAlavancas, acionarAlavanca, addPorta, addAlavanca, temInteractive } from './systems/interactive';
 import { initTrain, drawTrain, clearTrain, avancaTrem, getTrainHit, pushOutOfTrain, marchaTrem } from './systems/train';
 import { updateCombos, getActiveCombos, getComboDamageBonus, getComboCooldownMult, getComboHealthBonus, resetCombos } from './systems/combos';
 import { setComboHealthMultiplier } from './entities/player';
@@ -790,7 +791,13 @@ function loadPhaseEnvironment(): void {
   clearPuddles();
   resetGrenades();
   initDestruction();
+  initInteractive();
   setWallOverride((c, r) => paredeCaiu(c, r) ? false : null);
+  // B2: o Castelo ganha uma porta lateral e a alavanca que a abre
+  if (phase.map === 'castelo') {
+    addPorta('portao_lateral', 8, 10);
+    addAlavanca(3 * 64 + 32, 10 * 64 + 32, 'portao_lateral');
+  }
   // Porto: só a fase atual inicializa a camada viva do cais
   clearDock();
   if (phase.map === 'porto') initDock(biome.rows);
@@ -1266,6 +1273,11 @@ function update(dt: number) {
         }
       }
     }
+  }
+  // B2: encostar na alavanca abre a porta ligada a ela
+  if (temInteractive() && acionarAlavanca(p.x, p.y, p.radius)) {
+    pushToast('PORTA ABERTA', 2, 'achievement');
+    rebuildFlowField(colAt(p.x), rowAt(p.y));
   }
   ultimoPassoX = p.x;
   ultimoPassoY = p.y;
@@ -3144,6 +3156,13 @@ function drawWorld(): void {
     const centro = centroParede(c.col, c.row);
     drawSpriteFit(ctx, escombro, centro.x, centro.y, CELL_SIZE, 0);
   }
+  // B2: alavancas e portas (sprites do pack)
+  if (temInteractive()) {
+    for (const a of getAlavancas()) {
+      const img = getSprite(a.ativada ? 'prop_tocha_00' : 'prop_painel_00');
+      if (img && img.complete && img.naturalWidth) ctx.drawImage(img, a.x - 14, a.y - 14, 28, 28);
+    }
+  }
   drawDock(ctx);
   {
     const maquinista = enemies.find(e => e.type === 'maquinista');
@@ -3913,6 +3932,10 @@ for (const b of getBullets()) {
 updateParticles(dt);
 updateExplosions(dt);
 updateFires(dt);
+// B1: água e fogo se anulam — poça apaga o fogo, fogo seca a poça.
+for (const f of getFires()) {
+  if (isMolhado(f.x, f.y)) f.life = Math.min(f.life, 0.1);
+}
 // B7: o fogo é do mundo — fere os dois lados. O inimigo que fica em cima
 // da poça paga 8/s; a coleta do health <= 0 é a do loop de mortes.
 for (const e of enemies) {
