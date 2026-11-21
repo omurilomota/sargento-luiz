@@ -7,6 +7,8 @@ Você não limpa corredores: você luta por **terreno**. Cada fase é um mapa de
 30×20 células (1920×1280 px, maior que a tela), com paredes, cobertura, barris
 e eventos climáticos que mudam a leitura de cada tiro. Onde você fica é a decisão.
 
+![Menu, combate, loja e ficha da arma](docs/folha-readme.png)
+
 Jogar no navegador:
 - **itch.io:** https://omurilomota.itch.io/sargento-luis
 - **Vercel:** https://sargento-luiz.vercel.app

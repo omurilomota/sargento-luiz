@@ -1,4 +1,4 @@
-# Bubble Shooter — Documento de Design
+# SARGENTO LUIZ — Documento de Design
 
 > Onde o jogo quer chegar. O que já está pronto está no
 > [`../STATUS.md`](../STATUS.md); o que está por fazer, no

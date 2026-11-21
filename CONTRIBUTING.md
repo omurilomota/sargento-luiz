@@ -61,15 +61,29 @@ numa folha-contato). Screenshot não lido é screenshot inexistente.
 
 Mudanças em HP/onda exigem `npm run sessao`.
 
-## Regras de design (resumo)
+## Ferramentas de IA
 
-- **Visual vem de asset**, nunca de código. Procedural só como fallback
-  declarado quando o asset não carrega.
-- **Som vem de arquivo**, com fallback procedural atrás de `playSfxFile`.
-- **Texto novo passa pelo `semIA`** antes de existir — os portões reprovam
-  tics de texto gerado por IA.
-- **Código que ninguém chama não entra** — o portão `semOrfao` pega export
-  sem chamador, stat sem leitor/escritor.
+Copilot, Claude Code, OpenCode, Cursor e semelhantes são permitidos. O projeto
+usa essas ferramentas; o que importa é o resultado passar nos portões.
+
+Os cinco portões da suíte (`npm test`) reprovam:
+
+| Portão | O que pega |
+|---|---|
+| `semIA` | tics de texto em falas e diário: tríade "A, B e C", "não X, mas Y", etiqueta de fala, adjetivo vazio |
+| `semDesenho` | `arc`, `fillRect`, `ellipse` e gradientes no renderer fora da lista permitida |
+| `semProcedural` | som sintético sem arquivo OGG atrás de `playSfxFile` |
+| `semAssetQuebrado` | arquivo de `public/assets/` que não chegou ao `dist/` ou veio com 0 byte |
+| `semOrfao` | export sem chamador, stat sem leitor ou sem escritor |
+
+Regras que os testes não pegam sozinhos:
+
+- **Regra 15:** visual vem de sprite do pack. Código desenha só UI, efeito e
+  fallback declarado de asset que falhou ao carregar.
+- **Regra 16:** render mudou → `npm run visual` → abrir o PNG. Sem isso, a
+  entrega fica pendente.
+- **Texto novo:** se a frase só funciona com o tic, reescreva. Se não souber
+  escrever sem soar IA, pergunte na issue antes de colocar no código.
 
 ## Pull request
 

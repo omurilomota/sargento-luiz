@@ -1,4 +1,4 @@
-# SARGENTO RIOS — Roadmap
+# SARGENTO LUIZ — Roadmap
 
 > Atualizado: 2026-11-07 12:47 · HEAD `883740b` · direção em [`docs/DESIGN.md`](docs/DESIGN.md) ·
 > estado concreto em [`STATUS.md`](STATUS.md) · **lista viva** em
